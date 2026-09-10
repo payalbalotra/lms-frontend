@@ -1,0 +1,29 @@
+{
+  "app": {
+    "title": "Alimentaria Mexicana"
+  },
+  "login": {
+    "heading": "Sign in",
+    "nameLabel": "Your name",
+    "namePlaceholder": "e.g. Admin",
+    "locationLabel": "Location",
+    "locationPlaceholder": "e.g. loc-main",
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "Your password",
+    "submit": "Sign in",
+    "submitting": "Signing in...",
+    "errorInvalid": "Invalid name or password.",
+    "errorLocked": "Too many failed attempts. Try again later.",
+    "errorGeneric": "Sign in failed. Please try again.",
+    "footerHint": "Use the credentials provided by your manager."
+  },
+  "employee": {
+    "assignedHeading": "Your assigned training",
+    "assignedPlaceholder": "Your assigned training will appear here in Stage 3.",
+    "signedInAs": "Signed in as {name}",
+    "signOut": "Sign out"
+  },
+  "common": {
+    "loading": "Loading..."
+  }
+}
