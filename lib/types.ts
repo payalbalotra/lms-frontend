@@ -18,12 +18,14 @@ export interface Employee {
 
 export interface Role {
   id: string;
+  name: string;
   clearanceLevel: ClearanceLevel;
   createdAt: string;
 }
 
 export interface Station {
   id: string;
+  name: string;
   locationId: string;
   sortOrder: number;
   isArchived: boolean;
@@ -65,4 +67,38 @@ export interface ApiError {
     message: string;
     lockedUntil?: string;
   };
+}
+
+// ============================================================================
+// Settings CRUD inputs (mirror backend service input shapes)
+// ============================================================================
+
+export interface CreateStationInput {
+  name: string;
+  locationId: string;
+  sortOrder?: number;
+}
+
+export interface UpdateStationInput {
+  name?: string;
+  sortOrder?: number;
+  isArchived?: boolean;
+}
+
+export interface CreateRoleInput {
+  name: string;
+  clearanceLevel: ClearanceLevel;
+}
+
+export interface UpdateRoleInput {
+  name?: string;
+  clearanceLevel?: ClearanceLevel;
+}
+
+export interface CreateLocationInput {
+  name: string;
+}
+
+export interface UpdateLocationInput {
+  name: string;
 }

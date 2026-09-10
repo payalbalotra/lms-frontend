@@ -174,7 +174,7 @@ export function NewEmployeeForm({
             >
               {locations.map((l) => (
                 <option key={l.id} value={l.id}>
-                  {l.name} ({l.id})
+                  {l.name}
                 </option>
               ))}
             </select>
@@ -193,7 +193,7 @@ export function NewEmployeeForm({
               <option value="">—</option>
               {roles.map((r) => (
                 <option key={r.id} value={r.id}>
-                  {r.id} ({r.clearanceLevel})
+                  {r.name} ({r.clearanceLevel})
                 </option>
               ))}
             </select>
@@ -211,7 +211,7 @@ export function NewEmployeeForm({
               <option value="">— none —</option>
               {stations.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.id}
+                  {s.name || s.id}
                 </option>
               ))}
             </select>

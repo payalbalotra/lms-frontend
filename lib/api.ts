@@ -2,12 +2,18 @@ import type {
   AdminEmployee,
   ApiError,
   CreateEmployeeInput,
+  CreateLocationInput,
+  CreateRoleInput,
+  CreateStationInput,
   Employee,
   EmployeeStatus,
   InviteResult,
   Location,
   Role,
   Station,
+  UpdateLocationInput,
+  UpdateRoleInput,
+  UpdateStationInput,
 } from './types';
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:4000';
@@ -25,7 +31,7 @@ export class ApiException extends Error {
 }
 
 interface RequestOptions {
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
   // Forward the incoming request's cookies when calling the API server-side.
   // On the client, omit this — the browser attaches cookies automatically because
@@ -105,8 +111,16 @@ export function listRoles(cookieHeader?: string): Promise<{ roles: Role[] }> {
   return apiRequest('/api/admin/employees/roles', { cookieHeader });
 }
 
-export function listStations(locationId: string, cookieHeader?: string): Promise<{ stations: Station[] }> {
-  return apiRequest(`/api/admin/employees/stations?locationId=${encodeURIComponent(locationId)}`, { cookieHeader });
+export function listStations(
+  locationId: string,
+  cookieHeader?: string,
+  opts: { includeArchived?: boolean } = {},
+): Promise<{ stations: Station[] }> {
+  const includeArchived = opts.includeArchived ? '&includeArchived=true' : '';
+  return apiRequest(
+    `/api/admin/employees/stations?locationId=${encodeURIComponent(locationId)}${includeArchived}`,
+    { cookieHeader },
+  );
 }
 
 export function listLocations(cookieHeader?: string): Promise<{ locations: Location[] }> {
@@ -140,6 +154,61 @@ export function deactivateEmployee(employeeId: string): Promise<{ employee: Admi
 
 export function reactivateEmployee(employeeId: string): Promise<{ employee: AdminEmployee }> {
   return apiRequest(`/api/admin/employees/${encodeURIComponent(employeeId)}/reactivate`, { method: 'POST' });
+}
+
+// ----------------------------------------------------------------------------
+// Admin settings — stations, roles, locations
+// ----------------------------------------------------------------------------
+
+export function createStation(input: CreateStationInput): Promise<{ station: Station }> {
+  return apiRequest('/api/admin/employees/stations', { method: 'POST', body: input });
+}
+
+export function updateStation(stationId: string, patch: UpdateStationInput): Promise<{ station: Station }> {
+  return apiRequest(`/api/admin/employees/stations/${encodeURIComponent(stationId)}`, {
+    method: 'PATCH',
+    body: patch,
+  });
+}
+
+export function archiveStation(stationId: string): Promise<{ station: Station }> {
+  return apiRequest(`/api/admin/employees/stations/${encodeURIComponent(stationId)}/archive`, {
+    method: 'POST',
+  });
+}
+
+export function createRole(input: CreateRoleInput): Promise<{ role: Role }> {
+  return apiRequest('/api/admin/employees/roles', { method: 'POST', body: input });
+}
+
+export function updateRole(roleId: string, patch: UpdateRoleInput): Promise<{ role: Role }> {
+  return apiRequest(`/api/admin/employees/roles/${encodeURIComponent(roleId)}`, {
+    method: 'PATCH',
+    body: patch,
+  });
+}
+
+export function deleteRole(roleId: string): Promise<{ ok: true }> {
+  return apiRequest(`/api/admin/employees/roles/${encodeURIComponent(roleId)}`, {
+    method: 'DELETE',
+  });
+}
+
+export function createLocation(input: CreateLocationInput): Promise<{ location: Location }> {
+  return apiRequest('/api/admin/employees/locations', { method: 'POST', body: input });
+}
+
+export function updateLocation(locationId: string, patch: UpdateLocationInput): Promise<{ location: Location }> {
+  return apiRequest(`/api/admin/employees/locations/${encodeURIComponent(locationId)}`, {
+    method: 'PATCH',
+    body: patch,
+  });
+}
+
+export function deleteLocation(locationId: string): Promise<{ ok: true }> {
+  return apiRequest(`/api/admin/employees/locations/${encodeURIComponent(locationId)}`, {
+    method: 'DELETE',
+  });
 }
 
 // ----------------------------------------------------------------------------

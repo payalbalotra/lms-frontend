@@ -50,6 +50,9 @@ export default async function AdminLayout({ children, params }: AdminLayoutProps
           <Link href={`/${locale}/admin/employees`} className="font-medium underline-offset-4 hover:underline">
             {t('navEmployees')}
           </Link>
+          <Link href={`/${locale}/admin/settings/stations`} className="font-medium underline-offset-4 hover:underline">
+            {t('navSettings')}
+          </Link>
         </nav>
         <div className="flex items-center gap-3">
           <Link
