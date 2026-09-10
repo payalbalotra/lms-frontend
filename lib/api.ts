@@ -1,4 +1,14 @@
-import type { ApiError, Employee } from './types';
+import type {
+  AdminEmployee,
+  ApiError,
+  CreateEmployeeInput,
+  Employee,
+  EmployeeStatus,
+  InviteResult,
+  Location,
+  Role,
+  Station,
+} from './types';
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:4000';
 
@@ -85,4 +95,61 @@ export function logout(): Promise<{ ok: true }> {
 
 export function fetchMe(cookieHeader?: string, signal?: AbortSignal): Promise<{ employee: Employee }> {
   return apiRequest('/api/auth/me', { cookieHeader, signal });
+}
+
+// ----------------------------------------------------------------------------
+// Admin lookups
+// ----------------------------------------------------------------------------
+
+export function listRoles(cookieHeader?: string): Promise<{ roles: Role[] }> {
+  return apiRequest('/api/admin/employees/roles', { cookieHeader });
+}
+
+export function listStations(locationId: string, cookieHeader?: string): Promise<{ stations: Station[] }> {
+  return apiRequest(`/api/admin/employees/stations?locationId=${encodeURIComponent(locationId)}`, { cookieHeader });
+}
+
+export function listLocations(cookieHeader?: string): Promise<{ locations: Location[] }> {
+  return apiRequest('/api/admin/employees/locations', { cookieHeader });
+}
+
+// ----------------------------------------------------------------------------
+// Admin employees
+// ----------------------------------------------------------------------------
+
+export function listEmployees(
+  opts: { status?: EmployeeStatus | 'all' } = {},
+  cookieHeader?: string,
+): Promise<{ employees: AdminEmployee[] }> {
+  const status = opts.status ?? 'all';
+  const qs = status === 'all' ? '' : `?status=${encodeURIComponent(status)}`;
+  return apiRequest(`/api/admin/employees${qs}`, { cookieHeader });
+}
+
+export function createEmployee(input: CreateEmployeeInput): Promise<{ employee: Employee; invite: InviteResult }> {
+  return apiRequest('/api/admin/employees', { method: 'POST', body: input });
+}
+
+export function resendInvite(employeeId: string): Promise<{ invite: InviteResult }> {
+  return apiRequest(`/api/admin/employees/${encodeURIComponent(employeeId)}/invites`, { method: 'POST' });
+}
+
+export function deactivateEmployee(employeeId: string): Promise<{ employee: AdminEmployee }> {
+  return apiRequest(`/api/admin/employees/${encodeURIComponent(employeeId)}/deactivate`, { method: 'POST' });
+}
+
+export function reactivateEmployee(employeeId: string): Promise<{ employee: AdminEmployee }> {
+  return apiRequest(`/api/admin/employees/${encodeURIComponent(employeeId)}/reactivate`, { method: 'POST' });
+}
+
+// ----------------------------------------------------------------------------
+// Activate (invite token → activate → auto-login)
+// ----------------------------------------------------------------------------
+
+export function lookupInvite(token: string): Promise<{ employeeName: string; expiresAt: string }> {
+  return apiRequest(`/api/auth/invites/${encodeURIComponent(token)}`);
+}
+
+export function activate(input: { token: string; code: string; password: string }): Promise<{ employee: Employee }> {
+  return apiRequest('/api/auth/activate', { method: 'POST', body: input });
 }

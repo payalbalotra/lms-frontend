@@ -8,12 +8,12 @@ import { fetchMe, logout, ApiException } from '@/lib/api';
 import type { Employee } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 
-interface EmployeeLayoutProps {
+interface AdminLayoutProps {
   children: ReactNode;
   params: Promise<{ locale: string }>;
 }
 
-export default async function EmployeeLayout({ children, params }: EmployeeLayoutProps): Promise<React.ReactElement> {
+export default async function AdminLayout({ children, params }: AdminLayoutProps): Promise<React.ReactElement> {
   const { locale } = await params;
   setRequestLocale(locale);
 
@@ -27,11 +27,12 @@ export default async function EmployeeLayout({ children, params }: EmployeeLayou
   try {
     const me = await fetchMe(cookieHeader);
     employee = me.employee;
-  } catch (err) {
-    if (err instanceof ApiException) {
-      redirect(`/${locale}/login`);
-    }
+  } catch {
     redirect(`/${locale}/login`);
+  }
+
+  if (employee.clearanceLevel !== 'master') {
+    redirect(`/${locale}/employee/assigned`);
   }
 
   async function signOut(): Promise<void> {
@@ -40,24 +41,23 @@ export default async function EmployeeLayout({ children, params }: EmployeeLayou
     redirect(`/${locale}/login`);
   }
 
-  const t = await getTranslations('employee');
-  const tCommon = await getTranslations('app');
+  const t = await getTranslations('admin');
 
   return (
     <div className="flex min-h-screen flex-col">
       <header className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3 sm:px-6">
-        <p className="text-sm text-[var(--color-muted-foreground)]">
-          {t('signedInAs', { name: employee.name })}
-        </p>
+        <nav className="flex items-center gap-4 text-sm">
+          <Link href={`/${locale}/admin/employees`} className="font-medium underline-offset-4 hover:underline">
+            {t('navEmployees')}
+          </Link>
+        </nav>
         <div className="flex items-center gap-3">
-          {employee.clearanceLevel === 'master' ? (
-            <Link
-              href={`/${locale}/admin/employees`}
-              className="text-xs font-medium underline-offset-4 hover:underline"
-            >
-              {tCommon('admin')}
-            </Link>
-          ) : null}
+          <Link
+            href={`/${locale}/employee/assigned`}
+            className="text-xs text-[var(--color-muted-foreground)] underline-offset-4 hover:underline"
+          >
+            ← {t('backToApp')}
+          </Link>
           <form action={signOut}>
             <Button type="submit" variant="outline" size="sm">
               {t('signOut')}

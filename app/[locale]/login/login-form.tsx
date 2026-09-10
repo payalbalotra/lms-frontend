@@ -16,6 +16,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { login, ApiException } from '@/lib/api';
+import Link from 'next/link';
 
 interface LoginFormProps {
   locale: string;
@@ -118,6 +119,12 @@ export function LoginForm({ locale }: LoginFormProps): React.ReactElement {
           <p className="text-xs text-[var(--color-muted-foreground)] text-center">
             {t('footerHint')}
           </p>
+          <Link
+            href={`/${locale}/activate`}
+            className="text-xs text-center underline-offset-4 hover:underline"
+          >
+            {t('haveInvite')}
+          </Link>
         </CardFooter>
       </form>
     </Card>
