@@ -1,6 +1,9 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 
+/**
+ * Labels follow DESIGN.md §3.2 (text-sm, weight 600, color --color-ink).
+ */
 export type LabelProps = React.LabelHTMLAttributes<HTMLLabelElement>;
 
 export const Label = React.forwardRef<HTMLLabelElement, LabelProps>(function Label(
@@ -12,7 +15,7 @@ export const Label = React.forwardRef<HTMLLabelElement, LabelProps>(function Lab
       ref={ref}
       data-slot="label"
       className={cn(
-        'text-sm font-medium leading-none',
+        'text-sm font-semibold leading-none text-[var(--color-ink)]',
         'peer-disabled:cursor-not-allowed peer-disabled:opacity-70',
         className,
       )}

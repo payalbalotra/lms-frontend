@@ -28,7 +28,7 @@ export default async function RolesSettingsPage({
   } catch (err) {
     if (err instanceof ApiException) {
       return (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-[var(--color-bad)]">
           {err.code}
         </p>
       );

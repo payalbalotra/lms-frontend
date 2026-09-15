@@ -33,7 +33,7 @@ export default async function NewEmployeePage({ params }: PageProps): Promise<Re
   if (roles.length === 0) {
     return (
       <p className="text-center text-sm text-[var(--color-muted-foreground)]">
-        No roles seeded. Run <code className="rounded bg-[var(--color-muted)] px-1">pnpm admin bootstrap</code> first.
+        No roles seeded. Run <code className="rounded-md bg-[var(--color-panel)] px-1 py-0.5 text-xs">pnpm admin bootstrap</code> first.
       </p>
     );
   }

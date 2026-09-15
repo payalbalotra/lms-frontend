@@ -28,8 +28,13 @@ export default function proxy(request: NextRequest): NextResponse {
   const isEmployeeArea = pathAfterLocale.startsWith('/employee');
 
   if (isEmployeeArea) {
+    // Better Auth's session cookie name. The `__Host-` prefix is added in
+    // production by better-auth.ts#advanced.cookiePrefix; in dev the prefix
+    // is absent. We check both shapes so the dev/prod cookie name doesn't
+    // require a code change.
     const sessionCookie =
-      request.cookies.get('al-session') ?? request.cookies.get('__Host-session');
+      request.cookies.get('better-auth.session_token') ??
+      request.cookies.get('__Host-better-auth.session_token');
     if (!sessionCookie || sessionCookie.value === '') {
       const loginUrl = new URL(`/${localePrefix}/login`, request.url);
       return NextResponse.redirect(loginUrl);

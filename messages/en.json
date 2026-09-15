@@ -22,6 +22,7 @@
   "employee": {
     "assignedHeading": "Your assigned training",
     "assignedPlaceholder": "Your assigned training will appear here in Stage 3.",
+    "assignedStatusEmpty": "No training assigned yet",
     "signedInAs": "Signed in as {name}",
     "signOut": "Sign out"
   },

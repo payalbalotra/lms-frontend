@@ -55,7 +55,7 @@ export default async function ActivateTokenPage({ params }: PageProps): Promise<
           </CardHeader>
           <CardContent>
             <Link href={`/${locale}/login`}>
-              <Button variant="outline" className="w-full">
+              <Button variant="neutral" className="w-full">
                 {t('backToLogin')}
               </Button>
             </Link>

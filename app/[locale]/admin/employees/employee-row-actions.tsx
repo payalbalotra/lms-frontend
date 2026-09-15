@@ -82,7 +82,7 @@ export function EmployeeRowActions({ locale, employee }: EmployeeRowActionsProps
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap gap-2">
         {employee.status === 'pending' ? (
-          <Button size="sm" variant="outline" disabled={pending} onClick={onResend}>
+          <Button size="sm" variant="neutral" disabled={pending} onClick={onResend}>
             {t('actionsResend')}
           </Button>
         ) : null}
@@ -93,12 +93,12 @@ export function EmployeeRowActions({ locale, employee }: EmployeeRowActionsProps
               <Button size="sm" variant="destructive" disabled={pending} onClick={onDeactivate}>
                 {t('confirmYes')}
               </Button>
-              <Button size="sm" variant="outline" disabled={pending} onClick={() => setConfirmDeactivate(false)}>
+              <Button size="sm" variant="neutral" disabled={pending} onClick={() => setConfirmDeactivate(false)}>
                 {t('confirmNo')}
               </Button>
             </>
           ) : (
-            <Button size="sm" variant="outline" disabled={pending} onClick={onDeactivate}>
+            <Button size="sm" variant="neutral" disabled={pending} onClick={onDeactivate}>
               {t('actionsDeactivate')}
             </Button>
           )
@@ -107,15 +107,15 @@ export function EmployeeRowActions({ locale, employee }: EmployeeRowActionsProps
         {employee.status === 'deactivated' ? (
           confirmReactivate ? (
             <>
-              <Button size="sm" variant="default" disabled={pending} onClick={onReactivate}>
+              <Button size="sm" variant="primary" disabled={pending} onClick={onReactivate}>
                 {t('confirmYes')}
               </Button>
-              <Button size="sm" variant="outline" disabled={pending} onClick={() => setConfirmReactivate(false)}>
+              <Button size="sm" variant="neutral" disabled={pending} onClick={() => setConfirmReactivate(false)}>
                 {t('confirmNo')}
               </Button>
             </>
           ) : (
-            <Button size="sm" variant="outline" disabled={pending} onClick={onReactivate}>
+            <Button size="sm" variant="neutral" disabled={pending} onClick={onReactivate}>
               {t('actionsReactivate')}
             </Button>
           )
@@ -123,19 +123,19 @@ export function EmployeeRowActions({ locale, employee }: EmployeeRowActionsProps
       </div>
 
       {resendError ? (
-        <p role="alert" className="text-xs text-red-600">
+        <p role="alert" className="text-xs text-[var(--color-bad)]">
           {resendError}
         </p>
       ) : null}
 
       {lastInvite ? (
-        <div className="rounded border border-[var(--color-border)] bg-[var(--color-muted)] p-2 text-xs">
+        <div className="rounded-md border border-[var(--color-line)] bg-[var(--color-panel)] p-2 text-xs text-[var(--color-ink)]">
           <p className="mb-1 font-medium">{t('inviteCreatedHeading')}</p>
           <p className="mb-1 break-all">
             <span className="text-[var(--color-muted-foreground)]">{t('inviteUrlLabel')}</span>{' '}
             <a
               href={`/${locale}/admin/employees/new#${employee.id}`}
-              className="font-mono underline-offset-2 hover:underline"
+              className="font-mono text-[var(--color-brand-700)] underline-offset-2 hover:underline"
             >
               {lastInvite.code}
             </a>
@@ -145,7 +145,7 @@ export function EmployeeRowActions({ locale, employee }: EmployeeRowActionsProps
               href={lastInvite.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-mono underline-offset-2 hover:underline"
+              className="font-mono text-[var(--color-brand-700)] underline-offset-2 hover:underline"
             >
               {lastInvite.url}
             </a>

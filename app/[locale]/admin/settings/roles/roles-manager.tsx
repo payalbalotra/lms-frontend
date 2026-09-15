@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
 import {
   Card,
   CardContent,
@@ -167,7 +168,7 @@ export function RolesManager({
             </div>
             <div className="grid gap-1">
               <Label htmlFor="newRoleClearance">{t('rolesFieldClearance')}</Label>
-              <select
+              <Select
                 id="newRoleClearance"
                 value={createForm.clearanceLevel}
                 onChange={(e) =>
@@ -177,13 +178,12 @@ export function RolesManager({
                   })
                 }
                 disabled={isPending}
-                className="flex h-10 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-sm"
               >
                 <option value="general">general</option>
                 <option value="station">station</option>
                 <option value="confidential">confidential</option>
                 <option value="master">master</option>
-              </select>
+              </Select>
             </div>
             <div className="flex items-end sm:col-span-2">
               <Button
@@ -194,7 +194,7 @@ export function RolesManager({
               </Button>
             </div>
             {createError ? (
-              <p role="alert" className="text-sm text-red-600 sm:col-span-3">
+              <p role="alert" className="text-sm text-[var(--color-bad)] sm:col-span-3">
                 {createError}
               </p>
             ) : null}
@@ -203,7 +203,7 @@ export function RolesManager({
       </Card>
 
       {editError ? (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-[var(--color-bad)]">
           {editError}
         </p>
       ) : null}
@@ -211,17 +211,17 @@ export function RolesManager({
       <Card>
         <CardContent className="p-0">
           {initialRoles.length === 0 ? (
-            <p className="p-6 text-center text-sm text-[var(--color-muted-foreground)]">
+            <p className="px-6 py-8 text-center text-sm text-[var(--color-muted-foreground)]">
               {t('rolesEmpty')}
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="border-b border-[var(--color-border)] bg-[var(--color-muted)] text-left">
+                <thead className="border-b border-[var(--color-line)] bg-[var(--color-panel)] text-left">
                   <tr>
-                    <th className="px-3 py-2 font-medium">{t('thRolesName')}</th>
-                    <th className="px-3 py-2 font-medium">{t('thRolesClearance')}</th>
-                    <th className="px-3 py-2 font-medium">{t('thActions')}</th>
+                    <th className="px-4 py-2 font-semibold text-[var(--color-ink-2)]">{t('thRolesName')}</th>
+                    <th className="px-4 py-2 font-semibold text-[var(--color-ink-2)]">{t('thRolesClearance')}</th>
+                    <th className="px-4 py-2 font-semibold text-[var(--color-ink-2)]">{t('thActions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -230,9 +230,9 @@ export function RolesManager({
                     return (
                       <tr
                         key={r.id}
-                        className="border-b border-[var(--color-border)] last:border-b-0"
+                        className="border-b border-[var(--color-line)] last:border-b-0"
                       >
-                        <td className="px-3 py-2">
+                        <td className="px-4 py-2">
                           {isEditing ? (
                             <Input
                               value={editingForm.name}
@@ -249,9 +249,9 @@ export function RolesManager({
                             r.name
                           )}
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-4 py-2">
                           {isEditing ? (
-                            <select
+                            <Select
                               value={editingForm.clearanceLevel}
                               onChange={(e) =>
                                 setEditingForm({
@@ -260,18 +260,18 @@ export function RolesManager({
                                 })
                               }
                               disabled={isPending}
-                              className="flex h-9 rounded-md border border-[var(--color-border)] bg-[var(--color-background)] px-2 text-sm"
+                              className="h-9 w-auto px-2"
                             >
                               <option value="general">general</option>
                               <option value="station">station</option>
                               <option value="confidential">confidential</option>
                               <option value="master">master</option>
-                            </select>
+                            </Select>
                           ) : (
                             r.clearanceLevel
                           )}
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-4 py-2">
                           {isEditing ? (
                             <div className="flex flex-wrap gap-2">
                               <Button
@@ -283,7 +283,7 @@ export function RolesManager({
                               </Button>
                               <Button
                                 size="sm"
-                                variant="outline"
+                                variant="neutral"
                                 disabled={isPending}
                                 onClick={cancelEdit}
                               >
@@ -294,7 +294,7 @@ export function RolesManager({
                             <div className="flex flex-wrap gap-2">
                               <Button
                                 size="sm"
-                                variant="outline"
+                                variant="neutral"
                                 disabled={isPending}
                                 onClick={() => startEdit(r)}
                               >
@@ -312,7 +312,7 @@ export function RolesManager({
                                   </Button>
                                   <Button
                                     size="sm"
-                                    variant="outline"
+                                    variant="neutral"
                                     disabled={isPending}
                                     onClick={() => setConfirmDelete(null)}
                                   >
@@ -322,7 +322,7 @@ export function RolesManager({
                               ) : (
                                 <Button
                                   size="sm"
-                                  variant="outline"
+                                  variant="neutral"
                                   disabled={isPending}
                                   onClick={() => onDeleteClick(r)}
                                 >

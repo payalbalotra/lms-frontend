@@ -16,7 +16,25 @@ import type {
   UpdateStationInput,
 } from './types';
 
-export const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:4000';
+// Client-side fetches use a relative path so the browser hits the Next.js
+// rewrite proxy (next.config.ts → /api/* → backend). That keeps the Better
+// Auth Set-Cookie scoped to localhost:3000 — the page origin — so it
+// survives client navigations and SSR fetches that read cookies().
+//
+// Server-side fetches (in Server Components, layouts, route handlers) bypass
+// the proxy and hit the backend directly. The cookie from the incoming
+// browser request is forwarded manually via options.cookieHeader so the
+// backend's requireAuth still sees it. Going through the rewrite for
+// internal SSR fetches is fragile (Next.js may rewrite the cookie header or
+// strip attributes depending on version), so direct + manual forwarding is
+// the reliable path.
+//
+// Override via NEXT_PUBLIC_API_BASE to point both at a different origin.
+export const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE ??
+  (typeof window === 'undefined'
+    ? (process.env.BACKEND_INTERNAL_URL ?? 'http://localhost:4000')
+    : '');
 
 export class ApiException extends Error {
   public readonly status: number;

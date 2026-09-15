@@ -7,12 +7,14 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { StatusPill } from '@/components/ui/status-pill';
 import {
   archiveStation,
   createStation,
@@ -182,19 +184,18 @@ export function StationsManager({
             </div>
             <div className="grid gap-1">
               <Label htmlFor="newStationLocation">{t('stationsFieldLocation')}</Label>
-              <select
+              <Select
                 id="newStationLocation"
                 value={createForm.locationId}
                 onChange={(e) => setCreateForm({ ...createForm, locationId: e.target.value })}
                 disabled={isPending}
-                className="flex h-10 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-sm"
               >
                 {locations.map((l) => (
                   <option key={l.id} value={l.id}>
                     {l.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             <div className="flex items-end sm:col-span-2">
               <Button
@@ -205,7 +206,7 @@ export function StationsManager({
               </Button>
             </div>
             {createError ? (
-              <p role="alert" className="text-sm text-red-600 sm:col-span-3">
+              <p role="alert" className="text-sm text-[var(--color-bad)] sm:col-span-3">
                 {createError}
               </p>
             ) : null}
@@ -214,7 +215,7 @@ export function StationsManager({
       </Card>
 
       {editError ? (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-[var(--color-bad)]">
           {editError}
         </p>
       ) : null}
@@ -222,17 +223,17 @@ export function StationsManager({
       <Card>
         <CardContent className="p-0">
           {initialStations.length === 0 ? (
-            <p className="p-6 text-center text-sm text-[var(--color-muted-foreground)]">
+            <p className="px-6 py-8 text-center text-sm text-[var(--color-muted-foreground)]">
               {t('stationsEmpty')}
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="border-b border-[var(--color-border)] bg-[var(--color-muted)] text-left">
+                <thead className="border-b border-[var(--color-line)] bg-[var(--color-panel)] text-left">
                   <tr>
-                    <th className="px-3 py-2 font-medium">{t('thStationsName')}</th>
-                    <th className="px-3 py-2 font-medium">{t('thStationsStatus')}</th>
-                    <th className="px-3 py-2 font-medium">{t('thActions')}</th>
+                    <th className="px-4 py-2 font-semibold text-[var(--color-ink-2)]">{t('thStationsName')}</th>
+                    <th className="px-4 py-2 font-semibold text-[var(--color-ink-2)]">{t('thStationsStatus')}</th>
+                    <th className="px-4 py-2 font-semibold text-[var(--color-ink-2)]">{t('thActions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -241,9 +242,9 @@ export function StationsManager({
                     return (
                       <tr
                         key={s.id}
-                        className="border-b border-[var(--color-border)] last:border-b-0"
+                        className="border-b border-[var(--color-line)] last:border-b-0"
                       >
-                        <td className="px-3 py-2">
+                        <td className="px-4 py-2">
                           {isEditing ? (
                             <Input
                               value={editingForm.name}
@@ -257,7 +258,7 @@ export function StationsManager({
                             s.name
                           )}
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-4 py-2">
                           {isEditing ? (
                             <label className="flex items-center gap-2 text-xs">
                               <input
@@ -273,17 +274,13 @@ export function StationsManager({
                               />
                               {t('stationArchivedBadge')}
                             </label>
-                          ) : s.isArchived ? (
-                            <span className="inline-block rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700">
-                              {t('stationArchivedBadge')}
-                            </span>
                           ) : (
-                            <span className="inline-block rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-800">
-                              {t('stationActiveBadge')}
-                            </span>
+                            <StatusPill tone={s.isArchived ? 'neutral' : 'ok'}>
+                              {s.isArchived ? t('stationArchivedBadge') : t('stationActiveBadge')}
+                            </StatusPill>
                           )}
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-4 py-2">
                           {isEditing ? (
                             <div className="flex flex-wrap gap-2">
                               <Button
@@ -295,7 +292,7 @@ export function StationsManager({
                               </Button>
                               <Button
                                 size="sm"
-                                variant="outline"
+                                variant="neutral"
                                 disabled={isPending}
                                 onClick={cancelEdit}
                               >
@@ -306,7 +303,7 @@ export function StationsManager({
                             <div className="flex flex-wrap gap-2">
                               <Button
                                 size="sm"
-                                variant="outline"
+                                variant="neutral"
                                 disabled={isPending}
                                 onClick={() => startEdit(s)}
                               >
@@ -325,7 +322,7 @@ export function StationsManager({
                                     </Button>
                                     <Button
                                       size="sm"
-                                      variant="outline"
+                                      variant="neutral"
                                       disabled={isPending}
                                       onClick={() => setConfirmArchive(null)}
                                     >
@@ -335,7 +332,7 @@ export function StationsManager({
                                 ) : (
                                   <Button
                                     size="sm"
-                                    variant="outline"
+                                    variant="neutral"
                                     disabled={isPending}
                                     onClick={() => onArchiveClick(s)}
                                   >
@@ -353,7 +350,7 @@ export function StationsManager({
                                   </Button>
                                   <Button
                                     size="sm"
-                                    variant="outline"
+                                    variant="neutral"
                                     disabled={isPending}
                                     onClick={() => setConfirmUnarchive(null)}
                                   >
@@ -363,7 +360,7 @@ export function StationsManager({
                               ) : (
                                 <Button
                                   size="sm"
-                                  variant="outline"
+                                  variant="neutral"
                                   disabled={isPending}
                                   onClick={() => onUnarchiveClick(s)}
                                 >

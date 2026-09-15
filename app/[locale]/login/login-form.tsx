@@ -106,22 +106,22 @@ export function LoginForm({ locale }: LoginFormProps): React.ReactElement {
           </div>
 
           {error ? (
-            <p role="alert" className="text-sm text-red-600">
+            <p role="alert" className="text-sm text-[var(--color-bad)]">
               {error}
             </p>
           ) : null}
         </CardContent>
 
         <CardFooter className="flex flex-col gap-3">
-          <Button type="submit" className="w-full" disabled={isPending}>
+          <Button type="submit" className="w-full" size="lg" disabled={isPending}>
             {isPending ? t('submitting') : t('submit')}
           </Button>
-          <p className="text-xs text-[var(--color-muted-foreground)] text-center">
+          <p className="text-xs text-center text-[var(--color-muted-foreground)]">
             {t('footerHint')}
           </p>
           <Link
             href={`/${locale}/activate`}
-            className="text-xs text-center underline-offset-4 hover:underline"
+            className="text-xs text-center text-[var(--color-brand-700)] underline-offset-4 hover:underline"
           >
             {t('haveInvite')}
           </Link>

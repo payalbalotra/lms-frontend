@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
 import {
   Card,
   CardContent,
@@ -164,31 +165,29 @@ export function NewEmployeeForm({
 
           <div className="grid gap-2">
             <Label htmlFor="locationId">{t('locationLabel')}</Label>
-            <select
+            <Select
               id="locationId"
               required
               value={form.locationId}
               onChange={(e) => onLocationChange(e.target.value)}
               disabled={isPending || locations.length === 1}
-              className="flex h-10 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-sm"
             >
               {locations.map((l) => (
                 <option key={l.id} value={l.id}>
                   {l.name}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           <div className="grid gap-2">
             <Label htmlFor="roleId">{t('roleLabel')}</Label>
-            <select
+            <Select
               id="roleId"
               required
               value={form.roleId}
               onChange={(e) => update('roleId', e.target.value)}
               disabled={isPending}
-              className="flex h-10 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-sm"
             >
               <option value="">—</option>
               {roles.map((r) => (
@@ -196,17 +195,16 @@ export function NewEmployeeForm({
                   {r.name} ({r.clearanceLevel})
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           <div className="grid gap-2">
             <Label htmlFor="stationId">{t('stationLabel')}</Label>
-            <select
+            <Select
               id="stationId"
               value={form.stationId}
               onChange={(e) => update('stationId', e.target.value)}
               disabled={isPending}
-              className="flex h-10 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-sm"
             >
               <option value="">— none —</option>
               {stations.map((s) => (
@@ -214,24 +212,23 @@ export function NewEmployeeForm({
                   {s.name || s.id}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           <div className="grid gap-2">
             <Label htmlFor="clearanceLevel">{t('clearanceLabel')}</Label>
-            <select
+            <Select
               id="clearanceLevel"
               required
               value={form.clearanceLevel}
               onChange={(e) => update('clearanceLevel', e.target.value as ClearanceLevel)}
               disabled={isPending}
-              className="flex h-10 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-sm"
             >
               <option value="general">general</option>
               <option value="station">station</option>
               <option value="confidential">confidential</option>
               <option value="master">master</option>
-            </select>
+            </Select>
           </div>
 
           <div className="grid gap-2">
@@ -248,20 +245,19 @@ export function NewEmployeeForm({
 
           <div className="grid gap-2">
             <Label htmlFor="languagePref">{t('languageLabel')}</Label>
-            <select
+            <Select
               id="languagePref"
               value={form.languagePref}
               onChange={(e) => update('languagePref', e.target.value as LanguagePref)}
               disabled={isPending}
-              className="flex h-10 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-sm"
             >
               <option value="en">English (en)</option>
               <option value="es">Español (es)</option>
-            </select>
+            </Select>
           </div>
 
           {error ? (
-            <p role="alert" className="text-sm text-red-600">
+            <p role="alert" className="text-sm text-[var(--color-bad)]">
               {error}
             </p>
           ) : null}

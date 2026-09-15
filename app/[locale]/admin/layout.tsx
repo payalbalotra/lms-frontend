@@ -44,25 +44,31 @@ export default async function AdminLayout({ children, params }: AdminLayoutProps
   const t = await getTranslations('admin');
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3 sm:px-6">
-        <nav className="flex items-center gap-4 text-sm">
-          <Link href={`/${locale}/admin/employees`} className="font-medium underline-offset-4 hover:underline">
+    <div className="flex min-h-screen flex-col bg-[var(--color-bg-admin)]">
+      <header className="flex items-center justify-between border-b border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3 sm:px-6">
+        <nav className="flex items-center gap-5 text-sm">
+          <Link
+            href={`/${locale}/admin/employees`}
+            className="font-medium text-[var(--color-ink-2)] hover:text-[var(--color-brand-600)]"
+          >
             {t('navEmployees')}
           </Link>
-          <Link href={`/${locale}/admin/settings/stations`} className="font-medium underline-offset-4 hover:underline">
+          <Link
+            href={`/${locale}/admin/settings/stations`}
+            className="font-medium text-[var(--color-ink-2)] hover:text-[var(--color-brand-600)]"
+          >
             {t('navSettings')}
           </Link>
         </nav>
         <div className="flex items-center gap-3">
           <Link
             href={`/${locale}/employee/assigned`}
-            className="text-xs text-[var(--color-muted-foreground)] underline-offset-4 hover:underline"
+            className="text-xs text-[var(--color-muted-foreground)] hover:text-[var(--color-brand-600)]"
           >
             ← {t('backToApp')}
           </Link>
           <form action={signOut}>
-            <Button type="submit" variant="outline" size="sm">
+            <Button type="submit" variant="neutral" size="sm">
               {t('signOut')}
             </Button>
           </form>

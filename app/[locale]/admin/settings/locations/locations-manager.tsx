@@ -158,7 +158,7 @@ export function LocationsManager({
               </Button>
             </div>
             {createError ? (
-              <p role="alert" className="text-sm text-red-600 sm:col-span-3">
+              <p role="alert" className="text-sm text-[var(--color-bad)] sm:col-span-3">
                 {createError}
               </p>
             ) : null}
@@ -167,7 +167,7 @@ export function LocationsManager({
       </Card>
 
       {editError ? (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-[var(--color-bad)]">
           {editError}
         </p>
       ) : null}
@@ -175,16 +175,16 @@ export function LocationsManager({
       <Card>
         <CardContent className="p-0">
           {initialLocations.length === 0 ? (
-            <p className="p-6 text-center text-sm text-[var(--color-muted-foreground)]">
+            <p className="px-6 py-8 text-center text-sm text-[var(--color-muted-foreground)]">
               {t('locationsEmpty')}
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="border-b border-[var(--color-border)] bg-[var(--color-muted)] text-left">
+                <thead className="border-b border-[var(--color-line)] bg-[var(--color-panel)] text-left">
                   <tr>
-                    <th className="px-3 py-2 font-medium">{t('thLocationsName')}</th>
-                    <th className="px-3 py-2 font-medium">{t('thActions')}</th>
+                    <th className="px-4 py-2 font-semibold text-[var(--color-ink-2)]">{t('thLocationsName')}</th>
+                    <th className="px-4 py-2 font-semibold text-[var(--color-ink-2)]">{t('thActions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -193,9 +193,9 @@ export function LocationsManager({
                     return (
                       <tr
                         key={l.id}
-                        className="border-b border-[var(--color-border)] last:border-b-0"
+                        className="border-b border-[var(--color-line)] last:border-b-0"
                       >
-                        <td className="px-3 py-2">
+                        <td className="px-4 py-2">
                           {isEditing ? (
                             <Input
                               value={editingName}
@@ -207,7 +207,7 @@ export function LocationsManager({
                             l.name
                           )}
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-4 py-2">
                           {isEditing ? (
                             <div className="flex flex-wrap gap-2">
                               <Button
@@ -219,7 +219,7 @@ export function LocationsManager({
                               </Button>
                               <Button
                                 size="sm"
-                                variant="outline"
+                                variant="neutral"
                                 disabled={isPending}
                                 onClick={cancelEdit}
                               >
@@ -230,7 +230,7 @@ export function LocationsManager({
                             <div className="flex flex-wrap gap-2">
                               <Button
                                 size="sm"
-                                variant="outline"
+                                variant="neutral"
                                 disabled={isPending}
                                 onClick={() => startEdit(l)}
                               >
@@ -248,7 +248,7 @@ export function LocationsManager({
                                   </Button>
                                   <Button
                                     size="sm"
-                                    variant="outline"
+                                    variant="neutral"
                                     disabled={isPending}
                                     onClick={() => setConfirmDelete(null)}
                                   >
@@ -258,7 +258,7 @@ export function LocationsManager({
                               ) : (
                                 <Button
                                   size="sm"
-                                  variant="outline"
+                                  variant="neutral"
                                   disabled={isPending}
                                   onClick={() => onDeleteClick(l)}
                                 >

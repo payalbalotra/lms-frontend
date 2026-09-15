@@ -27,7 +27,9 @@ export default function SettingsLayout({
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{t('settingsHeading')}</h1>
+      <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-[-0.02em] text-[var(--color-ink)]">
+        {t('settingsHeading')}
+      </h1>
 
       <nav className="flex flex-wrap gap-2 text-sm" aria-label="Settings tabs">
         {tabs.map((tab) => {
@@ -38,8 +40,8 @@ export default function SettingsLayout({
               href={tab.href}
               className={
                 active
-                  ? 'rounded-full bg-[var(--color-primary)] px-3 py-1 text-[var(--color-primary-foreground)]'
-                  : 'rounded-full border border-[var(--color-border)] px-3 py-1 hover:bg-[var(--color-muted)]'
+                  ? 'inline-flex items-center rounded-full bg-[var(--color-brand-600)] px-3 py-1 text-xs font-medium text-white'
+                  : 'inline-flex items-center rounded-full border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-1 text-xs font-medium text-[var(--color-ink-2)] hover:bg-[var(--color-panel)]'
               }
             >
               {tab.label}

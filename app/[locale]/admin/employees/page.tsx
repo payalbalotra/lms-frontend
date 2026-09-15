@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { StatusPill, type StatusTone } from '@/components/ui/status-pill';
 import { EmployeeRowActions } from './employee-row-actions';
 import type { AdminEmployee, EmployeeStatus } from '@/lib/types';
 
@@ -60,7 +61,7 @@ export default async function AdminEmployeesPage({
             <CardTitle>—</CardTitle>
           </CardHeader>
           <CardContent>
-            <p role="alert" className="text-sm text-red-600">
+            <p role="alert" className="text-sm text-[var(--color-bad)]">
               {err.code}
             </p>
           </CardContent>
@@ -80,78 +81,85 @@ export default async function AdminEmployeesPage({
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('listHeading')}</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-[-0.02em] text-[var(--color-ink)]">
+          {t('listHeading')}
+        </h1>
         <Link href={`/${locale}/admin/employees/new`}>
           <Button>{t('inviteEmployee')}</Button>
         </Link>
       </div>
 
-      <div className="flex gap-2 text-sm">
-        {STATUS_VALUES.map((s) => (
-          <Link
-            key={s}
-            href={`/${locale}/admin/employees?status=${s}`}
-            className={
-              s === status
-                ? 'rounded-full bg-[var(--color-primary)] px-3 py-1 text-[var(--color-primary-foreground)]'
-                : 'rounded-full border border-[var(--color-border)] px-3 py-1 hover:bg-[var(--color-muted)]'
-            }
-          >
-            {s === 'all' ? t('filterAll') : statusBadge(s)}
-          </Link>
-        ))}
+      <div className="flex flex-wrap gap-2 text-sm">
+        {STATUS_VALUES.map((s) => {
+          const active = s === status;
+          return (
+            <Link
+              key={s}
+              href={`/${locale}/admin/employees?status=${s}`}
+              className={
+                active
+                  ? 'inline-flex items-center rounded-full bg-[var(--color-brand-600)] px-3 py-1 text-xs font-medium text-white'
+                  : 'inline-flex items-center rounded-full border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-1 text-xs font-medium text-[var(--color-ink-2)] hover:bg-[var(--color-panel)]'
+              }
+            >
+              {s === 'all' ? t('filterAll') : statusBadge(s)}
+            </Link>
+          );
+        })}
       </div>
 
       <Card>
         <CardContent className="p-0">
           {employees.length === 0 ? (
-            <p className="p-6 text-center text-sm text-[var(--color-muted-foreground)]">
+            <p className="px-6 py-8 text-center text-sm text-[var(--color-muted-foreground)]">
               {t('empty')}
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="border-b border-[var(--color-border)] bg-[var(--color-muted)] text-left">
+                <thead className="border-b border-[var(--color-line)] bg-[var(--color-panel)] text-left">
                   <tr>
-                    <th className="px-3 py-2 font-medium">{t('thName')}</th>
-                    <th className="px-3 py-2 font-medium">{t('thCode')}</th>
-                    <th className="px-3 py-2 font-medium">{t('thLocation')}</th>
-                    <th className="px-3 py-2 font-medium">{t('thClearance')}</th>
-                    <th className="px-3 py-2 font-medium">{t('thStatus')}</th>
-                    <th className="px-3 py-2 font-medium">{t('thActions')}</th>
+                    <th className="px-4 py-2 font-semibold text-[var(--color-ink-2)]">{t('thName')}</th>
+                    <th className="px-4 py-2 font-semibold text-[var(--color-ink-2)]">{t('thCode')}</th>
+                    <th className="px-4 py-2 font-semibold text-[var(--color-ink-2)]">{t('thLocation')}</th>
+                    <th className="px-4 py-2 font-semibold text-[var(--color-ink-2)]">{t('thClearance')}</th>
+                    <th className="px-4 py-2 font-semibold text-[var(--color-ink-2)]">{t('thStatus')}</th>
+                    <th className="px-4 py-2 font-semibold text-[var(--color-ink-2)]">{t('thActions')}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {employees.map((e) => (
-                    <tr key={e.id} className="border-b border-[var(--color-border)] last:border-b-0">
-                      <td className="px-3 py-2">
-                        <div className="font-medium">{e.name}</div>
-                        <div className="text-xs text-[var(--color-muted-foreground)]">
-                          {e.languagePref.toUpperCase()}
-                        </div>
-                      </td>
-                      <td className="px-3 py-2 font-mono">{e.employeeCode ?? '—'}</td>
-                      <td className="px-3 py-2">{e.locationName ?? e.locationId}</td>
-                      <td className="px-3 py-2">{e.clearanceLevel}</td>
-                      <td className="px-3 py-2">
-                        <span
-                          className={
-                            e.status === 'active'
-                              ? 'inline-block rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-800'
-                              : e.status === 'pending'
-                                ? 'inline-block rounded-full bg-yellow-100 px-2 py-0.5 text-xs text-yellow-800'
-                                : 'inline-block rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-800'
-                          }
-                        >
-                          {statusBadge(e.status)}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2">
-                        <EmployeeRowActions locale={locale} employee={e} />
-                      </td>
-                    </tr>
-                  ))}
+                  {employees.map((e) => {
+                    const tone: StatusTone =
+                      e.status === 'active'
+                        ? 'ok'
+                        : e.status === 'pending'
+                          ? 'warn'
+                          : 'bad';
+                    return (
+                      <tr key={e.id} className="border-b border-[var(--color-line)] last:border-b-0">
+                        <td className="px-4 py-2">
+                          <div className="font-medium text-[var(--color-ink)]">{e.name}</div>
+                          <div className="text-xs text-[var(--color-ink-3)]">
+                            {e.languagePref.toUpperCase()}
+                          </div>
+                        </td>
+                        <td className="px-4 py-2 font-mono text-[var(--color-ink-2)]">
+                          {e.employeeCode ?? '—'}
+                        </td>
+                        <td className="px-4 py-2 text-[var(--color-ink-2)]">
+                          {e.locationName ?? e.locationId}
+                        </td>
+                        <td className="px-4 py-2 text-[var(--color-ink-2)]">{e.clearanceLevel}</td>
+                        <td className="px-4 py-2">
+                          <StatusPill tone={tone}>{statusBadge(e.status)}</StatusPill>
+                        </td>
+                        <td className="px-4 py-2">
+                          <EmployeeRowActions locale={locale} employee={e} />
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

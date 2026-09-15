@@ -43,7 +43,7 @@ export default async function StationsSettingsPage({
   } catch (err) {
     if (err instanceof ApiException) {
       return (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-[var(--color-bad)]">
           {err.code}
         </p>
       );
@@ -65,19 +65,22 @@ export default async function StationsSettingsPage({
         </p>
         {locations.length > 1 ? (
           <div className="flex flex-wrap gap-2 text-sm">
-            {locations.map((l) => (
-              <Link
-                key={l.id}
-                href={`/${locale}/admin/settings/stations?locationId=${encodeURIComponent(l.id)}`}
-                className={
-                  l.id === locationId
-                    ? 'rounded-full bg-[var(--color-primary)] px-3 py-1 text-[var(--color-primary-foreground)]'
-                    : 'rounded-full border border-[var(--color-border)] px-3 py-1 hover:bg-[var(--color-muted)]'
-                }
-              >
-                {l.name}
-              </Link>
-            ))}
+            {locations.map((l) => {
+              const active = l.id === locationId;
+              return (
+                <Link
+                  key={l.id}
+                  href={`/${locale}/admin/settings/stations?locationId=${encodeURIComponent(l.id)}`}
+                  className={
+                    active
+                      ? 'inline-flex items-center rounded-full bg-[var(--color-brand-600)] px-3 py-1 text-xs font-medium text-white'
+                      : 'inline-flex items-center rounded-full border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-1 text-xs font-medium text-[var(--color-ink-2)] hover:bg-[var(--color-panel)]'
+                  }
+                >
+                  {l.name}
+                </Link>
+              );
+            })}
           </div>
         ) : null}
       </div>

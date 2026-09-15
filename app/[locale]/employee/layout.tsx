@@ -8,6 +8,12 @@ import { fetchMe, logout, ApiException } from '@/lib/api';
 import type { Employee } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 
+// Force per-request SSR — without this Next.js prerenders the layout at build
+// time when no dynamic API is observed at module-init, and the build-time
+// `redirect('/login')` (because there are no cookies during build) gets
+// cached and served to every request regardless of the incoming session.
+export const dynamic = 'force-dynamic';
+
 interface EmployeeLayoutProps {
   children: ReactNode;
   params: Promise<{ locale: string }>;
@@ -44,8 +50,8 @@ export default async function EmployeeLayout({ children, params }: EmployeeLayou
   const tCommon = await getTranslations('app');
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3 sm:px-6">
+    <div className="flex min-h-screen flex-col bg-[var(--color-bg)]">
+      <header className="flex items-center justify-between border-b border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3 sm:px-6">
         <p className="text-sm text-[var(--color-muted-foreground)]">
           {t('signedInAs', { name: employee.name })}
         </p>
@@ -53,13 +59,13 @@ export default async function EmployeeLayout({ children, params }: EmployeeLayou
           {employee.clearanceLevel === 'master' ? (
             <Link
               href={`/${locale}/admin/employees`}
-              className="text-xs font-medium underline-offset-4 hover:underline"
+              className="text-xs font-medium text-[var(--color-ink-2)] hover:text-[var(--color-brand-600)]"
             >
               {tCommon('admin')}
             </Link>
           ) : null}
           <form action={signOut}>
-            <Button type="submit" variant="outline" size="sm">
+            <Button type="submit" variant="neutral" size="sm">
               {t('signOut')}
             </Button>
           </form>

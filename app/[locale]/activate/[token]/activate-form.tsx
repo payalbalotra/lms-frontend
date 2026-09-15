@@ -124,14 +124,14 @@ export function ActivateForm({ locale, token, employeeName }: ActivateFormProps)
           </div>
 
           {error ? (
-            <p role="alert" className="text-sm text-red-600">
+            <p role="alert" className="text-sm text-[var(--color-bad)]">
               {error}
             </p>
           ) : null}
         </CardContent>
 
-        <div className="flex flex-col gap-2 p-6 pt-0">
-          <Button type="submit" disabled={isPending}>
+        <div className="flex flex-col gap-2 px-6 pb-5">
+          <Button type="submit" size="lg" disabled={isPending}>
             {isPending ? t('submitting') : t('submit')}
           </Button>
         </div>
