@@ -60,6 +60,7 @@ export function ActivateForm({ locale, token, employeeName }: ActivateFormProps)
           else if (err.code === 'INVITE_EXPIRED') setError(t('errorExpired'));
           else if (err.code === 'INVITE_ALREADY_USED') setError(t('errorUsed'));
           else if (err.code === 'INVITE_CANCELLED') setError(t('errorCancelled'));
+          else if (err.code === 'EMPLOYEE_ALREADY_ACTIVE') setError(t('errorAlreadyActive'));
           else setError(err.message);
         } else {
           setError(t('errorGeneric'));

@@ -28,7 +28,7 @@ export function LoginForm({ locale }: LoginFormProps): React.ReactElement {
   const router = useRouter();
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
-  const [locationId, setLocationId] = useState('loc-main');
+  const [locationId, setLocationId] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 

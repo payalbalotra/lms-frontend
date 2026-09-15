@@ -148,7 +148,7 @@ export default async function AdminEmployeesPage({
                           {e.employeeCode ?? '—'}
                         </td>
                         <td className="px-4 py-2 text-[var(--color-ink-2)]">
-                          {e.locationName ?? e.locationId}
+                          {e.locationName ?? '—'}
                         </td>
                         <td className="px-4 py-2 text-[var(--color-ink-2)]">{e.clearanceLevel}</td>
                         <td className="px-4 py-2">

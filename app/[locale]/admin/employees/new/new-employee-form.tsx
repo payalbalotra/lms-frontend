@@ -30,7 +30,6 @@ interface NewEmployeeFormProps {
   locale: string;
   locations: Location[];
   roles: Role[];
-  initialStations: Station[];
 }
 
 interface FormState {
@@ -57,13 +56,12 @@ export function NewEmployeeForm({
   locale,
   locations,
   roles,
-  initialStations,
 }: NewEmployeeFormProps): React.ReactElement {
   const t = useTranslations('admin');
-  const defaultLocationId = locations[0]?.id ?? 'loc-main';
+  const defaultLocationId = locations[0]?.id ?? '';
 
   const [form, setForm] = useState<FormState>(initialState(defaultLocationId));
-  const [stations, setStations] = useState<Station[]>(initialStations);
+  const [stations, setStations] = useState<Station[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ employee: Employee; invite: InviteResult } | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -189,7 +187,7 @@ export function NewEmployeeForm({
               onChange={(e) => update('roleId', e.target.value)}
               disabled={isPending}
             >
-              <option value="">—</option>
+              <option value="">{t('selectRolePrompt')}</option>
               {roles.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.name} ({r.clearanceLevel})
@@ -206,10 +204,10 @@ export function NewEmployeeForm({
               onChange={(e) => update('stationId', e.target.value)}
               disabled={isPending}
             >
-              <option value="">— none —</option>
+              <option value="">{t('selectNone')}</option>
               {stations.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.name || s.id}
+                  {s.name || t('selectPlaceholder')}
                 </option>
               ))}
             </Select>

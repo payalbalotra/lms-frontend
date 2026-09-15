@@ -23,7 +23,7 @@ export default async function ActivateLandingPage({ params }: PageProps): Promis
         </CardHeader>
         <CardContent>
           <Link href={`/${locale}/login`}>
-            <Button variant="neutral" className="w-full">
+            <Button className="w-full">
               {t('backToLogin')}
             </Button>
           </Link>

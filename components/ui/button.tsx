@@ -9,6 +9,24 @@ import { cn } from '@/lib/utils';
  *   - Sizes match density: `default` = 36px admin tap target, `lg` = 48px employee.
  *   - No outline variant — outline buttons are banned (DESIGN.md §9.6).
  *   - Destructive lives in its light tone by default (DESIGN.md §3.1 rule).
+ *
+ * Variant selection (read this before picking `variant`):
+ *
+ *   primary      One per screen — the main action. White text on terracotta.
+ *   secondary    Visible companion to primary (or any high-prominence action
+ *                in a dense area). Dark terracotta text on peach.
+ *   neutral      Cancel, dismiss, "No" next to a confirm — low-prominence.
+ *                Ink text on bone. Do NOT use this for the main action on a
+ *                list/table page or for "[+ Add]" triggers — those should
+ *                be `secondary` so they read as branded, not as chrome.
+ *   ghost        Barely-there actions (icon button, tertiary link).
+ *                Ink text on transparent.
+ *   destructive  ONLY on the confirm step of a destructive flow — never
+ *                on the first surface. Light bad tint → solid bad on hover.
+ *
+ * Heuristic: if the button is in a footer, on a card, or is the page-level
+ * add/create trigger, default to `secondary`. Reserve `neutral` for true
+ * cancel / dismiss / no-confirm.
  */
 type ButtonVariant = 'primary' | 'secondary' | 'destructive' | 'ghost' | 'neutral';
 type ButtonSize = 'default' | 'sm' | 'lg' | 'icon';

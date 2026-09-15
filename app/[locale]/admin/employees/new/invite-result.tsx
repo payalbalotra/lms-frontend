@@ -70,7 +70,8 @@ export function InviteResultCard({ locale, invite, employeeName, onCreateAnother
         </p>
 
         <div className="flex flex-wrap gap-2 pt-2">
-          <Button variant="neutral" onClick={onCreateAnother}>
+          <Button variant="secondary" onClick={onCreateAnother}>
+            <i aria-hidden="true" className="ri-add-line text-[length:var(--text-lg)]" />
             {t('createAnother')}
           </Button>
           <Link href={`/${locale}/admin/employees`}>

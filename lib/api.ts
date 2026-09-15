@@ -233,7 +233,11 @@ export function deleteLocation(locationId: string): Promise<{ ok: true }> {
 // Activate (invite token → activate → auto-login)
 // ----------------------------------------------------------------------------
 
-export function lookupInvite(token: string): Promise<{ employeeName: string; expiresAt: string }> {
+export function lookupInvite(token: string): Promise<{
+  employeeName: string;
+  expiresAt: string;
+  employeeStatus: 'pending' | 'active' | 'deactivated';
+}> {
   return apiRequest(`/api/auth/invites/${encodeURIComponent(token)}`);
 }
 

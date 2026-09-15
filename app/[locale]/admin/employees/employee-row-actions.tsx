@@ -4,13 +4,13 @@ import * as React from 'react';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Button } from '@/components/ui/button';
 import {
   deactivateEmployee,
   reactivateEmployee,
   resendInvite,
   ApiException,
 } from '@/lib/api';
+import { RowActions, type RowActionItem } from '@/components/ui/row-actions';
 import type { AdminEmployee, InviteResult } from '@/lib/types';
 
 interface EmployeeRowActionsProps {
@@ -21,11 +21,9 @@ interface EmployeeRowActionsProps {
 export function EmployeeRowActions({ locale, employee }: EmployeeRowActionsProps): React.ReactElement {
   const t = useTranslations('admin');
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const [_pending, startTransition] = useTransition();
   const [resendError, setResendError] = useState<string | null>(null);
   const [lastInvite, setLastInvite] = useState<InviteResult | null>(null);
-  const [confirmDeactivate, setConfirmDeactivate] = useState(false);
-  const [confirmReactivate, setConfirmReactivate] = useState(false);
 
   function refresh(): void {
     router.refresh();
@@ -47,87 +45,74 @@ export function EmployeeRowActions({ locale, employee }: EmployeeRowActionsProps
   }
 
   function onDeactivate(): void {
-    if (!confirmDeactivate) {
-      setConfirmDeactivate(true);
-      return;
-    }
     startTransition(async () => {
       try {
         await deactivateEmployee(employee.id);
-        setConfirmDeactivate(false);
         refresh();
       } catch {
-        // ignore — page refresh will reflect error state
+        // page refresh reflects the error
       }
     });
   }
 
   function onReactivate(): void {
-    if (!confirmReactivate) {
-      setConfirmReactivate(true);
-      return;
-    }
     startTransition(async () => {
       try {
         await reactivateEmployee(employee.id);
-        setConfirmReactivate(false);
         refresh();
       } catch {
-        // ignore
+        // page refresh reflects the error
       }
     });
   }
 
+  function buildItems(): RowActionItem[] {
+    if (employee.status === 'pending') {
+      return [
+        {
+          label: t('actionsResend'),
+          icon: 'ri-mail-send-line',
+          onSelect: onResend,
+        },
+        {
+          label: t('actionsDeactivate'),
+          icon: 'ri-forbid-line',
+          destructive: true,
+          onSelect: onDeactivate,
+        },
+      ];
+    }
+    if (employee.status === 'active') {
+      return [
+        {
+          label: t('actionsDeactivate'),
+          icon: 'ri-forbid-line',
+          destructive: true,
+          onSelect: onDeactivate,
+        },
+      ];
+    }
+    // deactivated
+    return [
+      {
+        label: t('actionsReactivate'),
+        icon: 'ri-restart-line',
+        onSelect: onReactivate,
+      },
+    ];
+  }
+
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap gap-2">
-        {employee.status === 'pending' ? (
-          <Button size="sm" variant="neutral" disabled={pending} onClick={onResend}>
-            {t('actionsResend')}
-          </Button>
-        ) : null}
-
-        {employee.status === 'active' ? (
-          confirmDeactivate ? (
-            <>
-              <Button size="sm" variant="destructive" disabled={pending} onClick={onDeactivate}>
-                {t('confirmYes')}
-              </Button>
-              <Button size="sm" variant="neutral" disabled={pending} onClick={() => setConfirmDeactivate(false)}>
-                {t('confirmNo')}
-              </Button>
-            </>
-          ) : (
-            <Button size="sm" variant="neutral" disabled={pending} onClick={onDeactivate}>
-              {t('actionsDeactivate')}
-            </Button>
-          )
-        ) : null}
-
-        {employee.status === 'deactivated' ? (
-          confirmReactivate ? (
-            <>
-              <Button size="sm" variant="primary" disabled={pending} onClick={onReactivate}>
-                {t('confirmYes')}
-              </Button>
-              <Button size="sm" variant="neutral" disabled={pending} onClick={() => setConfirmReactivate(false)}>
-                {t('confirmNo')}
-              </Button>
-            </>
-          ) : (
-            <Button size="sm" variant="neutral" disabled={pending} onClick={onReactivate}>
-              {t('actionsReactivate')}
-            </Button>
-          )
-        ) : null}
-      </div>
-
+    <div className="flex flex-col items-end gap-2">
+      <RowActions
+        items={buildItems()}
+        triggerLabel={`${t('rowActionsLabel')} — ${employee.name}`}
+      />
       {resendError ? (
         <p role="alert" className="text-xs text-[var(--color-bad)]">
           {resendError}
         </p>
       ) : null}
-
       {lastInvite ? (
         <div className="rounded-md border border-[var(--color-line)] bg-[var(--color-panel)] p-2 text-xs text-[var(--color-ink)]">
           <p className="mb-1 font-medium">{t('inviteCreatedHeading')}</p>

@@ -11,9 +11,9 @@ import { Select } from '@/components/ui/select';
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from '@/components/ui/card';
+import { Drawer } from '@/components/ui/drawer';
+import { RowActions, type RowActionItem } from '@/components/ui/row-actions';
 import {
   createRole,
   deleteRole,
@@ -46,9 +46,9 @@ export function RolesManager({
   const [isPending, startTransition] = useTransition();
   const [createError, setCreateError] = useState<string | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingForm, setEditingForm] = useState<EditForm | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const [createForm, setCreateForm] = useState<CreateForm>({
     name: '',
@@ -75,6 +75,7 @@ export function RolesManager({
           clearanceLevel: createForm.clearanceLevel,
         });
         resetCreate();
+        setCreateOpen(false);
         refresh();
       } catch (err) {
         if (err instanceof ApiException) {
@@ -120,24 +121,16 @@ export function RolesManager({
     });
   }
 
-  function onDeleteClick(role: Role): void {
-    if (confirmDelete !== role.id) {
-      setConfirmDelete(role.id);
-      return;
-    }
+  function onDelete(role: Role): void {
+    setEditError(null);
     startTransition(async () => {
       try {
         await deleteRole(role.id);
-        setConfirmDelete(null);
         refresh();
       } catch (err) {
-        setConfirmDelete(null);
         if (err instanceof ApiException) {
-          if (err.code === 'ROLE_IN_USE') {
-            setEditError(t('rolesErrorInUse'));
-          } else {
-            setEditError(err.message);
-          }
+          if (err.code === 'ROLE_IN_USE') setEditError(t('rolesErrorInUse'));
+          else setEditError(err.message);
         } else {
           setEditError(t('errorGeneric'));
         }
@@ -145,62 +138,36 @@ export function RolesManager({
     });
   }
 
+  function rowItemsFor(r: Role): RowActionItem[] {
+    return [
+      {
+        label: t('actionsEdit'),
+        icon: 'ri-pencil-line',
+        onSelect: () => startEdit(r),
+      },
+      {
+        label: t('actionsDelete'),
+        icon: 'ri-delete-bin-line',
+        destructive: true,
+        onSelect: () => onDelete(r),
+      },
+    ];
+  }
+
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('rolesCreateHeading')}</CardTitle>
-        </CardHeader>
-        <form onSubmit={onCreate} noValidate>
-          <CardContent className="grid gap-3 sm:grid-cols-3">
-            <div className="grid gap-1 sm:col-span-2">
-              <Label htmlFor="newRoleName">{t('rolesFieldName')}</Label>
-              <Input
-                id="newRoleName"
-                required
-                maxLength={120}
-                value={createForm.name}
-                onChange={(e) =>
-                  setCreateForm({ ...createForm, name: e.target.value })
-                }
-                disabled={isPending}
-              />
-            </div>
-            <div className="grid gap-1">
-              <Label htmlFor="newRoleClearance">{t('rolesFieldClearance')}</Label>
-              <Select
-                id="newRoleClearance"
-                value={createForm.clearanceLevel}
-                onChange={(e) =>
-                  setCreateForm({
-                    ...createForm,
-                    clearanceLevel: e.target.value as ClearanceLevel,
-                  })
-                }
-                disabled={isPending}
-              >
-                <option value="general">general</option>
-                <option value="station">station</option>
-                <option value="confidential">confidential</option>
-                <option value="master">master</option>
-              </Select>
-            </div>
-            <div className="flex items-end sm:col-span-2">
-              <Button
-                type="submit"
-                disabled={isPending || !createForm.name}
-              >
-                {isPending ? t('rolesCreating') : t('rolesCreate')}
-              </Button>
-            </div>
-            {createError ? (
-              <p role="alert" className="text-sm text-[var(--color-bad)] sm:col-span-3">
-                {createError}
-              </p>
-            ) : null}
-          </CardContent>
-        </form>
-      </Card>
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button
+          variant="secondary"
+          onClick={() => {
+            resetCreate();
+            setCreateOpen(true);
+          }}
+        >
+          <i aria-hidden="true" className="ri-add-line text-[length:var(--text-lg)]" />
+          {t('rolesCreateHeading')}
+        </Button>
+      </div>
 
       {editError ? (
         <p role="alert" className="text-sm text-[var(--color-bad)]">
@@ -221,7 +188,9 @@ export function RolesManager({
                   <tr>
                     <th className="px-4 py-2 font-semibold text-[var(--color-ink-2)]">{t('thRolesName')}</th>
                     <th className="px-4 py-2 font-semibold text-[var(--color-ink-2)]">{t('thRolesClearance')}</th>
-                    <th className="px-4 py-2 font-semibold text-[var(--color-ink-2)]">{t('thActions')}</th>
+                    <th className="w-12 px-4 py-2 text-right font-semibold text-[var(--color-ink-2)]">
+                      <span className="sr-only">{t('thActions')}</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -271,9 +240,9 @@ export function RolesManager({
                             r.clearanceLevel
                           )}
                         </td>
-                        <td className="px-4 py-2">
+                        <td className="px-4 py-2 text-right">
                           {isEditing ? (
-                            <div className="flex flex-wrap gap-2">
+                            <div className="flex justify-end gap-2">
                               <Button
                                 size="sm"
                                 disabled={isPending || !editingForm.name}
@@ -291,45 +260,10 @@ export function RolesManager({
                               </Button>
                             </div>
                           ) : (
-                            <div className="flex flex-wrap gap-2">
-                              <Button
-                                size="sm"
-                                variant="neutral"
-                                disabled={isPending}
-                                onClick={() => startEdit(r)}
-                              >
-                                {t('actionsEdit')}
-                              </Button>
-                              {confirmDelete === r.id ? (
-                                <>
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    disabled={isPending}
-                                    onClick={() => onDeleteClick(r)}
-                                  >
-                                    {t('confirmYes')}
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="neutral"
-                                    disabled={isPending}
-                                    onClick={() => setConfirmDelete(null)}
-                                  >
-                                    {t('confirmNo')}
-                                  </Button>
-                                </>
-                              ) : (
-                                <Button
-                                  size="sm"
-                                  variant="neutral"
-                                  disabled={isPending}
-                                  onClick={() => onDeleteClick(r)}
-                                >
-                                  {t('actionsDelete')}
-                                </Button>
-                              )}
-                            </div>
+                            <RowActions
+                              items={rowItemsFor(r)}
+                              triggerLabel={`${t('rowActionsLabel')} — ${r.name}`}
+                            />
                           )}
                         </td>
                       </tr>
@@ -341,6 +275,74 @@ export function RolesManager({
           )}
         </CardContent>
       </Card>
+
+      <Drawer
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        title={t('rolesCreateHeading')}
+        closeLabel={t('drawerClose')}
+        size="md"
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="neutral"
+              onClick={() => setCreateOpen(false)}
+              disabled={isPending}
+            >
+              {t('actionsCancel')}
+            </Button>
+            <Button
+              type="submit"
+              form="create-role-form"
+              disabled={isPending || !createForm.name}
+            >
+              {isPending ? t('rolesCreating') : t('rolesCreate')}
+            </Button>
+          </>
+        }
+      >
+        <form id="create-role-form" onSubmit={onCreate} noValidate className="grid gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="newRoleName">{t('rolesFieldName')}</Label>
+            <Input
+              id="newRoleName"
+              required
+              maxLength={120}
+              value={createForm.name}
+              onChange={(e) =>
+                setCreateForm({ ...createForm, name: e.target.value })
+              }
+              disabled={isPending}
+              autoFocus
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="newRoleClearance">{t('rolesFieldClearance')}</Label>
+            <Select
+              id="newRoleClearance"
+              value={createForm.clearanceLevel}
+              onChange={(e) =>
+                setCreateForm({
+                  ...createForm,
+                  clearanceLevel: e.target.value as ClearanceLevel,
+                })
+              }
+              disabled={isPending}
+            >
+              <option value="general">general</option>
+              <option value="station">station</option>
+              <option value="confidential">confidential</option>
+              <option value="master">master</option>
+            </Select>
+          </div>
+          {createError ? (
+            <p role="alert" className="text-sm text-[var(--color-bad)]">
+              {createError}
+            </p>
+          ) : null}
+        </form>
+      </Drawer>
     </div>
   );
 }
