@@ -3,12 +3,14 @@ import type {
   ApiError,
   CreateEmployeeInput,
   CreateLocationInput,
+  CreateProcedureInput,
   CreateRoleInput,
   CreateStationInput,
   Employee,
   EmployeeStatus,
   InviteResult,
   Location,
+  Procedure,
   Role,
   Station,
   UpdateLocationInput,
@@ -16,20 +18,7 @@ import type {
   UpdateStationInput,
 } from './types';
 
-// Client-side fetches use a relative path so the browser hits the Next.js
-// rewrite proxy (next.config.ts → /api/* → backend). That keeps the Better
-// Auth Set-Cookie scoped to localhost:3000 — the page origin — so it
-// survives client navigations and SSR fetches that read cookies().
-//
-// Server-side fetches (in Server Components, layouts, route handlers) bypass
-// the proxy and hit the backend directly. The cookie from the incoming
-// browser request is forwarded manually via options.cookieHeader so the
-// backend's requireAuth still sees it. Going through the rewrite for
-// internal SSR fetches is fragile (Next.js may rewrite the cookie header or
-// strip attributes depending on version), so direct + manual forwarding is
-// the reliable path.
-//
-// Override via NEXT_PUBLIC_API_BASE to point both at a different origin.
+
 export const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE ??
   (typeof window === 'undefined'
@@ -39,12 +28,21 @@ export const API_BASE =
 export class ApiException extends Error {
   public readonly status: number;
   public readonly code: string;
+  /** Per-field validation details from the backend (populated for
+   *  `INVALID_INPUT`). Useful for surfacing *which* field failed. */
+  public readonly details: { path: string; message: string }[];
 
-  public constructor(status: number, code: string, message: string) {
+  public constructor(
+    status: number,
+    code: string,
+    message: string,
+    details: { path: string; message: string }[] = [],
+  ) {
     super(message);
     this.name = 'ApiException';
     this.status = status;
     this.code = code;
+    this.details = details;
   }
 }
 
@@ -83,16 +81,18 @@ export async function apiRequest<T>(
   if (!response.ok) {
     let code = 'UNKNOWN';
     let message = `Request failed with status ${response.status}`;
+    let details: { path: string; message: string }[] = [];
     try {
       const payload = (await response.json()) as ApiError;
       if (payload.error) {
         code = payload.error.code;
         message = payload.error.message;
+        if (Array.isArray(payload.error.details)) details = payload.error.details;
       }
     } catch {
       // Body wasn't JSON; keep generic message.
     }
-    throw new ApiException(response.status, code, message);
+    throw new ApiException(response.status, code, message, details);
   }
 
   return (await response.json()) as T;
@@ -243,4 +243,30 @@ export function lookupInvite(token: string): Promise<{
 
 export function activate(input: { token: string; code: string; password: string }): Promise<{ employee: Employee }> {
   return apiRequest('/api/auth/activate', { method: 'POST', body: input });
+}
+
+// ----------------------------------------------------------------------------
+// Library — procedures
+// ----------------------------------------------------------------------------
+
+export function createProcedure(input: CreateProcedureInput): Promise<{ procedure: Procedure }> {
+  return apiRequest('/api/admin/library/procedures', { method: 'POST', body: input });
+}
+
+export function listProcedures(
+  filter: { status?: Procedure['status'] } = {},
+  cookieHeader?: string,
+): Promise<{ procedures: Procedure[] }> {
+  const qs = filter.status ? `?status=${encodeURIComponent(filter.status)}` : '';
+  return apiRequest(`/api/admin/library/procedures${qs}`, { cookieHeader });
+}
+
+/** Public-by-slug read for the /procedures/[id] doc view. Open to any
+ *  logged-in employee (admin or cook). Throws `ApiException` with status 404
+ *  when the slug doesn't match anything. */
+export function getProcedureBySlug(
+  slug: string,
+  cookieHeader?: string,
+): Promise<{ procedure: Procedure }> {
+  return apiRequest(`/api/procedures/${encodeURIComponent(slug)}`, { cookieHeader });
 }

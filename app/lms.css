@@ -539,6 +539,15 @@ a.chapter { text-decoration: none; color: inherit; }
 .allergen .i { margin-top: 2px; }
 .allergen b { display: block; font-size: var(--t-base); }
 .allergen p { font-size: var(--t-base); margin-top: 2px; }
+.allergen-body { flex: 1; min-width: 0; }
+.allergen-chips { list-style: none; padding: 0; margin: 0 0 var(--s-2); display: flex; flex-wrap: wrap; gap: var(--s-1); }
+.allergen-chip {
+  display: inline-flex; align-items: center;
+  padding: 2px var(--s-2); border-radius: 999px;
+  background: var(--surface); color: var(--warn-ink);
+  font-size: var(--t-xs); font-weight: 600; letter-spacing: 0.02em;
+  border: 1px solid var(--warn-ink);
+}
 
 /* One sentence. EPA's own example is eight words. It is the lede, so it is set
    above body size, below a heading: the one line that says why the document exists. */
@@ -713,6 +722,19 @@ dl.yield { margin: 0 0 var(--s-5); }
    heading band: the visual weight belongs on the quantity. */
 .ing th[scope="row"] { text-align: left; padding: var(--s-3); font-size: var(--t-base); font-weight: 400; color: var(--ink); background: none; border-bottom: 1px solid var(--line); vertical-align: top; }
 .ing tr:last-child th[scope="row"] { border-bottom: 0; }
+
+/* BLOCK COMPOSER OUTPUT — generic prose + table fallback for the BlockRenderer.
+   The recipe table has its own .ing design above; this is for plain tabular
+   data the admin drops in via the table block. */
+.doc-prose > p { font-size: var(--t-md); line-height: 1.5; margin: 0 0 var(--s-3); max-width: 62ch; }
+.doc-prose > p:last-child { margin-bottom: 0; }
+.doc-prose h2 { font-size: var(--t-2xl); margin-top: var(--s-8); margin-bottom: var(--s-4); letter-spacing: -0.02em; }
+.doc-prose h3 { font-size: var(--t-lg); margin-top: var(--s-6); margin-bottom: var(--s-3); }
+.doc-prose h4 { font-size: var(--t-md); margin-top: var(--s-5); margin-bottom: var(--s-2); }
+.doc-prose table { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; font-size: var(--t-sm); }
+.doc-prose th, .doc-prose td { padding: var(--s-3); text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+.doc-prose th { background: var(--panel); font-weight: 600; color: var(--ink-2); }
+.doc-prose tr:last-child td { border-bottom: 0; }
 
 /* STEP RAIL
    The method's steps as a row of marks in the right margin, on screens wide enough
@@ -926,6 +948,29 @@ dl.yield { margin: 0 0 var(--s-5); }
   max-width: none; border-radius: 0; border-left: 0; border-right: 0; border-bottom: 0;
   background: var(--surface); padding-bottom: env(safe-area-inset-bottom, 0px); }
 @media (min-width: 681px) { .tabbar.is-fixed { max-width: 680px; margin: 0 auto; border-left: 1px solid var(--line); border-right: 1px solid var(--line); } }
+
+/* --- floating popover (admin composer add-content menu, etc.) -------------- */
+/* Anchored via inline top/left from getBoundingClientRect(). Animation matches
+   the drawer-in timing so the two overlays feel like the same family. */
+.popover { position: fixed; z-index: var(--z-dropdown); min-width: 240px; max-width: min(360px, calc(100vw - 32px));
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
+  box-shadow: var(--e-3); animation: popover-in var(--dur) var(--ease); }
+.popover-group { padding: var(--s-2) 0; }
+.popover-group + .popover-group { border-top: 1px solid var(--line); }
+.popover-group-label { padding: var(--s-2) var(--s-3) var(--s-1); font-size: var(--t-xs);
+  font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-2); }
+.popover-item { display: flex; align-items: center; gap: var(--s-2); width: 100%;
+  padding: var(--s-2) var(--s-3); font-size: var(--t-sm); color: var(--ink);
+  background: transparent; border: 0; text-align: left; cursor: pointer; }
+.popover-item:hover, .popover-item:focus-visible { background: var(--wash); }
+.popover-item .i { color: var(--ink-2); }
+@keyframes popover-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* --- sticky action bar (admin composer save/publish footer) ---------------- */
+.sticky-bar { position: sticky; bottom: 0; z-index: var(--z-sticky); }
 
 /* ============================================================
    PRINT — kept last on purpose.

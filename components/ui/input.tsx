@@ -19,12 +19,11 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(function Inp
       type={type}
       data-slot="input"
       className={cn(
-        'flex min-h-9 w-full rounded-md border border-[var(--color-line-3)] bg-[var(--color-input)]',
-        'px-3 py-2 text-sm text-[var(--color-foreground)]',
-        'placeholder:text-[var(--color-muted-foreground)]',
-        // Focus halo: brand ring on the boundary + halo via box-shadow.
-        'transition-colors duration-[180ms] ease-[var(--ease)]',
-        'focus-visible:outline-none focus-visible:border-[var(--color-brand-600)] focus-visible:ring-2 focus-visible:ring-[var(--color-brand-tint-2)]',
+        'flex min-h-10 w-full rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)]',
+        'px-3.5 py-2 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)]/50',
+        'shadow-2xs transition-all duration-150',
+        'hover:border-[var(--color-line-3)]',
+        'focus:outline-none focus-visible:outline-none focus:border-[var(--color-brand-600)] focus-visible:border-[var(--color-brand-600)] focus:ring-1 focus:ring-[var(--color-brand-600)] focus-visible:ring-1 focus-visible:ring-[var(--color-brand-600)]',
         'disabled:cursor-not-allowed disabled:opacity-60',
         className,
       )}

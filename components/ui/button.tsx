@@ -33,7 +33,10 @@ type ButtonSize = 'default' | 'sm' | 'lg' | 'icon';
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    'bg-[var(--color-brand-600)] text-white hover:bg-[var(--color-brand-700)] active:translate-y-px',
+    // text-white! needed because base CSS resets button color to inherit, and
+    // class-selector specificity loses to the `button { color: inherit }` rule
+    // in lms.css without it. The `!` makes the override survive the cascade.
+    'bg-[var(--color-brand-600)] text-white! hover:bg-[var(--color-brand-700)] active:translate-y-px',
   secondary:
     'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] hover:bg-[var(--color-brand-tint-2)] active:translate-y-px',
   destructive:

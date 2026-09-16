@@ -532,7 +532,7 @@ function ParentNavRow({
   expandAriaLabel,
   collapseAriaLabel,
 }: ParentNavRowProps): React.ReactElement {
-  const highlighted = isParentActive || isAncestorActive;
+  const highlighted = isParentActive;
   return (
     <li>
       <div

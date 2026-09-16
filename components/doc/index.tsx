@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { ALLERGEN_LABELS, type AllergenKey } from '@/lib/allergens';
 
 /**
  * The vocabulary of an SOP / recipe / training chapter page.
@@ -98,14 +99,32 @@ export function DocHead({
 export function Allergen({
   summary,
   detail,
+  selectedAllergens,
+  locale,
 }: {
   summary: string;
   detail: React.ReactNode;
+  /** Structured FDA Big-9 list — rendered as chips above the summary when
+   *  present. `detail`/`summary` stay as supplementary free-form copy. */
+  selectedAllergens?: readonly string[];
+  locale: 'en' | 'es';
 }) {
   return (
     <div className="allergen" role="note">
       <i className="ri-error-warning-fill i i-lg" aria-hidden="true" />
-      <div>
+      <div className="allergen-body">
+        {selectedAllergens && selectedAllergens.length > 0 && (
+          <ul className="allergen-chips" aria-label="Contains allergens">
+            {selectedAllergens.map((key) => {
+              const entry = ALLERGEN_LABELS[key as AllergenKey];
+              return (
+                <li key={key} className="allergen-chip">
+                  {entry ? entry[locale] : key}
+                </li>
+              );
+            })}
+          </ul>
+        )}
         <b>{summary}</b>
         <p>{detail}</p>
       </div>
@@ -274,7 +293,17 @@ export type MethodStep = {
   critical?: boolean;
   /** Watch timestamp chip, e.g. "0:12". */
   watchAt?: string;
+  /** Pinned video clip with start/end timestamps. Renders as a watch chip
+   *  linking to the source in a new tab. */
+  clip?: { src: string; startSec: number; endSec: number };
 };
+
+function fmtClock(totalSec: number): string {
+  const s = Math.max(0, Math.floor(totalSec));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${m}:${String(r).padStart(2, '0')}`;
+}
 
 export function MethodSteps({ steps, nowIndex }: { steps: MethodStep[]; nowIndex?: number }) {
   return (
@@ -295,6 +324,16 @@ export function MethodSteps({ steps, nowIndex }: { steps: MethodStep[]; nowIndex
                 <button className="step-time">
                   <i className="ri-play-fill i i-sm" aria-hidden="true" /> Watch · {s.watchAt}
                 </button>
+              )}
+              {s.clip && (
+                <a
+                  className="step-time"
+                  href={s.clip.src}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <i className="ri-play-fill i i-sm" aria-hidden="true" /> Watch · {fmtClock(s.clip.startSec)}–{fmtClock(s.clip.endSec)}
+                </a>
               )}
             </div>
           </li>
