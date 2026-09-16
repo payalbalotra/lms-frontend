@@ -39,6 +39,24 @@ import type {
 } from '@/lib/types';
 import { syncAmountsWithFactors } from '@/lib/procedure-blocks';
 import { ALLERGEN_KEYS, type AllergenKey } from '@/lib/allergens';
+import { requestImageUpload, requestVideoUpload, uploadToR2, deleteUpload } from '@/lib/api';
+import { classifyVideoUrl } from '@/lib/procedure-media';
+
+// Must stay in sync with the backend whitelist at lms-backend/src/services/uploads.ts.
+// SVG is intentionally omitted — it can carry inline JS.
+const ALLOWED_IMAGE_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+]);
+const ALLOWED_VIDEO_TYPES = new Set([
+  'video/mp4',
+  'video/webm',
+  'video/quicktime',
+]);
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
 
 interface EditorProps<T extends ProcedureBlock> {
   block: T;
@@ -1007,40 +1025,71 @@ function ImageEditor({
   const t = useTranslations('admin.library.new.form.composer');
   const [lang, setLang] = React.useState<'en' | 'es'>('en');
   const [sourceMode, setSourceMode] = React.useState<'upload' | 'url'>('upload');
-  const [fileName, setFileName] = React.useState<string>('');
+  const [upload, setUpload] = React.useState<{
+    state: 'idle' | 'uploading' | 'failed';
+    fileName?: string;
+    error?: string;
+  }>({ state: 'idle' });
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const startUpload = async (file: File): Promise<void> => {
+    if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+      setUpload({ state: 'failed', fileName: file.name, error: t('image.uploadUnsupported') });
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setUpload({ state: 'failed', fileName: file.name, error: t('image.uploadTooBig') });
+      return;
+    }
+
+    setUpload({ state: 'uploading', fileName: file.name });
+    try {
+      const presigned = await requestImageUpload({
+        filename: file.name,
+        contentType: file.type,
+        size: file.size,
+      });
+      await uploadToR2(presigned.uploadUrl, file, file.type);
+      // Backfill alt from the filename so the block survives buildGenericBody's
+      // isBlockEmpty filter (image blocks with empty alt + caption are dropped
+      // before save). Only fills the empty side — anything the user already
+      // typed stays.
+      const filenameNoExt = file.name.replace(/\.[^.]+$/, '');
+      const currentEn = block.alt?.en?.trim() ?? '';
+      const currentEs = block.alt?.es?.trim() ?? '';
+      onChange({
+        ...block,
+        src: presigned.publicUrl,
+        alt: {
+          en: currentEn || filenameNoExt,
+          es: currentEs || filenameNoExt,
+        },
+      });
+      setUpload({ state: 'idle' });
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : t('image.uploadFailed');
+      setUpload({ state: 'failed', fileName: file.name, error: message });
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        onChange({ ...block, src: reader.result });
-      }
-    };
-    reader.readAsDataURL(file);
+    e.target.value = '';
+    void startUpload(file);
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>): void => {
     e.preventDefault();
     e.stopPropagation();
     const file = e.dataTransfer.files?.[0];
-    if (!file || !file.type.startsWith('image/')) return;
-    setFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        onChange({ ...block, src: reader.result });
-      }
-    };
-    reader.readAsDataURL(file);
+    if (!file) return;
+    void startUpload(file);
   };
 
   return (
     <div className="space-y-4">
-      {/* Header / Mode switcher */}
       <div className="flex items-center justify-between">
         <Label className="text-[length:var(--text-sm)] font-semibold text-[var(--color-ink)]">
           Procedure Image <span aria-hidden="true" className="text-[var(--color-bad)]">*</span>
@@ -1057,7 +1106,7 @@ function ImageEditor({
             )}
           >
             <i aria-hidden="true" className="ri-upload-cloud-2-line" />
-            Upload file
+            {t('image.uploadMode')}
           </button>
           <button
             type="button"
@@ -1070,80 +1119,106 @@ function ImageEditor({
             )}
           >
             <i aria-hidden="true" className="ri-link" />
-            Image URL
+            {t('image.urlMode')}
           </button>
         </div>
       </div>
 
-      {/* Upload Zone / Live Image Preview */}
       {block.src ? (
-        <div className="relative overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-wash)]/40 p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-brand-tint)] px-3 py-1 text-[length:var(--text-xs)] font-bold text-[var(--color-brand-700)]">
+        <div className="space-y-3 rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-3 shadow-xs">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--color-line-2)]/60 pb-2.5">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-brand-tint)] px-3 py-1 text-[length:var(--text-xs)] font-bold uppercase tracking-wider text-[var(--color-brand-700)]">
               <i aria-hidden="true" className="ri-image-fill" />
-              {fileName || 'Loaded image'}
-            </span>
+              <span>{t('image.uploadDone')}</span>
+            </div>
             <div className="flex items-center gap-2">
               <Button
                 type="button"
-                variant="secondary"
+                variant="ghost"
                 size="sm"
                 onClick={() => fileInputRef.current?.click()}
-                className="gap-1 text-xs"
+                className="gap-1.5 text-xs font-semibold text-[var(--color-ink-2)]"
               >
-                <i aria-hidden="true" className="ri-upload-2-line" />
-                Change image
+                <i aria-hidden="true" className="ri-upload-2-line text-sm" />
+                {t('image.uploadChange')}
               </Button>
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 onClick={() => {
+                  // Best-effort: try to delete the underlying R2 object so the
+                  // bucket doesn't accumulate orphans. Backend returns 404 for
+                  // non-R2 URLs (e.g. a CDN link the user pasted) — swallowed.
+                  // Lifecycle rules in the bucket catch anything this misses.
+                  if (block.src) {
+                    void deleteUpload({ url: block.src }).catch((err: unknown) => {
+                      console.warn('[uploads] failed to delete orphaned R2 object', err);
+                    });
+                  }
                   onChange({ ...block, src: '' });
-                  setFileName('');
                 }}
-                className="gap-1 text-xs text-[var(--color-bad)] hover:bg-[var(--color-bad-tint)]"
+                className="gap-1.5 text-xs font-semibold text-[var(--color-bad)] hover:bg-[var(--color-bad-tint)]"
               >
-                <i aria-hidden="true" className="ri-delete-bin-line" />
-                Remove
+                <i aria-hidden="true" className="ri-delete-bin-line text-sm" />
+                {t('image.uploadRemove')}
               </Button>
             </div>
           </div>
-          <div className="flex items-center justify-center max-h-64 overflow-hidden rounded-md border border-[var(--color-line)] bg-white p-2">
-            {/* eslint-disable-next-html-element-suppress */}
+          <div className="flex items-center justify-center overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-wash)]/40 p-3 max-h-80">
             <img
               src={block.src}
-              alt="Procedure Image Preview"
-              className="max-h-56 w-auto object-contain rounded"
+              alt={t('image.previewAlt')}
+              className="max-h-72 w-auto rounded object-contain shadow-xs"
             />
           </div>
         </div>
+      ) : upload.state === 'uploading' ? (
+        <div className="upload">
+          <span className="pill-progress">
+            <span className="spinner" aria-hidden="true" />
+            {t('image.uploading')}
+            {upload.fileName ? ` — ${upload.fileName}` : ''}
+          </span>
+        </div>
+      ) : upload.state === 'failed' ? (
+        <div className="upload">
+          <span className="pill-progress" role="alert" style={{ color: 'var(--color-bad)' }}>
+            <i aria-hidden="true" className="ri-error-warning-line" />
+            {upload.error}
+          </span>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => fileInputRef.current?.click()}
+            className="gap-1 text-xs"
+          >
+            <i aria-hidden="true" className="ri-refresh-line" />
+            {t('image.uploadChange')}
+          </Button>
+        </div>
       ) : sourceMode === 'upload' ? (
         <div
+          role="button"
+          tabIndex={0}
           onDragOver={(e) => {
             e.preventDefault();
             e.stopPropagation();
           }}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
-          className="group flex flex-col items-center justify-center rounded-[var(--radius-lg)] border-2 border-dashed border-[var(--color-brand-600)]/40 bg-[var(--color-surface)] p-8 text-center cursor-pointer transition-colors hover:border-[var(--color-brand-600)] hover:bg-[var(--color-wash)]/40"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              fileInputRef.current?.click();
+            }
+          }}
+          className="dropzone"
         >
-          <div className="flex size-12 items-center justify-center rounded-full bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] text-2xl group-hover:scale-105 transition-transform">
-            <i aria-hidden="true" className="ri-image-add-line" />
-          </div>
-          <p className="mt-3 text-[length:var(--text-sm)] font-bold text-[var(--color-ink)]">
-            Click to upload or drag & drop image
-          </p>
-          <span className="mt-1 text-[length:var(--text-xs)] text-[var(--color-ink-3)]">
-            Supports PNG, JPG, WEBP, GIF up to 10MB
-          </span>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            className="hidden"
-          />
+          <i aria-hidden="true" className="ri-image-add-line" />
+          <p>{t('image.uploadClick')}</p>
+          <span>{t('image.uploadHint')}</span>
         </div>
       ) : (
         <Field label={t('imageSrc')}>
@@ -1156,16 +1231,14 @@ function ImageEditor({
         </Field>
       )}
 
-      {/* Hidden file input for "Change image" when src exists */}
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept="image/jpeg,image/png,image/webp,image/gif"
         onChange={handleFileChange}
         className="hidden"
       />
 
-      {/* Image Hint (Kind) using CustomSelect */}
       <Field label={t('imageHint.label')}>
         <CustomSelect
           value={block.hint || 'photo'}
@@ -1208,30 +1281,64 @@ function VideoEditor({
   const t = useTranslations('admin.library.new.form.composer');
   const [lang, setLang] = React.useState<'en' | 'es'>('en');
   const [sourceMode, setSourceMode] = React.useState<'upload' | 'url'>('upload');
-  const [fileName, setFileName] = React.useState<string>('');
+  // What produced the *current* block.src: a successful R2 upload, or a URL
+  // the user pasted. Drives the pill copy and the player so a pasted YouTube
+  // link never claims to have been "uploaded" and never tries to play via
+  // <video src=…> (which can't render a watch page).
+  const [source, setSource] = React.useState<'upload' | 'url'>('upload');
+  const [upload, setUpload] = React.useState<{
+    state: 'idle' | 'uploading' | 'failed';
+    fileName?: string;
+    error?: string;
+  }>({ state: 'idle' });
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const videoClass = React.useMemo(() => classifyVideoUrl(block.src), [block.src]);
+
+  const startUpload = async (file: File): Promise<void> => {
+    if (!ALLOWED_VIDEO_TYPES.has(file.type)) {
+      setUpload({ state: 'failed', fileName: file.name, error: t('video.uploadUnsupported') });
+      return;
+    }
+    if (file.size > MAX_VIDEO_BYTES) {
+      setUpload({ state: 'failed', fileName: file.name, error: t('video.uploadTooBig') });
+      return;
+    }
+
+    setUpload({ state: 'uploading', fileName: file.name });
+    try {
+      const presigned = await requestVideoUpload({
+        filename: file.name,
+        contentType: file.type,
+        size: file.size,
+      });
+      await uploadToR2(presigned.uploadUrl, file, file.type);
+      setSource('upload');
+      onChange({ ...block, src: presigned.publicUrl });
+      setUpload({ state: 'idle' });
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : t('video.uploadFailed');
+      setUpload({ state: 'failed', fileName: file.name, error: message });
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setFileName(file.name);
-    const videoUrl = URL.createObjectURL(file);
-    onChange({ ...block, src: videoUrl });
+    e.target.value = '';
+    void startUpload(file);
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>): void => {
     e.preventDefault();
     e.stopPropagation();
     const file = e.dataTransfer.files?.[0];
-    if (!file || !file.type.startsWith('video/')) return;
-    setFileName(file.name);
-    const videoUrl = URL.createObjectURL(file);
-    onChange({ ...block, src: videoUrl });
+    if (!file) return;
+    void startUpload(file);
   };
 
   return (
     <div className="space-y-4">
-      {/* Header / Mode switcher */}
       <div className="flex items-center justify-between">
         <Label className="text-[length:var(--text-sm)] font-semibold text-[var(--color-ink)]">
           Procedure Video <span aria-hidden="true" className="text-[var(--color-bad)]">*</span>
@@ -1248,7 +1355,7 @@ function VideoEditor({
             )}
           >
             <i aria-hidden="true" className="ri-upload-cloud-2-line" />
-            Upload file
+            {t('video.uploadMode')}
           </button>
           <button
             type="button"
@@ -1261,96 +1368,139 @@ function VideoEditor({
             )}
           >
             <i aria-hidden="true" className="ri-link" />
-            Video URL
+            {t('video.urlMode')}
           </button>
         </div>
       </div>
 
-      {/* Upload Zone / Live Video Preview */}
       {block.src ? (
-        <div className="relative overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-wash)]/40 p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-brand-tint)] px-3 py-1 text-[length:var(--text-xs)] font-bold text-[var(--color-brand-700)]">
-              <i aria-hidden="true" className="ri-video-fill" />
-              {fileName || 'Loaded video'}
-            </span>
+        <div className="space-y-3 rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-3 shadow-xs">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--color-line-2)]/60 pb-2.5">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-brand-tint)] px-3 py-1 text-[length:var(--text-xs)] font-bold uppercase tracking-wider text-[var(--color-brand-700)]">
+              <i
+                aria-hidden="true"
+                className={source === 'upload' ? 'ri-video-fill' : 'ri-link'}
+              />
+              <span>{source === 'upload' ? t('video.uploadDone') : t('video.uploadLinked')}</span>
+            </div>
             <div className="flex items-center gap-2">
               <Button
                 type="button"
-                variant="secondary"
+                variant="ghost"
                 size="sm"
                 onClick={() => fileInputRef.current?.click()}
-                className="gap-1 text-xs"
+                className="gap-1.5 text-xs font-semibold text-[var(--color-ink-2)]"
               >
-                <i aria-hidden="true" className="ri-upload-2-line" />
-                Change video
+                <i aria-hidden="true" className="ri-upload-2-line text-sm" />
+                {t('video.uploadChange')}
               </Button>
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 onClick={() => {
+                  // Same shape as the image Remove handler: best-effort delete
+                  // of the underlying R2 object. Source-state gating means a
+                  // pasted YouTube/Vimeo link never triggers an API call —
+                  // there's no R2 object to delete.
+                  if (source === 'upload' && block.src) {
+                    void deleteUpload({ url: block.src }).catch((err: unknown) => {
+                      console.warn('[uploads] failed to delete orphaned R2 object', err);
+                    });
+                  }
                   onChange({ ...block, src: '' });
-                  setFileName('');
                 }}
-                className="gap-1 text-xs text-[var(--color-bad)] hover:bg-[var(--color-bad-tint)]"
+                className="gap-1.5 text-xs font-semibold text-[var(--color-bad)] hover:bg-[var(--color-bad-tint)]"
               >
-                <i aria-hidden="true" className="ri-delete-bin-line" />
-                Remove
+                <i aria-hidden="true" className="ri-delete-bin-line text-sm" />
+                {t('video.uploadRemove')}
               </Button>
             </div>
           </div>
-          <div className="flex items-center justify-center overflow-hidden rounded-md border border-[var(--color-line)] bg-black p-1">
-            <video
-              controls
-              src={block.src}
-              className="max-h-72 w-full object-contain rounded"
-            />
+          <div className="overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-black">
+            {videoClass.provider === 'file' ? (
+              <video
+                controls
+                src={block.src}
+                className="max-h-80 w-full object-contain"
+              />
+            ) : videoClass.embedUrl ? (
+              <iframe
+                src={videoClass.embedUrl}
+                title={source === 'upload' ? t('video.uploadDone') : t('video.uploadLinked')}
+                className="aspect-video w-full"
+                allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                referrerPolicy="no-referrer"
+              />
+            ) : null}
           </div>
+        </div>
+      ) : upload.state === 'uploading' ? (
+        <div className="upload">
+          <span className="pill-progress">
+            <span className="spinner" aria-hidden="true" />
+            {t('video.uploading')}
+            {upload.fileName ? ` — ${upload.fileName}` : ''}
+          </span>
+        </div>
+      ) : upload.state === 'failed' ? (
+        <div className="upload">
+          <span className="pill-progress" role="alert" style={{ color: 'var(--color-bad)' }}>
+            <i aria-hidden="true" className="ri-error-warning-line" />
+            {upload.error}
+          </span>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => fileInputRef.current?.click()}
+            className="gap-1 text-xs"
+          >
+            <i aria-hidden="true" className="ri-refresh-line" />
+            {t('video.uploadChange')}
+          </Button>
         </div>
       ) : sourceMode === 'upload' ? (
         <div
+          role="button"
+          tabIndex={0}
           onDragOver={(e) => {
             e.preventDefault();
             e.stopPropagation();
           }}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
-          className="group flex flex-col items-center justify-center rounded-[var(--radius-lg)] border-2 border-dashed border-[var(--color-brand-600)]/40 bg-[var(--color-surface)] p-8 text-center cursor-pointer transition-colors hover:border-[var(--color-brand-600)] hover:bg-[var(--color-wash)]/40"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              fileInputRef.current?.click();
+            }
+          }}
+          className="dropzone"
         >
-          <div className="flex size-12 items-center justify-center rounded-full bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] text-2xl group-hover:scale-105 transition-transform">
-            <i aria-hidden="true" className="ri-video-add-line" />
-          </div>
-          <p className="mt-3 text-[length:var(--text-sm)] font-bold text-[var(--color-ink)]">
-            Click to upload or drag & drop video
-          </p>
-          <span className="mt-1 text-[length:var(--text-xs)] text-[var(--color-ink-3)]">
-            Supports MP4, WEBM, MOV up to 100MB
-          </span>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="video/*"
-            onChange={handleFileChange}
-            className="hidden"
-          />
+          <i aria-hidden="true" className="ri-video-add-line" />
+          <p>{t('video.uploadClick')}</p>
+          <span>{t('video.uploadHint')}</span>
         </div>
       ) : (
         <Field label={t('videoSrc')}>
           <Input
             type="url"
             value={block.src}
-            onChange={(e) => onChange({ ...block, src: e.target.value })}
+            onChange={(e) => {
+              setSource('url');
+              onChange({ ...block, src: e.target.value });
+            }}
             placeholder="https://www.youtube.com/watch?v=..."
           />
         </Field>
       )}
 
-      {/* Hidden file input */}
       <input
         ref={fileInputRef}
         type="file"
-        accept="video/*"
+        accept="video/mp4,video/webm,video/quicktime"
         onChange={handleFileChange}
         className="hidden"
       />

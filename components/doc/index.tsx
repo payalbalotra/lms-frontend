@@ -1,3 +1,5 @@
+'use client';
+
 import * as React from 'react';
 import { ALLERGEN_LABELS, type AllergenKey } from '@/lib/allergens';
 

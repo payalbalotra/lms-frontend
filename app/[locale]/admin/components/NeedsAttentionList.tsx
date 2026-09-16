@@ -2,208 +2,138 @@ import * as React from 'react';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
-/**
- * NeedsAttentionList — DESIGN.md §3.4 .note-block.n-warn pattern.
- *
- * Six kinds of attention entries map to one amber panel each
- * (not red — DESIGN.md §2.1: "important ≠ dangerous"). Empty state
- * shows a single ok-tone line; the message is "library is healthy".
- *
- * Stage 2 status: the attention endpoint doesn't exist yet; the
- * list renders empty. The card header always shows, so when the
- * endpoint ships the panel fills in without changing the page.
- */
 export type AttentionKind =
-  | 'drafts'
-  | 'reviews'
-  | 'emptyCategories'
   | 'pendingApprovals'
   | 'overdueEmployees'
-  | 'expiringClearances';
+  | 'expiringSops'
+  | 'drafts'
+  | 'reviews'
+  | 'emptyCategories';
 
-export interface AttentionEntry {
+export interface AttentionItem {
+  id: string;
   kind: AttentionKind;
-  count: number;
-  /** Optional route used when count > 0 and the user wants to drill in. */
-  href?: string;
-  /** Optional: doc refs for drafts / past-review SOPs so the row can link in. */
-  refs?: Array<{ id: string; title: string; meta?: string }>;
+  title: string;
+  subtitle: string;
+  actionLabel: string;
+  href: string;
+  icon?: string;
 }
 
 interface NeedsAttentionListProps {
   locale: string;
-  entries: AttentionEntry[];
+  items?: AttentionItem[];
   className?: string;
 }
 
-interface AttentionTone {
-  icon: string;
-  ring: string;
-  iconCls: string;
-}
-
-function toneForKind(kind: AttentionKind): AttentionTone {
-  switch (kind) {
-    case 'drafts':
-    case 'pendingApprovals':
-      return {
-        icon: 'ri-draft-line',
-        ring: 'border-[var(--color-warn)]/40 bg-[var(--color-warn-tint)]',
-        iconCls: 'text-[var(--color-warn-ink)]',
-      };
-    case 'reviews':
-    case 'expiringClearances':
-      return {
-        icon: 'ri-calendar-check-line',
-        ring: 'border-[var(--color-warn)]/40 bg-[var(--color-warn-tint)]',
-        iconCls: 'text-[var(--color-warn-ink)]',
-      };
-    case 'emptyCategories':
-      return {
-        icon: 'ri-folders-line',
-        ring: 'border-[var(--color-warn)]/40 bg-[var(--color-warn-tint)]',
-        iconCls: 'text-[var(--color-warn-ink)]',
-      };
-    case 'overdueEmployees':
-      return {
-        icon: 'ri-user-warning-line',
-        ring: 'border-[var(--color-warn)]/40 bg-[var(--color-warn-tint)]',
-        iconCls: 'text-[var(--color-warn-ink)]',
-      };
-  }
-}
+const DEFAULT_ATTENTION_ITEMS: AttentionItem[] = [
+  {
+    id: '1',
+    kind: 'pendingApprovals',
+    title: '3 procedures awaiting approval',
+    subtitle: 'Grilled Chicken Breast, Cleaning Schedule, and 1 more',
+    actionLabel: 'Review',
+    href: '/admin/library',
+    icon: 'ri-file-search-line',
+  },
+  {
+    id: '2',
+    kind: 'overdueEmployees',
+    title: '5 employees have overdue training',
+    subtitle: 'Food Safety, Allergen Awareness, and 3 more',
+    actionLabel: 'View training',
+    href: '/admin/training',
+    icon: 'ri-user-warning-line',
+  },
+  {
+    id: '3',
+    kind: 'expiringSops',
+    title: '2 procedures expire this week',
+    subtitle: 'Cleaning Schedule - Main Kitchen, Equipment Handling',
+    actionLabel: 'Review',
+    href: '/admin/library',
+    icon: 'ri-time-line',
+  },
+];
 
 export async function NeedsAttentionList({
   locale,
-  entries,
+  items = DEFAULT_ATTENTION_ITEMS,
   className,
 }: NeedsAttentionListProps): Promise<React.ReactElement> {
   const t = await getTranslations('admin.dashboard');
-  const totalCount = entries.reduce((sum, e) => sum + e.count, 0);
-
-  function messageFor(entry: AttentionEntry): string {
-    if (entry.count === 0) return '';
-    switch (entry.kind) {
-      case 'drafts':
-        return entry.count === 1
-          ? t('needsAttentionDraftsOne')
-          : t('needsAttentionDraftsMany', { count: entry.count });
-      case 'reviews':
-        return entry.count === 1
-          ? t('needsAttentionReviewsOne')
-          : t('needsAttentionReviewsMany', { count: entry.count });
-      case 'emptyCategories':
-        return entry.count === 1
-          ? t('needsAttentionEmptyCategoriesOne')
-          : t('needsAttentionEmptyCategoriesMany', { count: entry.count });
-      case 'pendingApprovals':
-        return entry.count === 1
-          ? t('needsAttentionPendingApprovalsOne')
-          : t('needsAttentionPendingApprovalsMany', { count: entry.count });
-      case 'overdueEmployees':
-        return entry.count === 1
-          ? t('needsAttentionOverdueEmployeesOne')
-          : t('needsAttentionOverdueEmployeesMany', { count: entry.count });
-      case 'expiringClearances':
-        return entry.count === 1
-          ? t('needsAttentionExpiringClearancesOne')
-          : t('needsAttentionExpiringClearancesMany', { count: entry.count });
-    }
-  }
-
-  const visibleEntries = entries.filter((e) => e.count > 0);
+  const isEs = locale === 'es';
 
   return (
-    <section className={cn('space-y-3', className)} aria-labelledby="dashboard-needs-attention">
-      <header className="flex items-baseline justify-between gap-3">
-        <h2
-          id="dashboard-needs-attention"
-          className="font-[family-name:var(--font-display)] text-[length:var(--text-lg)] font-bold tracking-[-0.02em] text-[var(--color-ink)]"
-        >
-          {t('needsAttention')}
-        </h2>
-        {totalCount > 0 ? (
-          <span
-            className={cn(
-              'inline-flex min-w-7 items-center justify-center rounded-[var(--radius-pill)]',
-              'bg-[var(--color-warn)] px-2 py-0.5 text-[length:var(--text-xs)] font-bold text-white',
-            )}
-          >
-            {t('needsAttentionCount', { count: totalCount })}
+    <section
+      className={cn(
+        'rounded-[var(--radius-lg)] border border-[var(--color-brand-600)]/20 bg-[#fff8f5] dark:bg-[var(--color-brand-tint)]/10 p-5 sm:p-6 shadow-xs space-y-4',
+        className,
+      )}
+      aria-labelledby="dashboard-needs-attention"
+    >
+      <header className="flex items-center justify-between gap-3 border-b border-[var(--color-brand-600)]/15 pb-4">
+        <div className="flex items-center gap-2.5">
+          <span className="flex size-7 items-center justify-center rounded-full bg-[var(--color-brand-600)] text-white text-sm shadow-xs font-bold">
+            !
           </span>
-        ) : null}
+          <h2
+            id="dashboard-needs-attention"
+            className="font-[family-name:var(--font-display)] text-[length:var(--text-lg)] font-bold tracking-tight text-[var(--color-brand-700)]"
+          >
+            {isEs ? 'Requiere atención' : 'Needs attention'}
+          </h2>
+        </div>
+        <Link
+          href={`/${locale}/admin/library`}
+          className="inline-flex items-center gap-1 text-[length:var(--text-xs)] font-bold uppercase tracking-wider text-[var(--color-brand-700)] hover:text-[var(--color-brand-600)] transition-colors"
+        >
+          {t('viewAll')}
+          <i aria-hidden="true" className="ri-arrow-right-line" />
+        </Link>
       </header>
 
-      {visibleEntries.length === 0 ? (
-        <div
-          className={cn(
-            'flex items-center gap-3 rounded-[var(--radius-lg)]',
-            'border border-[var(--color-ok-tint-2)] bg-[var(--color-ok-tint)] px-5 py-4',
-          )}
-        >
-          <i aria-hidden="true" className="ri-checkbox-circle-line text-[length:var(--text-lg)] text-[var(--color-ok)]" />
-          <p className="text-[length:var(--text-sm)] font-medium text-[var(--color-ok)]">
-            {t('needsAttentionEmpty')}
-          </p>
+      {items.length === 0 ? (
+        <div className="flex items-center gap-3 py-2 text-[length:var(--text-sm)] text-[var(--color-ok)]">
+          <i aria-hidden="true" className="ri-checkbox-circle-line text-lg" />
+          <p>{t('needsAttentionEmpty')}</p>
         </div>
       ) : (
-        <ul className="space-y-2">
-          {visibleEntries.map((entry, idx) => {
-            const tone = toneForKind(entry.kind);
-            const message = messageFor(entry);
-            return (
-              <li key={`${entry.kind}-${idx}`}>
-                <article
-                  className={cn(
-                    'rounded-[var(--radius-lg)] border p-4',
-                    tone.ring,
-                  )}
+        <div className="divide-y divide-[var(--color-brand-600)]/10 space-y-3 pt-1">
+          {items.map((item) => (
+            <div
+              key={item.id}
+              className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 first:pt-0"
+            >
+              <div className="flex items-start gap-3 min-w-0">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] text-base mt-0.5">
+                  <i aria-hidden="true" className={item.icon || 'ri-error-warning-line'} />
+                </span>
+                <div className="min-w-0 space-y-0.5">
+                  <h3 className="text-[length:var(--text-sm)] font-bold text-[var(--color-ink)] truncate">
+                    {item.title}
+                  </h3>
+                  <p className="text-[length:var(--text-xs)] text-[var(--color-ink-2)] truncate font-medium">
+                    {item.subtitle}
+                  </p>
+                </div>
+              </div>
+
+              <Link href={`/${locale}${item.href}`} className="shrink-0 self-start sm:self-center">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full border-[var(--color-brand-600)]/30 bg-white/80 dark:bg-[var(--color-surface)] text-[var(--color-brand-700)] hover:bg-[var(--color-brand-tint)] text-xs font-semibold px-4 py-1.5 shadow-2xs"
                 >
-                  <div className="flex items-start gap-3">
-                    <i
-                      aria-hidden="true"
-                      className={cn(`mt-0.5 ${tone.icon} text-[length:var(--text-md)]`, tone.iconCls)}
-                    />
-                    <div className="flex-1 space-y-1">
-                      <p className="text-[length:var(--text-sm)] font-semibold text-[var(--color-warn-ink)]">
-                        {message}
-                      </p>
-                      {entry.refs && entry.refs.length > 0 ? (
-                        <ul className="mt-2 space-y-1">
-                          {entry.refs.slice(0, 3).map((ref) => (
-                            <li key={ref.id}>
-                              <Link
-                                href={`/${locale}/admin/library/${ref.id}`}
-                                className="text-[length:var(--text-sm)] font-medium text-[var(--color-warn-ink)] underline-offset-2 hover:underline"
-                              >
-                                {ref.title}
-                                {ref.meta ? (
-                                  <span className="ml-2 text-[length:var(--text-xs)] font-normal opacity-80">
-                                    · {ref.meta}
-                                  </span>
-                                ) : null}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : null}
-                    </div>
-                    {entry.href ? (
-                      <Link
-                        href={entry.href}
-                        aria-label={message}
-                        className="shrink-0 text-[length:var(--text-sm)] font-semibold text-[var(--color-warn-ink)] underline-offset-2 hover:underline"
-                      >
-                        →
-                      </Link>
-                    ) : null}
-                  </div>
-                </article>
-              </li>
-            );
-          })}
-        </ul>
+                  {item.actionLabel}
+                </Button>
+              </Link>
+            </div>
+          ))}
+        </div>
       )}
     </section>
   );

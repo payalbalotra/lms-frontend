@@ -362,8 +362,37 @@
               "photo": "Photograph",
               "diagram": "Diagram"
             },
+            "image": {
+              "uploadMode": "Upload file",
+              "urlMode": "Image URL",
+              "uploadClick": "Click to upload or drag & drop image",
+              "uploadHint": "Supports PNG, JPG, WEBP, GIF up to 10 MB",
+              "uploading": "Uploading…",
+              "uploadChange": "Change image",
+              "uploadRemove": "Remove",
+              "uploadDone": "Uploaded",
+              "uploadTooBig": "Image must be 10 MB or smaller.",
+              "uploadUnsupported": "Use PNG, JPG, WEBP, or GIF.",
+              "uploadFailed": "Upload failed. Try again.",
+              "previewAlt": "Procedure image preview"
+            },
             "videoSrc": "Video URL",
             "videoCaption": "Caption (optional)",
+            "video": {
+              "uploadMode": "Upload file",
+              "urlMode": "Video URL",
+              "uploadClick": "Click to upload or drag & drop video",
+              "uploadHint": "Supports MP4, WEBM, MOV up to 100 MB",
+              "uploading": "Uploading…",
+              "uploadChange": "Change video",
+              "uploadRemove": "Remove",
+              "uploadDone": "Uploaded",
+              "uploadLinked": "Linked from URL",
+              "embedNotSupported": "Preview unavailable — open the source URL to view.",
+              "uploadTooBig": "Video must be 100 MB or smaller.",
+              "uploadUnsupported": "Use MP4, WEBM, or MOV.",
+              "uploadFailed": "Upload failed. Try again."
+            },
             "warningSeverity": {
               "label": "Severity",
               "warn": "Warning",

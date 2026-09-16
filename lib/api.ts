@@ -270,3 +270,74 @@ export function getProcedureBySlug(
 ): Promise<{ procedure: Procedure }> {
   return apiRequest(`/api/procedures/${encodeURIComponent(slug)}`, { cookieHeader });
 }
+
+// ----------------------------------------------------------------------------
+// Uploads (presigned PUT to R2)
+// ----------------------------------------------------------------------------
+
+export interface PresignedUpload {
+  uploadUrl: string;
+  key: string;
+  publicUrl: string;
+  expiresIn: number;
+}
+
+// Mints a one-shot presigned PUT URL for an image. Backend (services/uploads.ts)
+// enforces the mime whitelist and the 10 MB cap; the editor mirrors the same
+// checks client-side so users see the error without a round-trip.
+export function requestImageUpload(
+  input: { filename: string; contentType: string; size: number },
+  cookieHeader?: string,
+): Promise<PresignedUpload> {
+  return apiRequest('/api/admin/uploads/image', {
+    method: 'POST',
+    body: input,
+    cookieHeader,
+  });
+}
+
+// Mints a one-shot presigned PUT URL for a video. Same shape as the image
+// helper; backend enforces the video mime allowlist (mp4/webm/quicktime) and
+// a 100 MB cap.
+export function requestVideoUpload(
+  input: { filename: string; contentType: string; size: number },
+  cookieHeader?: string,
+): Promise<PresignedUpload> {
+  return apiRequest('/api/admin/uploads/video', {
+    method: 'POST',
+    body: input,
+    cookieHeader,
+  });
+}
+
+// PUTs the file bytes to R2 directly. Browsers must send Content-Type with
+// the same value used in the matching requestXxxUpload(); R2 rejects the
+// request otherwise. Cloudflare's CORS config must allow PUT from the
+// origin (set in the bucket dashboard — see .env.example). Shared between
+// image and video uploads — the wire format is identical.
+export async function uploadToR2(
+  uploadUrl: string,
+  file: Blob,
+  contentType: string,
+): Promise<void> {
+  const response = await fetch(uploadUrl, {
+    method: 'PUT',
+    body: file,
+    headers: { 'Content-Type': contentType },
+  });
+  if (!response.ok) {
+    throw new Error(`R2 PUT failed with status ${response.status}`);
+  }
+}
+
+// Hard-deletes a previously-uploaded R2 object. The editor's Remove button
+// fires this best-effort so abandoned drafts don't leak storage. Backend
+// silently no-ops (404 UPLOAD_NOT_OWNED) when the URL isn't one of our
+// own uploads — e.g. a pasted YouTube link. Lifecycle rules in the bucket
+// are the safety net for everything this misses.
+export function deleteUpload(input: { url: string }): Promise<{ ok: true }> {
+  return apiRequest('/api/admin/uploads', {
+    method: 'DELETE',
+    body: input,
+  });
+}

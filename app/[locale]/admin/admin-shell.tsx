@@ -360,7 +360,7 @@ function Sidebar({
   return (
     <aside
       className={cn(
-        'w-64 shrink-0 flex-col border-r border-[var(--color-line)] bg-[var(--color-surface)]',
+        'sticky top-0 h-screen w-64 shrink-0 flex-col border-r border-[var(--color-line)] bg-[var(--color-surface)]',
         className,
       )}
       aria-label={titleLabel}

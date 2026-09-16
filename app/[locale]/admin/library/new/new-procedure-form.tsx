@@ -136,9 +136,12 @@ function isBlockEmpty(block: ProcedureBlock): boolean {
     case 'warning':
       return locEmpty(block.body);
     case 'image':
-      return locEmpty(block.alt) && locEmpty(block.caption);
+      return block.src.trim() === '' && locEmpty(block.alt) && locEmpty(block.caption);
     case 'video':
-      return locEmpty(block.caption);
+      // A video block with a real src URL is meaningful even without a
+      // caption — drop the block from the save payload only when both sides
+      // are empty.
+      return block.src.trim() === '' && locEmpty(block.caption);
     case 'attachment':
       return locEmpty(block.title) && block.href.trim() === '';
     case 'method':
@@ -181,12 +184,17 @@ function backfillBlock(block: ProcedureBlock): ProcedureBlock {
       return { ...block, text: backfillLocalised(block.text) as Localised };
     case 'warning':
       return { ...block, body: backfillLocalised(block.body) as Localised };
-    case 'image':
+    case 'image': {
+      const en = (block.alt?.en ?? '').trim();
+      const es = (block.alt?.es ?? '').trim();
+      const altEn = en || es || 'Procedure image';
+      const altEs = es || en || 'Imagen del procedimiento';
       return {
         ...block,
-        alt: backfillLocalised(block.alt) as Localised,
+        alt: { en: altEn, es: altEs },
         caption: backfillLocalised(block.caption) as LocalisedOptional,
       };
+    }
     case 'video':
       return { ...block, caption: backfillLocalised(block.caption) as LocalisedOptional };
     case 'attachment':
@@ -535,7 +543,7 @@ export function NewProcedureForm({
       />
 
       {/* Main 2-Column Grid */}
-      <form className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_20rem] pb-24" onSubmit={(e) => e.preventDefault()}>
+      <form className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_20rem] items-start pb-24" onSubmit={(e) => e.preventDefault()}>
         <div className="space-y-8 min-w-0">
           {error && (
             <div
@@ -805,8 +813,8 @@ export function NewProcedureForm({
         </div>
 
         {/* Right Sidebar Column */}
-        <div className="hidden lg:block space-y-6">
-          <div className="sticky top-6 space-y-6">
+        <div className="hidden lg:block">
+          <div className="sticky top-6 max-h-[calc(100vh-6rem)] overflow-y-auto space-y-6 pr-1.5 scrollbar-thin">
             <ProcedureProgressSidebar
               completedCount={completedCount}
               totalCount={sections.length}

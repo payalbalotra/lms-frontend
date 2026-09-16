@@ -362,8 +362,37 @@
               "photo": "Fotografía",
               "diagram": "Diagrama"
             },
+            "image": {
+              "uploadMode": "Subir archivo",
+              "urlMode": "URL de la imagen",
+              "uploadClick": "Haz clic para subir o arrastra y suelta una imagen",
+              "uploadHint": "Compatible con PNG, JPG, WEBP, GIF hasta 10 MB",
+              "uploading": "Subiendo…",
+              "uploadChange": "Cambiar imagen",
+              "uploadRemove": "Quitar",
+              "uploadDone": "Subido",
+              "uploadTooBig": "La imagen debe pesar 10 MB o menos.",
+              "uploadUnsupported": "Usa PNG, JPG, WEBP o GIF.",
+              "uploadFailed": "La subida falló. Inténtalo de nuevo.",
+              "previewAlt": "Vista previa de la imagen del procedimiento"
+            },
             "videoSrc": "URL del video",
             "videoCaption": "Pie (opcional)",
+            "video": {
+              "uploadMode": "Subir archivo",
+              "urlMode": "URL del video",
+              "uploadClick": "Haz clic para subir o arrastra y suelta un video",
+              "uploadHint": "Compatible con MP4, WEBM, MOV hasta 100 MB",
+              "uploading": "Subiendo…",
+              "uploadChange": "Cambiar video",
+              "uploadRemove": "Quitar",
+              "uploadDone": "Subido",
+              "uploadLinked": "Enlazado desde URL",
+              "embedNotSupported": "Vista previa no disponible — abre la URL para verlo.",
+              "uploadTooBig": "El video debe pesar 100 MB o menos.",
+              "uploadUnsupported": "Usa MP4, WEBM o MOV.",
+              "uploadFailed": "La subida falló. Inténtalo de nuevo."
+            },
             "warningSeverity": {
               "label": "Gravedad",
               "warn": "Advertencia",

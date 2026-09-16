@@ -6,6 +6,7 @@ import type {
   ProcedureMethodStep,
   ProcedureNoteKind,
 } from '@/lib/types';
+import { classifyVideoUrl } from '@/lib/procedure-media';
 import {
   Allergen,
   CriticalLimitFull,
@@ -156,9 +157,21 @@ export function BlockRenderer({
       }
       case 'video': {
         const caption = pickOpt(block.caption, locale);
+        const videoClass = classifyVideoUrl(block.src);
         return (
           <figure key={block.id ?? i} className="my-6 space-y-2 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-black p-2 shadow-xs">
-            <video controls src={block.src} className="w-full max-h-96 object-contain rounded-md" />
+            {videoClass.provider === 'file' ? (
+              <video controls src={block.src} className="w-full max-h-96 object-contain rounded-md" />
+            ) : videoClass.embedUrl ? (
+              <iframe
+                src={videoClass.embedUrl}
+                title={caption ?? 'video'}
+                className="aspect-video w-full rounded-md"
+                allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                referrerPolicy="no-referrer"
+              />
+            ) : null}
             {caption && <figcaption className="text-center text-[length:var(--text-xs)] text-white/80 font-medium pt-1">{caption}</figcaption>}
           </figure>
         );
