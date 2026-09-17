@@ -20,7 +20,6 @@ export default async function AdminLibraryPage({
   setRequestLocale(locale);
 
   const t = await getTranslations('admin.library');
-  const tCats = await getTranslations('employee.dashboard');
 
   const cookieStore = await cookies();
   const cookieHeader = cookieStore
@@ -80,36 +79,26 @@ export default async function AdminLibraryPage({
       ) : procedures.length === 0 ? (
         <EmptyLibrary heading={t('emptyHeading')} body={t('emptyBody')} />
       ) : (
-        <ProcedureList procedures={procedures} categoryLabelKey={(slug) => getCategoryLabel(slug, tCats)} />
+        <ProcedureList procedures={procedures} locale={locale} />
       )}
     </div>
   );
 }
 
-/** Slug → localised category name (mirrors the seed list in new/page.tsx).
- *  Falls back to the slug for any category that doesn't match the seed. */
-function getCategoryLabel(
-  slug: string,
-  tCats: (k: string) => string,
-): string {
-  const keyBySlug: Record<string, string> = {
-    recipes: 'categoryRecipes',
-    equipment: 'categoryEquipment',
-    station: 'categoryStation',
-    cleaning: 'categoryCleaning',
-    admin: 'categoryAdmin',
-    delivery: 'categoryDelivery',
-  };
-  const key = keyBySlug[slug];
-  return key ? tCats(key) : slug;
+// Pick the localised label from the joined category. Empty when category is
+// null (archived or never assigned). Returns an em dash so the row stays
+// visually balanced.
+function categoryLabel(proc: Procedure, locale: string): string {
+  if (!proc.category) return '—';
+  return locale === 'es' ? proc.category.nameEs : proc.category.nameEn;
 }
 
 function ProcedureList({
   procedures,
-  categoryLabelKey,
+  locale,
 }: {
   procedures: Procedure[];
-  categoryLabelKey: (slug: string) => string;
+  locale: string;
 }): React.ReactElement {
   return (
     <ul className="divide-y divide-[var(--color-line)] rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)]">
@@ -131,7 +120,7 @@ function ProcedureList({
               )}
             </div>
             <p className="text-[length:var(--text-xs)] text-[var(--color-ink-2)]">
-              {categoryLabelKey(p.categoryKey)} · Updated{' '}
+              {categoryLabel(p, locale)} · Updated{' '}
               {new Date(p.updatedAt).toLocaleString()}
             </p>
           </div>

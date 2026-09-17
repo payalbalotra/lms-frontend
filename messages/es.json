@@ -90,10 +90,26 @@
         "crumbBack": "Biblioteca",
         "pageEyebrow": "Biblioteca",
         "pageTitle": "Categorías",
-        "pageSubtitle": "Las categorías organizan la biblioteca. El conjunto inicial abajo viene con la plataforma; renombra o agrega más cuando el editor esté listo.",
-        "seed": "Inicial",
-        "renameHeading": "Renombrar, agregar o eliminar",
-        "renameBody": "La edición de categorías llega con la Biblioteca de SOPs. Mientras tanto, estas seis cubren el alcance: recetas, manejo de equipo, procedimientos de estación, horarios de limpieza, administración y entrega."
+        "pageSubtitle": "Las categorías organizan la biblioteca. Agrega, renombra o archiva aquí; las categorías archivadas siguen asociadas a los procedimientos que ya las usan.",
+        "addButton": "Añadir categoría",
+        "dialogTitle": "Nueva categoría",
+        "renameDialogTitle": "Renombrar categoría",
+        "renameAction": "Renombrar",
+        "fieldNameEn": "Nombre en inglés",
+        "fieldNameEs": "Nombre en español",
+        "fieldSlug": "Slug",
+        "slugHint": "Se usa en URLs. Letras minúsculas, números y guiones.",
+        "cancel": "Cancelar",
+        "save": "Guardar",
+        "archive": "Archivar",
+        "unarchive": "Reactivar",
+        "previewHint": "El icono por defecto para slugs desconocidos es la carpeta; añade el slug a ICON_BY_SLUG para uno personalizado.",
+        "archivedHeading": "Archivadas",
+        "archivedChip": "Archivada",
+        "empty": "Aún no hay categorías. Añade la primera para organizar la biblioteca.",
+        "errors": {
+          "slugTaken": "Ese slug ya está en uso en esta ubicación. Elige otro."
+        }
       },
       "new": {
         "crumbBack": "Volver a la biblioteca",
@@ -110,6 +126,37 @@
           "stepContent": "Contenido",
           "stepAccess": "Acceso",
           "stepReview": "Revisión"
+        },
+        "import": {
+          "title": "Importar documento con IA",
+          "body": "Sube un SOP existente — PDF, archivo de Word, foto de receta o texto plano. La IA lo leerá y propondrá un borrador que puedes revisar antes de guardar.",
+          "dropHint": "Arrastra y suelta un archivo aquí",
+          "or": "o",
+          "browse": "Examinar archivo",
+          "formatsHint": "PDF, DOCX, JPG, PNG, TXT, MD · Máx 20 MB",
+          "uploadingLabel": "Subiendo {filename}…",
+          "extractingLabel": "Leyendo con IA ({filename})…",
+          "readyHeading": "Revisa lo que la IA encontró en {filename}",
+          "noExtraction": "La IA no devolvió bloques. Puedes escribir el procedimiento manualmente.",
+          "sectionsTitle": "Título",
+          "sectionsPurpose": "Propósito",
+          "sectionsRecipe": "Receta",
+          "sectionsNotes": "Notas de la IA",
+          "recipeSummary": "{ingredients, plural, one {# ingrediente} other {# ingredientes}} · {steps, plural, one {# paso} other {# pasos}}",
+          "useThis": "Usar este borrador",
+          "discard": "Descartar",
+          "tryAgain": "Reintentar",
+          "unsupportedType": "No podemos leer archivos de tipo \"{mime}\". Prueba con PDF, DOCX, JPG, PNG, TXT o MD.",
+          "tooLarge": "Ese archivo pesa {size} MB. El máximo es {max} MB.",
+          "genericError": "Algo salió mal. Inténtalo de nuevo.",
+          "blockKind": {
+            "text": "Párrafo",
+            "heading": "Encabezado",
+            "method": "Pasos del método",
+            "warning": "Advertencia / precaución",
+            "table": "Tabla",
+            "recipe": "Método de receta"
+          }
         },
         "recipe": {
           "pageTitle": "Nueva Receta",

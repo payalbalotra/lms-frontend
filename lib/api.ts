@@ -1,6 +1,7 @@
 import type {
   AdminEmployee,
   ApiError,
+  Category,
   CreateEmployeeInput,
   CreateLocationInput,
   CreateProcedureInput,
@@ -8,6 +9,8 @@ import type {
   CreateStationInput,
   Employee,
   EmployeeStatus,
+  ExtractedProcedure,
+  ImportProcedureType,
   InviteResult,
   Location,
   Procedure,
@@ -272,6 +275,58 @@ export function getProcedureBySlug(
 }
 
 // ----------------------------------------------------------------------------
+// Library — categories
+// ----------------------------------------------------------------------------
+
+/** Active categories for a location. Open to any signed-in employee (admin
+ *  or cook). Archived categories are excluded by default — pass
+ *  `includeArchived: true` from the manager page when you need to render
+ *  the archived chip. */
+export function listCategories(
+  locationId: string,
+  opts: { includeArchived?: boolean } = {},
+  cookieHeader?: string,
+): Promise<{ categories: Category[] }> {
+  const includeArchived = opts.includeArchived ? '&includeArchived=true' : '';
+  return apiRequest(
+    `/api/procedures/categories?locationId=${encodeURIComponent(locationId)}${includeArchived}`,
+    { cookieHeader },
+  );
+}
+
+/** Admin-only. Throws `ApiException` with code `CATEGORY_SLUG_TAKEN` (409)
+ *  when the slug already exists at this location. */
+export function createCategory(input: {
+  locationId: string;
+  slug: string;
+  nameEn: string;
+  nameEs: string;
+}): Promise<{ category: Category }> {
+  return apiRequest('/api/admin/library/categories', { method: 'POST', body: input });
+}
+
+/** Admin-only. Rename or flip the archived flag. `id` is the UUID, not the
+ *  slug — slug is stable. */
+export function updateCategory(
+  id: string,
+  patch: { nameEn?: string; nameEs?: string; isArchived?: boolean },
+): Promise<{ category: Category }> {
+  return apiRequest(`/api/admin/library/categories/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: patch,
+  });
+}
+
+/** Admin-only. Soft archive — sets `isArchived = true`. Procedures that
+ *  referenced this category keep working (the join returns `null`). Idempotent. */
+export function archiveCategory(id: string): Promise<{ category: Category }> {
+  return apiRequest(
+    `/api/admin/library/categories/${encodeURIComponent(id)}/archive`,
+    { method: 'POST' },
+  );
+}
+
+// ----------------------------------------------------------------------------
 // Uploads (presigned PUT to R2)
 // ----------------------------------------------------------------------------
 
@@ -307,6 +362,40 @@ export function requestVideoUpload(
     method: 'POST',
     body: input,
     cookieHeader,
+  });
+}
+
+// Mints a one-shot presigned PUT URL for a manager's source document (PDF /
+// DOCX / JPG / PNG / text). Used by the new-procedure wizard's AI import
+// flow. Backend enforces the document mime allowlist and a 20 MB cap.
+export function requestDocumentUpload(
+  input: { filename: string; contentType: string; size: number },
+): Promise<PresignedUpload> {
+  return apiRequest('/api/admin/uploads/document', {
+    method: 'POST',
+    body: input,
+  });
+}
+
+// Asks the backend to download the just-uploaded source document from R2,
+// run it through Gemini, and return a structured draft the wizard can apply
+// to its FormSnapshot. Long-running (5-15 s for a 5 MB PDF) — call sites
+// should show a busy state.
+//
+// Throws ApiException with codes:
+//   400 IMPORT_UNSUPPORTED_TYPE — contentType not in the document allowlist
+//   502 EXTRACTION_INVALID — Gemini returned non-JSON or non-conforming JSON
+//   503 EXTRACTION_FAILED — Gemini transport / SDK error
+//   503 IMPORT_NOT_CONFIGURED — GOOGLE_AI_API_KEY missing on the server
+export function importDocument(input: {
+  publicUrl: string;
+  filename: string;
+  contentType: string;
+  procedureType: ImportProcedureType;
+}): Promise<{ extraction: ExtractedProcedure }> {
+  return apiRequest('/api/admin/library/import', {
+    method: 'POST',
+    body: input,
   });
 }
 

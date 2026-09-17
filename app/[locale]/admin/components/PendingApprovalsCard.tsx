@@ -104,9 +104,9 @@ export function PendingApprovalsCard({
               <Link href={`/${locale}${item.href}`} className="shrink-0">
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
-                  className="rounded-full border-[var(--color-brand-600)]/30 bg-[var(--color-brand-tint)]/40 text-[var(--color-brand-700)] hover:bg-[var(--color-brand-tint)] text-xs font-semibold px-3.5 py-1 shadow-2xs"
+                  className="rounded-full text-xs font-semibold px-3.5 py-1 shadow-2xs"
                 >
                   {isEs ? 'Revisar' : 'Review'}
                 </Button>

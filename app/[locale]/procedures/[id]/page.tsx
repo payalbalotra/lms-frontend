@@ -5,6 +5,7 @@ import { cookies } from 'next/headers';
 import { BlockRenderer } from '@/components/doc/block-renderer';
 import { Button } from '@/components/ui/button';
 import { getProcedureBySlug, ApiException } from '@/lib/api';
+import { getCategoryIcon } from '@/lib/category-icons';
 import { cn } from '@/lib/utils';
 
 interface PageProps {
@@ -12,15 +13,6 @@ interface PageProps {
 }
 
 export const dynamic = 'force-dynamic';
-
-const CATEGORY_NAMES: Record<string, { en: string; es: string; icon: string }> = {
-  recipes: { en: 'Recipes', es: 'Recetas', icon: 'ri-restaurant-line' },
-  equipment: { en: 'Equipment Handling', es: 'Manejo de Equipos', icon: 'ri-tools-line' },
-  station: { en: 'Station Procedures', es: 'Procedimientos de Estación', icon: 'ri-store-2-line' },
-  cleaning: { en: 'Cleaning Schedules', es: 'Calendarios de Limpieza', icon: 'ri-sparkles-line' },
-  admin: { en: 'General and Administrative', es: 'General y Administrativo', icon: 'ri-shield-user-line' },
-  delivery: { en: 'Delivery and Receiving', es: 'Entrega y Recepción', icon: 'ri-truck-line' },
-};
 
 export default async function ProcedurePage({ params }: PageProps): Promise<React.ReactElement> {
   const { id: slug, locale } = await params;
@@ -52,12 +44,14 @@ export default async function ProcedurePage({ params }: PageProps): Promise<Reac
   const body = isEs ? proc.bodyEs : proc.bodyEn;
   const blocks = body?.blocks ?? proc.bodyEn?.blocks ?? [];
 
-  const catMeta = CATEGORY_NAMES[proc.categoryKey] ?? {
-    en: proc.categoryKey,
-    es: proc.categoryKey,
-    icon: 'ri-file-text-line',
-  };
-  const categoryLabel = isEs ? catMeta.es : catMeta.en;
+  // Category comes joined from the API. When the procedure has no category
+  // (archived or never assigned), the header still renders but with a
+  // neutral icon and a fallback label.
+  const cat = proc.category;
+  const categoryIcon = cat ? getCategoryIcon(cat) : 'ri-file-text-line';
+  const categoryLabel = cat
+    ? (isEs ? cat.nameEs : cat.nameEn)
+    : (isEs ? 'Sin categoría' : 'Uncategorised');
 
   const formattedDate = new Date(proc.updatedAt || proc.createdAt).toLocaleDateString(
     isEs ? 'es-ES' : 'en-US',
@@ -105,7 +99,7 @@ export default async function ProcedurePage({ params }: PageProps): Promise<Reac
           <header className="space-y-4 border-b border-[var(--color-line)]/60 pb-6">
             <div className="flex items-center gap-3">
               <div className="flex size-12 shrink-0 items-center justify-center rounded-[var(--radius-lg)] bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] text-2xl shadow-xs">
-                <i aria-hidden="true" className={catMeta.icon} />
+                <i aria-hidden="true" className={categoryIcon} />
               </div>
               <div>
                 <span className="inline-flex items-center gap-1.5 text-[length:var(--text-xs)] font-bold uppercase tracking-wider text-[var(--color-brand-700)]">

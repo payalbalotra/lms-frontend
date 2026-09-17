@@ -1,5 +1,8 @@
 import * as React from 'react';
+import { cookies } from 'next/headers';
 import { setRequestLocale } from 'next-intl/server';
+import { listCategories, ApiException } from '@/lib/api';
+import type { Category } from '@/lib/types';
 import { NewProcedureForm } from './new-procedure-form';
 
 interface PageProps {
@@ -8,41 +11,55 @@ interface PageProps {
 
 export const dynamic = 'force-dynamic';
 
-const SEED_CATEGORIES: ReadonlyArray<{
-  slug: string;
-  icon: string;
-  labelKey:
-    | 'categoryRecipes'
-    | 'categoryEquipment'
-    | 'categoryStation'
-    | 'categoryCleaning'
-    | 'categoryAdmin'
-    | 'categoryDelivery';
-}> = [
-  { slug: 'recipes', icon: 'ri-restaurant-line', labelKey: 'categoryRecipes' },
-  { slug: 'equipment', icon: 'ri-tools-line', labelKey: 'categoryEquipment' },
-  { slug: 'station', icon: 'ri-community-line', labelKey: 'categoryStation' },
-  { slug: 'cleaning', icon: 'ri-brush-line', labelKey: 'categoryCleaning' },
-  { slug: 'admin', icon: 'ri-file-shield-2-line', labelKey: 'categoryAdmin' },
-  { slug: 'delivery', icon: 'ri-truck-line', labelKey: 'categoryDelivery' },
-];
-
 export default async function AdminLibraryNewPage({
   params,
 }: PageProps): Promise<React.ReactElement> {
   const { locale } = await params;
   setRequestLocale(locale);
 
+  const cookieStore = await cookies();
+  const cookieHeader = cookieStore
+    .getAll()
+    .map((c) => `${c.name}=${c.value}`)
+    .join('; ');
+
+  // The editor dropdown is a single location's active categories. We need a
+  // locationId; the manager's employee carries one. Without it, fall back
+  // to an empty list (the form still renders an "Uncategorised" choice).
+  const locations = await readActiveLocations(cookieHeader);
+  const categories: Category[] = locations.length === 0 ? [] : await readCategories(locations[0], cookieHeader);
+
   return (
     <div className="w-full">
-      <NewProcedureForm
-        locale={locale}
-        categories={SEED_CATEGORIES.map((c) => ({
-          slug: c.slug,
-          icon: c.icon,
-          labelKey: c.labelKey,
-        }))}
-      />
+      <NewProcedureForm locale={locale} categories={categories} />
     </div>
   );
+}
+
+// Returns the locations the signed-in admin manages, so we know which
+// location's category list to pull. Implemented as a raw fetch because the
+// admin locations endpoint is restricted; we just need any one of them for
+// the new-procedure dropdown.
+async function readActiveLocations(cookieHeader: string): Promise<string[]> {
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:4000'}/api/admin/employees/locations`,
+      { headers: { cookie: cookieHeader }, cache: 'no-store' },
+    );
+    if (!res.ok) return [];
+    const body = (await res.json()) as { locations: { id: string }[] };
+    return body.locations.map((l) => l.id);
+  } catch {
+    return [];
+  }
+}
+
+async function readCategories(locationId: string, cookieHeader: string): Promise<Category[]> {
+  try {
+    const result = await listCategories(locationId, {}, cookieHeader);
+    return result.categories;
+  } catch (err) {
+    if (err instanceof ApiException) return [];
+    throw err;
+  }
 }

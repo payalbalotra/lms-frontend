@@ -11,10 +11,14 @@ import { Label } from '@/components/ui/label';
 import { CustomSelect } from '@/components/ui/custom-select';
 import { cn } from '@/lib/utils';
 import { createProcedure, ApiException } from '@/lib/api';
+import { getCategoryIcon } from '@/lib/category-icons';
 import type {
+  Category,
+  ExtractedProcedure,
   ProcedureBlock,
   ProcedureBody,
   ProcedureIngredient,
+  ProcedureMethodStep,
   Localised,
   LocalisedOptional,
 } from '@/lib/types';
@@ -33,22 +37,11 @@ import {
   type RecipeIngredientItem,
 } from '@/components/admin/recipe-ingredients-editor';
 import { RecipeLivePreview } from '@/components/admin/recipe-live-preview';
-
-interface CategoryOption {
-  slug: string;
-  icon: string;
-  labelKey:
-    | 'categoryRecipes'
-    | 'categoryEquipment'
-    | 'categoryStation'
-    | 'categoryCleaning'
-    | 'categoryAdmin'
-    | 'categoryDelivery';
-}
+import { DocumentImportPanel } from '@/components/admin/document-import-panel';
 
 interface NewProcedureFormProps {
   locale: string;
-  categories: CategoryOption[];
+  categories: Category[];
 }
 
 export type ClearanceTier = 'general' | 'station' | 'confidential' | 'master';
@@ -56,7 +49,7 @@ export type ClearanceTier = 'general' | 'station' | 'confidential' | 'master';
 interface FormSnapshot {
   titleEn: string;
   titleEs: string;
-  categoryKey: string;
+  categoryId: string;
   purposeEn: string;
   purposeEs: string;
   procedureType: ProcedureTypeId;
@@ -220,6 +213,133 @@ function formatSavedTime(d: Date, locale: string): string {
   return d.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });
 }
 
+/** Map a stable id to an ExtractedProcedure's block. Used by the AI
+ *  preview→apply path so re-renders don't reshuffle step ids. */
+function idForBlock(prefix: string): string {
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+}
+
+/** Mirror the empty side of a Localised so the bilingual save rule
+ *  (`min(1)` on both sides) is satisfied after an extraction. The AI fills
+ *  only one side per the prompt's language rule; we copy that side to the
+ *  other before applying so the backend doesn't reject the save. */
+function fillBothSides(l: Localised | undefined): Localised | undefined {
+  if (!l) return l;
+  const en = (l.en ?? '').trim();
+  const es = (l.es ?? '').trim();
+  if (en && !es) return { en, es: en };
+  if (es && !en) return { en: es, es };
+  return l;
+}
+
+/** Convert an ExtractedProcedure's blocks into the wizard's internal
+ *  ProcedureBlock shape. Each block gets a stable id, a backfill pass to
+ *  fill empty bilingual sides, and is filtered to the kinds the wizard's
+ *  block editor can render. */
+function blocksFromExtracted(ext: ExtractedProcedure): ProcedureBlock[] {
+  if (!ext.blocks || ext.blocks.length === 0) return [];
+  const out: ProcedureBlock[] = [];
+  for (const b of ext.blocks) {
+    switch (b.kind) {
+      case 'text': {
+        const body = fillBothSides(b.body);
+        if (!body) continue;
+        out.push({ id: idForBlock('t'), kind: 'text', body });
+        break;
+      }
+      case 'heading': {
+        const text = fillBothSides(b.text);
+        if (!text) continue;
+        out.push({
+          id: idForBlock('h'),
+          kind: 'heading',
+          level: b.level,
+          text,
+        });
+        break;
+      }
+      case 'method': {
+        const steps: ProcedureMethodStep[] = b.steps
+          .map((s) => fillBothSides(s.body))
+          .filter((body): body is Localised => Boolean(body))
+          .map((body) => ({ id: idForBlock('s'), body }));
+        if (steps.length === 0) continue;
+        out.push({ id: idForBlock('m'), kind: 'method', steps });
+        break;
+      }
+      case 'warning': {
+        const body = fillBothSides(b.body);
+        if (!body) continue;
+        out.push({
+          id: idForBlock('w'),
+          kind: 'warning',
+          severity: b.severity,
+          body,
+        });
+        break;
+      }
+      case 'table': {
+        const headers = b.headers
+          .map(fillBothSides)
+          .filter((h): h is Localised => Boolean(h));
+        const rows = b.rows
+          .map((r) => r.map(fillBothSides).filter((c): c is Localised => Boolean(c)))
+          .filter((r) => r.length > 0);
+        if (headers.length === 0) continue;
+        out.push({ id: idForBlock('tb'), kind: 'table', headers, rows });
+        break;
+      }
+      case 'recipe': {
+        const steps = (b.steps ?? [])
+          .map((s) => fillBothSides(s.body))
+          .filter((body): body is Localised => Boolean(body))
+          .map((body) => ({ id: idForBlock('s'), body }));
+        if (steps.length === 0) continue;
+        const ingredients: ProcedureIngredient[] = (b.ingredients ?? [])
+          .filter((i) => i.name.trim().length > 0)
+          .map((i) => ({
+            name: i.name.trim(),
+            unit: i.unit,
+            allergen: false,
+            amounts: (i.amounts ?? []).filter((a) => a.trim().length > 0),
+          }));
+        out.push({
+          id: idForBlock('r'),
+          kind: 'recipe',
+          audience: b.audience ?? '',
+          yieldItems: b.yieldItems,
+          ingredients,
+          steps,
+        });
+        break;
+      }
+    }
+  }
+  return out;
+}
+
+/** Map the AI's recipe ingredients to the wizard's RecipeIngredientItem
+ *  rows. Empty ingredient lists fall back to a single blank row so the
+ *  editor doesn't render an empty list (which would silently break the
+ *  "at least one ingredient" submission rule). */
+function recipeIngredientsFromExtracted(
+  ext: ExtractedProcedure,
+): RecipeIngredientItem[] {
+  const list = ext.recipe?.ingredients;
+  if (!list || list.length === 0) {
+    return [{ id: idForBlock('ing'), name: '', quantity: '', unit: 'kg', notes: '' }];
+  }
+  return list
+    .filter((i) => i.name.trim().length > 0)
+    .map((i) => ({
+      id: idForBlock('ing'),
+      name: i.name.trim(),
+      quantity: (i.amounts ?? []).filter((a) => a.trim().length > 0).join(' '),
+      unit: i.unit ?? '',
+      notes: '',
+    }));
+}
+
 export function NewProcedureForm({
   locale,
   categories,
@@ -236,7 +356,10 @@ export function NewProcedureForm({
   const [creationMode, setCreationMode] = useState<'manual' | 'import'>('manual');
   const [wizardStep, setWizardStep] = useState<WizardStepId>('details');
   const [procedureType, setProcedureType] = useState<ProcedureTypeId>('recipe');
-  const [categoryKey, setCategoryKey] = useState('recipes');
+  // Default to the first category (likely 'recipes' once the seed migration
+  // has run). Fall back to empty string so the form can still render while
+  // the categories API is in flight.
+  const [categoryId, setCategoryId] = useState(categories[0]?.id ?? '');
   const [titleEn, setTitleEn] = useState('');
   const [titleEs, setTitleEs] = useState('');
   const [titleLang, setTitleLang] = useState<'en' | 'es'>('en');
@@ -260,10 +383,18 @@ export function NewProcedureForm({
 
   const isRecipeMode = procedureType === 'recipe';
 
+  // Map slug -> id so the type/category auto-sync can still target the
+  // standard slugs even if the manager added custom categories alongside.
+  const idBySlug: Record<string, string> = React.useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const c of categories) map[c.slug] = c.id;
+    return map;
+  }, [categories]);
+
   const initialRef = useRef<FormSnapshot>({
     titleEn: '',
     titleEs: '',
-    categoryKey: 'recipes',
+    categoryId: categories[0]?.id ?? '',
     purposeEn: '',
     purposeEs: '',
     procedureType: 'recipe',
@@ -281,27 +412,32 @@ export function NewProcedureForm({
     setProcedureType(nextType);
     setIsDirty(true);
 
-    if (nextType === 'recipe') {
-      setCategoryKey('recipes');
-    } else if (nextType === 'station') {
-      setCategoryKey('station');
-    } else if (nextType === 'cleaning') {
-      setCategoryKey('cleaning');
-    } else if (nextType === 'general') {
-      setCategoryKey('admin');
+    const slugByType: Record<ProcedureTypeId, string | null> = {
+      recipe: 'recipes',
+      station: 'station',
+      cleaning: 'cleaning',
+      general: 'admin',
+    };
+    const slug = slugByType[nextType];
+    if (slug) {
+      const id = idBySlug[slug];
+      if (id) setCategoryId(id);
     }
   };
 
-  const handleCategoryChange = (nextCategory: string): void => {
-    setCategoryKey(nextCategory);
+  const handleCategoryChange = (nextId: string): void => {
+    setCategoryId(nextId);
     setIsDirty(true);
 
-    // Sync type if user picks a specific category
-    if (nextCategory === 'recipes' && procedureType !== 'recipe') {
+    // Sync type if user picks a category mapped to one of the standard
+    // type buckets. Custom slugs leave the procedureType as-is.
+    const picked = categories.find((c) => c.id === nextId);
+    if (!picked) return;
+    if (picked.slug === 'recipes' && procedureType !== 'recipe') {
       setProcedureType('recipe');
-    } else if (nextCategory === 'station' && procedureType !== 'station') {
+    } else if (picked.slug === 'station' && procedureType !== 'station') {
       setProcedureType('station');
-    } else if (nextCategory === 'cleaning' && procedureType !== 'cleaning') {
+    } else if (picked.slug === 'cleaning' && procedureType !== 'cleaning') {
       setProcedureType('cleaning');
     }
   };
@@ -310,7 +446,7 @@ export function NewProcedureForm({
     const s = initialRef.current;
     setTitleEn(s.titleEn);
     setTitleEs(s.titleEs);
-    setCategoryKey(s.categoryKey);
+    setCategoryId(s.categoryId);
     setPurposeEn(s.purposeEn);
     setPurposeEs(s.purposeEs);
     setProcedureType(s.procedureType);
@@ -320,6 +456,39 @@ export function NewProcedureForm({
     setIsDirty(false);
     setLastSavedAt(null);
   };
+
+  // Apply an AI-extracted draft to the form. Called by DocumentImportPanel
+  // when the manager clicks "Use this draft". The extraction only fills the
+  // sides it found in the source language; we mirror to the other side so
+  // the bilingual save rule is met.
+  const handleExtracted = React.useCallback(
+    (extraction: ExtractedProcedure): void => {
+      const title = fillBothSides(extraction.title);
+      if (title) {
+        setTitleEn(title.en);
+        setTitleEs(title.es);
+      }
+      const purpose = fillBothSides(extraction.purpose);
+      if (purpose) {
+        setPurposeEn(purpose.en);
+        setPurposeEs(purpose.es);
+      }
+      if (extraction.recipe && isRecipeMode) {
+        setIngredients(recipeIngredientsFromExtracted(extraction));
+      }
+      const blocks = blocksFromExtracted(extraction);
+      if (blocks.length > 0) setBlocks(blocks);
+      // Flip back to manual mode so the populated form is what the manager
+      // sees, not the import tile.
+      setCreationMode('manual');
+      setWizardStep('details');
+      setError(null);
+      setIsDirty(true);
+    },
+    // setBlocks is stable (useCallback above); setters are stable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isRecipeMode],
+  );
 
   async function submit(status: 'draft' | 'published'): Promise<void> {
     setError(null);
@@ -369,7 +538,7 @@ export function NewProcedureForm({
         await createProcedure({
           titleEn: titleEn.trim() || titleEs.trim(),
           titleEs: titleEs.trim() || titleEn.trim(),
-          categoryKey,
+          categoryId: categoryId.length > 0 ? categoryId : null,
           purposeEn: purposeEn.trim() || purposeEs.trim(),
           purposeEs: purposeEs.trim() || purposeEn.trim(),
           status,
@@ -425,8 +594,10 @@ export function NewProcedureForm({
       ];
 
   const completedCount = sections.filter((s) => s.completed).length;
-  const activeCategory = categories.find((c) => c.slug === categoryKey);
-  const categoryLabel = activeCategory ? tCats(activeCategory.labelKey) : 'Recipes';
+  const activeCategory = categories.find((c) => c.id === categoryId);
+  const categoryLabel = activeCategory
+    ? (locale === 'es' ? activeCategory.nameEs : activeCategory.nameEn)
+    : 'Recipes';
 
   const activeTitle = titleLang === 'en' ? titleEn : titleEs;
   const activePurpose = purposeLang === 'en' ? purposeEn : purposeEs;
@@ -507,32 +678,10 @@ export function NewProcedureForm({
 
       {/* AI Import Upload Box when Import mode is selected */}
       {creationMode === 'import' && (
-        <div className="rounded-[var(--radius-lg)] border border-[var(--color-brand-tint-2)] bg-[var(--color-brand-tint)]/25 p-6 space-y-3">
-          <div className="flex items-center gap-2 text-[var(--color-brand-700)]">
-            <i aria-hidden="true" className="ri-magic-line text-xl" />
-            <h3 className="font-[family-name:var(--font-ui)] text-[length:var(--text-md)] font-bold">
-              Import document with AI
-            </h3>
-          </div>
-          <p className="text-[length:var(--text-sm)] text-[var(--color-ink-2)]">
-            Upload an existing SOP PDF, Word file, or recipe photo. AI will automatically extract title, ingredients, yield, and method steps for review.
-          </p>
-
-          <div className="flex flex-col items-center justify-center rounded-[var(--radius-lg)] border-2 border-dashed border-[var(--color-brand-600)]/40 bg-white/90 p-8 text-center transition-colors hover:bg-white">
-            <i aria-hidden="true" className="ri-cloud-upload-line text-4xl text-[var(--color-brand-700)] mb-2" />
-            <p className="text-[length:var(--text-sm)] font-semibold text-[var(--color-ink)]">
-              Drag & drop file here, or browse
-            </p>
-            <div className="mt-3">
-              <Button type="button" variant="secondary" size="default">
-                Browse file
-              </Button>
-            </div>
-            <span className="mt-2 text-[length:var(--text-xs)] text-[var(--color-ink-3)]">
-              Supports PDF, DOCX, JPG, PNG up to 20 MB
-            </span>
-          </div>
-        </div>
+        <DocumentImportPanel
+          procedureType={procedureType}
+          onExtracted={handleExtracted}
+        />
       )}
 
       {/* Wizard Stepper Header */}
@@ -579,12 +728,12 @@ export function NewProcedureForm({
                   <span aria-hidden="true" className="ml-1 text-[var(--color-bad)]">*</span>
                 </Label>
                 <CustomSelect
-                  value={categoryKey}
+                  value={categoryId}
                   onChange={handleCategoryChange}
                   options={categories.map((c) => ({
-                    value: c.slug,
-                    label: tCats(c.labelKey),
-                    icon: c.icon,
+                    value: c.id,
+                    label: locale === 'es' ? c.nameEs : c.nameEn,
+                    icon: getCategoryIcon(c),
                   }))}
                 />
               </div>

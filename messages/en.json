@@ -90,10 +90,26 @@
         "crumbBack": "Library",
         "pageEyebrow": "Library",
         "pageTitle": "Categories",
-        "pageSubtitle": "Categories organise the library. The seed set below ships with the platform; rename or add more once the editor is in.",
-        "seed": "Seed",
-        "renameHeading": "Rename, add, or remove",
-        "renameBody": "Editing categories lands with the SOP Library. Until then, these six cover the brief: recipes, equipment handling, station procedures, cleaning schedules, admin, and delivery."
+        "pageSubtitle": "Categories organise the library. Add, rename, or archive them here; archived categories stay attached to any procedures that already reference them.",
+        "addButton": "Add category",
+        "dialogTitle": "New category",
+        "renameDialogTitle": "Rename category",
+        "renameAction": "Rename",
+        "fieldNameEn": "English name",
+        "fieldNameEs": "Spanish name",
+        "fieldSlug": "Slug",
+        "slugHint": "Used in URLs. Lowercase letters, numbers and hyphens.",
+        "cancel": "Cancel",
+        "save": "Save",
+        "archive": "Archive",
+        "unarchive": "Unarchive",
+        "previewHint": "Default icon for unknown slugs is the folder icon — add a custom slug to ICON_BY_SLUG to override.",
+        "archivedHeading": "Archived",
+        "archivedChip": "Archived",
+        "empty": "No categories yet. Add the first one to organise the library.",
+        "errors": {
+          "slugTaken": "That slug is already in use at this location. Pick another."
+        }
       },
       "new": {
         "crumbBack": "Back to library",
@@ -110,6 +126,37 @@
           "stepContent": "Content",
           "stepAccess": "Access",
           "stepReview": "Review"
+        },
+        "import": {
+          "title": "Import document with AI",
+          "body": "Upload an existing SOP — PDF, Word file, recipe photo, or plain text. AI will read it and propose a draft you can review before saving.",
+          "dropHint": "Drag & drop a file here",
+          "or": "or",
+          "browse": "Browse file",
+          "formatsHint": "PDF, DOCX, JPG, PNG, TXT, MD · Max 20 MB",
+          "uploadingLabel": "Uploading {filename}…",
+          "extractingLabel": "Reading with AI ({filename})…",
+          "readyHeading": "Review what AI found in {filename}",
+          "noExtraction": "The AI didn't return any blocks. You can still type the procedure manually.",
+          "sectionsTitle": "Title",
+          "sectionsPurpose": "Purpose",
+          "sectionsRecipe": "Recipe",
+          "sectionsNotes": "AI notes",
+          "recipeSummary": "{ingredients, plural, one {# ingredient} other {# ingredients}} · {steps, plural, one {# step} other {# steps}}",
+          "useThis": "Use this draft",
+          "discard": "Discard",
+          "tryAgain": "Try again",
+          "unsupportedType": "We can't read files of type \"{mime}\". Try PDF, DOCX, JPG, PNG, TXT, or MD.",
+          "tooLarge": "That file is {size} MB. The maximum is {max} MB.",
+          "genericError": "Something went wrong. Please try again.",
+          "blockKind": {
+            "text": "Paragraph",
+            "heading": "Heading",
+            "method": "Method steps",
+            "warning": "Warning / caution",
+            "table": "Table",
+            "recipe": "Recipe method"
+          }
         },
         "recipe": {
           "pageTitle": "New Recipe",

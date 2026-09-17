@@ -149,7 +149,7 @@ function Field({
 }
 
 const textareaCls =
-  'flex w-full rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3.5 py-2.5 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)]/60 shadow-2xs transition-all duration-180 hover:border-[var(--color-line-3)] focus-visible:border-[var(--color-brand-600)] focus-visible:ring-3 focus-visible:ring-[var(--color-brand-tint-2)]/80 focus-visible:outline-none';
+  'flex w-full rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3.5 py-2.5 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)]/60 shadow-2xs transition-all duration-180 font-[family-name:var(--font-ui)] hover:border-[var(--color-line-3)] focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:border-[var(--color-brand-600)] focus-visible:border-[var(--color-brand-600)]';
 
 // ---------------------------------------------------------------------------
 // Per-kind editors

@@ -111,8 +111,21 @@
   h1, h2, h3, h4, h5 { margin: 0; text-wrap: balance; }
   p { margin: 0; text-wrap: pretty; }
   button, input, select, textarea { font: inherit; color: inherit; }
-  /* The outline follows each element's own radius. */
-  :focus-visible { outline: 3px solid var(--color-brand-600); outline-offset: 2px; }
+  /* Single crisp 1px border for all inputs and textareas on focus. No double ring or outline. */
+  input, textarea, select {
+    font-family: var(--font-ui);
+  }
+  input:focus, input:focus-visible,
+  textarea:focus, textarea:focus-visible,
+  select:focus, select:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+    --tw-ring-shadow: none !important;
+    --tw-shadow: none !important;
+    border-color: var(--color-brand-600) !important;
+  }
+  /* The outline follows each element's own radius. Exclude form controls which handle focus via custom borders. */
+  :focus-visible:not(input):not(textarea):not(select) { outline: 3px solid var(--color-brand-600); outline-offset: 2px; }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 0.01ms !important;

@@ -175,7 +175,7 @@ const CLEANING: Procedure & { related: typeof RELATED; control: typeof CONTROL; 
     'To prevent foodborne illness by making sure every surface that touches food is cleaned and sanitised before it is used.',
   purposeEs:
     'To prevent foodborne illness by making sure every surface that touches food is cleaned and sanitised before it is used.',
-  categoryKey: 'stations',
+  category: { id: 'seed-station', slug: 'station', nameEn: 'Station Procedures', nameEs: 'Procedimientos de Estación', isArchived: false },
   status: 'published',
   bodyEn: { blocks: CLEANING_BLOCKS },
   bodyEs: { blocks: CLEANING_BLOCKS },

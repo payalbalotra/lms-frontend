@@ -124,9 +124,9 @@ export async function NeedsAttentionList({
               <Link href={`/${locale}${item.href}`} className="shrink-0 self-start sm:self-center">
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
-                  className="rounded-full border-[var(--color-brand-600)]/30 bg-white/80 dark:bg-[var(--color-surface)] text-[var(--color-brand-700)] hover:bg-[var(--color-brand-tint)] text-xs font-semibold px-4 py-1.5 shadow-2xs"
+                  className="rounded-full text-xs font-semibold px-4 py-1.5 shadow-2xs"
                 >
                   {item.actionLabel}
                 </Button>

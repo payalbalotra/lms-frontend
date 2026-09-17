@@ -61,7 +61,7 @@ export default async function AdminDashboardPage({
       locationSub = active.name;
     }
 
-    const { procedures } = await listProcedures({ limit: 100 }, cookieHeader);
+    const { procedures } = await listProcedures({}, cookieHeader);
     if (procedures && procedures.length > 0) {
       totalProcedures = procedures.length;
       totalDrafts = procedures.filter((p) => p.status === 'draft').length || 3;
@@ -109,20 +109,21 @@ export default async function AdminDashboardPage({
           <Link href={`/${locale}/admin/library/new`}>
             <Button
               type="button"
-              size="md"
-              className="gap-2 bg-[var(--color-brand-600)] hover:bg-[var(--color-brand-700)] text-white font-semibold shadow-sm"
+              variant="primary"
+              size="default"
+              className="gap-2 shadow-sm"
             >
               <i aria-hidden="true" className="ri-add-line text-lg" />
-              {isEs ? '+ Crear procedimiento' : '+ Create procedure'}
+              {isEs ? 'Crear procedimiento' : 'Create procedure'}
             </Button>
           </Link>
 
           <Link href={`/${locale}/admin/library/new`}>
             <Button
               type="button"
-              variant="outline"
-              size="md"
-              className="gap-2 border-[var(--color-line-2)] text-[var(--color-ink)] hover:bg-[var(--color-wash)] font-semibold shadow-2xs"
+              variant="neutral"
+              size="default"
+              className="gap-2 font-semibold shadow-2xs"
             >
               <i aria-hidden="true" className="ri-upload-2-line text-lg text-[var(--color-ink-2)]" />
               {isEs ? 'Importar documento' : 'Import document'}

@@ -112,6 +112,19 @@ export interface UpdateLocationInput {
 
 export type ProcedureStatus = 'draft' | 'published';
 
+/** Manager-defined category. Slug is the stable handle (URL-safe, unique
+ *  per location); `nameEn` / `nameEs` are the bilingual display labels.
+ *  Soft archive via `isArchived` — procedures that referenced an archived
+ *  category keep working and surface `null` on the read side. Icon lives
+ *  in code, not here (see lib/category-icons.ts). */
+export interface Category {
+  id: string;
+  slug: string;
+  nameEn: string;
+  nameEs: string;
+  isArchived: boolean;
+}
+
 /** Text filled in for both languages. */
 export interface Localised {
   en: string;
@@ -220,7 +233,7 @@ export interface Procedure {
   titleEs: string;
   purposeEn: string;
   purposeEs: string;
-  categoryKey: string;
+  category: Category | null;
   status: ProcedureStatus;
   bodyEn: ProcedureBody;
   bodyEs: ProcedureBody;
@@ -234,8 +247,66 @@ export interface CreateProcedureInput {
   titleEs: string;
   purposeEn: string;
   purposeEs: string;
-  categoryKey: string;
+  categoryId: string | null;
   status?: ProcedureStatus;
   bodyEn: ProcedureBody;
   bodyEs: ProcedureBody;
 }
+
+// ============================================================================
+// AI extraction — mirror of services/extracted-procedure-schema.ts (frontend
+// camelCase). Used by the wizard's DocumentImportPanel preview card so the
+// manager can accept or reject each block before applying.
+// ============================================================================
+
+export type ExtractedBlock =
+  | { kind: 'text'; body: Localised }
+  | { kind: 'heading'; level: 1 | 2 | 3; text: Localised }
+  | {
+      kind: 'method';
+      steps: { body: Localised }[];
+    }
+  | {
+      kind: 'warning';
+      severity: ProcedureNoteKind;
+      body: Localised;
+    }
+  | {
+      kind: 'table';
+      headers: Localised[];
+      rows: Localised[][];
+    }
+  | {
+      kind: 'recipe';
+      audience?: string;
+      yieldItems?: { label: string; value: string; unit?: string }[];
+      ingredients?: {
+        name: string;
+        unit?: string;
+        amounts: string[];
+      }[];
+      steps?: { body: Localised }[];
+    };
+
+export interface ExtractedRecipe {
+  audience?: string;
+  yieldItems?: { label: string; value: string; unit?: string }[];
+  ingredients?: {
+    name: string;
+    unit?: string;
+    amounts: string[];
+  }[];
+  steps?: { body: Localised }[];
+  allergenSummary?: string;
+}
+
+export interface ExtractedProcedure {
+  title?: Localised;
+  purpose?: Localised;
+  blocks?: ExtractedBlock[];
+  recipe?: ExtractedRecipe;
+  extractedLanguage: 'en' | 'es';
+  notes?: string;
+}
+
+export type ImportProcedureType = 'recipe' | 'station' | 'cleaning' | 'general';

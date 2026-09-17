@@ -2,13 +2,16 @@ import * as React from 'react';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { cn } from '@/lib/utils';
+import { getCategoryIcon } from '@/lib/category-icons';
+import type { Category } from '@/lib/types';
 
 /**
  * CategoryQuickLinks — DESIGN.md §3.5 chip pattern + §4 chips spacing.
  *
- * Six default categories from PROJECT_OVERVIEW §02 — manager can rename
- * or add later, but until the categories endpoint exists these are the
- * canonical seeds, matching the brief verbatim.
+ * Compact horizontal chip strip used inside the assigned-procedures card.
+ * Mirrors the categories a manager has defined at this location; archived
+ * entries are filtered by the API but we defend locally too in case the
+ * caller forgets `includeArchived: false`.
  *
  * Pill is pressable. .chips flex wrap. Each chip is a Link to
  * /[locale]/procedures?category=<slug>. Selection lives on the procedures
@@ -16,23 +19,18 @@ import { cn } from '@/lib/utils';
  */
 interface CategoryQuickLinksProps {
   locale: string;
+  categories: Category[];
   className?: string;
 }
 
-const DEFAULT_CATEGORIES = [
-  { slug: 'recipes', icon: 'ri-restaurant-line', key: 'categoryRecipes' as const },
-  { slug: 'equipment', icon: 'ri-tools-line', key: 'categoryEquipment' as const },
-  { slug: 'station', icon: 'ri-community-line', key: 'categoryStation' as const },
-  { slug: 'cleaning', icon: 'ri-brush-line', key: 'categoryCleaning' as const },
-  { slug: 'admin', icon: 'ri-file-shield-2-line', key: 'categoryAdmin' as const },
-  { slug: 'delivery', icon: 'ri-truck-line', key: 'categoryDelivery' as const },
-];
-
 export async function CategoryQuickLinks({
   locale,
+  categories,
   className,
 }: CategoryQuickLinksProps): Promise<React.ReactElement> {
   const t = await getTranslations('employee.dashboard');
+  const isEs = locale === 'es';
+  const chips = categories.filter((c) => !c.isArchived);
 
   return (
     <section className={cn('space-y-3', className)} aria-labelledby="dashboard-categories">
@@ -42,27 +40,36 @@ export async function CategoryQuickLinks({
       >
         {t('browseByCategory')}
       </h2>
-      <ul className="flex flex-wrap gap-2">
-        {DEFAULT_CATEGORIES.map((c) => (
-          <li key={c.slug}>
-            <Link
-              href={`/${locale}/procedures?category=${c.slug}`}
-              className={cn(
-                'inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-pill)]',
-                'border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-2',
-                'text-[length:var(--text-sm)] font-semibold text-[var(--color-ink-2)]',
-                'transition-all duration-[180ms] ease-[var(--ease)]',
-                'hover:-translate-y-px hover:border-[var(--color-brand-600)] hover:text-[var(--color-brand-700)]',
-                'hover:shadow-[var(--e-1)]',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-tint-2)] focus-visible:ring-offset-2',
-              )}
-            >
-              <i aria-hidden="true" className={`${c.icon} text-[length:var(--text-md)]`} />
-              <span>{t(c.key)}</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
+      {chips.length === 0 ? (
+        <p className="text-[length:var(--text-sm)] text-[var(--color-ink-3)]">
+          {t('noCategories')}
+        </p>
+      ) : (
+        <ul className="flex flex-wrap gap-2">
+          {chips.map((c) => {
+            const label = isEs ? c.nameEs : c.nameEn;
+            return (
+              <li key={c.id}>
+                <Link
+                  href={`/${locale}/procedures?category=${c.slug}`}
+                  className={cn(
+                    'inline-flex min-h-12 items-center gap-2 rounded-[var(--radius-pill)]',
+                    'border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-2',
+                    'text-[length:var(--text-sm)] font-semibold text-[var(--color-ink-2)]',
+                    'transition-all duration-[180ms] ease-[var(--ease)]',
+                    'hover:-translate-y-px hover:border-[var(--color-brand-600)] hover:text-[var(--color-brand-700)]',
+                    'hover:shadow-[var(--e-1)]',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-tint-2)] focus-visible:ring-offset-2',
+                  )}
+                >
+                  <i aria-hidden="true" className={`${getCategoryIcon(c)} text-[length:var(--text-md)]`} />
+                  <span>{label}</span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </section>
   );
 }

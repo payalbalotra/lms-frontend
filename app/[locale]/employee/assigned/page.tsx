@@ -3,7 +3,8 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { fetchMe, ApiException, listStations } from '@/lib/api';
+import { fetchMe, ApiException, listStations, listCategories } from '@/lib/api';
+import type { Category } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { WelcomeHero } from './components/WelcomeHero';
 import { LibrarySearchHero } from './components/LibrarySearchHero';
@@ -65,6 +66,20 @@ export default async function EmployeeDashboardPage({
     }
   }
 
+  // Manager-defined categories for the location. Empty list is honest —
+  // the tile grid and quick links both render their empty state without
+  // crashing. Errors are swallowed (same posture as the stations lookup
+  // above) so a transient category fetch never takes down the dashboard.
+  let categories: Category[] = [];
+  if (employee.locationId) {
+    try {
+      const result = await listCategories(employee.locationId, {}, cookieHeader);
+      categories = result.categories;
+    } catch {
+      categories = [];
+    }
+  }
+
   const t = await getTranslations('employee.dashboard');
 
   const recentlyRead: Parameters<typeof RecentlyReadList>[0]['rows'] = [];
@@ -83,7 +98,7 @@ export default async function EmployeeDashboardPage({
 
           <LibrarySearchHero locale={locale} />
 
-          <CategoryTileGrid locale={locale} />
+          <CategoryTileGrid locale={locale} categories={categories} />
 
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <RecentlyReadList locale={locale} rows={recentlyRead} />
