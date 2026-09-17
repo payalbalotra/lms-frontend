@@ -125,30 +125,86 @@ export function ProcedureAddMenu({
   const structuredItems = filteredItems.filter((i) => i.group === 'structured');
   const safetyItems = filteredItems.filter((i) => i.group === 'safety');
 
-  const containerCls = variant === 'inline' ? 'flex justify-end' : 'block';
-
   return (
-    <div className={containerCls}>
-      <Button
-        ref={triggerRef}
-        type="button"
-        variant="secondary"
-        size="default"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-        className="gap-2 px-4 shadow-sm"
-      >
-        <i aria-hidden="true" className="ri-add-line text-base" />
-        <span>{t('addLabel')}</span>
-        <i
-          aria-hidden="true"
-          className={cn(
-            'ri-arrow-down-s-line text-base transition-transform duration-200',
-            open && 'rotate-180',
-          )}
-        />
-      </Button>
+    <div className={cn('flex flex-wrap items-center gap-2', variant === 'inline' ? 'justify-between w-full' : 'justify-start')}>
+      {/* Visible Block Type Quick Buttons */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-[length:var(--text-xs)] font-semibold text-[var(--color-ink-3)] mr-1">
+          Add block:
+        </span>
+        <button
+          type="button"
+          onClick={() => onAdd('text')}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-1.5 text-[length:var(--text-xs)] font-bold text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-brand-600)] transition-colors shadow-2xs"
+        >
+          <i aria-hidden="true" className="ri-text text-sm text-[var(--color-brand-700)]" />
+          <span>Text</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onAdd('table')}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-1.5 text-[length:var(--text-xs)] font-bold text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-brand-600)] transition-colors shadow-2xs"
+        >
+          <i aria-hidden="true" className="ri-table-line text-sm text-emerald-600" />
+          <span>Table</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onAdd('method')}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-1.5 text-[length:var(--text-xs)] font-bold text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-brand-600)] transition-colors shadow-2xs"
+        >
+          <i aria-hidden="true" className="ri-list-ordered text-sm text-blue-600" />
+          <span>Steps</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onAdd('warning')}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-1.5 text-[length:var(--text-xs)] font-bold text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-brand-600)] transition-colors shadow-2xs"
+        >
+          <i aria-hidden="true" className="ri-alert-line text-sm text-amber-600" />
+          <span>Warning</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onAdd('heading')}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-1.5 text-[length:var(--text-xs)] font-bold text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-brand-600)] transition-colors shadow-2xs"
+        >
+          <i aria-hidden="true" className="ri-h-1 text-sm text-purple-600" />
+          <span>Heading</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onAdd('image')}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-1.5 text-[length:var(--text-xs)] font-bold text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-brand-600)] transition-colors shadow-2xs"
+        >
+          <i aria-hidden="true" className="ri-image-line text-sm text-indigo-600" />
+          <span>Image</span>
+        </button>
+      </div>
+
+      {/* Dropdown Menu for All Blocks */}
+      <div>
+        <Button
+          ref={triggerRef}
+          type="button"
+          variant="secondary"
+          size="sm"
+          aria-haspopup="menu"
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+          className="gap-1.5 px-3 shadow-2xs text-[length:var(--text-xs)]"
+        >
+          <i aria-hidden="true" className="ri-add-line text-sm" />
+          <span>More blocks</span>
+          <i
+            aria-hidden="true"
+            className={cn(
+              'ri-arrow-down-s-line text-sm transition-transform duration-200',
+              open && 'rotate-180',
+            )}
+          />
+        </Button>
+      </div>
 
       <Popover open={open} onClose={close} triggerRef={triggerRef} align="end" width={360}>
         {/* Search input bar */}

@@ -41,63 +41,65 @@ export function ProcedureWizardStepper({
   const t = useTranslations('admin.library.new.stepper');
   const steps = isRecipe ? RECIPE_WIZARD_STEPS : GENERAL_WIZARD_STEPS;
   const currentIdx = steps.findIndex((s) => s.id === currentStep);
+  const progressPercent = steps.length > 1 ? (currentIdx / (steps.length - 1)) * 100 : 0;
 
   return (
-    <nav aria-label={t('ariaLabel')} className="my-6">
-      <ol className="flex items-center justify-between gap-2 max-w-4xl mx-auto">
-        {steps.map((step, idx) => {
-          const isActive = step.id === currentStep;
-          const isCompleted = idx < currentIdx;
+    <nav aria-label={t('ariaLabel')} className="max-w-4xl mx-auto my-6">
+      <div className="relative rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-4 sm:px-6 sm:py-4 shadow-xs">
+        {/* Continuous Progress Bar Track Background */}
+        <div className="absolute top-8 left-8 right-8 h-0.5 bg-[var(--color-line-2)] pointer-events-none hidden sm:block" />
+        {/* Active Animated Progress Bar Fill */}
+        <div
+          className="absolute top-8 left-8 h-0.5 bg-[var(--color-brand-600)] transition-all duration-300 pointer-events-none hidden sm:block"
+          style={{ width: `calc(${progressPercent}% - 0px)` }}
+        />
 
-          return (
-            <li key={step.id} className="flex-1 flex items-center">
-              <button
-                type="button"
-                onClick={() => onSelectStep?.(step.id)}
-                className="group flex items-center gap-2.5 focus-visible:outline-none"
-              >
-                <span
-                  className={cn(
-                    'flex size-8 shrink-0 items-center justify-center rounded-full text-[length:var(--text-xs)] font-bold transition-all',
-                    isActive
-                      ? 'bg-[var(--color-brand-600)] text-white ring-4 ring-[var(--color-brand-tint)]'
-                      : isCompleted
-                        ? 'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)]'
-                        : 'border border-[var(--color-line-3)] bg-[var(--color-surface)] text-[var(--color-ink-3)]',
-                  )}
-                >
-                  {isCompleted ? (
-                    <i aria-hidden="true" className="ri-check-line text-sm" />
-                  ) : (
-                    step.num
-                  )}
-                </span>
-                <span
-                  className={cn(
-                    'text-[length:var(--text-sm)] font-semibold transition-colors',
-                    isActive
-                      ? 'text-[var(--color-ink)] font-bold'
-                      : isCompleted
-                        ? 'text-[var(--color-ink)]'
-                        : 'text-[var(--color-ink-3)] group-hover:text-[var(--color-ink-2)]',
-                  )}
-                >
-                  {t(step.labelKey as never)}
-                </span>
-              </button>
+        <ol className="relative z-10 flex items-center justify-between w-full">
+          {steps.map((step, idx) => {
+            const isActive = step.id === currentStep;
+            const isCompleted = idx < currentIdx;
 
-              {idx < steps.length - 1 && (
-                <div
-                  className={cn(
-                    'mx-4 h-0.5 flex-1 rounded-full transition-colors',
-                    idx < currentIdx ? 'bg-[var(--color-brand-600)]' : 'bg-[var(--color-line-2)]',
-                  )}
-                />
-              )}
-            </li>
-          );
-        })}
-      </ol>
+            return (
+              <li key={step.id} className="flex items-center">
+                <button
+                  type="button"
+                  onClick={() => onSelectStep?.(step.id)}
+                  className="group flex items-center gap-2.5 bg-[var(--color-surface)] px-1.5 focus-visible:outline-none"
+                >
+                  <span
+                    className={cn(
+                      'flex size-8 shrink-0 items-center justify-center rounded-full text-[length:var(--text-xs)] font-bold transition-all shadow-2xs',
+                      isActive
+                        ? 'bg-[var(--color-brand-600)] text-white ring-4 ring-[var(--color-brand-tint)] scale-105'
+                        : isCompleted
+                          ? 'bg-[var(--color-brand-600)] text-white'
+                          : 'border border-[var(--color-line-3)] bg-[var(--color-surface)] text-[var(--color-ink-3)] group-hover:border-[var(--color-brand-600)]/50',
+                    )}
+                  >
+                    {isCompleted ? (
+                      <i aria-hidden="true" className="ri-check-line text-sm font-bold" />
+                    ) : (
+                      step.num
+                    )}
+                  </span>
+                  <span
+                    className={cn(
+                      'text-[length:var(--text-sm)] font-semibold transition-colors hidden sm:inline-block',
+                      isActive
+                        ? 'text-[var(--color-brand-700)] font-bold'
+                        : isCompleted
+                          ? 'text-[var(--color-ink)]'
+                          : 'text-[var(--color-ink-3)] group-hover:text-[var(--color-ink-2)]',
+                    )}
+                  >
+                    {t(step.labelKey as never)}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
     </nav>
   );
 }
