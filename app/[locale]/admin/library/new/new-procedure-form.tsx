@@ -427,9 +427,31 @@ export function NewProcedureForm({
   const isTitleMissing = !hasTitle && !!error;
   const isPurposeMissing = !hasPurpose && !!error;
 
+  // When the procedure type changes, snap the wizard back onto a step that
+  // exists in the new flow. Without this, switching from a recipe category
+  // (which uses 'ingredients' + 'method') to a non-recipe category (which
+  // uses 'content') leaves wizardStep pointing at a step the stepper no
+  // longer renders — the user is stuck on a phantom step.
+  const stepForType = React.useCallback(
+    (type: ProcedureTypeId, current: WizardStepId): WizardStepId => {
+      const recipe = type === 'recipe';
+      if (current === 'ingredients' || current === 'method') {
+        return recipe ? current : 'content';
+      }
+      if (current === 'content') {
+        return recipe ? 'method' : 'content';
+      }
+      return current; // details / access / review are type-agnostic
+    },
+    [],
+  );
+
   const handleSelectStep = React.useCallback(
     (targetStep: WizardStepId): void => {
       if (targetStep !== 'details') {
+        if (!isRecipeMode && (targetStep === 'ingredients' || targetStep === 'method')) {
+          return; // recipe-only step on a non-recipe procedure
+        }
         if (!hasTitle) {
           setError(tErr('missingTitle'));
           return;
@@ -442,7 +464,7 @@ export function NewProcedureForm({
       setError(null);
       setWizardStep(targetStep);
     },
-    [hasTitle, hasPurpose, tErr],
+    [hasTitle, hasPurpose, isRecipeMode, tErr],
   );
 
   const handleNextStep = React.useCallback((): void => {
@@ -552,6 +574,7 @@ export function NewProcedureForm({
   // Option A: Auto-sync Type with valid Category
   const handleTypeChange = (nextType: ProcedureTypeId): void => {
     setProcedureType(nextType);
+    setWizardStep((s) => stepForType(nextType, s));
     setIsDirty(true);
 
     const slugByType: Record<ProcedureTypeId, string | null> = {
@@ -585,14 +608,19 @@ export function NewProcedureForm({
     const isStationCategory = slug.includes('station') || nameEn.includes('station') || id.includes('station');
     const isCleaningCategory = slug.includes('clean') || nameEn.includes('clean') || id.includes('clean');
 
+    let nextType: ProcedureTypeId = procedureType;
     if (isRecipeCategory) {
-      setProcedureType('recipe');
+      nextType = 'recipe';
     } else if (isStationCategory) {
-      setProcedureType('station');
+      nextType = 'station';
     } else if (isCleaningCategory) {
-      setProcedureType('cleaning');
+      nextType = 'cleaning';
     } else if (procedureType !== 'recipe') {
-      setProcedureType('general');
+      nextType = 'general';
+    }
+    if (nextType !== procedureType) {
+      setProcedureType(nextType);
+      setWizardStep((s) => stepForType(nextType, s));
     }
   };
 
