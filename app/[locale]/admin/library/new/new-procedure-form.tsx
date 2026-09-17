@@ -39,6 +39,7 @@ import {
   type RecipeIngredientItem,
 } from '@/components/admin/recipe-ingredients-editor';
 import { DocumentImportPanel } from '@/components/admin/document-import-panel';
+import { AccessScreen } from './access-screen';
 
 interface NewProcedureFormProps {
   locale: string;
@@ -508,49 +509,30 @@ export function NewProcedureForm({
     [],
   );
 
+  // Dev note: validation that blocks moving forward without completing the
+  // previous step has been intentionally relaxed so the manager can move
+  // freely between steps while building a procedure. The required-field
+  // checks are still in place on submit (see `submit`).
   const handleSelectStep = React.useCallback(
     (targetStep: WizardStepId): void => {
-      if (targetStep !== 'details') {
-        if (!isRecipeMode && (targetStep === 'ingredients' || targetStep === 'method')) {
-          return; // recipe-only step on a non-recipe procedure
-        }
-        if (!hasTitle) {
-          setError(tErr('missingTitle'));
-          return;
-        }
-        if (!hasPurpose) {
-          setError(tErr('missingPurpose'));
-          return;
-        }
+      if (!isRecipeMode && (targetStep === 'ingredients' || targetStep === 'method')) {
+        return; // recipe-only step on a non-recipe procedure
       }
       setError(null);
       setWizardStep(targetStep);
     },
-    [hasTitle, hasPurpose, isRecipeMode, tErr],
+    [isRecipeMode],
   );
 
   const handleNextStep = React.useCallback((): void => {
     setError(null);
 
     if (wizardStep === 'details') {
-      if (!hasTitle) {
-        setError(tErr('missingTitle'));
-        return;
-      }
-      if (!hasPurpose) {
-        setError(tErr('missingPurpose'));
-        return;
-      }
       setWizardStep(isRecipeMode ? 'ingredients' : 'content');
       return;
     }
 
     if (wizardStep === 'ingredients') {
-      const hasNamedIngredient = ingredients.some((i) => i.name.trim().length > 0);
-      if (!hasNamedIngredient) {
-        setError(tErr('missingIngredient'));
-        return;
-      }
       setWizardStep('method');
       return;
     }
@@ -561,14 +543,10 @@ export function NewProcedureForm({
     }
 
     if (wizardStep === 'access') {
-      if (clearanceLevel === null) {
-        setError(tErr('missingAccess'));
-        return;
-      }
       setWizardStep('review');
       return;
     }
-  }, [wizardStep, hasTitle, hasPurpose, isRecipeMode, ingredients, clearanceLevel, tErr]);
+  }, [wizardStep, isRecipeMode]);
 
   const primaryCategories = React.useMemo(() => {
     return sourceCategories.slice(0, 7);
@@ -1335,66 +1313,8 @@ export function NewProcedureForm({
           </Section>
         )}
 
-        {/* Step: Access & Clearance Level Section */}
-        {wizardStep === 'access' && (
-          <Section
-            id="proc-access"
-            icon="ri-shield-user-line"
-            title={tAccess('title')}
-            subtitle={tAccess('subtitle')}
-          >
-            <div className="space-y-4">
-              <Label className="text-[length:var(--text-sm)] font-semibold text-[var(--color-ink)]">
-                {tAccess('label')}
-                <span aria-hidden="true" className="ml-1 text-[var(--color-bad)]">*</span>
-              </Label>
-
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {[
-                  { id: 'general', key: 'general' },
-                  { id: 'station', key: 'station' },
-                  { id: 'confidential', key: 'confidential' },
-                  { id: 'master', key: 'master' },
-                ].map((tier) => {
-                  const isSelected = clearanceLevel === tier.id;
-                  return (
-                    <button
-                      key={tier.id}
-                      type="button"
-                      onClick={() => {
-                        setClearanceLevel(tier.id as ClearanceTier);
-                        setIsDirty(true);
-                      }}
-                      className={cn(
-                        'flex flex-col items-start rounded-[var(--radius-lg)] border p-4 text-left transition-all',
-                        isSelected
-                          ? 'border-[var(--color-brand-600)] bg-[var(--color-brand-tint)]/40 shadow-xs ring-2 ring-[var(--color-brand-600)]/30'
-                          : 'border-[var(--color-line-2)] bg-[var(--color-surface)] hover:bg-[var(--color-wash)]',
-                      )}
-                    >
-                      <div className="flex items-center gap-2 font-bold text-[length:var(--text-sm)] text-[var(--color-ink)]">
-                        <input
-                          type="radio"
-                          name="clearanceLevel"
-                          checked={isSelected}
-                          onChange={() => {
-                            setClearanceLevel(tier.id as ClearanceTier);
-                            setIsDirty(true);
-                          }}
-                          className="size-4 accent-[var(--color-brand-600)]"
-                        />
-                        <span>{tAccess(tier.key as never)}</span>
-                      </div>
-                      <p className="mt-1 pl-6 text-[length:var(--text-xs)] text-[var(--color-ink-2)]">
-                        {tAccess(`${tier.key}Desc` as never)}
-                      </p>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </Section>
-        )}
+        {/* Step: Access — multi-block layout (location → role → station → assign) */}
+        {wizardStep === 'access' && <AccessScreen />}
 
         {/* Step: Review & Finish Section */}
         {wizardStep === 'review' && (
