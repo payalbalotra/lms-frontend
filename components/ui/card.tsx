@@ -1,0 +1,83 @@
+import * as React from 'react';
+import { cn } from '@/lib/utils';
+
+/**
+ * Cards follow DESIGN.md §3, radii §2.3:
+ *   - 12px radius (rounded-xl). Cards are rectangles, not pills.
+ *   - Border or shadow, never both (§2.3). We use a hairline --color-line.
+ *   - Surface is --color-card (white); admin cards lift on the near-neutral
+ *     ground --color-bg-admin via the parent layout, not via the card itself.
+ */
+export const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  function Card({ className, ...props }, ref) {
+    return (
+      <div
+        ref={ref}
+        data-slot="card"
+        className={cn(
+          'rounded-xl border border-[var(--color-line)] bg-[var(--color-card)] text-[var(--color-card-foreground)]',
+          className,
+        )}
+        {...props}
+      />
+    );
+  },
+);
+
+export const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  function CardHeader({ className, ...props }, ref) {
+    return (
+      <div
+        ref={ref}
+        className={cn('flex flex-col gap-1.5 px-6 pt-5 pb-3', className)}
+        {...props}
+      />
+    );
+  },
+);
+
+export const CardTitle = React.forwardRef<HTMLHeadingElement, React.HTMLAttributes<HTMLHeadingElement>>(
+  function CardTitle({ className, ...props }, ref) {
+    // Section heading tier — DM Sans from 28px up, weight 700, -0.02em tracking (§2.2).
+    return (
+      <h2
+        ref={ref}
+        className={cn(
+          'font-[family-name:var(--font-display)] text-xl font-bold tracking-[-0.02em]',
+          className,
+        )}
+        {...props}
+      />
+    );
+  },
+);
+
+export const CardDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLParagraphElement>>(
+  function CardDescription({ className, ...props }, ref) {
+    return (
+      <p
+        ref={ref}
+        className={cn('text-sm text-[var(--color-muted-foreground)]', className)}
+        {...props}
+      />
+    );
+  },
+);
+
+export const CardContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  function CardContent({ className, ...props }, ref) {
+    return <div ref={ref} className={cn('px-6 pb-6', className)} {...props} />;
+  },
+);
+
+export const CardFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  function CardFooter({ className, ...props }, ref) {
+    return (
+      <div
+        ref={ref}
+        className={cn('flex items-center px-6 pb-5', className)}
+        {...props}
+      />
+    );
+  },
+);

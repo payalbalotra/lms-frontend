@@ -1,0 +1,209 @@
+'use client';
+
+import * as React from 'react';
+import { useTranslations } from 'next-intl';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { CustomSelect } from '@/components/ui/custom-select';
+import { cn } from '@/lib/utils';
+
+export interface RecipeIngredientItem {
+  id: string;
+  name: string;
+  quantity: string;
+  unit: string;
+  notes: string;
+}
+
+const UNITS = ['kg', 'g', 'l', 'ml', 'oz', 'lb', 'cup', 'tbsp', 'tsp', 'pcs', 'ea'] as const;
+
+export function newIngredientItem(): RecipeIngredientItem {
+  return {
+    id: `ing-${Math.random().toString(36).slice(2, 8)}`,
+    name: '',
+    quantity: '',
+    unit: 'kg',
+    notes: '',
+  };
+}
+
+interface RecipeIngredientsEditorProps {
+  ingredients: RecipeIngredientItem[];
+  onChange: (next: RecipeIngredientItem[]) => void;
+  selectedFactor: number;
+  onSelectFactor: (factor: number) => void;
+}
+
+export function RecipeIngredientsEditor({
+  ingredients,
+  onChange,
+  selectedFactor,
+  onSelectFactor,
+}: RecipeIngredientsEditorProps): React.ReactElement {
+  const t = useTranslations('admin.library.new.recipe');
+
+  function updateItem(id: string, patch: Partial<RecipeIngredientItem>): void {
+    onChange(ingredients.map((item) => (item.id === id ? { ...item, ...patch } : item)));
+  }
+
+  function removeItem(id: string): void {
+    if (ingredients.length <= 1) return;
+    onChange(ingredients.filter((item) => item.id !== id));
+  }
+
+  function addItem(): void {
+    onChange([...ingredients, newIngredientItem()]);
+  }
+
+  // Calculate total base weight estimate for scaling display (e.g. 2 kg)
+  const totalBaseWeight = ingredients.reduce((sum, item) => {
+    const val = parseFloat(item.quantity);
+    return isNaN(val) ? sum : sum + val;
+  }, 0);
+
+  return (
+    <section
+      id="proc-ingredients"
+      className="scroll-mt-6 space-y-5 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-6 shadow-sm"
+    >
+      <header className="flex items-center justify-between border-b border-[var(--color-line)]/60 pb-3">
+        <div className="flex items-center gap-3">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] text-lg">
+            <i aria-hidden="true" className="ri-restaurant-line" />
+          </div>
+          <div>
+            <h2 className="font-[family-name:var(--font-ui)] text-[length:var(--text-md)] font-bold text-[var(--color-ink)]">
+              {t('ingredientsTitle')}
+            </h2>
+            <p className="mt-0.5 text-[length:var(--text-sm)] text-[var(--color-ink-2)]">
+              {t('ingredientsSubtitle')}
+            </p>
+          </div>
+        </div>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={addItem}
+          className="gap-1 text-xs"
+        >
+          <i aria-hidden="true" className="ri-add-line" />
+          {t('addIngredient')}
+        </Button>
+      </header>
+
+      {/* Ingredients Table */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-[length:var(--text-sm)]">
+          <thead>
+            <tr className="border-b border-[var(--color-line-2)] text-[length:var(--text-xs)] font-semibold uppercase tracking-wide text-[var(--color-ink-3)]">
+              <th scope="col" className="w-8 py-2 text-center"></th>
+              <th scope="col" className="py-2 pl-2">
+                {t('colIngredient')}
+              </th>
+              <th scope="col" className="w-28 py-2 px-2">
+                {t('colQuantity')}
+              </th>
+              <th scope="col" className="w-28 py-2 px-2">
+                {t('colUnit')}
+              </th>
+              <th scope="col" className="py-2 px-2">
+                {t('colNotes')}
+              </th>
+              <th scope="col" className="w-10 py-2 text-center"></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[var(--color-line)]/40">
+            {ingredients.map((item) => (
+              <tr key={item.id} className="group transition-colors hover:bg-[var(--color-wash)]/50">
+                <td className="py-2 text-center text-[var(--color-ink-3)] cursor-grab">
+                  <i aria-hidden="true" className="ri-draggable" />
+                </td>
+                <td className="py-2 pl-2">
+                  <Input
+                    value={item.name}
+                    onChange={(e) => updateItem(item.id, { name: e.target.value })}
+                    placeholder={t('ingredientPlaceholder')}
+                  />
+                </td>
+                <td className="py-2 px-2">
+                  <Input
+                    type="number"
+                    step="any"
+                    value={item.quantity}
+                    onChange={(e) => updateItem(item.id, { quantity: e.target.value })}
+                    placeholder="0"
+                  />
+                </td>
+                <td className="py-2 px-2">
+                  <CustomSelect
+                    size="sm"
+                    value={item.unit}
+                    onChange={(val) => updateItem(item.id, { unit: val })}
+                    options={UNITS.map((u) => ({ value: u, label: u }))}
+                  />
+                </td>
+                <td className="py-2 px-2">
+                  <Input
+                    value={item.notes}
+                    onChange={(e) => updateItem(item.id, { notes: e.target.value })}
+                    placeholder={t('notesPlaceholder')}
+                  />
+                </td>
+                <td className="py-2 text-center">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    disabled={ingredients.length <= 1}
+                    onClick={() => removeItem(item.id)}
+                    aria-label={t('removeIngredient')}
+                    className="size-8 text-[var(--color-ink-3)] hover:text-[var(--color-bad)]"
+                  >
+                    <i aria-hidden="true" className="ri-delete-bin-line" />
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Scaling Section */}
+      <div className="rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-wash)]/40 p-4 space-y-3">
+        <div className="flex items-center gap-2 text-[var(--color-brand-700)]">
+          <i aria-hidden="true" className="ri-flashlight-line text-lg" />
+          <h3 className="font-[family-name:var(--font-ui)] text-[length:var(--text-sm)] font-bold">
+            {t('scalingTitle')}
+          </h3>
+        </div>
+        <p className="text-[length:var(--text-xs)] text-[var(--color-ink-2)]">
+          {t('scalingSubtitle')}
+        </p>
+
+        <div className="flex flex-wrap items-center gap-3 pt-1">
+          {[1, 2, 4].map((factor) => {
+            const isSelected = selectedFactor === factor;
+            const scaledDisplay = totalBaseWeight > 0 ? `${(totalBaseWeight * factor).toFixed(0)} kg` : '';
+            return (
+              <button
+                key={factor}
+                type="button"
+                onClick={() => onSelectFactor(factor)}
+                className={cn(
+                  'flex items-center gap-2 rounded-full border px-4 py-1.5 text-[length:var(--text-xs)] font-bold transition-all',
+                  isSelected
+                    ? 'border-[var(--color-brand-600)] bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] shadow-sm'
+                    : 'border-[var(--color-line-3)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:border-[var(--color-brand-600)]/50',
+                )}
+              >
+                <span>{factor}×</span>
+                {scaledDisplay && <span className="font-normal text-[var(--color-ink-3)]">{scaledDisplay}</span>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}

@@ -1,0 +1,13 @@
+{
+  "name": "Alimentaria Mexicana LMS",
+  "short_name": "Alimentaria",
+  "description": "Restaurant training and SOP platform.",
+  "start_url": "/en/login",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#111111",
+  "orientation": "portrait",
+  "lang": "en",
+  "icons": []
+}
