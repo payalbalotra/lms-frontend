@@ -294,8 +294,18 @@ function StepRow({
   const [lang, setLang] = React.useState<'en' | 'es'>('en');
   const [critOpen, setCritOpen] = React.useState(false);
   const [videoOpen, setVideoOpen] = React.useState(!!step.videoSegment);
+  const [upload, setUpload] = React.useState<{
+    state: 'idle' | 'uploading' | 'failed';
+    fileName?: string;
+    error?: string;
+  }>({ state: 'idle' });
+  const videoFileRef = React.useRef<HTMLInputElement>(null);
   const limit = step.criticalLimit;
   const seg = step.videoSegment;
+  // Differentiates an R2 upload (which the remove button must clean up) from
+  // a pasted YouTube/Vimeo link (which has no R2 object to delete).
+  const videoClass = React.useMemo(() => classifyVideoUrl(seg?.src ?? ''), [seg?.src]);
+  const isR2Upload = videoClass.provider === 'file';
 
   function patchLimit(patch: Partial<CriticalLimit>): void {
     onChange({ ...step, criticalLimit: { ...(limit ?? emptyCriticalLimit()), ...patch } });
@@ -303,6 +313,38 @@ function StepRow({
   function patchSegment(patch: Partial<NonNullable<ProcedureMethodStep['videoSegment']>>): void {
     const base = seg ?? { src: '', startSec: 0, endSec: 0 };
     onChange({ ...step, videoSegment: { ...base, ...patch } });
+  }
+
+  async function startVideoUpload(file: File): Promise<void> {
+    if (!ALLOWED_VIDEO_TYPES.has(file.type)) {
+      setUpload({ state: 'failed', fileName: file.name, error: tComp('video.uploadUnsupported') });
+      return;
+    }
+    if (file.size > MAX_VIDEO_BYTES) {
+      setUpload({ state: 'failed', fileName: file.name, error: tComp('video.uploadTooBig') });
+      return;
+    }
+    setUpload({ state: 'uploading', fileName: file.name });
+    try {
+      const presigned = await requestVideoUpload({
+        filename: file.name,
+        contentType: file.type,
+        size: file.size,
+      });
+      await uploadToR2(presigned.uploadUrl, file, file.type);
+      patchSegment({ src: presigned.publicUrl });
+      setUpload({ state: 'idle' });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : tComp('video.uploadFailed');
+      setUpload({ state: 'failed', fileName: file.name, error: message });
+    }
+  }
+
+  function handleVideoFileChange(e: React.ChangeEvent<HTMLInputElement>): void {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    void startVideoUpload(file);
   }
 
   return (
@@ -466,6 +508,15 @@ function StepRow({
                 variant="ghost"
                 size="sm"
                 onClick={() => {
+                  // Only delete the underlying R2 object when the segment
+                  // was actually uploaded here — pasted links have nothing
+                  // to clean up and deleteUpload would 404 on them.
+                  if (isR2Upload && seg?.src) {
+                    void deleteUpload({ url: seg.src }).catch((err: unknown) => {
+                      console.warn('[uploads] failed to delete orphaned R2 object', err);
+                    });
+                  }
+                  setUpload({ state: 'idle' });
                   setVideoOpen(false);
                   onChange({ ...step, videoSegment: undefined });
                 }}
@@ -475,13 +526,71 @@ function StepRow({
               </Button>
             </div>
             <Field label={t('videoSrc')}>
-              <Input
-                type="url"
-                value={seg?.src ?? ''}
-                onChange={(e) => patchSegment({ src: e.target.value })}
-                placeholder="https://…"
-              />
+              <div className="flex items-center gap-2">
+                <Input
+                  type="url"
+                  value={seg?.src ?? ''}
+                  onChange={(e) => patchSegment({ src: e.target.value })}
+                  placeholder="https://…"
+                  className="flex-1"
+                  aria-label={t('videoSrc')}
+                />
+                <input
+                  ref={videoFileRef}
+                  type="file"
+                  accept="video/mp4,video/webm,video/quicktime"
+                  onChange={handleVideoFileChange}
+                  className="hidden"
+                  aria-hidden="true"
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  disabled={upload.state === 'uploading'}
+                  onClick={() => videoFileRef.current?.click()}
+                  className="gap-1 text-xs"
+                >
+                  <i aria-hidden="true" className="ri-upload-cloud-2-line" />
+                  {upload.state === 'uploading'
+                    ? tComp('video.uploading')
+                    : tComp('video.uploadChange')}
+                </Button>
+              </div>
             </Field>
+            {upload.state === 'uploading' && (
+              <p className="flex items-center gap-1.5 text-[length:var(--text-xs)] text-[var(--color-ink-2)]">
+                <span className="spinner" aria-hidden="true" />
+                {tComp('video.uploading')}
+                {upload.fileName ? ` — ${upload.fileName}` : ''}
+              </p>
+            )}
+            {upload.state === 'failed' && upload.error && (
+              <p
+                role="alert"
+                className="flex items-center gap-1.5 text-[length:var(--text-xs)] text-[var(--color-bad)]"
+              >
+                <i aria-hidden="true" className="ri-error-warning-line" />
+                {upload.error}
+              </p>
+            )}
+            {seg?.src && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-brand-tint)] px-2.5 py-0.5 text-[length:var(--text-xs)] font-semibold text-[var(--color-brand-700)]">
+                  <i aria-hidden="true" className={isR2Upload ? 'ri-video-fill' : 'ri-link'} />
+                  {isR2Upload ? tComp('video.uploadDone') : tComp('video.uploadLinked')}
+                </span>
+                <a
+                  href={seg.src}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[length:var(--text-sm)] font-medium text-[var(--color-brand-700)] underline-offset-4 hover:underline"
+                >
+                  <i aria-hidden="true" className="ri-play-circle-line" />
+                  {t('previewClip')}
+                </a>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-2">
               <Field label={t('videoStart')}>
                 <Input
@@ -506,17 +615,6 @@ function StepRow({
                 />
               </Field>
             </div>
-            {seg?.src && (
-              <a
-                href={seg.src}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-[length:var(--text-sm)] font-medium text-[var(--color-brand-700)] underline-offset-4 hover:underline"
-              >
-                <i aria-hidden="true" className="ri-play-circle-line" />
-                {t('previewClip')}
-              </a>
-            )}
           </div>
         )}
       </div>
@@ -704,6 +802,98 @@ function RecipeEditor({
               );
             })}
           </div>
+
+          {/* Custom Allergen Tags & Add Input */}
+          {(() => {
+            const currentSelected = block.allergen?.selectedAllergens ?? [];
+            const standardSet = new Set<string>(ALLERGEN_KEYS);
+            const customTags = currentSelected.filter((k) => !standardSet.has(k));
+
+            const addCustom = (name: string) => {
+              const trimmed = name.trim();
+              if (!trimmed) return;
+              if (!currentSelected.includes(trimmed)) {
+                const next = [...currentSelected, trimmed];
+                onChange({
+                  ...block,
+                  allergen: {
+                    summary: block.allergen?.summary ?? '',
+                    detail: block.allergen?.detail ?? '',
+                    selectedAllergens: next,
+                  },
+                });
+              }
+            };
+
+            const removeCustom = (tag: string) => {
+              const next = currentSelected.filter((k) => k !== tag);
+              onChange({
+                ...block,
+                allergen: {
+                  summary: block.allergen?.summary ?? '',
+                  detail: block.allergen?.detail ?? '',
+                  selectedAllergens: next.length > 0 ? next : undefined,
+                },
+              });
+            };
+
+            return (
+              <div className="pt-2 space-y-2">
+                <span className="text-[length:var(--text-xs)] font-semibold text-[var(--color-ink-2)] block">
+                  Custom Allergens:
+                </span>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {customTags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-900 dark:text-amber-300 border border-amber-400/40 shadow-2xs"
+                    >
+                      <span>{tag}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeCustom(tag)}
+                        className="hover:text-red-700 font-bold ml-0.5"
+                        title={`Remove ${tag}`}
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  ))}
+
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      type="text"
+                      placeholder="e.g. Mustard, Sulfites, Gluten..."
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const val = e.currentTarget.value;
+                          addCustom(val);
+                          e.currentTarget.value = '';
+                        }
+                      }}
+                      className="h-8 text-xs w-52"
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={(e) => {
+                        const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                        if (input && input.value) {
+                          addCustom(input.value);
+                          input.value = '';
+                        }
+                      }}
+                      className="h-8 px-2.5 text-xs font-semibold"
+                    >
+                      + Add Allergen
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </fieldset>
 
         <Field label={tForm('allergenSummary')}>
