@@ -27,11 +27,23 @@ export function newIngredientItem(): RecipeIngredientItem {
   };
 }
 
+interface YieldItemShape {
+  label: string;
+  value: string;
+  unit?: string;
+}
+
 interface RecipeIngredientsEditorProps {
   ingredients: RecipeIngredientItem[];
   onChange: (next: RecipeIngredientItem[]) => void;
   selectedFactor: number;
   onSelectFactor: (factor: number) => void;
+  /** Captured yield facts (total yield, portions, portion size, total time).
+   *  Manager may leave any field's value/unit blank; empty rows are dropped
+   *  on save. Editor only matches by `label` so renaming a label persists as
+   *  a removal of the old entry. */
+  yieldItems: YieldItemShape[];
+  onChangeYield: (next: YieldItemShape[]) => void;
 }
 
 export function RecipeIngredientsEditor({
@@ -39,8 +51,16 @@ export function RecipeIngredientsEditor({
   onChange,
   selectedFactor,
   onSelectFactor,
+  yieldItems,
+  onChangeYield,
 }: RecipeIngredientsEditorProps): React.ReactElement {
   const t = useTranslations('admin.library.new.recipe');
+
+  function patchYield(label: string, patch: Partial<YieldItemShape>): void {
+    onChangeYield(
+      yieldItems.map((row) => (row.label === label ? { ...row, ...patch } : row)),
+    );
+  }
 
   function updateItem(id: string, patch: Partial<RecipeIngredientItem>): void {
     onChange(ingredients.map((item) => (item.id === id ? { ...item, ...patch } : item)));
@@ -169,27 +189,69 @@ export function RecipeIngredientsEditor({
         </table>
       </div>
 
-      {/* Scaling Section */}
+      {/* Yield capture (total yield, portions, portion size, total time) */}
       <div className="rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-wash)]/40 p-4 space-y-3">
         <div className="flex items-center gap-2 text-[var(--color-brand-700)]">
-          <i aria-hidden="true" className="ri-flashlight-line text-lg" />
+          <i aria-hidden="true" className="ri-scales-2-line text-lg" />
           <h3 className="font-[family-name:var(--font-ui)] text-[length:var(--text-sm)] font-bold">
-            {t('scalingTitle')}
+            {t('yieldTitle')}
           </h3>
         </div>
         <p className="text-[length:var(--text-xs)] text-[var(--color-ink-2)]">
-          {t('scalingSubtitle')}
+          {t('yieldSubtitle')}
+        </p>
+
+        <ul className="space-y-2">
+          {yieldItems.map((row) => (
+            <li
+              key={row.label}
+              className="grid grid-cols-[minmax(0,1fr)_6rem_6rem] items-center gap-3"
+            >
+              <label className="text-[length:var(--text-xs)] font-semibold text-[var(--color-ink-2)]">
+                {row.label}
+              </label>
+              <Input
+                value={row.value}
+                onChange={(e) => patchYield(row.label, { value: e.target.value })}
+                inputMode="decimal"
+                placeholder={t('yieldValuePlaceholder')}
+                aria-label={`${row.label} value`}
+              />
+              <Input
+                value={row.unit ?? ''}
+                onChange={(e) => patchYield(row.label, { unit: e.target.value })}
+                placeholder={t('yieldUnitPlaceholder')}
+                aria-label={`${row.label} unit`}
+              />
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Batch size section */}
+      <div className="rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-wash)]/40 p-4 space-y-3">
+        <div className="flex items-center gap-2 text-[var(--color-brand-700)]">
+          <i aria-hidden="true" className="ri-stack-line text-lg" />
+          <h3 className="font-[family-name:var(--font-ui)] text-[length:var(--text-sm)] font-bold">
+            {t('batchSizeTitle')}
+          </h3>
+        </div>
+        <p className="text-[length:var(--text-xs)] text-[var(--color-ink-2)]">
+          {t('batchSizeSubtitle')}
         </p>
 
         <div className="flex flex-wrap items-center gap-3 pt-1">
           {[1, 2, 4].map((factor) => {
             const isSelected = selectedFactor === factor;
             const scaledDisplay = totalBaseWeight > 0 ? `${(totalBaseWeight * factor).toFixed(0)} kg` : '';
+            const batchWord = factor === 1 ? t('batchSizeSingular') : t('batchSizePlural');
             return (
               <button
                 key={factor}
                 type="button"
                 onClick={() => onSelectFactor(factor)}
+                aria-pressed={isSelected}
+                aria-label={`${factor} ${batchWord}`}
                 className={cn(
                   'flex items-center gap-2 rounded-full border px-4 py-1.5 text-[length:var(--text-xs)] font-bold transition-all',
                   isSelected
@@ -197,7 +259,9 @@ export function RecipeIngredientsEditor({
                     : 'border-[var(--color-line-3)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:border-[var(--color-brand-600)]/50',
                 )}
               >
-                <span>{factor}×</span>
+                <span>
+                  {factor} {batchWord}
+                </span>
                 {scaledDisplay && <span className="font-normal text-[var(--color-ink-3)]">{scaledDisplay}</span>}
               </button>
             );

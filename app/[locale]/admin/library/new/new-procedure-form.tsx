@@ -21,6 +21,7 @@ import type {
   ProcedureBody,
   ProcedureIngredient,
   ProcedureMethodStep,
+  ProcedureYieldItem,
   Localised,
   LocalisedOptional,
 } from '@/lib/types';
@@ -45,6 +46,27 @@ interface NewProcedureFormProps {
 }
 
 export type ClearanceTier = 'general' | 'station' | 'confidential' | 'master';
+
+/** The set of batch sizes a recipe exposes. Always saved on the recipe
+ *  block — the manager's *selected* factor stays as client-side state so the
+ *  reader sees their previous choice without the doc having to persist it. */
+const RECIPE_BATCH_FACTORS = [1, 2, 4] as const;
+
+/** Stable labels for the four recipe yield fields. Order matches the panel
+ *  layout and the order entries render in the reader view. Manager may leave
+ *  any field's value blank. */
+const YIELD_FIELD_LABELS = {
+  total: 'Total yield',
+  portions: 'Portions',
+  portionSize: 'Portion size',
+  time: 'Total time',
+} as const;
+
+type YieldFieldKey = keyof typeof YIELD_FIELD_LABELS;
+
+function emptyYieldItem(): ProcedureYieldItem {
+  return { label: '', value: '', unit: '' };
+}
 
 const DEFAULT_CATEGORIES: Category[] = [
   { id: 'cat-recipes', slug: 'recipes', nameEn: 'Recipes', nameEs: 'Recetas', isArchived: false },
@@ -78,6 +100,24 @@ function getCategoryBadgeStyle(slug: string): { icon: string; bg: string; text: 
     default:
       return { icon: 'ri-folder-3-line', bg: 'bg-amber-100', text: 'text-amber-700' };
   }
+}
+
+function deriveTypeFromCategory(cat?: Category): ProcedureTypeId {
+  if (!cat) return 'recipe';
+  const slug = (cat.slug || '').toLowerCase();
+  const nameEn = (cat.nameEn || '').toLowerCase();
+  const id = (cat.id || '').toLowerCase();
+
+  if (slug.includes('recipe') || nameEn.includes('recipe') || id.includes('recipe')) {
+    return 'recipe';
+  }
+  if (slug.includes('station') || nameEn.includes('station') || id.includes('station')) {
+    return 'station';
+  }
+  if (slug.includes('clean') || nameEn.includes('clean') || id.includes('clean')) {
+    return 'cleaning';
+  }
+  return 'general';
 }
 
 interface FormSnapshot {
@@ -114,11 +154,19 @@ function buildRecipeBody(args: {
   titleEs: string;
   ingredients: RecipeIngredientItem[];
   factors: number[];
+  yieldItems?: ProcedureYieldItem[];
 }): ProcedureBody {
-  const { titleEn, titleEs, ingredients, factors } = args;
+  const { titleEn, titleEs, ingredients, factors, yieldItems } = args;
   const backendIngredients = ingredients
     .map(toBackendIngredient)
     .filter((i): i is ProcedureIngredient => i !== null);
+  const cleanedYield = (yieldItems ?? [])
+    .filter((y) => y.label.trim().length > 0 && y.value.trim().length > 0)
+    .map((y) => ({
+      label: y.label.trim(),
+      value: y.value.trim(),
+      ...(y.unit && y.unit.trim().length > 0 ? { unit: y.unit.trim() } : {}),
+    }));
   const placeholderBody: Localised = {
     en: titleEn.trim() || titleEs.trim() || 'Recipe steps',
     es: titleEs.trim() || titleEn.trim() || 'Pasos de la receta',
@@ -127,8 +175,9 @@ function buildRecipeBody(args: {
     id: `r-${Date.now().toString(36)}`,
     kind: 'recipe',
     audience: '',
-    factors,
+    factors: [...factors],
     ingredients: backendIngredients,
+    ...(cleanedYield.length > 0 ? { yieldItems: cleanedYield } : {}),
     steps: [{ id: `s-${Math.random().toString(36).slice(2, 8)}`, body: placeholderBody }],
   };
   return { blocks: [backfillBlock(block)] };
@@ -387,14 +436,18 @@ export function NewProcedureForm({
   const tErr = useTranslations('admin.library.new.errors');
   const router = useRouter();
 
+  const sourceCategories = React.useMemo(() => {
+    return categories && categories.length >= 4 ? categories : DEFAULT_CATEGORIES;
+  }, [categories]);
+
+  const initialCat = sourceCategories[0];
+  const initialType = React.useMemo(() => deriveTypeFromCategory(initialCat), [initialCat]);
+
   const [creationMode, setCreationMode] = useState<'manual' | 'import'>('manual');
   const [wizardStep, setWizardStep] = useState<WizardStepId>('details');
-  const [procedureType, setProcedureType] = useState<ProcedureTypeId>('recipe');
+  const [categoryId, setCategoryId] = useState<string>(() => initialCat?.id ?? DEFAULT_CATEGORIES[0].id);
+  const [procedureType, setProcedureType] = useState<ProcedureTypeId>(() => initialType);
   const isRecipeMode = procedureType === 'recipe';
-  const [categoryId, setCategoryId] = useState(() => {
-    if (categories && categories[0]?.id) return categories[0].id;
-    return DEFAULT_CATEGORIES[0].id;
-  });
   const [categorySearch, setCategorySearch] = useState('');
   const categoryScrollRef = useRef<HTMLDivElement>(null);
   const [titleEn, setTitleEn] = useState('');
@@ -411,6 +464,15 @@ export function NewProcedureForm({
     { id: 'ing-1', name: '', quantity: '', unit: 'kg', notes: '' },
   ]);
   const [selectedFactor, setSelectedFactor] = useState<number>(1);
+  // Yield panel — one slot per known field. Manager may leave value/unit blank
+  // for any field; only items with both a value and a label are persisted.
+  const [yieldItems, setYieldItems] = useState<ProcedureYieldItem[]>(() =>
+    (Object.keys(YIELD_FIELD_LABELS) as YieldFieldKey[]).map((k) => ({
+      label: YIELD_FIELD_LABELS[k],
+      value: '',
+      unit: '',
+    })),
+  );
 
   const [error, setError] = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<string[]>([]);
@@ -508,10 +570,6 @@ export function NewProcedureForm({
     }
   }, [wizardStep, hasTitle, hasPurpose, isRecipeMode, ingredients, clearanceLevel, tErr]);
 
-  const sourceCategories = React.useMemo(() => {
-    return categories && categories.length >= 4 ? categories : DEFAULT_CATEGORIES;
-  }, [categories]);
-
   const primaryCategories = React.useMemo(() => {
     return sourceCategories.slice(0, 7);
   }, [sourceCategories]);
@@ -558,10 +616,10 @@ export function NewProcedureForm({
   const initialRef = useRef<FormSnapshot>({
     titleEn: '',
     titleEs: '',
-    categoryId: categories[0]?.id ?? '',
+    categoryId: initialCat?.id ?? DEFAULT_CATEGORIES[0].id,
     purposeEn: '',
     purposeEs: '',
-    procedureType: 'recipe',
+    procedureType: initialType,
     clearanceLevel: null,
     blocks: [],
   });
@@ -608,16 +666,15 @@ export function NewProcedureForm({
     const isStationCategory = slug.includes('station') || nameEn.includes('station') || id.includes('station');
     const isCleaningCategory = slug.includes('clean') || nameEn.includes('clean') || id.includes('clean');
 
-    let nextType: ProcedureTypeId = procedureType;
+    let nextType: ProcedureTypeId = 'general';
     if (isRecipeCategory) {
       nextType = 'recipe';
     } else if (isStationCategory) {
       nextType = 'station';
     } else if (isCleaningCategory) {
       nextType = 'cleaning';
-    } else if (procedureType !== 'recipe') {
-      nextType = 'general';
     }
+
     if (nextType !== procedureType) {
       setProcedureType(nextType);
       setWizardStep((s) => stepForType(nextType, s));
@@ -712,7 +769,13 @@ export function NewProcedureForm({
     }
 
     const body = isRecipeMode
-      ? buildRecipeBody({ titleEn, titleEs, ingredients, factors: [selectedFactor] })
+      ? buildRecipeBody({
+          titleEn,
+          titleEs,
+          ingredients,
+          factors: [...RECIPE_BATCH_FACTORS],
+          yieldItems,
+        })
       : buildGenericBody(blocks);
 
     startTransition(async () => {
@@ -1251,6 +1314,11 @@ export function NewProcedureForm({
               }}
               selectedFactor={selectedFactor}
               onSelectFactor={setSelectedFactor}
+              yieldItems={yieldItems}
+              onChangeYield={(next) => {
+                setYieldItems(next);
+                setIsDirty(true);
+              }}
             />
           </div>
         )}
