@@ -177,6 +177,9 @@ export interface ProcedureYieldItem {
   label: string;
   value: string;
   unit?: string;
+  /** Does this number multiply with the batch? Batch weight and portion count do;
+   *  portion size and time do not. Absent means it holds steady. */
+  scales?: boolean;
 }
 
 export interface ProcedureIngredient {
@@ -279,7 +282,11 @@ export type ExtractedBlock =
   | {
       kind: 'recipe';
       audience?: string;
-      yieldItems?: { label: string; value: string; unit?: string }[];
+      /** `scales` marks the yield numbers the batch control multiplies: a batch
+       *  weight doubles, a portion size and a cooking time do not. Without it on
+       *  the way in, the flag cannot survive a round trip and the control moves
+       *  the ingredient column while the yield sits still. */
+      yieldItems?: { label: string; value: string; unit?: string; scales?: boolean }[];
       ingredients?: {
         name: string;
         unit?: string;

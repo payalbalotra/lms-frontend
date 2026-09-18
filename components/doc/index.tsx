@@ -2,6 +2,9 @@
 
 import * as React from 'react';
 import { ALLERGEN_LABELS, type AllergenKey } from '@/lib/allergens';
+import { LuArrowLeft, LuArrowLeftRight, LuBadgeCheck, LuCheck, LuChevronDown, LuChevronRight, LuCircleAlert, LuDownload, LuEllipsisVertical, LuFocus, LuImage, LuLightbulb, LuLock, LuMessageSquare, LuPlay, LuPrinter, LuTestTube, LuTriangleAlert, LuUtensils, LuWrench, LuX } from 'react-icons/lu';
+import { Icon, iconByName } from '@/components/ui/icon';
+import type { IconType } from 'react-icons';
 
 /**
  * The vocabulary of an SOP / recipe / training chapter page.
@@ -40,14 +43,14 @@ export function DocBar({
         href={backHref}
         aria-label={backLabel}
       >
-        <i className="ri-arrow-left-line i" aria-hidden="true" />
+        <LuArrowLeft aria-hidden="true" className="i" />
       </a>
       <div className="where">
         <b>{title}</b>
         <span>{category}</span>
       </div>
       <button className="btn btn-ghost btn-icon btn-lg" aria-label="More options">
-        <i className="ri-more-2-fill i" aria-hidden="true" />
+        <LuEllipsisVertical aria-hidden="true" className="i" />
       </button>
     </div>
   );
@@ -63,7 +66,7 @@ export function Cover({ src, alt }: { src?: string; alt?: string }) {
     return (
       <div className="cover is-empty">
         <div>
-          <i className="ri-image-line i" aria-hidden="true" />
+          <LuImage aria-hidden="true" className="i" />
           <div>No cover image</div>
         </div>
       </div>
@@ -80,7 +83,8 @@ export function DocHead({
   title,
   withCover = true,
 }: {
-  icon: string; // remix icon class, e.g. "ri-restaurant-line"
+  /** Icon name, not the component: this crosses the server/client boundary. */
+  icon: string;
   category: string;
   title: React.ReactNode;
   withCover?: boolean;
@@ -88,7 +92,7 @@ export function DocHead({
   return (
     <header className="doc-head">
       <div className="doc-icon">
-        <i className={cn(icon, 'i')} aria-hidden="true" />
+        <Icon icon={iconByName(icon)} className="i" />
       </div>
       <div className="doc-crumb">{category}</div>
       <h1 className="doc-title display">{title}</h1>
@@ -113,7 +117,7 @@ export function Allergen({
 }) {
   return (
     <div className="allergen" role="note">
-      <i className="ri-error-warning-fill i i-lg" aria-hidden="true" />
+      <LuCircleAlert aria-hidden="true" className="i i-lg" />
       <div className="allergen-body">
         {selectedAllergens && selectedAllergens.length > 0 && (
           <ul className="allergen-chips" aria-label="Contains allergens">
@@ -145,7 +149,8 @@ export function DocPurpose({ children }: { children: React.ReactNode }) {
 
 export type FactKind = 'default' | 'ok';
 export type Fact = {
-  icon: string; // remix icon class
+  /** Icon name, not the component: this crosses the server/client boundary. */
+  icon: string;
   label: string;
   value: React.ReactNode;
   kind?: FactKind;
@@ -158,7 +163,7 @@ export function Facts({ items }: { items: Fact[] }) {
       {items.map((f, i) => (
         <div key={i} className={f.kind === 'ok' ? 'ok' : undefined}>
           <dt>
-            <i className={cn(f.icon, 'i i-sm')} aria-hidden="true" />
+            <Icon icon={iconByName(f.icon)} className="i i-sm" />
             {f.label}
           </dt>
           <dd>{f.value}</dd>
@@ -194,7 +199,9 @@ export function Section({
   id,
   children,
 }: {
-  title: string;
+  /** Omitted for a run of blocks that arrived before the document's first
+   *  heading: the section still supplies the page's left margin. */
+  title?: string;
   /** Optional count, e.g. "· 11 steps". */
   count?: React.ReactNode;
   /** Optional DOM id (used for in-page anchors like #related). */
@@ -203,10 +210,12 @@ export function Section({
 }) {
   return (
     <section className="doc-sec" id={id}>
-      <h2>
-        {title}
-        {count && <span className="count">{' · '}{count}</span>}
-      </h2>
+      {title ? (
+        <h2>
+          {title}
+          {count && <span className="count">{' · '}{count}</span>}
+        </h2>
+      ) : null}
       {children}
     </section>
   );
@@ -236,7 +245,7 @@ export function FixList({
       {items.map((it, i) => (
         <div key={i}>
           <dt>
-            <i className="ri-error-warning-line i" aria-hidden="true" />
+            <LuCircleAlert aria-hidden="true" className="i" />
             {it.failure}
           </dt>
           <dd>{it.response}</dd>
@@ -252,12 +261,12 @@ export function FixList({
 
 export type NoteKind = 'warn' | 'tip' | 'alt' | 'equip' | 'allergen';
 
-const NOTE_META: Record<NoteKind, { icon: string; label: string }> = {
-  warn:     { icon: 'ri-alert-line',           label: 'Warning' },
-  tip:      { icon: 'ri-lightbulb-line',       label: 'Tip' },
-  alt:      { icon: 'ri-arrow-left-right-line', label: 'Alternative' },
-  equip:    { icon: 'ri-tools-line',           label: 'Equipment' },
-  allergen: { icon: 'ri-error-warning-fill',   label: 'Allergen' },
+const NOTE_META: Record<NoteKind, { icon: IconType; label: string }> = {
+  warn:     { icon: LuTriangleAlert,           label: 'Warning' },
+  tip:      { icon: LuLightbulb,       label: 'Tip' },
+  alt:      { icon: LuArrowLeftRight, label: 'Alternative' },
+  equip:    { icon: LuWrench,           label: 'Equipment' },
+  allergen: { icon: LuCircleAlert,   label: 'Allergen' },
 };
 
 export function NoteBlock({
@@ -270,11 +279,12 @@ export function NoteBlock({
   /** Optional override of the kind's default label. */
   label?: string;
 }) {
-  const meta = NOTE_META[kind];
+  // A kind this build does not know about is still a note with something to say.
+  const meta = NOTE_META[kind] ?? NOTE_META.warn;
   return (
     <div className={cn('note-block', `n-${kind}`)}>
       <span className="ico">
-        <i className={cn(meta.icon, 'i')} aria-hidden="true" />
+        <Icon icon={meta.icon} className="i" />
       </span>
       <div>
         <span className="label">{label ?? meta.label}</span>
@@ -318,13 +328,17 @@ export function MethodSteps({ steps, nowIndex }: { steps: MethodStep[]; nowIndex
             <div className="step-body">
               {s.critical && (
                 <span className="step-flag">
-                  <i className="ri-focus-3-line i i-sm" aria-hidden="true" /> Critical step
+                  <LuFocus aria-hidden="true" className="i i-sm" /> Critical step
                 </span>
               )}
-              <p>{s.body}</p>
+              {/* A caller can hand over either a plain sentence or its own markup.
+                  Wrapping the second kind in a <p> nested a paragraph inside a
+                  paragraph, which the browser un-nests — so the server and the
+                  client disagreed and every document page logged a hydration error. */}
+              {typeof s.body === 'string' ? <p>{s.body}</p> : s.body}
               {s.watchAt && (
                 <button className="step-time">
-                  <i className="ri-play-fill i i-sm" aria-hidden="true" /> Watch · {s.watchAt}
+                  <LuPlay aria-hidden="true" className="i i-sm" /> Watch · {s.watchAt}
                 </button>
               )}
               {s.clip && (
@@ -334,7 +348,7 @@ export function MethodSteps({ steps, nowIndex }: { steps: MethodStep[]; nowIndex
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <i className="ri-play-fill i i-sm" aria-hidden="true" /> Watch · {fmtClock(s.clip.startSec)}–{fmtClock(s.clip.endSec)}
+                  <LuPlay aria-hidden="true" className="i i-sm" /> Watch · {fmtClock(s.clip.startSec)}–{fmtClock(s.clip.endSec)}
                 </a>
               )}
             </div>
@@ -367,7 +381,7 @@ export function PrepSteps({ steps }: { steps: PrepStep[] }) {
    ---------------------------------------------------------------- */
 
 export function CriticalLimit({
-  icon = 'ri-test-tube-line',
+  icon,
   label = 'Critical limit',
   value,
   subtitle,
@@ -388,7 +402,7 @@ export function CriticalLimit({
   return (
     <div className="crit">
       <h3 className="crit-h">
-        <i className={cn(icon, 'i i-sm')} aria-hidden="true" /> {label}
+        <Icon icon={iconByName(icon)} className="i i-sm" /> {label}
       </h3>
       <div className="crit-b">
         <p className="crit-num">{value}</p>
@@ -400,7 +414,7 @@ export function CriticalLimit({
           </div>
           <div className="crit-part breach">
             <dt className="crit-lbl">
-              <i className="ri-error-warning-line i i-sm" aria-hidden="true" />
+              <LuCircleAlert aria-hidden="true" className="i i-sm" />
               {breach}
             </dt>
             <dd>{/* content is rendered by parent via a custom breach block */}</dd>
@@ -432,7 +446,7 @@ export function CriticalLimitFull({
   return (
     <div className="crit">
       <h3 className="crit-h">
-        <i className={cn(icon ?? 'ri-test-tube-line', 'i i-sm')} aria-hidden="true" /> {label ?? 'Critical limit'}
+        <Icon icon={iconByName(icon)} className="i i-sm" /> {label ?? 'Critical limit'}
       </h3>
       <div className="crit-b">
         <p className="crit-num">{value}</p>
@@ -444,7 +458,7 @@ export function CriticalLimitFull({
           </div>
           <div className="crit-part breach">
             <dt className="crit-lbl">
-              <i className="ri-error-warning-line i i-sm" aria-hidden="true" />
+              <LuCircleAlert aria-hidden="true" className="i i-sm" />
               {breachLabel}
             </dt>
             <dd>{breachResponse}</dd>
@@ -500,7 +514,7 @@ export function VideoCover({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={src} alt={alt} width={1200} height={900} loading="lazy" />
         <button className="play" aria-label={label}>
-          <i className="ri-play-fill i i-lg" aria-hidden="true" />
+          <LuPlay aria-hidden="true" className="i i-lg" />
         </button>
         <span className="dur">{duration}</span>
       </div>
@@ -522,14 +536,14 @@ export function Compare({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={correct.src} alt={correct.alt} width={1200} height={900} loading="lazy" />
         <figcaption>
-          <i className="ri-check-line i i-sm" aria-hidden="true" /> Correct
+          <LuCheck aria-hidden="true" className="i i-sm" /> Correct
         </figcaption>
       </figure>
       <figure className="no">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={incorrect.src} alt={incorrect.alt} width={1200} height={900} loading="lazy" />
         <figcaption>
-          <i className="ri-close-line i i-sm" aria-hidden="true" /> Over-mashed
+          <LuX aria-hidden="true" className="i i-sm" /> Over-mashed
         </figcaption>
       </figure>
     </div>
@@ -540,6 +554,11 @@ export function Compare({
    Scaler + Ingredients (recipes only)
    ---------------------------------------------------------------- */
 
+/**
+ * Arrow keys move between the seats, which is what a radiogroup promises. With a
+ * roving tabindex and no key handler, Tab landed on the selected factor and there
+ * was no way to reach the others at all.
+ */
 export function Scaler({
   factors,
   selected,
@@ -551,15 +570,36 @@ export function Scaler({
   onSelect?: (factor: number) => void;
   label?: string;
 }) {
+  // A document can carry two recipes, and two "batch-lbl" ids would send both
+  // groups' aria-labelledby to the first label.
+  const labelId = React.useId();
+  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>): void => {
+    const keys = ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Home', 'End'];
+    if (!keys.includes(e.key)) return;
+    e.preventDefault();
+    const i = factors.indexOf(selected);
+    const at =
+      e.key === 'Home' ? 0
+      : e.key === 'End' ? factors.length - 1
+      : e.key === 'ArrowRight' || e.key === 'ArrowDown' ? (i + 1) % factors.length
+      : (i - 1 + factors.length) % factors.length;
+    const next = factors[at];
+    if (next === undefined) return;
+    onSelect?.(next);
+    const group = e.currentTarget;
+    (group.children[at] as HTMLElement | undefined)?.focus();
+  };
+
   return (
     <div className="scaler">
-      <span className="lbl" id="batch-lbl">{label}</span>
-      <div className="choices" role="radiogroup" aria-labelledby="batch-lbl">
+      <span className="lbl" id={labelId}>{label}</span>
+      <div className="choices" role="radiogroup" aria-labelledby={labelId} onKeyDown={onKeyDown}>
         {factors.map((f) => {
           const checked = f === selected;
           return (
             <button
               key={f}
+              type="button"
               role="radio"
               aria-checked={checked}
               tabIndex={checked ? 0 : -1}
@@ -593,9 +633,12 @@ export function IngredientsTable({
   factors: number[];
   selectedFactor: number;
 }) {
-  // The "adj" column is the selected factor (or the second one if the selected is the first)
-  const selectedIndex = Math.max(1, factors.indexOf(selectedFactor));
-  const isBase = selectedFactor === factors[0];
+  // Two columns, as in the template: the base batch, and the one that was picked.
+  // Every factor at once is a spreadsheet, and a cook reads one number.
+  const baseIndex = 0;
+  const selectedIndex = factors.indexOf(selectedFactor);
+  const isBase = selectedIndex <= baseIndex;
+  const columns = isBase ? [baseIndex] : [baseIndex, selectedIndex];
 
   return (
     <table className={cn('ing', isBase && 'is-base')}>
@@ -603,9 +646,9 @@ export function IngredientsTable({
       <thead>
         <tr>
           <th scope="col">Ingredient</th>
-          {factors.map((f, i) => (
-            <th key={f} scope="col" className={cn('num', i === selectedIndex && 'adj')}>
-              {f}×
+          {columns.map((i) => (
+            <th key={factors[i]} scope="col" className={cn('num', i === selectedIndex && !isBase && 'adj')}>
+              {factors[i]}×
             </th>
           ))}
         </tr>
@@ -618,15 +661,12 @@ export function IngredientsTable({
               {ing.form && <span className="form">{ing.form}</span>}
               {ing.allergen && (
                 <span className="flag">
-                  <i className="ri-error-warning-fill i i-sm" aria-hidden="true" /> Allergen
+                  <LuCircleAlert aria-hidden="true" className="i i-sm" /> Allergen
                 </span>
               )}
             </th>
-            {factors.map((f, j) => (
-              <td
-                key={f}
-                className={cn('num', j === selectedIndex && 'adj')}
-              >
+            {columns.map((j) => (
+              <td key={factors[j]} className={cn('num', j === selectedIndex && !isBase && 'adj')}>
                 {ing.amounts[j] ?? '—'}
               </td>
             ))}
@@ -642,7 +682,7 @@ export function IngredientsTable({
    ---------------------------------------------------------------- */
 
 export type ChapterRow = {
-  icon: string;        // remix icon class
+  icon: IconType;        // remix icon class
   title: string;
   meta?: React.ReactNode;
   href: string;
@@ -656,20 +696,14 @@ export function Chapters({ rows }: { rows: ChapterRow[] }) {
       {rows.map((r, i) => (
         <a key={i} className="chapter" href={r.href}>
           <span className="idx">
-            <i className={cn(r.icon, 'i i-sm')} aria-hidden="true" />
+            <Icon icon={r.icon} className="i i-sm" />
           </span>
           <div>
             <div className="title">{r.title}</div>
             {r.meta && <div className="meta">{r.meta}</div>}
           </div>
           <span className="tail">
-            <i
-              className={cn(
-                r.kind === 'attachment' ? 'ri-download-line' : 'ri-arrow-right-s-line',
-                'i',
-              )}
-              aria-hidden="true"
-            />
+            <Icon icon={r.kind === 'attachment' ? LuDownload : LuChevronRight} className="i" />
           </span>
         </a>
       ))}
@@ -684,11 +718,11 @@ export function Chapters({ rows }: { rows: ChapterRow[] }) {
 export function DocActs() {
   return (
     <div className="doc-acts">
-      <button className="btn btn-secondary btn-lg">
-        <i className="ri-printer-line i" aria-hidden="true" /> Print with QR code
+      <button className="btn btn-secondary btn-lg" onClick={() => window.print()}>
+        <LuPrinter aria-hidden="true" className="i" /> Print with QR code
       </button>
       <button className="btn btn-ghost btn-lg">
-        <i className="ri-feedback-line i" aria-hidden="true" /> Report a problem
+        <LuMessageSquare aria-hidden="true" className="i" /> Report a problem
       </button>
     </div>
   );
@@ -701,7 +735,7 @@ export function DocControl({ entries, defaultOpen = true }: { entries: DocContro
   return (
     <details className="doc-ctl" open={defaultOpen}>
       <summary>
-        Document control <i className="ri-arrow-down-s-line i" aria-hidden="true" />
+        Document control <LuChevronDown aria-hidden="true" className="i" />
       </summary>
       <dl>
         {entries.map((e, i) => (
@@ -720,13 +754,13 @@ export function DocControl({ entries, defaultOpen = true }: { entries: DocContro
    ---------------------------------------------------------------- */
 
 const PILL_META = {
-  complete:  { icon: 'ri-check-line', useDot: false },
-  verified:  { icon: 'ri-verified-badge-line', useDot: false },
+  complete:  { icon: LuCheck, useDot: false },
+  verified:  { icon: LuBadgeCheck, useDot: false },
   progress:  { icon: null, useDot: true },
   due:       { icon: null, useDot: true },
   overdue:   { icon: null, useDot: true },
   notstart:  { icon: null, useDot: true },
-  locked:    { icon: 'ri-lock-line', useDot: false },
+  locked:    { icon: LuLock, useDot: false },
 } as const;
 
 export type PillKind = keyof typeof PILL_META;
@@ -738,7 +772,7 @@ export function Pill({ kind, children }: { kind: PillKind; children: React.React
       {meta.useDot ? (
         <i className="dot" aria-hidden="true" />
       ) : (
-        <i className={cn(meta.icon!, 'i i-sm')} aria-hidden="true" />
+        <Icon icon={meta.icon!} className="i i-sm" />
       )}
       {children}
     </span>
