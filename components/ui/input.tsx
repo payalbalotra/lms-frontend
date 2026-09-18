@@ -20,8 +20,8 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(function Inp
       data-slot="input"
       className={cn(
         'flex min-h-10 w-full rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)]',
-        'px-3.5 py-2 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)]/60',
-        'shadow-2xs transition-all duration-150 font-[family-name:var(--font-ui)]',
+        'px-4 py-2 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)]',
+        'shadow-e1 transition-all duration-[var(--dur)] font-[family-name:var(--font-ui)]',
         'hover:border-[var(--color-line-3)]',
         'focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:border-[var(--color-brand-600)] focus-visible:border-[var(--color-brand-600)]',
         'disabled:cursor-not-allowed disabled:opacity-60',

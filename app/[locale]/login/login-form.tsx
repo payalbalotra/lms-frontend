@@ -116,12 +116,12 @@ export function LoginForm({ locale }: LoginFormProps): React.ReactElement {
           <Button type="submit" className="w-full" size="lg" disabled={isPending}>
             {isPending ? t('submitting') : t('submit')}
           </Button>
-          <p className="text-xs text-center text-[var(--color-muted-foreground)]">
+          <p className="text-sm text-center text-[var(--color-muted-foreground)]">
             {t('footerHint')}
           </p>
           <Link
             href={`/${locale}/activate`}
-            className="text-xs text-center text-[var(--color-brand-700)] underline-offset-4 hover:underline"
+            className="text-sm text-center text-[var(--color-brand-700)] underline-offset-4 hover:underline"
           >
             {t('haveInvite')}
           </Link>

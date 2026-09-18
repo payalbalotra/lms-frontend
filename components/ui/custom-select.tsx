@@ -3,11 +3,14 @@
 import * as React from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
+import { LuCheck, LuChevronDown } from 'react-icons/lu';
+import { Icon } from '@/components/ui/icon';
+import type { IconType } from 'react-icons';
 
 export interface SelectOption {
   value: string;
   label: string;
-  icon?: string;
+  icon?: IconType;
   description?: string;
 }
 
@@ -16,7 +19,7 @@ export interface CustomSelectProps {
   onChange: (value: string) => void;
   options: SelectOption[];
   placeholder?: string;
-  leadingIcon?: string;
+  leadingIcon?: IconType;
   disabled?: boolean;
   size?: 'default' | 'sm';
   className?: string;
@@ -134,11 +137,11 @@ export function CustomSelect({
         disabled={disabled}
         onClick={() => setOpen((prev) => !prev)}
         className={cn(
-          'flex w-full items-center justify-between gap-2 rounded-[var(--radius-md)] border border-[var(--color-line-3)] bg-[var(--color-surface)] text-[var(--color-ink)] transition-all duration-180',
+          'flex w-full items-center justify-between gap-2 rounded-[var(--radius-md)] border border-[var(--color-line-3)] bg-[var(--color-surface)] text-[var(--color-ink)] transition-all duration-[var(--dur)]',
           size === 'sm'
-            ? 'min-h-8 px-2.5 py-1 text-[length:var(--text-xs)]'
-            : 'min-h-10 px-3.5 py-2 text-[length:var(--text-sm)]',
-          open && 'border-[var(--color-brand-600)]/70 ring-2 ring-[var(--color-brand-tint)]/60',
+            ? 'min-h-8 px-3 py-1 text-xs'
+            : 'min-h-10 px-4 py-2 text-sm',
+          open && 'border-[var(--color-brand-600)] ring-2 ring-[var(--color-brand-tint)]',
           'hover:border-[var(--color-line-3)]',
           'disabled:cursor-not-allowed disabled:opacity-60',
           className,
@@ -146,23 +149,16 @@ export function CustomSelect({
       >
         <div className="flex items-center gap-2 min-w-0">
           {(selectedOption?.icon || leadingIcon) && (
-            <i
-              aria-hidden="true"
-              className={cn(
-                selectedOption?.icon || leadingIcon,
-                size === 'sm' ? 'text-sm' : 'text-base',
-                'text-[var(--color-brand-700)] shrink-0',
-              )}
-            />
+            <Icon icon={(selectedOption?.icon ?? leadingIcon)!} className={cn(size === 'sm' ? 'text-sm' : 'text-base', 'text-[var(--color-brand-700)] shrink-0')} />
           )}
           <span className="truncate font-medium">
             {selectedOption ? selectedOption.label : placeholder}
           </span>
         </div>
-        <i
+        <LuChevronDown
           aria-hidden="true"
           className={cn(
-            'ri-arrow-down-s-line shrink-0 transition-transform duration-200',
+            'shrink-0 transition-transform duration-[var(--dur)]',
             size === 'sm' ? 'text-sm' : 'text-base',
             'text-[var(--color-ink-3)]',
             open && 'rotate-180 text-[var(--color-brand-700)]',
@@ -186,7 +182,7 @@ export function CustomSelect({
               maxHeight: 280,
               zIndex: 9999,
             }}
-            className="overflow-y-auto rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-1.5 shadow-[var(--e-3)] transition-opacity duration-150"
+            className="overflow-y-auto rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-2 shadow-[var(--e-3)] transition-opacity duration-[var(--dur)]"
           >
             {options.map((opt, idx) => {
               const isSelected = opt.value === value;
@@ -204,42 +200,31 @@ export function CustomSelect({
                   }}
                   className={cn(
                     'flex w-full items-center justify-between gap-3 rounded-[var(--radius-md)] text-left transition-colors',
-                    size === 'sm' ? 'px-2.5 py-1.5 text-[length:var(--text-xs)]' : 'px-3 py-2 text-[length:var(--text-sm)]',
+                    size === 'sm' ? 'px-3 py-2 text-xs' : 'px-3 py-2 text-sm',
                     isSelected
-                      ? 'bg-[var(--color-brand-tint)]/70 font-bold text-[var(--color-brand-700)]'
+                      ? 'bg-[var(--color-panel)] font-semibold text-[var(--color-ink)]'
                       : isHighlighted
-                      ? 'bg-[var(--color-wash)] text-[var(--color-brand-700)]'
+                      ? 'bg-[var(--color-wash)] text-[var(--color-ink)]'
                       : 'text-[var(--color-ink)] hover:bg-[var(--color-wash)]',
                   )}
                 >
-                  <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="flex items-center gap-3 min-w-0">
                     {opt.icon && (
-                      <i
-                        aria-hidden="true"
-                        className={cn(
-                          opt.icon,
-                          size === 'sm' ? 'text-sm' : 'text-base',
-                          'shrink-0',
-                          isSelected ? 'text-[var(--color-brand-700)]' : 'text-[var(--color-ink-3)]',
-                        )}
-                      />
+                      <Icon icon={opt.icon} className={cn(size === 'sm' ? 'text-sm' : 'text-base', 'shrink-0', isSelected ? 'text-[var(--color-ink)]' : 'text-[var(--color-ink-3)]')} />
                     )}
                     <div className="flex flex-col min-w-0">
                       <span className="truncate">{opt.label}</span>
                       {opt.description && (
-                        <span className="text-[length:var(--text-xs)] font-normal text-[var(--color-ink-2)] truncate">
+                        <span className="text-xs font-normal text-[var(--color-ink-2)] truncate">
                           {opt.description}
                         </span>
                       )}
                     </div>
                   </div>
                   {isSelected && (
-                    <i
+                    <LuCheck
                       aria-hidden="true"
-                      className={cn(
-                        'ri-check-line text-[var(--color-brand-700)] shrink-0',
-                        size === 'sm' ? 'text-sm' : 'text-base',
-                      )}
+                      className={cn('shrink-0 text-[var(--color-ink)]', size === 'sm' ? 'text-sm' : 'text-base')}
                     />
                   )}
                 </button>

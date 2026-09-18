@@ -61,6 +61,69 @@
       "lastReadToday": "Hoy",
       "lastReadYesterday": "Ayer",
       "lastReadDaysAgo": "hace {days}d"
+    },
+    "home": {
+      "noStation": "Sin estación asignada",
+      "searchLabel": "Buscar en la biblioteca",
+      "searchPlaceholder": "Buscar en la biblioteca…",
+      "searchHint": "Escribe una receta, un paso o una estación.",
+      "categoriesHeading": "Buscar por categoría",
+      "categoriesEmpty": "Todavía no hay categorías. Tu responsable las crea.",
+      "categoryCount": "{count, plural, =0 {Nada todavía} one {# procedimiento} other {# procedimientos}}",
+      "newHeading": "Nuevo este mes",
+      "newEmpty": "Nada nuevo este mes.",
+      "browseAll": "Todos los procedimientos",
+      "uncategorised": "Sin categoría",
+      "askHeading": "¿Qué necesitas?",
+      "tabAsk": "Preguntar",
+      "tabProcedures": "Procedimientos",
+      "tabTraining": "Capacitación",
+      "tabSoon": "Próximamente",
+      "changedHeading": "Cambiados hace poco",
+      "changedAgo": "actualizado {when}",
+      "flagAllergen": "Contiene {list}",
+      "flagCritical": "Tiene un paso crítico",
+      "flagEnglishOnly": "Solo en inglés",
+      "restHeading": "El resto de la biblioteca",
+      "restEmpty": "Nada más por ahora.",
+      "tabsNav": "Secciones"
+    },
+    "browse": {
+      "back": "Inicio",
+      "heading": "Todos los procedimientos",
+      "searchLabel": "Buscar en la biblioteca",
+      "searchPlaceholder": "Buscar por nombre o propósito…",
+      "all": "Todos",
+      "count": "{count, plural, =0 {Sin procedimientos} one {# procedimiento} other {# procedimientos}}",
+      "none": "Todavía no hay nada aquí.",
+      "noneFor": "Nada coincide con “{query}”.",
+      "uncategorised": "Sin categoría",
+      "tabAsk": "Preguntar",
+      "tabProcedures": "Procedimientos",
+      "tabTraining": "Capacitación",
+      "tabSoon": "Próximamente",
+      "tabsNav": "Secciones",
+      "unavailable": "La biblioteca no carga ahora mismo. Avisa a tu jefe y usa la copia impresa de la estación mientras tanto."
+    },
+    "doc": {
+      "back": "Biblioteca",
+      "uncategorised": "Sin categoría",
+      "published": "Publicado",
+      "draft": "Borrador",
+      "factCategory": "Categoría",
+      "factStatus": "Estado",
+      "factUpdated": "Actualizado",
+      "factLanguages": "Idiomas",
+      "englishOnly": "Este solo está en inglés",
+      "ctlReference": "Referencia",
+      "ctlUpdated": "Última actualización",
+      "ctlStatus": "Estado",
+      "ctlLanguages": "Idiomas",
+      "tabAsk": "Preguntar",
+      "tabProcedures": "Procedimientos",
+      "tabTraining": "Capacitación",
+      "tabSoon": "Próximamente",
+      "tabsNav": "Secciones"
     }
   },
   "admin": {
@@ -378,7 +441,10 @@
               "structured": "Estructurado",
               "safety": "Seguridad"
             },
-            "tabs": { "en": "Inglés", "es": "Español" },
+            "tabs": {
+              "en": "Inglés",
+              "es": "Español"
+            },
             "actions": {
               "dragHandle": "Arrastra para reordenar",
               "moveUp": "Subir",
@@ -488,16 +554,22 @@
       "title": "Administración",
       "openNav": "Abrir navegación",
       "closeNav": "Cerrar navegación",
-      "expandSection": "Expandir sección",
-      "collapseSection": "Contraer sección",
       "groupWorkspace": "Espacio",
       "groupLibrary": "Biblioteca",
       "groupPeople": "Personas",
-      "groupTraining": "Capacitación",
-      "groupReports": "Reportes",
-      "groupSettings": "Configuración"
+      "groupSettings": "Configuración",
+      "groupSoon": "Próximamente",
+      "soon": "Pronto",
+      "searchLabel": "Busca una persona o un procedimiento",
+      "searchPlaceholder": "Busca una persona o un procedimiento",
+      "searchProcedures": "Procedimientos",
+      "searchPeople": "Personas",
+      "searchEmpty": "No hay coincidencias.",
+      "searchHint": "Pulsa / para buscar",
+      "langLabel": "Idioma",
+      "searchResults": "{count, plural, one {# resultado} other {# resultados}}"
     },
-    "backToApp": "Volver a la app",
+    "backToApp": "Empleado",
     "signOut": "Cerrar sesión",
     "listHeading": "Empleados",
     "inviteEmployee": "Invitar empleado",
@@ -651,7 +723,72 @@
       "quickActionAria": "Acción rápida: {label}",
       "viewAll": "Ver todo",
       "drawerClose": "Cerrar panel"
-    }
+    },
+    "home": {
+      "headline": "{count, plural, one {# cosa te necesita hoy.} other {# cosas te necesitan hoy.}}",
+      "headlineClear": "Hoy nada te necesita.",
+      "resumeEyebrow": "Sigue donde te quedaste",
+      "resumeMeta": "Borrador · lo editaste {when}",
+      "resumeCta": "Continuar",
+      "attentionHeading": "Requiere atención",
+      "clearTitle": "Ahora mismo nada te necesita",
+      "clearBody": "Invitaciones, borradores y traducciones están al día.",
+      "group": {
+        "invite": {
+          "title": "Pendientes de unirse",
+          "action": "Reenviar"
+        },
+        "spanish": {
+          "title": "Publicados sin español",
+          "action": "Abrir"
+        },
+        "draft": {
+          "title": "Borradores que nadie ve todavía",
+          "action": "Abrir borrador"
+        },
+        "emptyCategory": {
+          "title": "Categorías vacías",
+          "action": "Añadir uno"
+        }
+      },
+      "inviteTitle": "{name} todavía no se ha unido",
+      "invitedAgo": "invitado {when}",
+      "readsSpanish": "lee en español",
+      "spanishTitle": "{title}",
+      "spanishReaders": "{count, plural, one {# persona del equipo lee en español} other {# personas del equipo leen en español}}",
+      "editedAgo": "editado {when}",
+      "editedAgoBy": "editado {when} por {name}",
+      "noSpanishYet": "sin español todavía",
+      "emptyCategoryTitle": "{name} no tiene procedimientos",
+      "emptyCategoryMeta": "Categoría",
+      "uncategorised": "Sin categoría",
+      "statusDraft": "Borrador",
+      "statusPublished": "Publicado",
+      "recentHeading": "Cambios recientes",
+      "recentSeeAll": "Ver la biblioteca",
+      "updatedAgo": "Actualizado {when}",
+      "updatedAgoBy": "Actualizado {when} por {name}",
+      "actionCreate": "Crear procedimiento",
+      "actionImport": "Importar documento",
+      "stat": {
+        "procedures": "Procedimientos",
+        "proceduresNew": "{count, plural, one {# añadido esta semana} other {# añadidos esta semana}}",
+        "proceduresNoneNew": "Ninguno nuevo esta semana",
+        "drafts": "Borradores",
+        "draftsWaiting": "Sin publicar todavía",
+        "draftsNone": "Todo está publicado",
+        "people": "Personas",
+        "peopleInvited": "{count, plural, one {# invitado, sin unirse} other {# invitados, sin unirse}}",
+        "peopleNew": "{count, plural, one {# se unió esta semana} other {# se unieron esta semana}}",
+        "peopleSteady": "Todos se han unido",
+        "training": "Capacitación",
+        "trainingNotYet": "Empieza con el módulo de capacitación",
+        "publishedOf": "{count} de {total} publicados",
+        "trainingSample": "{done} de {total} · ejemplo"
+      }
+    },
+    "filteredBy": "Mostrando personas que coinciden con \"{q}\".",
+    "clearFilter": "Mostrar a todos"
   },
   "activate": {
     "intro": "Bienvenido — establece tu contraseña para terminar de activar tu cuenta.",

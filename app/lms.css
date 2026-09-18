@@ -16,8 +16,12 @@
   --ink:      #222222;  /* body text. 15.9:1 on white */
   --ink-2:    #515252;  /* secondary. 7.8:1 */
   --ink-3:    #676767;  /* placeholder, tertiary. 5.7:1 on white, 5.0:1 on panel */
-  --bg:       #ffffff;  /* employee ground and every content surface */
-  --bg-admin: #f7f7f5;  /* admin ground behind cards. Near-neutral, not cream */
+  --bg:       #ffffff;  /* the reading plane: a document sheet, a form, a card */
+  /* The ground: the plane every card sits on, admin and employee alike. Warm
+     bone, a clear step below white, so a card reads as a card without needing a
+     border. A document page keeps --bg, because there the sheet is the content. */
+  --ground:   #f0efeb;
+  --bg-admin: var(--ground);  /* the old name, kept so existing markup resolves */
   --surface:  #ffffff;
   --panel:    #f2f1ec;  /* sidebar and toolbars only. The brand bone as chrome, never as ground */
   --panel-2:  #e6e3db;  /* the same bone one step down: hover and pressed on a panel */
@@ -44,9 +48,30 @@
   --bad:       #b91c1c;  /* red, kept dark enough that it separates from the terracotta by brightness, not only by hue. White on it 6.5:1 */
   --bad-tint:  #fee2e2;  /* bad on it 5.3:1 */
 
+  /* On a fill. White here is not a surface: it is the text and icon colour on
+     brand-600, ok, bad and ink. The translucent steps exist only on the dark
+     video player and over photos; nothing else is see-through. */
+  --on-fill:      #ffffff;
+  --on-dark-1:    rgb(255 255 255 / 0.04);  /* player stage */
+  --on-dark-2:    rgb(255 255 255 / 0.12);  /* control at rest on ink, toast hover */
+  --on-dark-3:    rgb(255 255 255 / 0.18);  /* receipt tick on ok */
+  --on-dark-4:    rgb(255 255 255 / 0.25);  /* scrub track */
+  --sheen:        rgb(255 255 255 / 0.55);  /* skeleton sweep */
+  --glass:        rgb(255 255 255 / 0.94);  /* play button over a photo */
+  --scrim:        rgb(34 34 34 / 0.45);     /* modal backdrop */
+  --scrim-strong: rgb(34 34 34 / 0.82);     /* caption and label over a photo */
+
   /* Space, 4px base */
   --s-1: 4px;  --s-2: 8px;  --s-3: 12px; --s-4: 16px; --s-5: 20px;
   --s-6: 24px; --s-8: 32px; --s-10: 40px; --s-12: 48px; --s-16: 64px; --s-20: 80px;
+
+  /* Line height by role, not one number for the page. Body sits at 1.55, which
+     clears WCAG 1.4.12's 1.5 floor; headings tighten because a two-line heading
+     set at body leading reads as two separate sentences. */
+  --lh-display: 1.15;
+  --lh-heading: 1.3;
+  --lh-body:    1.55;
+  --lh-meta:    1.45;
 
   /* Type: fixed rem, hand-tuned. Steps tighten at body sizes and open up at display sizes. */
   --t-xs: 0.75rem; --t-sm: 0.875rem; --t-base: 1rem; --t-md: 1.125rem;
@@ -59,6 +84,8 @@
   --font-display: 'DM Sans', 'Inter', system-ui, sans-serif;
   --display-weight: 700;
   --display-track: -0.02em;
+  --heading-track: -0.01em;  /* 18px and up in Inter, set semibold */
+  --caps-track:    0.04em;   /* the signal words only: Critical step, Critical limit */
 
   --r-sm: 6px; --r-md: 8px; --r-lg: 12px; --r-pill: 999px;
 
@@ -72,6 +99,38 @@
   --tap-employee: 48px;
   --tap-admin: 36px;
 
+  /* Layout sizes. Dimensions of a region, not space between things, so they sit
+     outside the 4px spacing scale. A width in a component comes from here or from
+     the grid; never a pixel value typed into the markup. */
+  --topbar-h:     56px;   /* admin top bar on mobile. The document's own bar is --bar-h, set on .doc */
+  --sidebar-w:    280px;  /* admin sidebar */
+  --sheet-w:      20rem;  /* mobile nav sheet */
+  --sheet-max-w:  90vw;   /* a sheet always leaves a strip of page to tap out on */
+  --drawer-sm:    24rem;
+  --drawer-md:    32rem;
+  --drawer-lg:    40rem;
+  --field-xs:     7rem;   /* a number column: amount, quantity */
+  --field-sm:     10rem;  /* a short filter select */
+  --field-md:     12rem;  /* a filter select, a menu */
+  --field-lg:     16rem;  /* a search field */
+  --field-xl:     24rem;  /* a search field that holds a whole question: "Find a person or procedure" */
+  --tile-min-h:   7rem;   /* a choice card or category tile, so a row of them lines up */
+  --media-max-h:  24rem;  /* an image or video inside a document or its editor */
+  --list-max-h:   24rem;  /* a scrolling option list */
+  --rail-w:       20rem;  /* a side column beside the main one on a wide screen */
+  --doc-w:        680px;  /* the reading column: document, employee app, tab bar */
+  --narrow-w:     560px;  /* a quiz, a sign-off, a chapter list */
+  --player-w:     640px;
+
+  /* The restaurant's own ornament, from alimentariamexicana.com: a stepped
+     zigzag, drawn in pixels rather than a smooth triangle. It is a mask, so the
+     shape carries no colour of its own and can be laid over any token; the tile
+     is 16x8 with 2px steps: small enough to read as a line, big enough that the
+     steps are steps rather than a serration. */
+  --pix-w: 24px;
+  --pix-h: 12px;
+  --pix-zigzag: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='8' viewBox='0 0 16 8' preserveAspectRatio='none'%3E%3Cpath d='M0 8V6h2V4h2V2h2V0h4v2h2v2h2v2h2v2z' fill='%23000'/%3E%3C/svg%3E");
+
   /* dropdown and tooltip are reserved; sticky, backdrop, modal and toast are in use */
   --z-dropdown: 10; --z-sticky: 20; --z-backdrop: 30; --z-modal: 40; --z-toast: 50; --z-tooltip: 60;
 }
@@ -79,13 +138,36 @@
    BASE
    ============================================================ */
 *, *::before, *::after { box-sizing: border-box; }
+/* hidden has to win. The browser's own [hidden] rule has the lowest priority there
+   is, so any component that sets display (flex, grid) quietly shows what the
+   markup says is hidden. */
+[hidden] { display: none !important; }
 html { -webkit-text-size-adjust: 100%; }
 body {
-  margin: 0; font-family: var(--font-ui); font-size: var(--t-base); line-height: 1.55;
+  margin: 0; font-family: var(--font-ui); font-size: var(--t-base); line-height: var(--lh-body);
   color: var(--ink); background: var(--bg); -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
-h1,h2,h3,h4,h5 { margin: 0; text-wrap: balance; }
+h1,h2,h3,h4,h5 { margin: 0; line-height: var(--lh-heading); text-wrap: balance; }
+
+/* Scrollbars. Thin, in our own line colours, and the track stays invisible so a
+   scrollable area does not gain a grey channel down its side. Firefox takes the
+   two standard properties; Chrome, Edge and Safari take the -webkit- pseudos.
+   The thumb is drawn inside a transparent 3px border via background-clip, which
+   is how it keeps a hairline gap from the content without a second element. */
+* { scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--line-2); border-radius: var(--r-pill);
+  border: 3px solid transparent; background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--line-3); background-clip: content-box; }
+::-webkit-scrollbar-corner { background: transparent; }
+/* A panel that scrolls keeps its gutter reserved, so content does not jump by
+   10px the moment a list grows past its box. */
+.scroll, .find-results, .menu, [data-scroll] { scrollbar-gutter: stable; }
+
 p { margin: 0; text-wrap: pretty; }
 button, input, select, textarea { font: inherit; color: inherit; }
 /* The outline follows each element's own radius. Setting border-radius here would
@@ -106,7 +188,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   font-family: var(--font-display);
   font-weight: var(--display-weight);
   letter-spacing: var(--display-track);
-  line-height: 1.1;
+  line-height: var(--lh-display);
 }
 /* Icons: Remix Icon, line style throughout, sized by font-size */
 .i { font-size: 1.25em; line-height: 1; flex-shrink: 0; display: inline-flex; }
@@ -115,7 +197,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .note { font-size: var(--t-sm); color: var(--ink-2); max-width: 66ch; margin-top: var(--s-3); }
 .grid { display: grid; gap: var(--s-4); }
 .row { display: flex; flex-wrap: wrap; gap: var(--s-3); align-items: center; }
-code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85em; background: var(--panel); padding: 2px 6px; border-radius: var(--r-sm); }
+code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85em; background: var(--panel); padding: 2px var(--s-2); border-radius: var(--r-sm); }
 .scroll { overflow-x: auto; }
 /* ============================================================
    BUTTONS
@@ -132,7 +214,7 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85em;
 /* Circular companion for single-glyph actions. Matches the height of the pill beside it. */
 .btn-icon { width: var(--tap-admin); height: var(--tap-admin); padding: 0; }
 .btn-icon.btn-lg { width: var(--tap-employee); height: var(--tap-employee); }
-.btn-primary { background: var(--brand-600); color: #fff; }
+.btn-primary { background: var(--brand-600); color: var(--on-fill); }
 .btn-primary:hover { background: var(--brand-700); }
 .btn-primary:active { transform: translateY(1px); }
 .btn-secondary { background: var(--brand-tint); color: var(--brand-700); }
@@ -142,14 +224,14 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85em;
 .btn-neutral:hover { background: var(--panel-2); }
 .btn-ghost { color: var(--ink-2); }
 .btn-ghost:hover { background: var(--panel); color: var(--ink); }
-.btn-ok { background: var(--ok); color: #fff; }
+.btn-ok { background: var(--ok); color: var(--on-fill); }
 .btn-ok:hover { background: var(--ok-700); }
 .btn-ok-soft { background: var(--ok-tint); color: var(--ok); }
 .btn-ok-soft:hover { background: var(--ok-tint-2); }
 /* Light tone at rest, dark tone on hover. Never an outline, and never a bright
    block sitting under a wet thumb waiting to be hit. */
 .btn-danger { background: var(--bad-tint); color: var(--bad); }
-.btn-danger:hover { background: var(--bad); color: #fff; }
+.btn-danger:hover { background: var(--bad); color: var(--on-fill); }
 .btn:disabled { background: var(--panel); color: var(--ink-3); border-color: transparent; cursor: not-allowed; transform: none; }
 .btn-loading { pointer-events: none; opacity: 0.8; }
 .spinner { width: 14px; height: 14px; border-radius: 50%; border: 2px solid currentColor; border-top-color: transparent; animation: spin 700ms linear infinite; }
@@ -175,7 +257,7 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85em;
 .err { font-size: var(--t-sm); color: var(--bad); font-weight: 500; display: flex; gap: var(--s-1); align-items: center; }
 .search-hero {
   display: flex; align-items: center; gap: var(--s-3);
-  background: var(--surface); border: 2px solid var(--ink); border-radius: var(--r-lg);
+  background: var(--surface); border: 1px solid var(--line-3); border-radius: var(--r-lg);
   padding: var(--s-3) var(--s-4); min-height: 64px;
 }
 .search-hero input { border: 0; background: transparent; width: 100%; font-size: var(--t-md); font-weight: 500; min-width: 0; }
@@ -201,7 +283,7 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85em;
 .pill { display: inline-flex; align-items: center; gap: var(--s-2); font-size: var(--t-sm); font-weight: 600; padding: 3px var(--s-2); border-radius: var(--r-sm); white-space: nowrap; }
 .pill .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
 .pill-complete { background: var(--ok-tint); color: var(--ok); }
-.pill-verified { background: var(--ok); color: #fff; }
+.pill-verified { background: var(--ok); color: var(--on-fill); }
 .pill-progress { background: var(--panel); color: var(--ink); }
 .pill-progress .dot { background: var(--brand-600); }
 /* 4.3:1 on panel; the word carries the meaning, the dot only reinforces it */
@@ -261,12 +343,15 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85em;
    and the mark stops meaning anything.
    The wash is the bone at its faintest, because the disc carries the signal and the
    wash only says how far the step reaches. A full --panel wash was too heavy to
-   scroll past eleven times. */
+   scroll past eleven times.
+   No edge down the left: the numbered disc already turns terracotta, so the bar was
+   the same thing said twice, and it read as a border on the step rather than as a
+   mark on the page. */
 .step.is-now { background: var(--wash); }
 /* Filled, not a ring: a filled disc reads at a glance and a ring does not. It cannot
    be taken for the control point's red disc, because that one always sits beside a
    CRITICAL STEP badge and this one never does. White on brand-600 is 4.9:1. */
-.step.is-now .step-num { background: var(--brand-600); border-color: var(--brand-600); color: #fff; }
+.step.is-now .step-num { background: var(--brand-600); border-color: var(--brand-600); color: var(--on-fill); }
 /* Pure white, and lifted rather than outlined: white on a wash this faint is a
    1.08:1 edge and would vanish. Elevation or a border, never both. */
 .step.is-now .step-time { background: var(--surface); box-shadow: var(--e-1); }
@@ -339,7 +424,7 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85em;
 .progress-top { display: flex; justify-content: space-between; font-size: var(--t-sm); font-weight: 600; }
 .track { height: 8px; background: var(--line); border-radius: var(--r-pill); overflow: hidden; }
 .track > i { display: block; height: 100%; background: var(--ok); border-radius: inherit; }
-.chapters { display: grid; gap: var(--s-2); max-width: 560px; }
+.chapters { display: grid; gap: var(--s-2); max-width: var(--narrow-w); }
 .chapter { display: flex; align-items: center; gap: var(--s-4); min-height: var(--tap-employee); padding: var(--s-3) var(--s-4); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
 /* A cook recognises the two red buckets faster than they read "Cleaning and
    sanitising food contact surfaces". Where a document has a cover, the row shows
@@ -347,8 +432,8 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85em;
    restaurant's own — no stock imagery, which is also what the scope asks for. */
 .chapter .thumb { width: 48px; height: 48px; border-radius: var(--r-md); object-fit: cover; flex-shrink: 0; background: var(--panel); }
 .chapter .idx { width: 32px; height: 32px; border-radius: var(--r-pill); background: var(--panel); color: var(--ink-2); display: grid; place-items: center; font-weight: 700; font-size: var(--t-sm); flex-shrink: 0; }
-.chapter .idx.done { background: var(--ok); color: #fff; }
-.chapter .idx.now { background: var(--brand-600); color: #fff; }
+.chapter .idx.done { background: var(--ok); color: var(--on-fill); }
+.chapter .idx.now { background: var(--brand-600); color: var(--on-fill); }
 .chapter > div:not(.idx) { flex: 1; min-width: 0; }
 .chapter .title { font-weight: 600; }
 .chapter .meta { font-size: var(--t-sm); color: var(--ink-2); display: flex; align-items: center; gap: var(--s-1); }
@@ -357,18 +442,18 @@ a.chapter { text-decoration: none; color: inherit; }
 .chapter .tail > .i { color: var(--ink-3); }
 .chapter.is-locked { background: transparent; border-style: dashed; }
 .chapter.is-locked .title { color: var(--ink-3); }
-.quiz { max-width: 560px; }
+.quiz { max-width: var(--narrow-w); }
 .quiz-q { font-size: var(--t-lg); font-weight: 600; margin-bottom: var(--s-5); }
 .opts { display: grid; gap: var(--s-3); }
 .opt { display: flex; align-items: center; gap: var(--s-4); min-height: var(--tap-employee); padding: var(--s-3) var(--s-4); background: var(--surface); border: 2px solid var(--line-3); border-radius: var(--r-lg); font-size: var(--t-md); font-weight: 500; cursor: pointer; text-align: left; transition: border-color var(--dur) var(--ease); }
 .opt:hover { border-color: var(--ink-3); }
 .opt .mark { width: 28px; height: 28px; border-radius: var(--r-pill); border: 2px solid var(--line-3); flex-shrink: 0; display: grid; place-items: center; font-weight: 700; font-size: var(--t-sm); }
 .opt.correct { border-color: var(--ok); background: var(--ok-tint); }
-.opt.correct .mark { border-color: var(--ok); background: var(--ok); color: #fff; }
+.opt.correct .mark { border-color: var(--ok); background: var(--ok); color: var(--on-fill); }
 .opt.wrong { border-color: var(--bad); background: var(--bad-tint); }
-.opt.wrong .mark { border-color: var(--bad); background: var(--bad); color: #fff; }
-.receipt { display: flex; align-items: center; gap: var(--s-4); padding: var(--s-5); background: var(--ok); color: #fff; border-radius: var(--r-lg); max-width: 560px; }
-.receipt .tick { width: 48px; height: 48px; border-radius: var(--r-pill); background: rgb(255 255 255 / 0.18); display: grid; place-items: center; flex-shrink: 0; }
+.opt.wrong .mark { border-color: var(--bad); background: var(--bad); color: var(--on-fill); }
+.receipt { display: flex; align-items: center; gap: var(--s-4); padding: var(--s-5); background: var(--ok); color: var(--on-fill); border-radius: var(--r-lg); max-width: var(--narrow-w); }
+.receipt .tick { width: 48px; height: 48px; border-radius: var(--r-pill); background: var(--on-dark-3); display: grid; place-items: center; flex-shrink: 0; }
 .receipt .head { font-weight: 700; font-size: var(--t-md); }
 .receipt .stamp { font-size: var(--t-sm); opacity: 0.92; margin-top: 2px; }
 .signoff { max-width: 460px; background: var(--surface); border: 1px solid var(--line-2); border-radius: var(--r-lg); padding: var(--s-5); }
@@ -378,8 +463,8 @@ a.chapter { text-decoration: none; color: inherit; }
 .signoff .ctx { font-size: var(--t-sm); color: var(--ink-2); }
 .seg { display: flex; gap: var(--s-2); margin-bottom: var(--s-4); }
 .seg button { flex: 1; min-height: var(--tap-employee); border: 1px solid var(--line-3); background: var(--surface); border-radius: var(--r-md); font-weight: 600; font-size: var(--t-sm); cursor: pointer; }
-.seg button[aria-checked="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
-.ack { max-width: 560px; background: var(--surface); border: 1px solid var(--line-2); border-radius: var(--r-lg); padding: var(--s-5); }
+.seg button[aria-checked="true"] { background: var(--ink); color: var(--on-fill); border-color: var(--ink); }
+.ack { max-width: var(--narrow-w); background: var(--surface); border: 1px solid var(--line-2); border-radius: var(--r-lg); padding: var(--s-5); }
 .ack .ver { display: inline-flex; gap: var(--s-2); align-items: center; font-size: var(--t-sm); font-weight: 600; background: var(--warn-tint); color: var(--warn-ink); padding: 3px var(--s-2); border-radius: var(--r-sm); margin-bottom: var(--s-4); }
 .check-row { display: flex; gap: var(--s-3); align-items: flex-start; margin-bottom: var(--s-5); }
 .check-row input { width: 24px; height: 24px; margin: 2px 0 0; accent-color: var(--ink); flex-shrink: 0; }
@@ -387,15 +472,15 @@ a.chapter { text-decoration: none; color: inherit; }
    NAVIGATION
    ============================================================ */
 .tabbar { display: flex; background: var(--surface); border: 1px solid var(--line); max-width: 400px; border-radius: var(--r-lg); overflow: hidden; }
-.tabbar a { flex: 1; min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-decoration: none; color: var(--ink-2); font-size: var(--t-xs); font-weight: 600; border-top: 3px solid transparent; }
+.tabbar a { flex: 1; min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--s-1); text-decoration: none; color: var(--ink-2); font-size: var(--t-xs); font-weight: 600; border-top: 3px solid transparent; }
 .tabbar a[aria-current="page"] { color: var(--ink); border-top-color: var(--brand-600); }
-.sidebar { width: 240px; background: var(--panel); border-right: 1px solid var(--line); padding: var(--s-4) var(--s-3); border-radius: var(--r-lg); }
-.sidebar .brandmark { font-size: var(--t-lg); font-weight: 700; letter-spacing: -0.01em; padding: var(--s-2) var(--s-3) var(--s-5); }
+.sidebar { width: var(--sidebar-w); background: var(--panel); border-right: 1px solid var(--line); padding: var(--s-4) var(--s-3); border-radius: var(--r-lg); }
+.sidebar .brandmark { font-size: var(--t-lg); font-weight: 700; letter-spacing: var(--heading-track); padding: var(--s-2) var(--s-3) var(--s-5); }
 .sidebar .grp { font-size: var(--t-xs); font-weight: 600; color: var(--ink-2); padding: var(--s-4) var(--s-3) var(--s-2); }
 .sidebar a { display: flex; align-items: center; gap: var(--s-3); min-height: var(--tap-admin); padding: 0 var(--s-3); border-radius: var(--r-md); text-decoration: none; color: var(--ink-2); font-size: var(--t-sm); font-weight: 500; }
 .sidebar a:hover { background: var(--surface); color: var(--ink); }
 .sidebar a[aria-current="page"] { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: var(--e-1); }
-.sidebar .count { margin-left: auto; font-size: var(--t-xs); font-weight: 700; background: var(--bad); color: #fff; border-radius: var(--r-pill); padding: 1px 7px; }
+.sidebar .count { margin-left: auto; font-size: var(--t-xs); font-weight: 700; background: var(--bad); color: var(--on-fill); border-radius: var(--r-pill); padding: 1px var(--s-2); }
 /* ============================================================
    IMPORT AND MEDIA
    ============================================================ */
@@ -410,7 +495,7 @@ a.chapter { text-decoration: none; color: inherit; }
 .upload .file .meta { font-size: var(--t-sm); color: var(--ink-2); }
 .upload .file .kill { margin-left: auto; }
 .draft-ready { border: 1px solid var(--ok-tint-2); background: var(--ok-tint); border-radius: var(--r-lg); padding: var(--s-4) var(--s-5); display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); }
-.draft-ready .tick { width: 40px; height: 40px; border-radius: var(--r-pill); background: var(--ok); color: #fff; display: grid; place-items: center; flex-shrink: 0; }
+.draft-ready .tick { width: 40px; height: 40px; border-radius: var(--r-pill); background: var(--ok); color: var(--on-fill); display: grid; place-items: center; flex-shrink: 0; }
 .draft-ready .what { flex: 1; min-width: 200px; }
 .draft-ready .what strong { display: block; }
 .draft-ready .what span { font-size: var(--t-sm); color: var(--ink-2); }
@@ -420,36 +505,36 @@ a.chapter { text-decoration: none; color: inherit; }
 .placeholder .label em { font-style: normal; color: var(--ink-2); font-weight: 500; }
 .placeholder .why { font-size: var(--t-sm); color: var(--ink-2); margin-bottom: var(--s-3); }
 .placeholder .acts { display: flex; flex-wrap: wrap; gap: var(--s-2); }
-.player { border-radius: var(--r-lg); overflow: hidden; background: var(--ink); color: #fff; max-width: 640px; }
-.player .stage { aspect-ratio: 16/9; display: grid; place-items: center; position: relative; background: rgb(255 255 255 / 0.04); }
-.player .stage .play { width: 64px; height: 64px; border-radius: var(--r-pill); background: rgb(255 255 255 / 0.92); color: var(--ink); display: grid; place-items: center; border: 0; cursor: pointer; }
+.player { border-radius: var(--r-lg); overflow: hidden; background: var(--ink); color: var(--on-fill); max-width: var(--player-w); }
+.player .stage { aspect-ratio: 16/9; display: grid; place-items: center; position: relative; background: var(--on-dark-1); }
+.player .stage .play { width: 64px; height: 64px; border-radius: var(--r-pill); background: var(--glass); color: var(--ink); display: grid; place-items: center; border: 0; cursor: pointer; }
 .player .stage .cap { position: absolute; left: 0; right: 0; bottom: var(--s-4); text-align: center; }
-.player .stage .cap span { display: inline-block; background: rgb(0 0 0 / 0.75); padding: var(--s-1) var(--s-3); border-radius: var(--r-sm); font-size: var(--t-base); font-weight: 500; }
+.player .stage .cap span { display: inline-block; background: var(--scrim-strong); padding: var(--s-1) var(--s-3); border-radius: var(--r-sm); font-size: var(--t-base); font-weight: 500; }
 .player .bar { padding: var(--s-3) var(--s-4) var(--s-4); display: grid; gap: var(--s-3); }
-.player .scrub { position: relative; height: 6px; background: rgb(255 255 255 / 0.25); border-radius: var(--r-pill); }
+.player .scrub { position: relative; height: 6px; background: var(--on-dark-4); border-radius: var(--r-pill); }
 .player .scrub > i { position: absolute; left: 0; top: 0; bottom: 0; width: 22%; background: var(--brand); border-radius: inherit; }
-.player .scrub > b { position: absolute; top: -3px; width: 3px; height: 12px; background: #fff; border-radius: 2px; }
+.player .scrub > b { position: absolute; top: -3px; width: 3px; height: 12px; background: var(--on-fill); border-radius: 2px; }
 .player .ctl { display: flex; align-items: center; gap: var(--s-3); font-size: var(--t-sm); }
 .player .ctl .t { font-variant-numeric: tabular-nums; }
 .player .ctl .sp { flex: 1; }
-.player .ctl button { min-height: var(--tap-employee); padding: 0 var(--s-3); border-radius: var(--r-pill); border: 0; background: rgb(255 255 255 / 0.12); color: #fff; font-weight: 600; font-size: var(--t-sm); cursor: pointer; display: inline-flex; align-items: center; gap: var(--s-1); }
-.player .ctl button[aria-pressed="true"] { background: #fff; color: var(--ink); }
+.player .ctl button { min-height: var(--tap-employee); padding: 0 var(--s-3); border-radius: var(--r-pill); border: 0; background: var(--on-dark-2); color: var(--on-fill); font-weight: 600; font-size: var(--t-sm); cursor: pointer; display: inline-flex; align-items: center; gap: var(--s-1); }
+.player .ctl button[aria-pressed="true"] { background: var(--on-fill); color: var(--ink); }
 .chips { display: flex; flex-wrap: wrap; gap: var(--s-2); }
-.guarded { position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); padding: var(--s-6); max-width: 560px; }
+.guarded { position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); padding: var(--s-6); max-width: var(--narrow-w); }
 .guarded .wm { position: absolute; inset: -40%; pointer-events: none; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(4, 1fr); transform: rotate(-22deg); }
 .guarded .wm span { font-size: var(--t-sm); font-weight: 600; color: var(--ink); opacity: 0.09; white-space: nowrap; display: grid; place-items: center; }
 .guarded .lvl { display: inline-flex; align-items: center; gap: var(--s-2); font-size: var(--t-sm); font-weight: 600; color: var(--ink-2); margin-bottom: var(--s-3); }
 /* ============================================================
    OVERLAYS
    ============================================================ */
-.toast { position: relative; z-index: var(--z-toast); display: inline-flex; align-items: center; gap: var(--s-3); background: var(--ink); color: #fff; border-radius: var(--r-lg); padding: var(--s-3) var(--s-3) var(--s-3) var(--s-4); box-shadow: var(--e-3); max-width: 420px; }
+.toast { position: relative; z-index: var(--z-toast); display: inline-flex; align-items: center; gap: var(--s-3); background: var(--ink); color: var(--on-fill); border-radius: var(--r-lg); padding: var(--s-3) var(--s-3) var(--s-3) var(--s-4); box-shadow: var(--e-3); max-width: 420px; }
 .toast .ico { width: 28px; height: 28px; border-radius: var(--r-pill); background: var(--ok); display: grid; place-items: center; flex-shrink: 0; }
 .toast .ico.warn { background: var(--warn); color: var(--ink); }
 .toast .msg { font-size: var(--t-sm); font-weight: 500; flex: 1; }
 /* Full target height without a taller toast: the button overlaps the padding */
-.toast .btn-ghost { color: #fff; min-height: var(--tap-employee); margin: calc(var(--s-3) * -1) 0; }
-.toast .btn-ghost:hover { background: rgb(255 255 255 / 0.12); color: #fff; }
-.backdrop { position: absolute; inset: 0; z-index: var(--z-backdrop); background: rgb(34 34 34 / 0.45); display: grid; place-items: center; padding: var(--s-6); }
+.toast .btn-ghost { color: var(--on-fill); min-height: var(--tap-employee); margin: calc(var(--s-3) * -1) 0; }
+.toast .btn-ghost:hover { background: var(--on-dark-2); color: var(--on-fill); }
+.backdrop { position: absolute; inset: 0; z-index: var(--z-backdrop); background: var(--scrim); display: grid; place-items: center; padding: var(--s-6); }
 .dialog { position: relative; z-index: var(--z-modal); background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--e-3); padding: var(--s-6); max-width: 440px; width: 100%; }
 .dialog h4 { font-size: var(--t-lg); font-weight: 600; margin-bottom: var(--s-2); }
 .dialog p { color: var(--ink-2); margin-bottom: var(--s-5); }
@@ -466,7 +551,7 @@ a.chapter { text-decoration: none; color: inherit; }
 .empty h4 { font-size: var(--t-md); font-weight: 600; margin-bottom: var(--s-2); }
 .empty p { color: var(--ink-2); font-size: var(--t-sm); margin-bottom: var(--s-5); }
 .skel { background: var(--line); border-radius: var(--r-sm); position: relative; overflow: hidden; }
-.skel::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.55), transparent); animation: sweep 1.4s infinite; }
+.skel::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, var(--sheen), transparent); animation: sweep 1.4s infinite; }
 @keyframes sweep { to { transform: translateX(100%); } }
 
 /* ============================================================
@@ -474,7 +559,7 @@ a.chapter { text-decoration: none; color: inherit; }
    Mobile-first. A procedure is read on a phone, one hand, mid-shift,
    and printed and laminated at the station. Both are first-class.
    ============================================================ */
-.doc { --bar-h: 64px; max-width: 680px; margin: 0 auto; background: var(--surface); padding-bottom: calc(var(--s-10) + env(safe-area-inset-bottom, 0px)); }
+.doc { --bar-h: 64px; max-width: var(--doc-w); margin: 0 auto; background: var(--surface); padding-bottom: calc(var(--s-10) + env(safe-area-inset-bottom, 0px)); }
 
 /* Persistent bar: where am I, and how do I get out */
 .doc-bar {
@@ -510,7 +595,7 @@ a.chapter { text-decoration: none; color: inherit; }
    cover and an icon is laid out. It carries the category, so a cook recognises the
    kind of document before reading the title. */
 .doc-icon {
-  width: 60px; height: 60px; margin: -30px 0 var(--s-5); position: relative; z-index: 1;
+  width: 60px; height: 60px; margin: calc(var(--s-8) * -1) 0 var(--s-5); position: relative; z-index: 1;
   border-radius: var(--r-lg); background: var(--panel); box-shadow: 0 0 0 4px var(--surface);
   display: grid; place-items: center; color: var(--ink);
 }
@@ -523,7 +608,7 @@ a.chapter { text-decoration: none; color: inherit; }
   /* The cover is a strong band; the title needs room to start after it. */
   .cover + .doc-head .doc-icon { margin-bottom: var(--s-6); }
 }
-.cover + .doc-head > .doc-icon:first-child { margin-top: -30px; }
+.cover + .doc-head > .doc-icon:first-child { margin-top: calc(var(--s-8) * -1); }
 
 .doc-head { padding: 0 var(--s-5) var(--s-4); }
 .doc-crumb { font-size: var(--t-sm); color: var(--ink-2); margin-bottom: var(--s-2); }
@@ -541,11 +626,13 @@ a.chapter { text-decoration: none; color: inherit; }
 .allergen p { font-size: var(--t-base); margin-top: 2px; }
 .allergen-body { flex: 1; min-width: 0; }
 .allergen-chips { list-style: none; padding: 0; margin: 0 0 var(--s-2); display: flex; flex-wrap: wrap; gap: var(--s-1); }
+/* A badge, so a rectangle: a pill is what the system uses for "press this".
+   14px, because the allergen list is text a cook acts on. */
 .allergen-chip {
   display: inline-flex; align-items: center;
-  padding: 2px var(--s-2); border-radius: 999px;
+  padding: 2px var(--s-2); border-radius: var(--r-sm);
   background: var(--surface); color: var(--warn-ink);
-  font-size: var(--t-xs); font-weight: 600; letter-spacing: 0.02em;
+  font-size: var(--t-sm); font-weight: 600;
   border: 1px solid var(--warn-ink);
 }
 
@@ -564,7 +651,7 @@ a.chapter { text-decoration: none; color: inherit; }
   display: grid; grid-template-columns: 1fr 1fr; gap: 0;
   border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden;
 }
-.facts { margin: var(--s-5) var(--s-5) 0; }
+.facts { margin: var(--s-10) var(--s-5) 0; }
 dl.yield { margin: 0 0 var(--s-5); }
 .facts > div, .yield > div { padding: var(--s-3) var(--s-4); min-width: 0; border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); }
 .facts > div:nth-child(2n), .yield > div:nth-child(2n) { border-right: 0; }
@@ -574,7 +661,7 @@ dl.yield { margin: 0 0 var(--s-5); }
 .facts .ok dt .i { color: var(--ok); }
 .facts dd, .yield dd { margin: 2px 0 0; font-variant-numeric: tabular-nums; }
 .facts dd { font-size: var(--t-base); font-weight: 600; }
-.yield dd { font-size: var(--t-lg); font-weight: 700; letter-spacing: -0.01em; }
+.yield dd { font-size: var(--t-lg); font-weight: 700; letter-spacing: var(--heading-track); }
 @media (min-width: 600px) {
   .facts, dl.yield { grid-template-columns: repeat(4, 1fr); }
   .facts > div:nth-child(2n), .yield > div:nth-child(2n) { border-right: 1px solid var(--line); }
@@ -585,7 +672,7 @@ dl.yield { margin: 0 0 var(--s-5); }
 /* Sections are separated by space and by the weight of their heading. A rule
    between every one of eleven sections reads as a settings screen, not a document. */
 .doc-sec { padding: 0 var(--s-5); margin-top: var(--s-10); }
-.doc-sec > h2 { font-size: var(--t-lg); font-weight: 600; margin-bottom: var(--s-4); letter-spacing: -0.01em; }
+.doc-sec > h2 { font-size: var(--t-lg); font-weight: 600; margin-bottom: var(--s-4); letter-spacing: var(--heading-track); }
 .doc-sec > h2 .count { color: var(--ink-3); font-weight: 500; }
 
 /* The scaler follows you down the ingredient list. A cook doubling a batch
@@ -639,15 +726,15 @@ dl.yield { margin: 0 0 var(--s-5); }
 /* "Small dice, 5 mm" and "Ripe: gives slightly at the neck" are specification a
    cook acts on, not a caption, so they sit at the body floor. */
 .ing .form { display: block; margin-top: 2px; font-size: var(--t-base); color: var(--ink-2); }
-.ing .flag { display: inline-flex; align-items: center; gap: 4px; margin-left: var(--s-2); font-size: var(--t-base); font-weight: 700; color: var(--warn-ink); }
+.ing .flag { display: inline-flex; align-items: center; gap: var(--s-1); margin-left: var(--s-2); font-size: var(--t-base); font-weight: 700; color: var(--warn-ink); }
 
 /* A critical limit is structured, not a bold number in a sentence. The same
    value has to appear here, in the step, on the printed log and in the
    corrective-action rule, so it is stored as data and rendered in each place. */
 .crit { border: 1px solid var(--line-3); border-radius: var(--r-lg); overflow: hidden; margin: var(--s-4) 0; background: var(--surface); }
-.crit-h { display: flex; align-items: center; gap: var(--s-2); margin: 0; padding: var(--s-3) var(--s-4); background: var(--panel); color: var(--ink-2); border-bottom: 1px solid var(--line); font-size: var(--t-sm); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+.crit-h { display: flex; align-items: center; gap: var(--s-2); margin: 0; padding: var(--s-3) var(--s-4); background: var(--panel); color: var(--ink-2); border-bottom: 1px solid var(--line); font-size: var(--t-sm); font-weight: 600; letter-spacing: var(--caps-track); text-transform: uppercase; }
 .crit-b { padding: var(--s-4); }
-.crit-num { font-size: var(--t-xl); font-weight: 700; line-height: 1.15; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.crit-num { font-size: var(--t-xl); font-weight: 700; line-height: 1.15; letter-spacing: var(--heading-track); font-variant-numeric: tabular-nums; }
 /* 16px, not 14: this is the sentence that says the number above it may not apply
    to the bottle in the cook's hand. It is not a caption. */
 .crit-sub { margin: 2px 0 0; font-size: var(--t-base); color: var(--ink-2); }
@@ -673,12 +760,12 @@ dl.yield { margin: 0 0 var(--s-5); }
    set the whole marker in ink on the theory that weight beats colour. On a page that
    is already black on white, more black is not a signal at all, and the step nobody
    may skip was the step nobody noticed. */
-.step.is-crit .step-num { background: var(--bad); border-color: var(--bad); color: #fff; }
+.step.is-crit .step-num { background: var(--bad); border-color: var(--bad); color: var(--on-fill); }
 .step-flag {
   display: inline-flex; align-items: center; gap: var(--s-2); margin-bottom: var(--s-2);
-  padding: 4px var(--s-3); border-radius: var(--r-sm);
+  padding: var(--s-1) var(--s-3); border-radius: var(--r-sm);
   background: var(--bad-tint); color: var(--bad);
-  font-size: var(--t-sm); font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+  font-size: var(--t-sm); font-weight: 700; letter-spacing: var(--caps-track); text-transform: uppercase;
 }
 
 /* Correct beside incorrect. Some things cannot be written, only shown. */
@@ -723,18 +810,26 @@ dl.yield { margin: 0 0 var(--s-5); }
 .ing th[scope="row"] { text-align: left; padding: var(--s-3); font-size: var(--t-base); font-weight: 400; color: var(--ink); background: none; border-bottom: 1px solid var(--line); vertical-align: top; }
 .ing tr:last-child th[scope="row"] { border-bottom: 0; }
 
-/* BLOCK COMPOSER OUTPUT — generic prose + table fallback for the BlockRenderer.
-   The recipe table has its own .ing design above; this is for plain tabular
-   data the admin drops in via the table block. */
-.doc-prose > p { font-size: var(--t-md); line-height: 1.5; margin: 0 0 var(--s-3); max-width: 62ch; }
-.doc-prose > p:last-child { margin-bottom: 0; }
-.doc-prose h2 { font-size: var(--t-2xl); margin-top: var(--s-8); margin-bottom: var(--s-4); letter-spacing: -0.02em; }
-.doc-prose h3 { font-size: var(--t-lg); margin-top: var(--s-6); margin-bottom: var(--s-3); }
-.doc-prose h4 { font-size: var(--t-md); margin-top: var(--s-5); margin-bottom: var(--s-2); }
-.doc-prose table { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; font-size: var(--t-sm); }
-.doc-prose th, .doc-prose td { padding: var(--s-3); text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
-.doc-prose th { background: var(--panel); font-weight: 600; color: var(--ink-2); }
-.doc-prose tr:last-child td { border-bottom: 0; }
+/* A table the author wrote, as opposed to the recipe's ingredient table above:
+   the same frame, but every cell is prose — no grey row header, nothing
+   right-aligned — because "Empty the bucket and test again" is a sentence. */
+.dtable { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
+.dtable th { text-align: left; padding: var(--s-3); font-size: var(--t-sm); font-weight: 600; color: var(--ink-2); background: var(--panel); border-bottom: 1px solid var(--line); }
+.dtable td { padding: var(--s-3); font-size: var(--t-base); border-bottom: 1px solid var(--line); vertical-align: top; }
+.dtable tr:last-child td { border-bottom: 0; }
+
+/* The templates put one thing under each heading; a document assembled from
+   blocks can put several, so consecutive blocks inside a section need the
+   rhythm the templates get for free. The h2 is excluded: it already carries its
+   own margin, and adding to it would double the gap under every heading. */
+.doc-sec > *:not(h2) + p,
+.doc-sec > *:not(h2) + .triggers,
+.doc-sec > *:not(h2) + .note-block,
+.doc-sec > *:not(h2) + .dtable,
+.doc-sec > *:not(h2) + .fix,
+.doc-sec > *:not(h2) + .chapters,
+.doc-sec > *:not(h2) + h3 { margin-top: var(--s-4); }
+.doc-sec > h3 { font-size: var(--t-md); font-weight: 600; margin-bottom: var(--s-2); }
 
 /* STEP RAIL
    The method's steps as a row of marks in the right margin, on screens wide enough
@@ -762,7 +857,7 @@ dl.yield { margin: 0 0 var(--s-5); }
   .steprail a[aria-current="true"]::after { width: 28px; height: 3px; background: var(--ink); }
   .steprail a.is-crit[aria-current="true"]::after { background: var(--bad); }
   .steprail .n {
-    position: absolute; right: 30px; white-space: nowrap;
+    position: absolute; right: var(--s-8); white-space: nowrap;
     font-size: var(--t-sm); font-weight: 600; color: var(--ink);
     background: var(--surface); box-shadow: var(--e-2); border-radius: var(--r-sm);
     padding: 2px var(--s-2); opacity: 0; pointer-events: none;
@@ -793,15 +888,15 @@ dl.yield { margin: 0 0 var(--s-5); }
 .shot.video .play {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
   width: 64px; height: 64px; border: 0; border-radius: var(--r-pill);
-  background: rgb(255 255 255 / 0.94); color: var(--ink);
+  background: var(--glass); color: var(--ink);
   display: grid; place-items: center; cursor: pointer;
   box-shadow: var(--e-3);
 }
-.shot.video .play:hover { background: #fff; }
+.shot.video .play:hover { background: var(--on-fill); }
 .shot.video .dur {
   position: absolute; right: var(--s-3); bottom: var(--s-3);
   padding: 2px var(--s-2); border-radius: var(--r-sm);
-  background: rgb(34 34 34 / 0.82); color: #fff;
+  background: var(--scrim-strong); color: var(--on-fill);
   font-size: var(--t-sm); font-weight: 600; font-variant-numeric: tabular-nums;
 }
 
@@ -816,7 +911,7 @@ dl.yield { margin: 0 0 var(--s-5); }
    Numbers are reserved for the method, where sequence is the point. */
 .triggers { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-3); }
 .triggers li { display: grid; grid-template-columns: 8px 1fr; gap: var(--s-3); font-size: var(--t-base); align-items: start; }
-.triggers li::before { content: ""; width: 6px; height: 6px; margin-top: 10px; border-radius: 50%; background: var(--ink-3); }
+.triggers li::before { content: ""; width: 6px; height: 6px; margin-top: calc(0.5lh - 3px); border-radius: 50%; background: var(--ink-3); }
 
 /* Corrective actions: the failure on the left, the response on the right.
    Regulators expect a response attached to every limit, so the pairing is
@@ -836,7 +931,7 @@ dl.yield { margin: 0 0 var(--s-5); }
    ============================================================ */
 
 /* --- employee ------------------------------------------------------------ */
-.app { max-width: 680px; margin: 0 auto; background: var(--bg);
+.app { max-width: var(--doc-w); margin: 0 auto; background: var(--bg);
   padding-bottom: calc(var(--s-20) + env(safe-area-inset-bottom, 0px)); }
 
 /* Who is signed in. On a shared station tablet this is the line that stops a
@@ -868,7 +963,7 @@ dl.yield { margin: 0 0 var(--s-5); }
 
 
 /* --- manager -------------------------------------------------------------- */
-.admin { display: grid; grid-template-columns: 240px minmax(0, 1fr);
+.admin { display: grid; grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
   gap: var(--s-8); align-items: start; max-width: 1240px;
   margin: 0 auto; padding: var(--s-6); background: var(--bg-admin); min-height: 100vh; }
 .admin > .sidebar { position: sticky; top: var(--s-6); }
@@ -938,16 +1033,16 @@ dl.yield { margin: 0 0 var(--s-5); }
   /* Only a row that carries a badge needs the break; a chevron belongs on the
      first line beside the text, and forcing it down left it stranded. */
   .chapter:has(.tail.pill) > div:not(.idx) { flex-basis: calc(100% - 48px); }
-  .chapter:has(.tail.pill) .tail.pill { margin-left: calc(32px + var(--s-4)); }
+  .chapter:has(.tail.pill) .tail.pill { margin-left: calc(var(--s-8) + var(--s-4)); }
   .chapter:has(.tail.pill):has(.thumb) > div:not(.idx) { flex-basis: calc(100% - 64px); }
-  .chapter:has(.tail.pill):has(.thumb) .tail.pill { margin-left: calc(48px + var(--s-4)); }
+  .chapter:has(.tail.pill):has(.thumb) .tail.pill { margin-left: calc(var(--s-12) + var(--s-4)); }
 }
 
 /* --- the tab bar, as a real bar rather than a specimen -------------------- */
 .tabbar.is-fixed { position: fixed; left: 0; right: 0; bottom: 0; z-index: var(--z-sticky);
   max-width: none; border-radius: 0; border-left: 0; border-right: 0; border-bottom: 0;
   background: var(--surface); padding-bottom: env(safe-area-inset-bottom, 0px); }
-@media (min-width: 681px) { .tabbar.is-fixed { max-width: 680px; margin: 0 auto; border-left: 1px solid var(--line); border-right: 1px solid var(--line); } }
+@media (min-width: 681px) { .tabbar.is-fixed { max-width: var(--doc-w); margin: 0 auto; border-left: 1px solid var(--line); border-right: 1px solid var(--line); } }
 
 /* --- floating popover (admin composer add-content menu, etc.) -------------- */
 /* Anchored via inline top/left from getBoundingClientRect(). Animation matches
@@ -958,7 +1053,7 @@ dl.yield { margin: 0 0 var(--s-5); }
 .popover-group { padding: var(--s-2) 0; }
 .popover-group + .popover-group { border-top: 1px solid var(--line); }
 .popover-group-label { padding: var(--s-2) var(--s-3) var(--s-1); font-size: var(--t-xs);
-  font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-2); }
+  font-weight: 600; text-transform: uppercase; letter-spacing: var(--caps-track); color: var(--ink-2); }
 .popover-item { display: flex; align-items: center; gap: var(--s-2); width: 100%;
   padding: var(--s-2) var(--s-3); font-size: var(--t-sm); color: var(--ink);
   background: transparent; border: 0; text-align: left; cursor: pointer; }
@@ -984,7 +1079,7 @@ dl.yield { margin: 0 0 var(--s-5); }
      Photos and video live on the phone, reached from the QR code on the sheet.
      Target: two to three pages at 11pt. */
   @page { margin: 14mm; }
-  body { background: #fff; font-size: 11pt; line-height: 1.4; }
+  body { background: var(--bg); font-size: 11pt; line-height: 1.4; }
   .doc { max-width: none; padding-bottom: 0; }
   .doc-bar, .doc-acts, .scaler, .step-time, .provenance .flag, .cover, .doc-icon { display: none; }
   /* The photographs go, because they live on the phone behind the QR code. Their
@@ -1048,3 +1143,105 @@ dl.yield { margin: 0 0 var(--s-5); }
      code on the sheet reaches the real ones. */
   #related { display: none; }
 }
+
+/* ---------------------------------------------------------------------------
+   The brand edge
+   ---------------------------------------------------------------------------
+   One ornament, used where a rule would otherwise be: the stepped zigzag the
+   restaurant uses on its own site. It is an edge, never a texture behind text,
+   and it appears once per screen — the sidebar's brand block — because a
+   signature repeated is a pattern, and a pattern is not a signature.
+
+   The teeth point up and the strip is solid along the bottom, which is how the
+   site draws it: the block below owns the edge, the space above is untouched. */
+.pix-edge {
+  display: block;
+  height: var(--pix-h);
+  background: var(--brand-600);
+  -webkit-mask: var(--pix-zigzag) 0 0 / var(--pix-w) var(--pix-h) repeat-x;
+  mask: var(--pix-zigzag) 0 0 / var(--pix-w) var(--pix-h) repeat-x;
+}
+/* Teeth down, for an edge hanging under the thing it belongs to. The 1px pull-up
+   is not a gap in the design: at a fractional device pixel ratio (125% Windows
+   scaling, a zoomed browser) two stacked boxes round to different sub-pixels and
+   the page shows through as a hairline. Overlapping by one pixel closes it, and
+   costs nothing, because this edge's top row is solid. */
+.pix-edge.is-down { transform: scaleY(-1); margin-top: -1px; }
+/* Quieter: the same shape in the line colour, for a divider that is structure
+   rather than brand. */
+.pix-edge.is-line { background: var(--line-2); }
+
+/* ---------------------------------------------------------------------------
+   Find a person or procedure
+   ---------------------------------------------------------------------------
+   The search field from /admin-home.html, moved into the admin bar so it is on
+   every screen rather than only the home. The rules below are that prototype's,
+   plus the three the React version needs and the static one did not have: a
+   group label, a row that is a button, and the keyboard's own selection. */
+.find {
+  position: relative; display: flex; align-items: center; gap: var(--s-2);
+  width: 100%; max-width: var(--field-xl);
+  min-height: var(--tap-admin); padding: 0 var(--s-3);
+  background: var(--surface); border: 1px solid var(--line-3); border-radius: var(--r-md);
+  transition: border-color var(--dur) var(--ease);
+}
+.find:focus-within { border-color: var(--brand-600); outline: 3px solid var(--brand-tint-2); }
+.find > .i { color: var(--ink-2); flex-shrink: 0; }
+.find input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--ink); font: inherit; font-size: var(--t-base); min-height: var(--tap-admin); }
+.find input:focus { outline: none; }
+.find input::placeholder { color: var(--ink-3); }
+/* The browser's own clear button is an OS control: it ignores the type scale and
+   the colour system and sits on top of ours. Escape clears the field instead. */
+.find input::-webkit-search-cancel-button, .find input::-webkit-search-decoration { -webkit-appearance: none; display: none; }
+/* The shortcut, shown only while the field is empty and only where there is room
+   for it. A hint that covers what you are typing is not a hint. */
+.find kbd {
+  flex-shrink: 0; padding: 0 var(--s-1); border: 1px solid var(--line-2); border-radius: var(--r-sm);
+  font: inherit; font-size: var(--t-sm); color: var(--ink-3);
+}
+
+.find-results {
+  position: absolute; left: 0; right: 0; top: calc(100% + var(--s-1)); z-index: var(--z-dropdown);
+  list-style: none; margin: 0; padding: var(--s-2);
+  max-height: var(--list-max-h); overflow-y: auto;
+  background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--e-3);
+}
+.find-results ul { list-style: none; margin: 0; padding: 0; }
+/* Which kind of answer this is. 14px in the meta colour: it is a label on a list,
+   not a heading in a document. */
+.find-results .grp { padding: var(--s-2) var(--s-3) var(--s-1); font-size: var(--t-sm); color: var(--ink-3); }
+.find-results .hit {
+  display: flex; gap: var(--s-3); align-items: flex-start; width: 100%;
+  min-height: var(--tap-admin); padding: var(--s-2) var(--s-3);
+  border: 0; border-radius: var(--r-md); background: none; color: var(--ink);
+  text-align: left; font: inherit; cursor: pointer;
+}
+/* The pointer and the arrow keys mark the same row the same way, because they are
+   the same thing: which row Enter will open. */
+.find-results .hit:hover, .find-results .hit[aria-selected="true"] { background: var(--panel); }
+.find-results .hit > .i { color: var(--ink-3); margin-top: 3px; flex-shrink: 0; }
+.find-results .hit b { display: block; font-weight: 400; font-size: var(--t-base); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.find-results .hit span { display: block; font-size: var(--t-sm); color: var(--ink-3); }
+.find-results .none { padding: var(--s-2) var(--s-3); font-size: var(--t-base); color: var(--ink-2); }
+
+/* A two-seat segmented control for the admin bar: the recipe scaler's shape at
+   admin size, because it is the same control doing the same job.
+   Named .segbar, not .seg: .seg above is the quiz and sign-off control — 48px
+   buttons with a bottom margin — and the two were quietly sharing a name, which
+   left this one carrying that margin and sitting off-centre in the bar.
+   Every seat carries the lightest line, including the unchosen one — without it
+   the control is one white pill floating next to a word, and there is nothing to
+   say the two belong together. The chosen seat drops the ring and takes the
+   surface, lifted: the same "I am the thing on top" the cards on this ground use. */
+.segbar { display: inline-flex; gap: var(--s-1); padding: var(--s-1); border-radius: var(--r-pill); background: var(--panel); }
+.segbar > * {
+  display: inline-flex; align-items: center; min-height: var(--tap-admin); padding: 0 var(--s-3);
+  border-radius: var(--r-pill); box-shadow: inset 0 0 0 1px var(--line);
+  font-size: var(--t-sm); font-weight: 600; color: var(--ink-2); text-decoration: none;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.segbar > *:hover { color: var(--ink); }
+/* Filled, exactly like the scaler: on a control with two seats the filled one is
+   the answer to "which language am I reading", and a white seat on a light tray
+   makes you look twice to find out. */
+.segbar > [aria-current="true"] { background: var(--ink); color: var(--surface); box-shadow: none; }

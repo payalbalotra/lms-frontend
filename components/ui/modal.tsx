@@ -47,7 +47,7 @@ export function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
+      className="fixed inset-0 z-modal flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
       role="dialog"
       aria-modal="true"
       aria-label={title}
@@ -58,7 +58,7 @@ export function Modal({
         tabIndex={-1}
         aria-label="Close backdrop"
         onClick={onClose}
-        className="fixed inset-0 bg-black/45 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+        className="fixed inset-0 bg-scrim transition-opacity animate-in fade-in duration-[var(--dur)]"
       />
 
       {/* Modal Dialog Card */}
@@ -66,7 +66,7 @@ export function Modal({
         ref={modalRef}
         tabIndex={-1}
         className={cn(
-          'relative z-10 w-full overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] shadow-2xl transition-all animate-in zoom-in-95 duration-200 focus:outline-none',
+          'relative w-full overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] shadow-e3 transition-all animate-in zoom-in-95 duration-[var(--dur)] focus:outline-none',
           sizeClasses[size],
           className,
         )}

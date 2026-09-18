@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { cn } from '@/lib/utils';
+import { LuX } from 'react-icons/lu';
 
 /**
  * Drawer — DESIGN.md §3.6 overlay.
@@ -33,9 +34,9 @@ interface DrawerProps {
 }
 
 const sizeClasses: Record<NonNullable<DrawerProps['size']>, string> = {
-  sm: 'w-[min(24rem,90vw)]',
-  md: 'w-[min(32rem,90vw)]',
-  lg: 'w-[min(40rem,90vw)]',
+  sm: 'w-drawer-sm max-w-sheet',
+  md: 'w-drawer-md max-w-sheet',
+  lg: 'w-drawer-lg max-w-sheet',
 };
 
 export function Drawer({
@@ -88,7 +89,7 @@ export function Drawer({
 
   return (
     <div
-      className="fixed inset-0 z-40"
+      className="fixed inset-0 z-backdrop"
       role="dialog"
       aria-modal="true"
       aria-label={title}
@@ -97,7 +98,7 @@ export function Drawer({
         type="button"
         aria-label={closeLabel}
         onClick={onClose}
-        className="absolute inset-0 cursor-default bg-[rgb(34_34_34_/_0.45)]"
+        className="absolute inset-0 cursor-default bg-scrim"
       />
       <div
         ref={panelRef}
@@ -111,7 +112,7 @@ export function Drawer({
         )}
       >
         <div className="flex items-center justify-between border-b border-[var(--color-line)] px-5 py-4">
-          <h2 className="font-[family-name:var(--font-display)] text-[length:var(--text-md)] font-bold tracking-[-0.02em] text-[var(--color-ink)]">
+          <h2 className="font-[family-name:var(--font-ui)] text-md font-semibold tracking-tight text-[var(--color-ink)]">
             {title}
           </h2>
           <button
@@ -119,13 +120,13 @@ export function Drawer({
             aria-label={closeLabel}
             onClick={onClose}
             className={cn(
-              'inline-flex h-9 w-9 items-center justify-center rounded-[var(--radius-md)]',
-              'text-[var(--color-ink)] transition-colors duration-[180ms] ease-[var(--ease)]',
+              'inline-flex h-tap-admin w-tap-admin items-center justify-center rounded-[var(--radius-md)]',
+              'text-[var(--color-ink)] transition-colors duration-[var(--dur)] ease-[var(--ease)]',
               'hover:bg-[var(--color-panel)] active:translate-y-px',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-tint-2)] focus-visible:ring-offset-2',
             )}
           >
-            <i aria-hidden="true" className="ri-close-line text-[length:var(--text-lg)]" />
+            <LuX aria-hidden="true" className="text-lg" />
           </button>
         </div>
 

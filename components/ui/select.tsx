@@ -16,9 +16,9 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(function 
       ref={ref}
       data-slot="select"
       className={cn(
-        'flex min-h-9 w-full rounded-md border border-[var(--color-line-3)] bg-[var(--color-surface)]',
+        'flex min-h-tap-admin w-full rounded-md border border-[var(--color-line-3)] bg-[var(--color-surface)]',
         'px-3 py-2 text-sm text-[var(--color-ink)]',
-        'transition-colors duration-[180ms] ease-[var(--ease)]',
+        'transition-colors duration-[var(--dur)] ease-[var(--ease)]',
         'focus-visible:border-[var(--color-brand-600)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-tint-2)]',
         'disabled:cursor-not-allowed disabled:opacity-60',
         className,

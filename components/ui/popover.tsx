@@ -3,6 +3,9 @@
 import * as React from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
+import { LuChevronRight } from 'react-icons/lu';
+import { Icon } from '@/components/ui/icon';
+import type { IconType } from 'react-icons';
 
 interface PopoverProps {
   open: boolean;
@@ -127,7 +130,7 @@ export function Popover({
       ref={panelRef}
       role="menu"
       className={cn(
-        'rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-2 shadow-[var(--e-3)] transition-opacity duration-150',
+        'rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-2 shadow-[var(--e-3)] transition-opacity duration-[var(--dur)]',
         className,
       )}
       style={style}
@@ -146,8 +149,8 @@ export function PopoverGroup({
   children: React.ReactNode;
 }): React.ReactElement {
   return (
-    <div className="space-y-1 py-1.5" role="group" aria-label={label}>
-      <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--color-ink-3)]">
+    <div className="space-y-1 py-2" role="group" aria-label={label}>
+      <div className="px-3 text-xs font-semibold text-[var(--color-ink-3)]">
         {label}
       </div>
       <div className="space-y-0.5">{children}</div>
@@ -156,7 +159,7 @@ export function PopoverGroup({
 }
 
 interface PopoverItemProps {
-  icon?: string;
+  icon?: IconType;
   label: string;
   description?: string;
   onClick: () => void;
@@ -173,29 +176,26 @@ export function PopoverItem({
       type="button"
       role="menuitem"
       onClick={onClick}
-      className="group flex w-full items-center justify-between gap-3 rounded-[var(--radius-md)] px-3 py-2 text-left transition-colors hover:bg-[var(--color-brand-tint)]/40 focus-visible:bg-[var(--color-brand-tint)]/40 focus-visible:outline-none"
+      className="group flex w-full items-center justify-between gap-3 rounded-[var(--radius-md)] px-3 py-2 text-left transition-colors hover:bg-[var(--color-brand-tint)] focus-visible:bg-[var(--color-brand-tint)] focus-visible:outline-none"
     >
       <div className="flex items-center gap-3 min-w-0">
         {icon && (
           <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-wash)] text-[var(--color-ink-2)] transition-colors group-hover:bg-[var(--color-brand-tint)] group-hover:text-[var(--color-brand-700)]">
-            <i aria-hidden="true" className={cn(icon, 'text-base')} />
+            <Icon icon={icon} className="text-base" />
           </div>
         )}
         <div className="min-w-0">
-          <div className="text-[length:var(--text-sm)] font-semibold text-[var(--color-ink)] group-hover:text-[var(--color-brand-700)]">
+          <div className="text-sm font-semibold text-[var(--color-ink)] group-hover:text-[var(--color-brand-700)]">
             {label}
           </div>
           {description && (
-            <div className="truncate text-[length:var(--text-xs)] text-[var(--color-ink-2)]">
+            <div className="truncate text-xs text-[var(--color-ink-2)]">
               {description}
             </div>
           )}
         </div>
       </div>
-      <i
-        aria-hidden="true"
-        className="ri-arrow-right-s-line shrink-0 text-base text-[var(--color-ink-3)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--color-brand-700)]"
-      />
+      <LuChevronRight aria-hidden="true" className="shrink-0 text-base text-[var(--color-ink-3)] transition-transform group-hover:text-[var(--color-brand-700)]" />
     </button>
   );
 }

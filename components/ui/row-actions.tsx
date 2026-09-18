@@ -4,6 +4,9 @@ import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { LuEllipsisVertical } from 'react-icons/lu';
+import { Icon } from '@/components/ui/icon';
+import type { IconType } from 'react-icons';
 
 /**
  * RowActions — ⋯ kebab menu for table rows.
@@ -30,8 +33,8 @@ export interface RowActionItem {
   onSelect: () => void;
   /** If true, the item is styled bad-tone and triggers an inline confirm. */
   destructive?: boolean;
-  /** Optional Remix icon class — `ri-pencil-line`, `ri-delete-bin-line`, etc. */
-  icon?: string;
+  /** Optional icon component — `LuPencil`, `LuTrash2`, etc. */
+  icon?: IconType;
 }
 
 interface RowActionsProps {
@@ -117,7 +120,7 @@ export function RowActions({ items, triggerLabel, className }: RowActionsProps):
           setConfirmIndex(null);
         }}
       >
-        <i aria-hidden="true" className="ri-more-2-fill text-[length:var(--text-md)]" />
+        <LuEllipsisVertical aria-hidden="true" className="text-md" />
       </Button>
 
       {open ? (
@@ -126,17 +129,17 @@ export function RowActions({ items, triggerLabel, className }: RowActionsProps):
           role="menu"
           aria-label={triggerLabel ?? t('rowActionsLabel')}
           className={cn(
-            'absolute right-0 top-full z-20 mt-1 min-w-[12rem]',
+            'absolute right-0 top-full z-dropdown mt-1 min-w-field-md',
             'rounded-[var(--radius-md)] border border-[var(--color-line)] bg-[var(--color-surface)]',
             'shadow-[var(--e-2)]',
           )}
         >
           {confirmIndex !== null ? (
             <div className="space-y-2 p-3">
-              <p className="text-[length:var(--text-sm)] font-semibold text-[var(--color-ink)]">
+              <p className="text-sm font-semibold text-[var(--color-ink)]">
                 {t('rowActionsConfirmTitle')}
               </p>
-              <p className="text-[length:var(--text-xs)] text-[var(--color-ink-2)]">
+              <p className="text-xs text-[var(--color-ink-2)]">
                 {items[confirmIndex]?.label}
               </p>
               <div className="flex justify-end gap-2 pt-1">
@@ -160,8 +163,8 @@ export function RowActions({ items, triggerLabel, className }: RowActionsProps):
                     onClick={() => handleSelect(idx)}
                     className={cn(
                       'flex w-full items-center gap-2 px-3 py-2 text-left',
-                      'text-[length:var(--text-sm)] font-medium',
-                      'transition-colors duration-[180ms] ease-[var(--ease)]',
+                      'text-sm font-medium',
+                      'transition-colors duration-[var(--dur)] ease-[var(--ease)]',
                       'focus-visible:outline-none focus-visible:bg-[var(--color-panel)]',
                       item.destructive
                         ? 'text-[var(--color-bad)] hover:bg-[var(--color-bad-tint)]'
@@ -169,7 +172,7 @@ export function RowActions({ items, triggerLabel, className }: RowActionsProps):
                     )}
                   >
                     {item.icon ? (
-                      <i aria-hidden="true" className={cn(item.icon, 'text-[length:var(--text-md)]')} />
+                      <Icon icon={item.icon} className="text-md" />
                     ) : null}
                     <span className="flex-1">{item.label}</span>
                   </button>

@@ -50,13 +50,13 @@ const variantClasses: Record<ButtonVariant, string> = {
 
 const sizeClasses: Record<ButtonSize, string> = {
   // admin tap target = 36px
-  default: 'min-h-9 px-5 text-sm',
+  default: 'min-h-tap-admin px-5 text-sm',
   // compact row button
   sm: 'min-h-8 px-3 text-sm',
   // employee tap target = 48px
   lg: 'min-h-12 px-8 text-md',
   // square icon button sized to match its sibling
-  icon: 'min-h-9 min-w-9 px-0',
+  icon: 'min-h-tap-admin min-w-tap-admin px-0',
 };
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -76,7 +76,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
       className={cn(
         'inline-flex items-center justify-center gap-2 rounded-full font-medium whitespace-nowrap',
         // Transition follows the --ease curve + 180ms duration from §2.4.
-        'transition-colors duration-[180ms] ease-[var(--ease)]',
+        'transition-colors duration-[var(--dur)] ease-[var(--ease)]',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2',
         'disabled:pointer-events-none disabled:opacity-50',
         variantClasses[variant],
