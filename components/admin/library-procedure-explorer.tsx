@@ -3,6 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { listCategories, listProcedures } from '@/lib/api';
 import type { Procedure, Category, ProcedureStatus } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -589,6 +590,38 @@ export function LibraryProcedureExplorer({
 }: LibraryProcedureExplorerProps): React.ReactElement {
   const isEs = locale === 'es';
 
+  const [liveCategories, setLiveCategories] = React.useState<Category[]>(categories ?? []);
+  const [liveProcedures, setLiveProcedures] = React.useState<Procedure[]>(procedures ?? []);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    async function syncData() {
+      try {
+        const catRes = await listCategories('loc-main', { includeArchived: true });
+        const procRes = await listProcedures({});
+        if (isMounted) {
+          if (catRes.categories && catRes.categories.length > 0) {
+            setLiveCategories(catRes.categories);
+          }
+          if (procRes.procedures && procRes.procedures.length > 0) {
+            setLiveProcedures(procRes.procedures);
+          }
+        }
+      } catch {
+        // Fallback
+      }
+    }
+    syncData();
+
+    window.addEventListener('lms_categories_updated', syncData);
+    window.addEventListener('storage', syncData);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('lms_categories_updated', syncData);
+      window.removeEventListener('storage', syncData);
+    };
+  }, []);
+
   // Filters State
   const [selectedCategorySlug, setSelectedCategorySlug] = React.useState<string>('all');
   const [searchQuery, setSearchQuery] = React.useState<string>('');
@@ -603,8 +636,8 @@ export function LibraryProcedureExplorer({
   // rows whose documents do not exist: every one of those 28 titles opened a 404,
   // which is why the slug lookup used to fall back to "some other procedure".
   const allProcedures = React.useMemo(
-    () => (procedures && procedures.length > 0 ? procedures : FULL_DEMO_SUITE),
-    [procedures],
+    () => (liveProcedures && liveProcedures.length > 0 ? liveProcedures : FULL_DEMO_SUITE),
+    [liveProcedures],
   );
 
   // Category counts & deduplication matching exact category pills in design reference
@@ -619,7 +652,7 @@ export function LibraryProcedureExplorer({
       { id: 'cat-admin', slug: 'general', nameEn: 'General Procedures', nameEs: 'Procedimientos Generales', isArchived: false },
     ];
     const rawCategories: Category[] = [
-      ...(categories ?? []).filter((c) => !c.isArchived),
+      ...(liveCategories ?? []).filter((c) => !c.isArchived),
       ...fallback,
     ];
 

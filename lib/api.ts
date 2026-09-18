@@ -366,6 +366,31 @@ let mockCategories: Category[] = getStored('categories', SEED_CATEGORIES);
 let mockEmployees: AdminEmployee[] = getStored('employees', SEED_EMPLOYEES);
 let mockProcedures: Procedure[] = getStored('procedures', SEED_PROCEDURES);
 
+function getLocationsStore(): Location[] {
+  if (typeof window !== 'undefined') mockLocations = getStored('locations', SEED_LOCATIONS);
+  return mockLocations;
+}
+function getRolesStore(): Role[] {
+  if (typeof window !== 'undefined') mockRoles = getStored('roles', SEED_ROLES);
+  return mockRoles;
+}
+function getStationsStore(): Station[] {
+  if (typeof window !== 'undefined') mockStations = getStored('stations', SEED_STATIONS);
+  return mockStations;
+}
+function getCategoriesStore(): Category[] {
+  if (typeof window !== 'undefined') mockCategories = getStored('categories', SEED_CATEGORIES);
+  return mockCategories;
+}
+function getEmployeesStore(): AdminEmployee[] {
+  if (typeof window !== 'undefined') mockEmployees = getStored('employees', SEED_EMPLOYEES);
+  return mockEmployees;
+}
+function getProceduresStore(): Procedure[] {
+  if (typeof window !== 'undefined') mockProcedures = getStored('procedures', SEED_PROCEDURES);
+  return mockProcedures;
+}
+
 // ----------------------------------------------------------------------------
 // Typed endpoints (Zero Backend Demo Mode)
 // ----------------------------------------------------------------------------
@@ -378,7 +403,7 @@ export interface LoginInput {
 }
 
 export async function login(_input: LoginInput): Promise<{ employee: Employee }> {
-  const emp = mockEmployees[0];
+  const emp = getEmployeesStore()[0];
   return { employee: emp };
 }
 
@@ -387,7 +412,7 @@ export async function logout(): Promise<{ ok: true }> {
 }
 
 export async function fetchMe(_cookieHeader?: string, _signal?: AbortSignal): Promise<{ employee: Employee }> {
-  const emp = mockEmployees[0];
+  const emp = getEmployeesStore()[0];
   return { employee: emp };
 }
 
@@ -396,7 +421,7 @@ export async function fetchMe(_cookieHeader?: string, _signal?: AbortSignal): Pr
 // ----------------------------------------------------------------------------
 
 export async function listRoles(_cookieHeader?: string): Promise<{ roles: Role[] }> {
-  return { roles: [...mockRoles] };
+  return { roles: [...getRolesStore()] };
 }
 
 export async function listStations(
@@ -404,14 +429,14 @@ export async function listStations(
   _cookieHeader?: string,
   opts: { includeArchived?: boolean } = {},
 ): Promise<{ stations: Station[] }> {
-  const filtered = mockStations.filter(
+  const filtered = getStationsStore().filter(
     (s) => s.locationId === locationId && (opts.includeArchived || !s.isArchived),
   );
   return { stations: filtered };
 }
 
 export async function listLocations(_cookieHeader?: string): Promise<{ locations: Location[] }> {
-  return { locations: [...mockLocations] };
+  return { locations: [...getLocationsStore()] };
 }
 
 // ----------------------------------------------------------------------------
@@ -423,7 +448,8 @@ export async function listEmployees(
   _cookieHeader?: string,
 ): Promise<{ employees: AdminEmployee[] }> {
   const status = opts.status ?? 'all';
-  const filtered = status === 'all' ? mockEmployees : mockEmployees.filter((e) => e.status === status);
+  const emps = getEmployeesStore();
+  const filtered = status === 'all' ? emps : emps.filter((e) => e.status === status);
   return { employees: [...filtered] };
 }
 
@@ -588,7 +614,8 @@ export async function activate(_input: { token: string; code: string; password: 
 // ----------------------------------------------------------------------------
 
 export async function createProcedure(input: CreateProcedureInput): Promise<{ procedure: Procedure }> {
-  const cat = mockCategories.find((c) => c.id === input.categoryId) ?? null;
+  const cats = getCategoriesStore();
+  const cat = cats.find((c) => c.id === input.categoryId) ?? null;
   const slug = input.titleEn.toLowerCase().replace(/[^a-z0-0]+/g, '-').replace(/(^-|-$)/g, '') || `proc-${Date.now()}`;
 
   const newProc: Procedure = {
@@ -607,7 +634,7 @@ export async function createProcedure(input: CreateProcedureInput): Promise<{ pr
     updatedAt: new Date().toISOString(),
   };
 
-  mockProcedures = [newProc, ...mockProcedures];
+  mockProcedures = [newProc, ...getProceduresStore()];
   setStored('procedures', mockProcedures);
   return { procedure: newProc };
 }
@@ -616,7 +643,8 @@ export async function listProcedures(
   filter: { status?: Procedure['status'] } = {},
   _cookieHeader?: string,
 ): Promise<{ procedures: Procedure[] }> {
-  const filtered = filter.status ? mockProcedures.filter((p) => p.status === filter.status) : mockProcedures;
+  const procs = getProceduresStore();
+  const filtered = filter.status ? procs.filter((p) => p.status === filter.status) : procs;
   return { procedures: [...filtered] };
 }
 
@@ -624,11 +652,9 @@ export async function getProcedureBySlug(
   slug: string,
   _cookieHeader?: string,
 ): Promise<{ procedure: Procedure }> {
-  // Exact match only. A near-match is not a match: this returns the document a
-  // cook is about to follow, and handing them a different procedure that looks
-  // right is worse than telling them the link is dead.
   const normSlug = slug.toLowerCase();
-  const proc = mockProcedures.find((p) => p.slug.toLowerCase() === normSlug || p.id.toLowerCase() === normSlug);
+  const procs = getProceduresStore();
+  const proc = procs.find((p) => p.slug.toLowerCase() === normSlug || p.id.toLowerCase() === normSlug);
 
   if (!proc) {
     throw new ApiException(404, 'PROCEDURE_NOT_FOUND', `Procedure ${slug} not found`);
@@ -645,7 +671,8 @@ export async function listCategories(
   opts: { includeArchived?: boolean } = {},
   _cookieHeader?: string,
 ): Promise<{ categories: Category[] }> {
-  const filtered = opts.includeArchived ? mockCategories : mockCategories.filter((c) => !c.isArchived);
+  const cats = getCategoriesStore();
+  const filtered = opts.includeArchived ? cats : cats.filter((c) => !c.isArchived);
   return { categories: [...filtered] };
 }
 
@@ -662,7 +689,7 @@ export async function createCategory(input: {
     nameEs: input.nameEs,
     isArchived: false,
   };
-  mockCategories = [...mockCategories, newCat];
+  mockCategories = [...getCategoriesStore(), newCat];
   setStored('categories', mockCategories);
   return { category: newCat };
 }
@@ -671,7 +698,8 @@ export async function updateCategory(
   id: string,
   patch: { nameEn?: string; nameEs?: string; isArchived?: boolean },
 ): Promise<{ category: Category }> {
-  mockCategories = mockCategories.map((c) => (c.id === id ? { ...c, ...patch } : c));
+  const cats = getCategoriesStore();
+  mockCategories = cats.map((c) => (c.id === id ? { ...c, ...patch } : c));
   setStored('categories', mockCategories);
   const updated = mockCategories.find((c) => c.id === id)!;
   return { category: updated };

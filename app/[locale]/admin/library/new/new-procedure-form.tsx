@@ -12,7 +12,7 @@ import { CustomSelect } from '@/components/ui/custom-select';
 import { Modal } from '@/components/ui/modal';
 import { Drawer } from '@/components/ui/drawer';
 import { cn } from '@/lib/utils';
-import { createProcedure, ApiException } from '@/lib/api';
+import { createProcedure, createCategory, listCategories, ApiException } from '@/lib/api';
 import { getCategoryIcon } from '@/lib/category-icons';
 import type {
   Category,
@@ -447,9 +447,36 @@ export function NewProcedureForm({
   const tErr = useTranslations('admin.library.new.errors');
   const router = useRouter();
 
+  // Merged category list — starts from props but grows when the manager
+  // creates a new category inline from the modal.
+  const [localCategories, setLocalCategories] = React.useState<Category[]>(() => categories ?? []);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    async function syncCategories() {
+      try {
+        const { categories: fetched } = await listCategories('loc-main', { includeArchived: false });
+        if (isMounted && fetched && fetched.length > 0) {
+          setLocalCategories((prev) => {
+            const map = new Map<string, Category>();
+            for (const c of prev) map.set(c.id, c);
+            for (const c of fetched) map.set(c.id, c);
+            return Array.from(map.values());
+          });
+        }
+      } catch {
+        // Fallback
+      }
+    }
+    syncCategories();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const sourceCategories = React.useMemo(() => {
-    return categories && categories.length >= 4 ? categories : DEFAULT_CATEGORIES;
-  }, [categories]);
+    return localCategories && localCategories.length >= 4 ? localCategories : DEFAULT_CATEGORIES;
+  }, [localCategories]);
 
   const initialCat = sourceCategories[0];
   const initialType = React.useMemo(() => deriveTypeFromCategory(initialCat), [initialCat]);
@@ -529,6 +556,38 @@ export function NewProcedureForm({
   const [isPending, startTransition] = useTransition();
   const [isDirty, setIsDirty] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+
+  // Inline "create new category" form inside the modal
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [newCatNameEn, setNewCatNameEn] = useState('');
+  const [newCatNameEs, setNewCatNameEs] = useState('');
+  const [isSavingCat, setIsSavingCat] = useState(false);
+
+  async function handleCreateCategory(): Promise<void> {
+    const nameEn = newCatNameEn.trim();
+    const nameEs = newCatNameEs.trim() || nameEn;
+    if (!nameEn) return;
+    const slug = nameEn.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    setIsSavingCat(true);
+    try {
+      const { category } = await createCategory({
+        locationId: 'loc-main',
+        slug: `${slug}-${Date.now().toString(36)}`,
+        nameEn,
+        nameEs,
+      });
+      setLocalCategories((prev) => [...prev, category]);
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event('lms_categories_updated'));
+      handleCategoryChange(category.id);
+      setIsOtherModalOpen(false);
+      setModalSearchQuery('');
+      setIsCreatingCategory(false);
+      setNewCatNameEn('');
+      setNewCatNameEs('');
+    } finally {
+      setIsSavingCat(false);
+    }
+  }
 
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewLang, setPreviewLang] = useState<'en' | 'es'>('en');
@@ -859,7 +918,7 @@ export function NewProcedureForm({
     'flex w-full rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-4 py-3 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] transition-all duration-[var(--dur)] hover:border-[var(--color-line-3)] focus:outline-none focus-visible:outline-none focus:border-[var(--color-brand-600)] focus-visible:border-[var(--color-brand-600)] focus:ring-2 focus:ring-[var(--color-brand-tint)] focus-visible:ring-2 focus-visible:ring-[var(--color-brand-tint)]';
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6">
+    <div className="mx-auto max-w-6xl space-y-6">
       {/* Top action header */}
       <div className="flex items-center justify-between">
         <Link
@@ -896,7 +955,7 @@ export function NewProcedureForm({
         <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight text-[var(--color-ink)]">
           {tTitles(procedureType as never)}
         </h1>
-        <p className="max-w-3xl text-sm text-[var(--color-ink-2)]">
+        <p className="text-sm text-[var(--color-ink-2)]">
           {tTitles(`${procedureType}Subtitle` as never)}
         </p>
       </header>
@@ -965,7 +1024,7 @@ export function NewProcedureForm({
       />
 
       {/* Main Single Column Stepped Wizard Form */}
-      <form className="max-w-4xl mx-auto space-y-8 pb-20" onSubmit={(e) => e.preventDefault()}>
+      <form className="w-full space-y-8 pb-20" onSubmit={(e) => e.preventDefault()}>
         {error && (
           <div
             role="alert"
@@ -1785,6 +1844,68 @@ export function NewProcedureForm({
             {modalFilteredCategories.length === 0 && (
               <div className="py-8 text-center text-sm text-[var(--color-ink-2)]">
                 {locale === 'es' ? 'No se encontraron categorías.' : 'No categories found.'}
+              </div>
+            )}
+          </div>
+
+          {/* Create new category — inline mini-form */}
+          <div className="border-t border-[var(--color-line)] pt-4">
+            {!isCreatingCategory ? (
+              <button
+                type="button"
+                onClick={() => setIsCreatingCategory(true)}
+                className="flex w-full items-center gap-2 rounded-[var(--radius-md)] border border-dashed border-[var(--color-line-3)] px-4 py-3 text-sm font-medium text-[var(--color-ink-2)] hover:border-[var(--color-brand-600)] hover:bg-[var(--color-brand-tint)] hover:text-[var(--color-brand-700)] transition-colors"
+              >
+                <Icon icon="ri-add-circle-line" className="text-base" />
+                New category
+              </button>
+            ) : (
+              <div className="space-y-3 rounded-[var(--radius-md)] border border-[var(--color-brand-600)] bg-[var(--color-brand-tint)] p-4">
+                <p className="text-xs font-semibold text-[var(--color-brand-700)]">Create a new category</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-[var(--color-ink-2)]">Name (EN) <span className="text-[var(--color-bad)]">*</span></label>
+                    <Input
+                      value={newCatNameEn}
+                      onChange={(e) => setNewCatNameEn(e.target.value)}
+                      placeholder="e.g. Allergen Control"
+                      className="h-9 text-sm"
+                      autoFocus
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-[var(--color-ink-2)]">Name (ES)</label>
+                    <Input
+                      value={newCatNameEs}
+                      onChange={(e) => setNewCatNameEs(e.target.value)}
+                      placeholder="e.g. Control de Alérgenos"
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 pt-1">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => { void handleCreateCategory(); }}
+                    disabled={!newCatNameEn.trim() || isSavingCat}
+                    className="bg-[var(--color-brand-700)] text-white hover:bg-[var(--color-brand-800)]"
+                  >
+                    {isSavingCat ? 'Creating…' : 'Create & select'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setIsCreatingCategory(false);
+                      setNewCatNameEn('');
+                      setNewCatNameEs('');
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
               </div>
             )}
           </div>

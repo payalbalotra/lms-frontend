@@ -51,7 +51,7 @@ export function ProcedureWizardStepper({
   const activeId = steps[currentIdx].id;
 
   return (
-    <nav aria-label={t('ariaLabel')} className="max-w-4xl mx-auto my-6">
+    <nav aria-label={t('ariaLabel')} className="my-6 w-full">
       <div className="rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-4 sm:px-6 sm:py-4">
         <ol className="flex items-center justify-between w-full">
           {steps.map((step, idx) => {

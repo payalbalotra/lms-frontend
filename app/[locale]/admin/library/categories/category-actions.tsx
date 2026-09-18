@@ -61,6 +61,7 @@ export function CategoryActions({ category }: CategoryActionsProps): React.React
     setPending(true);
     try {
       await archiveCategory(target.id);
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event('lms_categories_updated'));
       router.refresh();
     } catch (err) {
       setError(err instanceof ApiException ? err.message : String(err));
@@ -74,6 +75,7 @@ export function CategoryActions({ category }: CategoryActionsProps): React.React
     setPending(true);
     try {
       await updateCategory(target.id, { isArchived: false });
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event('lms_categories_updated'));
       router.refresh();
     } catch (err) {
       setError(err instanceof ApiException ? err.message : String(err));
@@ -250,6 +252,7 @@ function CategoryForm({
           nameEs: nameEs.trim() || nameEn.trim(),
         });
       }
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event('lms_categories_updated'));
       onDone();
     } catch (err) {
       if (err instanceof ApiException && err.code === 'CATEGORY_SLUG_TAKEN') {

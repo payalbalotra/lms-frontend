@@ -169,11 +169,15 @@ function BlockRow({
     id: block.id,
   });
   const [isHover, setIsHover] = React.useState(false);
+  // Lang state lives here so the unified toolbar can own the EN|ES toggle
+  const [lang, setLang] = React.useState<'en' | 'es'>('en');
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
   };
+
+  const showToolbar = isHover || isDragging;
 
   return (
     <div
@@ -182,54 +186,51 @@ function BlockRow({
       onMouseEnter={() => setIsHover(true)}
       onMouseLeave={() => setIsHover(false)}
       className={cn(
-        'group relative -ml-8 sm:-ml-10 pl-8 sm:pl-10 pr-3 py-2 rounded-[var(--radius-md)] transition-colors',
+        'group rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] py-2 pl-3 pr-3 transition-all duration-[var(--dur)]',
+        'hover:border-[var(--color-brand-600)]',
         isHover && 'bg-[var(--color-wash)]',
         isDragging && 'opacity-60 z-dropdown',
       )}
     >
-      {/* Left gutter — ONLY drag handle */}
+      {/* Unified hover toolbar: drag · EN|ES · options menu — hidden at rest */}
       <div
         className={cn(
-          'absolute left-1 top-3 flex items-center transition-opacity z-dropdown',
-          isHover || isDragging
-            ? 'pointer-events-auto opacity-100'
-            : 'pointer-events-auto opacity-40 hover:opacity-100',
+          'mb-1 flex items-center gap-1 transition-opacity duration-150',
+          showToolbar ? 'opacity-100' : 'opacity-0 pointer-events-none',
         )}
       >
+        {/* Drag handle */}
         <button
           type="button"
           aria-label="Drag to reorder"
           title="Drag to reorder"
-          className="flex size-8 cursor-grab items-center justify-center rounded-md bg-[var(--color-surface)] text-[var(--color-ink-2)] ring-1 ring-[var(--color-line-2)] shadow-e1 hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)] hover:ring-[var(--color-brand-600)] active:cursor-grabbing"
+          className="flex size-7 cursor-grab items-center justify-center rounded-md text-[var(--color-ink-3)] hover:bg-[var(--color-surface)] hover:text-[var(--color-ink-2)] active:cursor-grabbing transition-colors"
           {...attributes}
           {...listeners}
         >
-          <Icon icon="ri-drag-move-2-line" className="text-lg" />
+          <Icon icon="ri-drag-move-2-line" className="text-base" />
         </button>
-      </div>
 
-      {/* Per-block menu — top right. */}
-      <div
-        className={cn(
-          'absolute right-2 top-2 z-dropdown transition-opacity',
-          isHover || isDragging ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
-        )}
-      >
+        {/* Language toggle */}
+        <LangToggle lang={lang} onChange={setLang} />
+
+        {/* Spacer pushes menu to the right */}
+        <span className="flex-1" />
+
+        {/* Block options menu */}
         <BlockMenu
           block={block}
           index={index}
           total={total}
-          onChange={() => {
-            // No-op: menu actions route through their own callbacks.
-          }}
+          onChange={() => { /* actions route through their own callbacks */ }}
           onRemove={onRemove}
           onMove={onMove}
           onDuplicate={onDuplicate}
         />
       </div>
 
-      {/* Block body — the actual content shape. */}
-      <BlockBody block={block} onPatch={onPatch} />
+      {/* Block body — lang is controlled by the toolbar above */}
+      <BlockBody block={block} onPatch={onPatch} lang={lang} onInsertAfter={onInsertAfter} />
     </div>
   );
 }
@@ -239,7 +240,14 @@ function BlockRow({
 // options the empty-state menu shows, but inline.
 // ---------------------------------------------------------------------------
 
-function InsertAfterButton({ onInsert }: { onInsert: (kind: ProcedureBlockKind) => void }): React.ReactElement {
+function InsertAfterButton({
+  onInsert,
+  ghost = false,
+}: {
+  onInsert: (kind: ProcedureBlockKind) => void;
+  /** When true, renders as a low-profile ghost affordance rather than a full button. */
+  ghost?: boolean;
+}): React.ReactElement {
   const [open, setOpen] = React.useState(false);
   const triggerRef = React.useRef<HTMLButtonElement>(null);
 
@@ -250,7 +258,12 @@ function InsertAfterButton({ onInsert }: { onInsert: (kind: ProcedureBlockKind) 
         type="button"
         aria-label="Insert block below"
         onClick={() => setOpen((v) => !v)}
-        className="flex size-8 items-center justify-center rounded-md bg-[var(--color-surface)] text-[var(--color-ink-2)] ring-1 ring-[var(--color-line-2)] shadow-e1 hover:bg-[var(--color-brand-tint)] hover:text-[var(--color-brand-700)] hover:ring-[var(--color-brand-600)] transition-colors"
+        className={cn(
+          'flex size-7 items-center justify-center rounded-md transition-all',
+          ghost
+            ? 'text-[var(--color-ink-3)] opacity-30 hover:opacity-100 hover:bg-[var(--color-wash)] hover:text-[var(--color-ink-2)]'
+            : 'bg-[var(--color-surface)] text-[var(--color-ink-2)] ring-1 ring-[var(--color-line-2)] shadow-e1 hover:bg-[var(--color-brand-tint)] hover:text-[var(--color-brand-700)] hover:ring-[var(--color-brand-600)]',
+        )}
       >
         <Icon icon="ri-add-line" className="text-lg" />
       </button>
@@ -291,107 +304,163 @@ function InsertAfterButton({ onInsert }: { onInsert: (kind: ProcedureBlockKind) 
 // shows a drop zone. No chrome, no badges, no per-block header.
 // ---------------------------------------------------------------------------
 
-type BodyProps<T extends ProcedureBlock> = { block: T; onPatch: (next: T) => void };
+type BodyProps<T extends ProcedureBlock> = {
+  block: T;
+  onPatch: (next: T) => void;
+  lang: 'en' | 'es';
+};
 
-function BlockBody({ block, onPatch }: { block: ProcedureBlock; onPatch: (next: ProcedureBlock) => void }): React.ReactElement {
+function BlockBody({
+  block,
+  onPatch,
+  lang,
+  onInsertAfter,
+}: {
+  block: ProcedureBlock;
+  onPatch: (next: ProcedureBlock) => void;
+  lang: 'en' | 'es';
+  onInsertAfter?: (kind: ProcedureBlockKind) => void;
+}): React.ReactElement {
   switch (block.kind) {
     case 'text':
-      return <TextBody block={block} onPatch={onPatch} />;
+      return <TextBody block={block} onPatch={onPatch} lang={lang} onInsertAfter={onInsertAfter} />;
     case 'heading':
-      return <HeadingBody block={block} onPatch={onPatch} />;
+      return <HeadingBody block={block} onPatch={onPatch} lang={lang} />;
     case 'method':
-      return <MethodBody block={block} onPatch={onPatch} />;
+      return <MethodBody block={block} onPatch={onPatch} lang={lang} />;
     case 'recipe':
-      return <RecipeSummaryBody block={block} onPatch={onPatch} />;
+      return <RecipeSummaryBody block={block} onPatch={onPatch} lang={lang} />;
     case 'image':
-      return <ImageBody block={block} onPatch={onPatch} />;
+      return <ImageBody block={block} onPatch={onPatch} lang={lang} />;
     case 'video':
-      return <VideoBody block={block} onPatch={onPatch} />;
+      return <VideoBody block={block} onPatch={onPatch} lang={lang} />;
     case 'warning':
-      return <WarningBody block={block} onPatch={onPatch} />;
+      return <WarningBody block={block} onPatch={onPatch} lang={lang} />;
     case 'attachment':
-      return <AttachmentBody block={block} onPatch={onPatch} />;
+      return <AttachmentBody block={block} onPatch={onPatch} lang={lang} />;
     case 'table':
-      return <TableBody block={block} onPatch={onPatch} />;
+      return <TableBody block={block} onPatch={onPatch} lang={lang} />;
   }
 }
 
 // ---- Text ----
 
-function TextBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind: 'text' }>>): React.ReactElement {
-  const [lang, setLang] = React.useState<'en' | 'es'>('en');
+/** Block type options for the slash command picker — same list as InsertAfterButton. */
+const SLASH_BLOCK_OPTIONS: { kind: ProcedureBlockKind; label: string; icon: string }[] = [
+  { kind: 'text', label: 'Text', icon: 'ri-text' },
+  { kind: 'heading', label: 'Heading', icon: 'ri-h-1' },
+  { kind: 'method', label: 'Numbered steps', icon: 'ri-list-ordered' },
+  { kind: 'table', label: 'Table', icon: 'ri-table-line' },
+  { kind: 'warning', label: 'Callout', icon: 'ri-alert-line' },
+  { kind: 'image', label: 'Photograph', icon: 'ri-image-line' },
+  { kind: 'video', label: 'Video', icon: 'ri-video-line' },
+  { kind: 'attachment', label: 'Attachment', icon: 'ri-attachment-line' },
+];
+
+function TextBody({
+  block,
+  onPatch,
+  lang,
+  onInsertAfter,
+}: BodyProps<Extract<ProcedureBlock, { kind: 'text' }>> & {
+  onInsertAfter?: (kind: ProcedureBlockKind) => void;
+}): React.ReactElement {
+  const [slashOpen, setSlashOpen] = React.useState(false);
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+
+  const value = asLoc(block.body, lang);
+
+  function handleChange(e: React.ChangeEvent<HTMLTextAreaElement>): void {
+    const v = e.target.value;
+    if (v === '/' && value === '') {
+      setSlashOpen(true);
+      return;
+    }
+    onPatch({ ...block, body: setLoc(block.body, lang, v) });
+  }
+
+  function handleSlashSelect(kind: ProcedureBlockKind): void {
+    setSlashOpen(false);
+    onInsertAfter?.(kind);
+  }
+
   return (
-    <div className="pt-1">
-      <BilingualInput
-        lang={lang}
-        onLangChange={setLang}
-        enValue={asLoc(block.body, 'en')}
-        esValue={asLoc(block.body, 'es')}
-        onEnChange={(v) => onPatch({ ...block, body: setLoc(block.body, 'en', v) })}
-        onEsChange={(v) => onPatch({ ...block, body: setLoc(block.body, 'es', v) })}
-        enPlaceholder="Type something…"
-        esPlaceholder="Escribe algo…"
-        multiline
+    <div className="relative">
+      <textarea
+        ref={textareaRef}
+        value={value}
+        onChange={handleChange}
+        placeholder={lang === 'en' ? 'Type something… (or / for blocks)' : 'Escribe algo… (o / para bloques)'}
         rows={3}
+        className={bodyTextareaCls}
       />
+      {slashOpen && (
+        <div
+          className="absolute left-0 top-full z-dropdown mt-1 w-52 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] shadow-[var(--e-3)]"
+          onMouseDown={(e) => e.preventDefault()}
+        >
+          <div className="p-1 space-y-0.5">
+            {SLASH_BLOCK_OPTIONS.map((opt) => (
+              <button
+                key={opt.kind}
+                type="button"
+                onClick={() => handleSlashSelect(opt.kind)}
+                className="flex w-full items-center gap-3 rounded-[var(--radius-sm)] px-3 py-2 text-left text-sm text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:text-[var(--color-brand-700)] transition-colors"
+              >
+                <Icon icon={opt.icon} className="text-base text-[var(--color-ink-2)]" />
+                <span className="font-medium">{opt.label}</span>
+              </button>
+            ))}
+          </div>
+          <div className="border-t border-[var(--color-line)] px-3 py-1.5">
+            <button
+              type="button"
+              onClick={() => setSlashOpen(false)}
+              className="text-xs text-[var(--color-ink-3)] hover:text-[var(--color-ink-2)]"
+            >
+              Esc to dismiss
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 // ---- Heading ----
 
-function HeadingBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind: 'heading' }>>): React.ReactElement {
-  const [lang, setLang] = React.useState<'en' | 'es'>('en');
-  const en = asLoc(block.text, 'en');
-  const es = asLoc(block.text, 'es');
-  const update = (lang: 'en' | 'es', v: string): void => {
-    onPatch({ ...block, text: setLoc(block.text, lang, v) });
-  };
+function HeadingBody({
+  block,
+  onPatch,
+  lang,
+}: BodyProps<Extract<ProcedureBlock, { kind: 'heading' }>>): React.ReactElement {
+  const value = asLoc(block.text, lang);
   return (
-    <div className="space-y-2 pt-1">
-      <div className="flex items-center gap-3">
-        <div className="w-20 shrink-0">
-          <CustomSelect
-            size="sm"
-            value={String(block.level)}
-            onChange={(v) => onPatch({ ...block, level: Number(v) as 1 | 2 | 3 })}
-            options={[
-              { value: '1', label: 'H1', icon: 'ri-h-1' },
-              { value: '2', label: 'H2', icon: 'ri-h-2' },
-              { value: '3', label: 'H3', icon: 'ri-h-3' },
-            ]}
-          />
-        </div>
-        <span className="text-xs font-semibold uppercase text-[var(--color-ink-3)]">
-          Heading
-        </span>
-        <LangToggle lang={lang} onChange={setLang} />
+    <div className="flex items-center gap-2">
+      {/* Heading level selector — always visible, compact */}
+      <div className="w-16 shrink-0">
+        <CustomSelect
+          size="sm"
+          value={String(block.level)}
+          onChange={(v) => onPatch({ ...block, level: Number(v) as 1 | 2 | 3 })}
+          options={[
+            { value: '1', label: 'H1', icon: 'ri-h-1' },
+            { value: '2', label: 'H2', icon: 'ri-h-2' },
+            { value: '3', label: 'H3', icon: 'ri-h-3' },
+          ]}
+        />
       </div>
-      {lang === 'en' ? (
-        <Input
-          value={en}
-          onChange={(e) => update('en', e.target.value)}
-          placeholder="Section title"
-          className={cn(
-            'border-transparent bg-[var(--color-wash)] shadow-none',
-            headingCls(block.level),
-            'px-2 text-xl',
-            'focus:border-[var(--color-brand-600)] focus:bg-[var(--color-surface)] focus:ring-0',
-          )}
-        />
-      ) : (
-        <Input
-          value={es}
-          onChange={(e) => update('es', e.target.value)}
-          placeholder="Título de la sección"
-          className={cn(
-            'border-transparent bg-[var(--color-wash)] shadow-none',
-            headingCls(block.level),
-            'px-2 text-xl',
-            'focus:border-[var(--color-brand-600)] focus:bg-[var(--color-surface)] focus:ring-0',
-          )}
-        />
-      )}
+      <Input
+        value={value}
+        onChange={(e) => onPatch({ ...block, text: setLoc(block.text, lang, e.target.value) })}
+        placeholder={lang === 'en' ? 'Section title' : 'Título de la sección'}
+        className={cn(
+          'border-transparent bg-transparent shadow-none flex-1',
+          headingCls(block.level),
+          'px-2',
+          'focus:border-[var(--color-brand-600)] focus:bg-[var(--color-surface)] focus:ring-0',
+        )}
+      />
     </div>
   );
 }
@@ -404,8 +473,11 @@ function headingCls(level: 1 | 2 | 3): string {
 
 // ---- Method (numbered steps) ----
 
-function MethodBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind: 'method' }>>): React.ReactElement {
-  const [lang, setLang] = React.useState<'en' | 'es'>('en');
+function MethodBody({
+  block,
+  onPatch,
+  lang,
+}: BodyProps<Extract<ProcedureBlock, { kind: 'method' }>>): React.ReactElement {
   const update = (idx: number, next: ProcedureMethodStep): void => {
     onPatch({ ...block, steps: block.steps.map((s, i) => (i === idx ? next : s)) });
   };
@@ -423,11 +495,7 @@ function MethodBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind
   };
 
   return (
-    <div className="space-y-2 pt-1">
-      <div className="flex items-center gap-2">
-        <span className="text-xs font-semibold text-[var(--color-ink-2)]">Steps</span>
-        <LangToggle lang={lang} onChange={setLang} />
-      </div>
+    <div className="space-y-2">
       <ol className="space-y-2">
         {block.steps.map((step, i) => (
           <li key={step.id ?? i} className="flex gap-3">
@@ -465,7 +533,7 @@ function MethodBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind
       <button
         type="button"
         onClick={add}
-        className="ml-10 inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-medium text-[var(--color-ink-2)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)]"
+        className="ml-10 inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-medium text-[var(--color-ink-3)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)]"
       >
         <Icon icon="ri-add-line" />
         Add step
@@ -499,7 +567,7 @@ function StepRowMenu({
 
 // ---- Recipe — for now, summary card pointing to dedicated editor ----
 
-function RecipeSummaryBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind: 'recipe' }>>): React.ReactElement {
+function RecipeSummaryBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind: 'recipe' }>>): React.ReactElement { // lang unused for recipe
   const ingredientsCount = block.ingredients?.length ?? 0;
   const stepsCount = block.steps?.length ?? 0;
   return (
@@ -530,7 +598,7 @@ function RecipeSummaryBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock,
 
 // ---- Image ----
 
-function ImageBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind: 'image' }>>): React.ReactElement {
+function ImageBody({ block, onPatch, lang }: BodyProps<Extract<ProcedureBlock, { kind: 'image' }>>): React.ReactElement {
   const [upload, setUpload] = React.useState<{ state: 'idle' | 'uploading' | 'failed'; error?: string }>({ state: 'idle' });
   const fileRef = React.useRef<HTMLInputElement>(null);
 
@@ -639,32 +707,21 @@ function ImageBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind:
         </button>
       )}
       <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleFile} className="hidden" />
-      <ImageCaptionFields block={block} onPatch={onPatch} />
+      {/* Caption — uses parent lang from toolbar */}
+      <textarea
+        value={asOpt(block.caption, lang) ?? ''}
+        onChange={(e) => onPatch({ ...block, caption: setOpt(block.caption, lang, e.target.value) })}
+        placeholder={lang === 'en' ? 'Optional caption' : 'Pie de foto opcional'}
+        rows={2}
+        className={bodyTextareaCls}
+      />
     </div>
-  );
-}
-
-function ImageCaptionFields({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind: 'image' }>>): React.ReactElement {
-  const [lang, setLang] = React.useState<'en' | 'es'>('en');
-  return (
-    <BilingualInput
-      lang={lang}
-      onLangChange={setLang}
-      enValue={asOpt(block.caption, 'en')}
-      esValue={asOpt(block.caption, 'es')}
-      onEnChange={(v) => onPatch({ ...block, caption: setOpt(block.caption, 'en', v) })}
-      onEsChange={(v) => onPatch({ ...block, caption: setOpt(block.caption, 'es', v) })}
-      enPlaceholder="Optional caption"
-      esPlaceholder="Pie de foto opcional"
-      multiline
-      rows={2}
-    />
   );
 }
 
 // ---- Video ----
 
-function VideoBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind: 'video' }>>): React.ReactElement {
+function VideoBody({ block, onPatch, lang }: BodyProps<Extract<ProcedureBlock, { kind: 'video' }>>): React.ReactElement {
   const [upload, setUpload] = React.useState<{ state: 'idle' | 'uploading' | 'failed'; error?: string }>({ state: 'idle' });
   const fileRef = React.useRef<HTMLInputElement>(null);
   const videoClass = React.useMemo(() => classifyVideoUrl(block.src), [block.src]);
@@ -784,33 +841,24 @@ function VideoBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind:
         </div>
       )}
       <input ref={fileRef} type="file" accept="video/mp4,video/webm,video/quicktime" onChange={handleFile} className="hidden" />
-      <VideoCaptionFields block={block} onPatch={onPatch} />
+      <textarea
+        value={asOpt(block.caption, lang) ?? ''}
+        onChange={(e) => onPatch({ ...block, caption: setOpt(block.caption, lang, e.target.value) })}
+        placeholder={lang === 'en' ? 'Optional caption' : 'Pie de foto opcional'}
+        rows={2}
+        className={bodyTextareaCls}
+      />
     </div>
-  );
-}
-
-function VideoCaptionFields({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind: 'video' }>>): React.ReactElement {
-  const [lang, setLang] = React.useState<'en' | 'es'>('en');
-  return (
-    <BilingualInput
-      lang={lang}
-      onLangChange={setLang}
-      enValue={asOpt(block.caption, 'en')}
-      esValue={asOpt(block.caption, 'es')}
-      onEnChange={(v) => onPatch({ ...block, caption: setOpt(block.caption, 'en', v) })}
-      onEsChange={(v) => onPatch({ ...block, caption: setOpt(block.caption, 'es', v) })}
-      enPlaceholder="Optional caption"
-      esPlaceholder="Pie de foto opcional"
-      multiline
-      rows={2}
-    />
   );
 }
 
 // ---- Warning / callout ----
 
-function WarningBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind: 'warning' }>>): React.ReactElement {
-  const [lang, setLang] = React.useState<'en' | 'es'>('en');
+function WarningBody({
+  block,
+  onPatch,
+  lang,
+}: BodyProps<Extract<ProcedureBlock, { kind: 'warning' }>>): React.ReactElement {
   const sevTone: Record<ProcedureNoteKind, { bg: string; text: string; icon: string }> = {
     warn: { bg: 'border-[var(--color-bad-tint)] bg-[var(--color-bad-tint)]', text: 'text-[var(--color-bad)]', icon: 'ri-error-warning-line' },
     tip: { bg: 'border-[var(--color-ok-tint-2)] bg-[var(--color-ok-tint)]', text: 'text-[var(--color-ok)]', icon: 'ri-lightbulb-line' },
@@ -821,40 +869,35 @@ function WarningBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kin
   const tone = sevTone[block.severity];
 
   return (
-    <div className="space-y-2 pt-1">
-      <div className={cn('rounded-[var(--radius-md)] border p-3', tone.bg)}>
-        <div className="mb-2 flex items-center gap-3">
-          <Icon icon={tone.icon} className="${tone.text} text-base" />
-          <div className="w-field-sm shrink-0">
-            <CustomSelect
-              size="sm"
-              value={block.severity}
-              onChange={(v) => onPatch({ ...block, severity: v as ProcedureNoteKind })}
-              options={NOTE_KINDS.map((k) => ({ value: k, label: k, icon: sevTone[k].icon }))}
-            />
-          </div>
-          <LangToggle lang={lang} onChange={setLang} />
+    <div className={cn('rounded-[var(--radius-md)] border p-3', tone.bg)}>
+      {/* Severity picker — compact, always accessible */}
+      <div className="mb-2 flex items-center gap-2">
+        <Icon icon={tone.icon} className={cn(tone.text, 'text-base shrink-0')} />
+        <div className="w-28 shrink-0">
+          <CustomSelect
+            size="sm"
+            value={block.severity}
+            onChange={(v) => onPatch({ ...block, severity: v as ProcedureNoteKind })}
+            options={NOTE_KINDS.map((k) => ({ value: k, label: k, icon: sevTone[k].icon }))}
+          />
         </div>
-        <textarea
-          value={asLoc(block.body, lang)}
-          onChange={(e) => onPatch({ ...block, body: setLoc(block.body, lang, e.target.value) })}
-          placeholder={
-            lang === 'en' ? 'Write the note in English…' : 'Escribe la nota en español…'
-          }
-          rows={3}
-          className={cn(bodyTextareaCls, 'bg-[var(--color-surface)]')}
-        />
       </div>
+      <textarea
+        value={asLoc(block.body, lang)}
+        onChange={(e) => onPatch({ ...block, body: setLoc(block.body, lang, e.target.value) })}
+        placeholder={lang === 'en' ? 'Write the note in English…' : 'Escribe la nota en español…'}
+        rows={3}
+        className={cn(bodyTextareaCls, 'bg-[var(--color-surface)]')}
+      />
     </div>
   );
 }
 
 // ---- Attachment ----
 
-function AttachmentBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind: 'attachment' }>>): React.ReactElement {
-  const [lang, setLang] = React.useState<'en' | 'es'>('en');
+function AttachmentBody({ block, onPatch, lang }: BodyProps<Extract<ProcedureBlock, { kind: 'attachment' }>>): React.ReactElement {
   return (
-    <div className="space-y-2 pt-1">
+    <div className="space-y-2">
       <div className="flex items-center gap-2 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-wash)] px-3 py-2">
         <Icon icon="ri-attachment-line" className="text-lg text-[var(--color-brand-700)]" />
         <Input
@@ -865,15 +908,11 @@ function AttachmentBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { 
           className="flex-1 border-none bg-transparent shadow-none focus:border-none"
         />
       </div>
-      <BilingualInput
-        lang={lang}
-        onLangChange={setLang}
-        enValue={asLoc(block.title, 'en')}
-        esValue={asLoc(block.title, 'es')}
-        onEnChange={(v) => onPatch({ ...block, title: setLoc(block.title, 'en', v) })}
-        onEsChange={(v) => onPatch({ ...block, title: setLoc(block.title, 'es', v) })}
-        enPlaceholder="e.g. HACCP checklist"
-        esPlaceholder="e.g. Lista HACCP"
+      <Input
+        value={asLoc(block.title, lang)}
+        onChange={(e) => onPatch({ ...block, title: setLoc(block.title, lang, e.target.value) })}
+        placeholder={lang === 'en' ? 'e.g. HACCP checklist' : 'e.g. Lista HACCP'}
+        className="border-transparent bg-transparent shadow-none focus:border-[var(--color-brand-600)] focus:ring-0"
       />
     </div>
   );
@@ -881,10 +920,11 @@ function AttachmentBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { 
 
 // ---- Table — real table ----
 
-function TableBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind: 'table' }>>): React.ReactElement {
-  // One toggle for the whole table — switching sides preserves both, so the
-  // EN input you typed doesn't disappear when you flip to ES and back.
-  const [lang, setLang] = React.useState<'en' | 'es'>('en');
+function TableBody({
+  block,
+  onPatch,
+  lang,
+}: BodyProps<Extract<ProcedureBlock, { kind: 'table' }>>): React.ReactElement {
   const currentLabel = lang === 'en' ? 'EN' : 'ES';
   const otherLabel = lang === 'en' ? 'ES' : 'EN';
   function setHeader(j: number, lang: 'en' | 'es', value: string): void {
@@ -927,24 +967,12 @@ function TableBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind:
   }
 
   return (
-    <div className="space-y-3 pt-1">
-      {/* Top action header: Language toggle on left, leaving top-right clear for 3 dots menu */}
-      <div className="flex items-center gap-3">
-        <span className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--color-ink-2)]">
-          <Icon icon="ri-table-line" className="text-sm text-[var(--color-brand-700)]" />
-          <span>Table</span>
-          <span className="text-[var(--color-ink-3)] font-normal">
-            ({block.rows.length} row{block.rows.length === 1 ? '' : 's'} × {block.headers.length} col{block.headers.length === 1 ? '' : 's'})
-          </span>
-        </span>
-        <LangToggle lang={lang} onChange={setLang} />
-      </div>
-
-      {/* Sleek, clean Notion-style table grid surface */}
-      <div className="overflow-x-auto rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] shadow-e1">
+    <div>
+      {/* Table grid — hairline borders, no badge/label */}
+      <div className="overflow-x-auto rounded-[var(--radius-md)] border border-[var(--color-line)] bg-[var(--color-surface)]">
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="border-b border-[var(--color-line-2)] bg-[var(--color-wash)]">
+            <tr className="border-b border-[var(--color-line)] bg-[var(--color-wash)]">
               {block.headers.map((_, j) => {
                 const isFilledOther = otherLabel === 'ES'
                   ? Boolean(block.headers[j]?.es?.trim())
@@ -952,7 +980,7 @@ function TableBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind:
                 return (
                   <th
                     key={j}
-                    className="group relative min-w-field-xs border-r border-[var(--color-line-2)] p-1 text-left font-semibold text-[var(--color-ink)] last:border-r-0"
+                    className="group relative min-w-field-xs border-r border-[var(--color-line)] p-1 text-left font-semibold text-[var(--color-ink)] last:border-r-0"
                   >
                     <div className="flex items-center gap-1 px-1">
                       <input
@@ -985,7 +1013,7 @@ function TableBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind:
                   </th>
                 );
               })}
-              <th className="w-tap-admin border-b border-[var(--color-line-2)] bg-[var(--color-wash)] p-1 text-center">
+              <th className="w-tap-admin border-b border-[var(--color-line)] bg-[var(--color-wash)] p-1 text-center">
                 <button
                   type="button"
                   aria-label="Add column"
@@ -998,7 +1026,7 @@ function TableBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind:
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[var(--color-line-2)]">
+          <tbody className="divide-y divide-[var(--color-line)]">
             {block.rows.map((row, i) => (
               <tr key={i} className="group/row transition-colors hover:bg-[var(--color-wash)]">
                 {row.map((_, j) => {
@@ -1008,7 +1036,7 @@ function TableBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind:
                   return (
                     <td
                       key={j}
-                      className="min-w-field-xs border-r border-[var(--color-line-2)] p-1 align-top last:border-r-0"
+                      className="min-w-field-xs border-r border-[var(--color-line)] p-1 align-top last:border-r-0"
                     >
                       <div className="flex items-center gap-1 px-1">
                         <input
@@ -1057,7 +1085,7 @@ function TableBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind:
                   <span>Add row</span>
                 </button>
               </td>
-              <td className="w-tap-admin p-1 text-center align-middle border-t border-[var(--color-line-2)]">
+              <td className="w-tap-admin p-1 text-center align-middle border-t border-[var(--color-line)]">
                 <button
                   type="button"
                   aria-label="Add row"
@@ -1089,7 +1117,7 @@ function TableBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind:
 // ---------------------------------------------------------------------------
 
 const bodyTextareaCls =
-  'flex w-full resize-none rounded-[var(--radius-md)] border border-transparent bg-[var(--color-wash)] px-3 py-2 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] transition-colors hover:border-[var(--color-line-2)] hover:bg-[var(--color-surface)] focus:border-[var(--color-brand-600)] focus:bg-[var(--color-surface)] focus:outline-none';
+  'flex w-full resize-none rounded-[var(--radius-md)] border border-transparent bg-transparent px-3 py-2 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] transition-colors hover:border-[var(--color-line-2)] hover:bg-[var(--color-surface)] focus:border-[var(--color-brand-600)] focus:bg-[var(--color-surface)] focus:outline-none';
 
 function LangToggle({
   lang,
@@ -1363,7 +1391,8 @@ export function NotionBlockList({ blocks, onChange }: NotionBlockListProps): Rea
 function EndAddButton({ onAdd }: { onAdd: (kind: ProcedureBlockKind) => void }): React.ReactElement {
   return (
     <div className="pt-2">
-      <InsertAfterButton onInsert={onAdd} />
+      {/* Ghost affordance — visible on hover only so it doesn't compete with slash command */}
+      <InsertAfterButton onInsert={onAdd} ghost />
     </div>
   );
 }
