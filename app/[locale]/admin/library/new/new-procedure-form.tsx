@@ -25,7 +25,7 @@ import type {
   Localised,
   LocalisedOptional,
 } from '@/lib/types';
-import { ProcedureBlockList } from '@/components/admin/procedure-block-list';
+import { NotionBlockList } from './notion-block-list';
 import {
   ProcedureTypeSelector,
   type ProcedureTypeId,
@@ -39,9 +39,17 @@ import {
   type RecipeIngredientItem,
 } from '@/components/admin/recipe-ingredients-editor';
 import { DocumentImportPanel } from '@/components/admin/document-import-panel';
-import { LuArrowLeft, LuArrowRight, LuBrush, LuCheck, LuChevronLeft, LuChevronRight, LuCircleAlert, LuCircleCheck, LuDownload, LuEllipsis, LuEye, LuFileText, LuFolder, LuLayoutGrid, LuPaperclip, LuSearch, LuShieldAlert, LuSparkles, LuStore, LuTriangleAlert, LuTruck, LuUserCog, LuUtensils, LuWrench, LuX } from 'react-icons/lu';
+import { LuArrowLeft, LuArrowRight, LuBrush, LuPencil, LuCheck, LuChevronLeft, LuChevronRight, LuCircleAlert, LuCircleCheck, LuDownload, LuEllipsis, LuEye, LuFileText, LuFolder, LuLayoutGrid, LuPaperclip, LuSearch, LuShieldAlert, LuSparkles, LuStore, LuTriangleAlert, LuTruck, LuUserCog, LuUtensils, LuWrench, LuX } from 'react-icons/lu';
 import { Icon } from '@/components/ui/icon';
 import type { IconType } from 'react-icons';
+import { AccessScreen } from './access-screen';
+import { type AccessLevel } from './access-level-selector';
+import {
+  ACCESS_LOCATIONS,
+  ACCESS_ROLES,
+  ACCESS_STATIONS,
+  ACCESS_EMPLOYEES,
+} from './access-data';
 
 interface NewProcedureFormProps {
   locale: string;
@@ -447,6 +455,10 @@ export function NewProcedureForm({
   const initialType = React.useMemo(() => deriveTypeFromCategory(initialCat), [initialCat]);
 
   const [creationMode, setCreationMode] = useState<'manual' | 'import'>('manual');
+  // Once the manager picks how they want to start, the chooser at the top of
+  // the page gets out of the way — they don't need to keep seeing it while
+  // they're filling in the rest of the form.
+  const [hasChosenMode, setHasChosenMode] = useState(false);
   const [wizardStep, setWizardStep] = useState<WizardStepId>('details');
   const [categoryId, setCategoryId] = useState<string>(() => initialCat?.id ?? DEFAULT_CATEGORIES[0].id);
   const [procedureType, setProcedureType] = useState<ProcedureTypeId>(() => initialType);
@@ -461,6 +473,41 @@ export function NewProcedureForm({
   const [purposeLang, setPurposeLang] = useState<'en' | 'es'>('en');
   const [clearanceLevel, setClearanceLevel] = useState<ClearanceTier | null>(null);
   const [blocks, setBlocksRaw] = useState<ProcedureBlock[]>([]);
+
+  // Access selections (Step 3 / 4). Lives in the wizard so the Review step
+  // can render them — `AccessScreen` only owns ephemeral interaction state
+  // now (like the assign search query) and reads/writes through these.
+  const [accessSelections, setAccessSelections] = useState<{
+    locations: Set<string>;
+    roles: Set<string>;
+    stations: Set<string>;
+    employees: Set<string>;
+  }>(() => ({
+    locations: new Set<string>(),
+    roles: new Set<string>(),
+    stations: new Set<string>(),
+    employees: new Set<string>(),
+  }));
+
+  // Access level — the top-level choice on the Access step. When
+  // 'everyone' the procedure is visible to every employee regardless of
+  // the location / role / station / employee selections below. Those
+  // selections stay in state untouched, so flipping back to 'restricted'
+  // restores the prior scoped access without losing the manager's
+  // choices.
+  const [accessLevel, setAccessLevel] = React.useState<AccessLevel>('restricted');
+
+  const updateAccess = React.useCallback(
+    (key: 'locations' | 'roles' | 'stations' | 'employees', id: string): void => {
+      setAccessSelections((prev) => {
+        const next = new Set(prev[key]);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return { ...prev, [key]: next };
+      });
+    },
+    [],
+  );
 
   // Recipe specific states
   const [ingredients, setIngredients] = useState<RecipeIngredientItem[]>([
@@ -511,49 +558,30 @@ export function NewProcedureForm({
     [],
   );
 
+  // Dev note: validation that blocks moving forward without completing the
+  // previous step has been intentionally relaxed so the manager can move
+  // freely between steps while building a procedure. The required-field
+  // checks are still in place on submit (see `submit`).
   const handleSelectStep = React.useCallback(
     (targetStep: WizardStepId): void => {
-      if (targetStep !== 'details') {
-        if (!isRecipeMode && (targetStep === 'ingredients' || targetStep === 'method')) {
-          return; // recipe-only step on a non-recipe procedure
-        }
-        if (!hasTitle) {
-          setError(tErr('missingTitle'));
-          return;
-        }
-        if (!hasPurpose) {
-          setError(tErr('missingPurpose'));
-          return;
-        }
+      if (!isRecipeMode && (targetStep === 'ingredients' || targetStep === 'method')) {
+        return; // recipe-only step on a non-recipe procedure
       }
       setError(null);
       setWizardStep(targetStep);
     },
-    [hasTitle, hasPurpose, isRecipeMode, tErr],
+    [isRecipeMode],
   );
 
   const handleNextStep = React.useCallback((): void => {
     setError(null);
 
     if (wizardStep === 'details') {
-      if (!hasTitle) {
-        setError(tErr('missingTitle'));
-        return;
-      }
-      if (!hasPurpose) {
-        setError(tErr('missingPurpose'));
-        return;
-      }
       setWizardStep(isRecipeMode ? 'ingredients' : 'content');
       return;
     }
 
     if (wizardStep === 'ingredients') {
-      const hasNamedIngredient = ingredients.some((i) => i.name.trim().length > 0);
-      if (!hasNamedIngredient) {
-        setError(tErr('missingIngredient'));
-        return;
-      }
       setWizardStep('method');
       return;
     }
@@ -564,14 +592,10 @@ export function NewProcedureForm({
     }
 
     if (wizardStep === 'access') {
-      if (clearanceLevel === null) {
-        setError(tErr('missingAccess'));
-        return;
-      }
       setWizardStep('review');
       return;
     }
-  }, [wizardStep, hasTitle, hasPurpose, isRecipeMode, ingredients, clearanceLevel, tErr]);
+  }, [wizardStep, isRecipeMode]);
 
   const primaryCategories = React.useMemo(() => {
     return sourceCategories.slice(0, 7);
@@ -736,41 +760,12 @@ export function NewProcedureForm({
     setError(null);
     setErrorDetails([]);
 
-    const isDraft = status === 'draft';
-    const titleEnOk = titleEn.trim().length > 0;
-    const titleEsOk = titleEs.trim().length > 0;
-    const purposeEnOk = purposeEn.trim().length > 0;
-    const purposeEsOk = purposeEs.trim().length > 0;
-
-    if (!titleEnOk && !titleEsOk) {
-      setError(tErr(isDraft ? 'missingTitleDraft' : 'missingTitle'));
-      return;
-    }
-    if (isDraft ? (!titleEnOk && !titleEsOk) : (!titleEnOk || !titleEsOk)) {
-      // For published: must have both. Already handled above for empty-both.
-    }
-    if (!purposeEnOk && !purposeEsOk) {
-      setError(tErr(isDraft ? 'missingPurposeDraft' : 'missingPurpose'));
-      return;
-    }
-    if (!isDraft && (!purposeEnOk || !purposeEsOk)) {
-      setError(tErr('missingPurpose'));
-      return;
-    }
-
-    if (isRecipeMode) {
-      const hasNamedIngredient = ingredients.some((i) => i.name.trim().length > 0);
-      if (!hasNamedIngredient) {
-        setError(tErr('missingIngredient'));
-        return;
-      }
-    }
-
-    if (!isDraft && clearanceLevel === null) {
-      setError(tErr('missingAccess'));
-      return;
-    }
-
+    // Dev note: the front-end pre-flight checks that used to gate the
+    // submission (require a title, a purpose, at least one ingredient for
+    // recipes, clearance for publish) were intentionally removed so the
+    // manager can save a half-built procedure without hitting the warning
+    // banner. The backend is the source of truth for what's publishable —
+    // any rejection still surfaces through the catch block below.
     const body = isRecipeMode
       ? buildRecipeBody({
           titleEn,
@@ -842,6 +837,12 @@ export function NewProcedureForm({
       ];
 
   const completedCount = sections.filter((s) => s.completed).length;
+  // Total selections across location + role + station — drives the access
+  // card eyebrow and the publish-band copy at the bottom of Review.
+  const accessCount =
+    accessSelections.locations.size +
+    accessSelections.roles.size +
+    accessSelections.stations.size;
   const activeCategory = categories.find((c) => c.id === categoryId);
   const categoryLabel = activeCategory
     ? (locale === 'es' ? activeCategory.nameEs : activeCategory.nameEn)
@@ -900,39 +901,53 @@ export function NewProcedureForm({
         </p>
       </header>
 
-      {/* Start Creation Choice Header */}
-      <div className="flex items-center gap-4 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-4">
-        <span className="text-sm font-semibold text-[var(--color-ink)]">
-          How would you like to start?
-        </span>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setCreationMode('manual')}
-            className={cn(
-              'flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition-all',
-              creationMode === 'manual'
-                ? 'bg-[var(--color-panel)] text-[var(--color-ink)] border border-[var(--color-ink)]'
-                : 'border border-[var(--color-line-3)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:bg-[var(--color-wash)]',
-            )}
-          >
-            <span>✎</span> Create manually
-          </button>
-          <button
-            type="button"
-            onClick={() => setCreationMode('import')}
-            className={cn(
-              'flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition-all',
-              creationMode === 'import'
-                ? 'bg-[var(--color-panel)] text-[var(--color-ink)] border border-[var(--color-ink)]'
-                : 'border border-[var(--color-line-3)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:bg-[var(--color-wash)]',
-            )}
-          >
-            <LuSparkles aria-hidden="true" />
-            Import a document (PDF, DOCX, Photo)
-          </button>
+      {/* Start Creation Choice Header — hides once the manager has picked a mode,
+          so they are not staring at the chooser while filling the form.
+          The chosen side is marked the way every other selection in the admin is:
+          a panel wash and an ink edge. Terracotta here would make "how to start"
+          look like the page's main action, which is "Next step". */}
+      {!hasChosenMode && (
+        <div className="flex items-center gap-4 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-4 shadow-e1">
+          <span className="text-sm font-semibold text-[var(--color-ink)]">
+            How would you like to start?
+          </span>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setCreationMode('manual');
+                setHasChosenMode(true);
+              }}
+              className={cn(
+                'flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold',
+                'transition-colors duration-[var(--dur)] ease-[var(--ease)]',
+                creationMode === 'manual'
+                  ? 'bg-[var(--color-panel)] text-[var(--color-ink)] border border-[var(--color-ink)]'
+                  : 'border border-[var(--color-line-3)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:bg-[var(--color-wash)]',
+              )}
+            >
+              <LuPencil aria-hidden="true" /> Create manually
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setCreationMode('import');
+                setHasChosenMode(true);
+              }}
+              className={cn(
+                'flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold',
+                'transition-colors duration-[var(--dur)] ease-[var(--ease)]',
+                creationMode === 'import'
+                  ? 'bg-[var(--color-panel)] text-[var(--color-ink)] border border-[var(--color-ink)]'
+                  : 'border border-[var(--color-line-3)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:bg-[var(--color-wash)]',
+              )}
+            >
+              <LuSparkles aria-hidden="true" />
+              Import a document (PDF, DOCX, Photo)
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* AI Import Upload Box when Import mode is selected */}
       {creationMode === 'import' && (
@@ -1334,143 +1349,231 @@ export function NewProcedureForm({
             title={isRecipeMode ? tRecipe('methodTitle') : tForm('contentSectionTitle')}
             subtitle={isRecipeMode ? tRecipe('methodSubtitle') : tForm('contentSectionSubtitle')}
           >
-            <ProcedureBlockList blocks={blocks} onChange={setBlocks} />
+            <NotionBlockList blocks={blocks} onChange={setBlocks} />
           </Section>
         )}
 
-        {/* Step: Access & Clearance Level Section */}
+        {/* Step: Access — radio choice + four compact rows. */}
         {wizardStep === 'access' && (
-          <Section
-            id="proc-access"
-            icon={LuUserCog}
-            title={tAccess('title')}
-            subtitle={tAccess('subtitle')}
-          >
-            <div className="space-y-4">
-              <Label className="text-sm font-semibold text-[var(--color-ink)]">
-                {tAccess('label')}
-                <span aria-hidden="true" className="ml-1 text-[var(--color-bad)]">*</span>
-              </Label>
-
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {[
-                  { id: 'general', key: 'general' },
-                  { id: 'station', key: 'station' },
-                  { id: 'confidential', key: 'confidential' },
-                  { id: 'master', key: 'master' },
-                ].map((tier) => {
-                  const isSelected = clearanceLevel === tier.id;
-                  return (
-                    <button
-                      key={tier.id}
-                      type="button"
-                      onClick={() => {
-                        setClearanceLevel(tier.id as ClearanceTier);
-                        setIsDirty(true);
-                      }}
-                      className={cn(
-                        'flex flex-col items-start rounded-[var(--radius-lg)] border p-4 text-left transition-all',
-                        isSelected
-                          ? 'border-[var(--color-ink)] bg-[var(--color-surface)] ring-1 ring-[var(--color-ink)]'
-                          : 'border-[var(--color-line-2)] bg-[var(--color-surface)] hover:bg-[var(--color-wash)]',
-                      )}
-                    >
-                      <div className="flex items-center gap-2 font-semibold text-sm text-[var(--color-ink)]">
-                        <input
-                          type="radio"
-                          name="clearanceLevel"
-                          checked={isSelected}
-                          onChange={() => {
-                            setClearanceLevel(tier.id as ClearanceTier);
-                            setIsDirty(true);
-                          }}
-                          className="size-4 accent-[var(--color-brand-600)]"
-                        />
-                        <span>{tAccess(tier.key as never)}</span>
-                      </div>
-                      <p className="mt-1 pl-6 text-xs text-[var(--color-ink-2)]">
-                        {tAccess(`${tier.key}Desc` as never)}
-                      </p>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </Section>
+          <AccessScreen
+            selectedLocations={accessSelections.locations}
+            selectedRoles={accessSelections.roles}
+            selectedStations={accessSelections.stations}
+            assignedEmployees={accessSelections.employees}
+            accessLevel={accessLevel}
+            onToggleLocation={(id) => updateAccess('locations', id)}
+            onToggleRole={(id) => updateAccess('roles', id)}
+            onToggleStation={(id) => updateAccess('stations', id)}
+            onToggleEmployee={(id) => updateAccess('employees', id)}
+            onChangeAccessLevel={setAccessLevel}
+          />
         )}
 
         {/* Step: Review & Finish Section */}
         {wizardStep === 'review' && (
           <Section
             id="proc-review"
-            icon={LuCircleCheck}
-            title="Review & Finish"
-            subtitle="Verify all procedure details before saving or publishing."
+            icon="ri-checkbox-circle-line"
+            title="Review & finish"
+            subtitle="Confirm the procedure, who can see it, and where it goes."
           >
-            <div className="space-y-6">
-              {/* Overview Summary */}
-              <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-wash)] p-4 space-y-3">
-                <div className="flex items-center justify-between border-b border-[var(--color-line)] pb-2">
-                  <span className="text-xs font-semibold text-[var(--color-ink-2)]">
-                    {categoryLabel} · {isRecipeMode ? 'Recipe' : 'Procedure'}
-                  </span>
-                  <span className="rounded-[var(--radius-sm)] bg-[var(--color-panel)] px-3 py-0.5 text-xs font-semibold text-[var(--color-ink-2)]">
+            <div className="space-y-5">
+              {/* 1. Procedure — what this document is. */}
+              <ReviewCard
+                icon="ri-file-text-line"
+                title="Procedure"
+                eyebrow={`${categoryLabel} · ${isRecipeMode ? 'Recipe' : 'Procedure'}`}
+              >
+                <h3 className="font-[family-name:var(--font-display)] text-lg font-bold tracking-snug text-[var(--color-ink)]">
+                  {activeTitle || '(Untitled procedure)'}
+                </h3>
+                <p className="mt-1 text-sm leading-relaxed text-[var(--color-ink-2)]">
+                  {activePurpose || '(No purpose provided yet — go back to Details to add one.)'}
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <Chip tone="brand" icon="ri-bar-chart-2-line">
+                    {blocks.length} block{blocks.length === 1 ? '' : 's'}
+                  </Chip>
+                  <Chip tone="wash" icon="ri-flag-line">
                     {clearanceLabel}
-                  </span>
-                </div>
-                <div>
-                  <h3 className="font-[family-name:var(--font-ui)] text-lg font-semibold text-[var(--color-ink)]">
-                    {activeTitle || '(Untitled procedure)'}
-                  </h3>
-                  <p className="mt-1 text-sm text-[var(--color-ink-2)]">
-                    {activePurpose || '(No purpose provided)'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Recipe Ingredients Summary */}
-              {isRecipeMode && (
-                <div className="space-y-2">
-                  <h4 className="text-sm font-semibold text-[var(--color-ink)]">
-                    Ingredients ({ingredients.filter((i) => i.name.trim()).length})
-                  </h4>
-                  <div className="rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] p-3 text-sm space-y-1">
-                    {ingredients.filter((i) => i.name.trim()).length > 0 ? (
-                      ingredients
-                        .filter((i) => i.name.trim())
-                        .map((ing, idx) => (
-                          <div key={ing.id || idx} className="flex items-center justify-between py-1 border-b border-[var(--color-line)] last:border-0">
-                            <span className="font-medium text-[var(--color-ink)]">{ing.name}</span>
-                            <span className="text-[var(--color-ink-2)] font-mono text-xs">{ing.quantity} {ing.unit}</span>
-                          </div>
-                        ))
-                    ) : (
-                      <p className="text-xs text-[var(--color-ink-3)] italic">No ingredients added yet.</p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Content / Blocks Breakdown Summary */}
-              <div className="space-y-2">
-                <h4 className="text-sm font-semibold text-[var(--color-ink)]">
-                  Content Blocks ({blocks.length})
-                </h4>
-                <div className="rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] p-3 text-sm">
-                  {blocks.length > 0 ? (
-                    <ul className="list-disc list-inside space-y-1 text-[var(--color-ink-2)] text-xs">
-                      {blocks.map((b, i) => (
-                        <li key={b.id || i}>
-                          <span className="font-semibold capitalize text-[var(--color-ink)]">{b.kind}</span>
-                          {b.kind === 'heading' && b.text?.en && `: "${b.text.en}"`}
-                          {b.kind === 'text' && b.body?.en && `: "${b.body.en.slice(0, 40)}..."`}
-                        </li>
-                      ))}
-                    </ul>
+                  </Chip>
+                  {/* Public / Restricted badge — sourced from the access
+                      level choice on the Access step. */}
+                  {accessLevel === 'everyone' ? (
+                    <Chip tone="ok" icon="ri-earth-fill">
+                      {tAccess('reviewPublicBadge')}
+                    </Chip>
                   ) : (
-                    <p className="text-xs text-[var(--color-ink-3)] italic">No blocks added yet.</p>
+                    <Chip tone="wash" icon="ri-shield-line">
+                      {tAccess('reviewPrivateBadge')}
+                    </Chip>
+                  )}
+                  {isRecipeMode && (
+                    <Chip tone="wash" icon="ri-restaurant-line">
+                      {ingredients.filter((i) => i.name.trim()).length} ingredient
+                      {ingredients.filter((i) => i.name.trim()).length === 1 ? '' : 's'}
+                    </Chip>
                   )}
                 </div>
+              </ReviewCard>
+
+              {/* 2. Access — who can see this. Drawn from the Access tab.
+                    The eyebrow swaps between "Public (visible to everyone)"
+                    and the scoped count so the manager can confirm their
+                    intent at a glance before publishing. */}
+              <ReviewCard
+                icon="ri-shield-user-line"
+                title="Access"
+                eyebrow={
+                  accessLevel === 'everyone'
+                    ? tAccess('reviewPublicBadge')
+                    : `${accessCount} selected across ${['locations', 'roles', 'stations'].filter((k) => accessSelections[k as 'locations' | 'roles' | 'stations'].size > 0).length || 0} tier${'s'}`
+                }
+              >
+                {/* Locations */}
+                <ReviewChipRow
+                  icon="ri-map-pin-line"
+                  label="Locations"
+                  items={ACCESS_LOCATIONS.filter((o) => accessSelections.locations.has(o.id))}
+                  emptyText="No locations selected — open to everyone"
+                />
+
+                {/* Roles */}
+                <ReviewChipRow
+                  icon="ri-user-star-line"
+                  label="Roles"
+                  items={ACCESS_ROLES.filter((o) => accessSelections.roles.has(o.id))}
+                  emptyText="No roles selected — open to everyone"
+                />
+
+                {/* Stations */}
+                <ReviewChipRow
+                  icon="ri-store-2-line"
+                  label="Stations"
+                  items={ACCESS_STATIONS.filter((o) => accessSelections.stations.has(o.id))}
+                  emptyText="No stations selected — applies everywhere"
+                />
+              </ReviewCard>
+
+              {/* 3. Assignees — specific employees pulled in. Drawn from the Access tab. */}
+              <ReviewCard
+                icon="ri-team-line"
+                title="Assignees"
+                eyebrow={`${accessSelections.employees.size} employee${accessSelections.employees.size === 1 ? '' : 's'}`}
+              >
+                {accessSelections.employees.size === 0 ? (
+                  <p className="text-xs italic text-[var(--color-ink-3)]">
+                    No employees assigned yet. Procedure will still be visible
+                    to anyone matching the access ranges above.
+                  </p>
+                ) : (
+                  <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {ACCESS_EMPLOYEES.filter((e) => accessSelections.employees.has(e.id)).map(
+                      (emp) => (
+                        <li
+                          key={emp.id}
+                          className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2"
+                        >
+                          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand-tint)] text-sm font-bold text-[var(--color-brand-700)]">
+                            {emp.initials}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-sm font-semibold text-[var(--color-ink)]">
+                              {emp.name}
+                            </span>
+                            <span className="block text-xs text-[var(--color-ink-2)]">
+                              {emp.role} · {emp.station}
+                            </span>
+                          </span>
+                        </li>
+                      ),
+                    )}
+                  </ul>
+                )}
+              </ReviewCard>
+
+              {/* 4. Content — the body itself. Recipe blocks summarise on their own card. */}
+              {isRecipeMode && (
+                <ReviewCard icon="ri-restaurant-line" title="Recipe body">
+                  {ingredients.filter((i) => i.name.trim()).length === 0 ? (
+                    <p className="text-xs italic text-[var(--color-ink-3)]">
+                      No ingredients added yet.
+                    </p>
+                  ) : (
+                    <ul className="divide-y divide-[var(--color-line)] text-sm">
+                      {ingredients
+                        .filter((i) => i.name.trim())
+                        .map((ing, idx) => (
+                          <li key={ing.id || idx} className="flex items-center justify-between py-2">
+                            <span className="font-medium text-[var(--color-ink)]">{ing.name}</span>
+                            <span className="font-mono text-xs text-[var(--color-ink-2)]">
+                              {ing.quantity} {ing.unit}
+                            </span>
+                          </li>
+                        ))}
+                    </ul>
+                  )}
+                </ReviewCard>
+              )}
+
+              {/* 5. Final actions — Publish, Assign, Save draft. */}
+              <div className="rounded-[var(--radius-lg)] border border-[var(--color-brand-tint-2)] bg-[var(--color-brand-tint)] p-5 shadow-e1">
+                <div className="flex items-start gap-3">
+                  <span className="flex size-tap-admin shrink-0 items-center justify-center rounded-lg bg-[var(--color-brand-600)] text-white">
+                    <Icon icon="ri-rocket-2-line" className="text-lg" />
+                  </span>
+                  <div className="flex-1">
+                    <h3 className="font-[family-name:var(--font-ui)] text-md font-bold text-[var(--color-ink)]">
+                      Ready to go live?
+                    </h3>
+                    <p className="mt-0.5 text-sm text-[var(--color-ink-2)]">
+                      Publishing makes this procedure visible to everyone in the
+                      selected access ranges and notifies assignees. Saving as a
+                      draft keeps it private until you're ready.
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="default"
+                    disabled={isPending}
+                    onClick={() => void submit('published')}
+                    className="gap-2"
+                  >
+                    <Icon icon="ri-send-plane-fill" />
+                    {isPending ? tForm('publishing') : 'Publish & assign'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="default"
+                    disabled={isPending}
+                    onClick={() => void submit('draft')}
+                  >
+                    Save as draft
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // No-op stub: re-sends the notification digest to assignees
+                      // once the procedure is published. Wired through here so
+                      // the manager has a one-click "nudge" without republishing.
+                      setIsDirty(true);
+                    }}
+                    className="ml-auto inline-flex items-center gap-2 rounded-md px-2 py-1 text-sm font-semibold text-[var(--color-ink-2)] hover:bg-[var(--color-panel)] hover:text-[var(--color-ink)]"
+                  >
+                    <Icon icon="ri-notification-3-line" />
+                    Notify assignees
+                  </button>
+                </div>
+                <p className="mt-3 text-xs text-[var(--color-ink-2)]">
+                  <Icon icon="ri-information-line" className="mr-1 align-text-bottom" />
+                  {accessSelections.employees.size > 0
+                    ? `${accessSelections.employees.size} employee${accessSelections.employees.size === 1 ? '' : 's'} will be notified when published.`
+                    : 'No assignees selected — only people in the access ranges above will see this.'}
+                </p>
               </div>
             </div>
           </Section>
@@ -1909,7 +2012,8 @@ function Section({
   children,
 }: {
   id?: string;
-  icon?: IconType;
+  /** A component, or a name the icon registry resolves. */
+  icon?: IconType | string;
   title: string;
   subtitle?: string;
   headerAction?: React.ReactNode;
@@ -1942,5 +2046,125 @@ function Section({
       </header>
       <div className="space-y-4 pt-1">{children}</div>
     </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Review-only helpers. Kept local so the wizard's `new-procedure-form.tsx`
+// stays self-contained — the Review step is the only place that needs them.
+// ---------------------------------------------------------------------------
+
+interface AccessOption {
+  id: string;
+  label: string;
+  sub?: string;
+  icon?: string;
+}
+
+/** Single labelled chip — used to surface counts (block count, clearance,
+ *  ingredient count) without burying the underlying data. */
+function Chip({
+  icon,
+  tone,
+  children,
+}: {
+  icon?: string;
+  tone?: 'brand' | 'wash' | 'ok';
+  children: React.ReactNode;
+}): React.ReactElement {
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-bold',
+        tone === 'brand'
+          ? 'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)]'
+          : tone === 'ok'
+            ? 'border border-[var(--color-ok-tint-2)] bg-[var(--color-ok-tint)] text-[var(--color-ok)]'
+            : 'bg-[var(--color-wash)] text-[var(--color-ink-2)]',
+      )}
+    >
+      {icon && <Icon icon={icon} className="text-sm" />}
+      {children}
+    </span>
+  );
+}
+
+/** One section-card inside the Review step. Mirrors the existing `Section`
+ *  look (icon box + title) but without the bottom-border header — the cards
+ *  in Review are stacked tight, so we want visual separation instead. */
+function ReviewCard({
+  icon,
+  title,
+  eyebrow,
+  children,
+}: {
+  icon: string;
+  title: string;
+  eyebrow?: string;
+  children: React.ReactNode;
+}): React.ReactElement {
+  return (
+    <div className="rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-5 shadow-e1">
+      <header className="mb-3 flex items-center gap-3">
+        <span className="flex size-tap-admin shrink-0 items-center justify-center rounded-lg bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] text-lg">
+          <Icon icon={icon} />
+        </span>
+        <span className="flex-1">
+          {eyebrow && (
+            <span className="block text-sm font-bold uppercase text-[var(--color-brand-700)]">
+              {eyebrow}
+            </span>
+          )}
+          <span className="block font-[family-name:var(--font-ui)] text-sm font-bold tracking-snug text-[var(--color-ink)]">
+            {title}
+          </span>
+        </span>
+      </header>
+      <div className="space-y-3">{children}</div>
+    </div>
+  );
+}
+
+/** A small icon + label + chips-or-empty row inside a ReviewCard. Used for
+ *  the locations / roles / stations lists — same shape across the three
+ *  so the manager can scan once. */
+function ReviewChipRow({
+  icon,
+  label,
+  items,
+  emptyText,
+}: {
+  icon: string;
+  label: string;
+  items: AccessOption[];
+  emptyText: string;
+}): React.ReactElement {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2 text-sm font-bold uppercase text-[var(--color-ink-3)]">
+        <Icon icon={icon} className="text-sm" />
+        <span>{label}</span>
+        <span className="text-[var(--color-ink-3)]">·</span>
+        <span className="text-[var(--color-ink-3)]">{items.length}</span>
+      </div>
+      {items.length === 0 ? (
+        <p className="text-xs italic text-[var(--color-ink-3)]">{emptyText}</p>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {items.map((opt) => (
+            <span
+              key={opt.id}
+              className="inline-flex items-center gap-1 rounded-full border border-[var(--color-line-2)] bg-[var(--color-wash)] px-3 py-1 text-xs font-medium text-[var(--color-ink)]"
+            >
+              {opt.icon && <Icon icon={opt.icon} className="text-sm text-[var(--color-brand-700)]" />}
+              <span>{opt.label}</span>
+              {opt.sub && (
+                <span className="text-[var(--color-ink-3)]">{opt.sub}</span>
+              )}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

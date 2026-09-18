@@ -2,7 +2,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { listCategories, ApiException, fetchMe } from '@/lib/api';
+import { listCategories, listLocations, ApiException, fetchMe } from '@/lib/api';
 import { getCategoryIcon } from '@/lib/category-icons';
 import type { Category } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -10,45 +10,18 @@ import { CategoryActions, CreateCategoryButton } from './category-actions';
 import { LuArrowLeft, LuFolders } from 'react-icons/lu';
 import { Icon } from '@/components/ui/icon';
 
-/**
- * Admin → Library → Categories — manager CRUD.
- *
- * Composition:
- *   - Server Component fetches the categories for the admin's location
- *     (active + archived) and renders them as cards.
- *   - Each card carries a `⋯` kebab (rename / archive / unarchive) —
- *     destructive actions live one click deeper via row-actions.tsx.
- *   - The page-level `[+ Add category]` opens a right-side Drawer with
- *     the create form (DESIGN.md §3.6: settings surfaces use the
- *     slide-in).
- *
- * Empty state: if the location somehow has zero categories (a fresh
- * location seeded before the migration ran), the empty-state copy
- * guides the manager to add the first one.
- */
-
 interface PageProps {
   params: Promise<{ locale: string }>;
 }
 
 export const dynamic = 'force-dynamic';
 
-interface AdminLocationsResponse {
-  locations: { id: string }[];
-}
-
 async function readFirstManagedLocation(
   cookieHeader: string,
 ): Promise<string | null> {
-  const base = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:4000';
   try {
-    const res = await fetch(`${base}/api/admin/employees/locations`, {
-      headers: { cookie: cookieHeader },
-      cache: 'no-store',
-    });
-    if (!res.ok) return null;
-    const body = (await res.json()) as AdminLocationsResponse;
-    return body.locations[0]?.id ?? null;
+    const res = await listLocations(cookieHeader);
+    return res.locations[0]?.id ?? null;
   } catch {
     return null;
   }

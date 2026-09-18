@@ -10,7 +10,8 @@ import type { IconType } from 'react-icons';
 export interface SelectOption {
   value: string;
   label: string;
-  icon?: IconType;
+  /** A component, or a name the icon registry resolves. */
+  icon?: IconType | string;
   description?: string;
 }
 

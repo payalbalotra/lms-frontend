@@ -74,6 +74,7 @@
   --color-warn-ink: var(--warn-ink);
   --color-warn-tint: var(--warn-tint);
   --color-bad: var(--bad);
+  --color-bad-hover: var(--bad-hover);
   --color-bad-tint: var(--bad-tint);
 
   /* Space. The 4px scale and nothing else: p-7, gap-9 and mt-14 do not exist.
@@ -106,6 +107,7 @@
   --width-sidebar: var(--sidebar-w);
   --width-sheet: var(--sheet-w);
   --max-width-sheet: var(--sheet-max-w);
+  --max-width-field-sm: var(--field-sm);
   --max-width-field-lg: var(--field-lg);
   /* The reading column: the document sheet, the employee app and the tab bar are
      one width, and it is the width the HTML templates use. */
@@ -119,6 +121,7 @@
   --width-field-md: var(--field-md);
   --width-field-lg: var(--field-lg);
   --width-field-xl: var(--field-xl);
+  --min-width-field-xs: var(--field-xs);
   --min-width-field-md: var(--field-md);
   --min-width-field-lg: var(--field-lg);
   --height-tile: var(--tile-min-h);

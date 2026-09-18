@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { LuEllipsisVertical } from 'react-icons/lu';
+import { LuCircleAlert, LuEllipsisVertical } from 'react-icons/lu';
 import { Icon } from '@/components/ui/icon';
 import type { IconType } from 'react-icons';
 
@@ -33,8 +33,14 @@ export interface RowActionItem {
   onSelect: () => void;
   /** If true, the item is styled bad-tone and triggers an inline confirm. */
   destructive?: boolean;
-  /** Optional icon component — `LuPencil`, `LuTrash2`, etc. */
-  icon?: IconType;
+  /** Overrides the confirm button's label, for a destructive item whose
+   *  consequence is worth naming ("Delete block"). */
+  confirmLabel?: string;
+  /** The icon, as a component (`LuPencil`) or as a name the registry resolves
+   *  (`ri-pencil-line`). Names exist because a server component cannot hand a
+   *  function to a client one, and because the screens merged in from
+   *  feat/procedures were written against the old icon-class convention. */
+  icon?: IconType | string;
 }
 
 interface RowActionsProps {
@@ -136,20 +142,20 @@ export function RowActions({ items, triggerLabel, className }: RowActionsProps):
         >
           {confirmIndex !== null ? (
             <div className="space-y-2 p-3">
-              <p className="text-sm font-semibold text-[var(--color-ink)]">
+              <p className="flex items-center gap-2 text-sm font-semibold text-[var(--color-bad)]">
+                <LuCircleAlert aria-hidden="true" />
                 {t('rowActionsConfirmTitle')}
               </p>
-              <p className="text-xs text-[var(--color-ink-2)]">
+              <p className="text-sm text-[var(--color-ink)]">
                 {items[confirmIndex]?.label}
               </p>
-              <div className="flex justify-end gap-2 pt-1">
+              <div className="flex justify-end gap-2 pt-2">
                 <Button size="sm" variant="neutral" onClick={closeAll}>
                   {t('confirmNo')}
                 </Button>
                 <Button size="sm" variant="destructive" onClick={handleConfirm}>
-                  {items[confirmIndex]?.destructive === true
-                    ? t('confirmYesDanger')
-                    : t('confirmYes')}
+                  {items[confirmIndex]?.confirmLabel ??
+                    (items[confirmIndex]?.destructive === true ? t('confirmDelete') : t('confirmYes'))}
                 </Button>
               </div>
             </div>

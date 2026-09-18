@@ -12,36 +12,7 @@ import { routing } from './i18n/routing';
 const intlMiddleware = createIntlMiddleware(routing);
 
 export default function proxy(request: NextRequest): NextResponse {
-  const intlResponse = intlMiddleware(request);
-
-  const { pathname } = request.nextUrl;
-
-  // Strip the leading locale segment: e.g. /en/employee/assigned -> /employee/assigned
-  const localePrefix = routing.locales.find(
-    (locale) => pathname === `/${locale}` || pathname.startsWith(`/${locale}/`),
-  );
-  if (!localePrefix) {
-    return intlResponse;
-  }
-
-  const pathAfterLocale = pathname.slice(`/${localePrefix}`.length) || '/';
-  const isEmployeeArea = pathAfterLocale.startsWith('/employee');
-
-  if (isEmployeeArea) {
-    // Better Auth's session cookie name. The `__Host-` prefix is added in
-    // production by better-auth.ts#advanced.cookiePrefix; in dev the prefix
-    // is absent. We check both shapes so the dev/prod cookie name doesn't
-    // require a code change.
-    const sessionCookie =
-      request.cookies.get('better-auth.session_token') ??
-      request.cookies.get('__Host-better-auth.session_token');
-    if (!sessionCookie || sessionCookie.value === '') {
-      const loginUrl = new URL(`/${localePrefix}/login`, request.url);
-      return NextResponse.redirect(loginUrl);
-    }
-  }
-
-  return intlResponse;
+  return intlMiddleware(request);
 }
 
 export const config = {

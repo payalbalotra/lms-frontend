@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { cookies } from 'next/headers';
 import { setRequestLocale } from 'next-intl/server';
-import { listCategories, ApiException } from '@/lib/api';
+import { listCategories, listLocations, ApiException } from '@/lib/api';
 import type { Category } from '@/lib/types';
 import { NewProcedureForm } from './new-procedure-form';
 
@@ -37,18 +37,11 @@ export default async function AdminLibraryNewPage({
 }
 
 // Returns the locations the signed-in admin manages, so we know which
-// location's category list to pull. Implemented as a raw fetch because the
-// admin locations endpoint is restricted; we just need any one of them for
-// the new-procedure dropdown.
+// location's category list to pull.
 async function readActiveLocations(cookieHeader: string): Promise<string[]> {
   try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:4000'}/api/admin/employees/locations`,
-      { headers: { cookie: cookieHeader }, cache: 'no-store' },
-    );
-    if (!res.ok) return [];
-    const body = (await res.json()) as { locations: { id: string }[] };
-    return body.locations.map((l) => l.id);
+    const res = await listLocations(cookieHeader);
+    return res.locations.map((l) => l.id);
   } catch {
     return [];
   }

@@ -46,6 +46,7 @@
   --warn-ink:  #92400e;  /* amber text. 6.4:1 on warn-tint */
   --warn-tint: #fef3c7;
   --bad:       #b91c1c;  /* red, kept dark enough that it separates from the terracotta by brightness, not only by hue. White on it 6.5:1 */
+  --bad-hover: #991b1b;  /* the destructive fill under the pointer: one step darker, so the state is visible without changing hue. White on it 8.6:1 */
   --bad-tint:  #fee2e2;  /* bad on it 5.3:1 */
 
   /* On a fill. White here is not a surface: it is the text and icon colour on
