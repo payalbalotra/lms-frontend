@@ -41,6 +41,9 @@ import { syncAmountsWithFactors } from '@/lib/procedure-blocks';
 import { ALLERGEN_KEYS, type AllergenKey } from '@/lib/allergens';
 import { requestImageUpload, requestVideoUpload, uploadToR2, deleteUpload } from '@/lib/api';
 import { classifyVideoUrl } from '@/lib/procedure-media';
+import { LuArrowDown, LuArrowUp, LuCamera, LuChevronDown, LuChevronUp, LuCircleAlert, LuCirclePlay, LuCloudUpload, LuCopy, LuFocus, LuGripVertical, LuHeading1, LuHeading2, LuHeading3, LuImage, LuImagePlus, LuLightbulb, LuLink, LuListOrdered, LuPaperclip, LuRefreshCw, LuRotateCcw, LuTable, LuTrash2, LuTriangleAlert, LuType, LuUpload, LuUtensils, LuVideo, LuWorkflow, LuWrench, LuX } from 'react-icons/lu';
+import { Icon } from '@/components/ui/icon';
+import type { IconType } from 'react-icons';
 
 // Must stay in sync with the backend whitelist at lms-backend/src/services/uploads.ts.
 // SVG is intentionally omitted — it can carry inline JS.
@@ -88,16 +91,16 @@ function BilingualTabs({
   esLabel: string;
 }): React.ReactElement {
   return (
-    <div className="inline-flex rounded-md border border-[var(--color-line-3)] bg-[var(--color-surface)] p-0.5 text-[length:var(--text-xs)] font-semibold">
+    <div className="inline-flex rounded-md border border-[var(--color-line-3)] bg-[var(--color-surface)] p-0.5 text-xs font-semibold">
       <button
         type="button"
         aria-checked={active === 'en'}
         role="tab"
         onClick={() => onChange('en')}
         className={cn(
-          'rounded-[5px] px-3 py-1 transition-colors',
+          'rounded-[var(--radius-sm)] px-3 py-1 transition-colors',
           active === 'en'
-            ? 'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] font-bold shadow-xs'
+            ? 'bg-[var(--color-ink)] text-white font-semibold'
             : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
         )}
       >
@@ -109,9 +112,9 @@ function BilingualTabs({
         role="tab"
         onClick={() => onChange('es')}
         className={cn(
-          'rounded-[5px] px-3 py-1 transition-colors',
+          'rounded-[var(--radius-sm)] px-3 py-1 transition-colors',
           active === 'es'
-            ? 'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] font-bold shadow-xs'
+            ? 'bg-[var(--color-ink)] text-white font-semibold'
             : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
         )}
       >
@@ -134,7 +137,7 @@ function Field({
 }): React.ReactElement {
   return (
     <div className="space-y-1">
-      <Label className="text-[length:var(--text-sm)]">
+      <Label className="text-sm">
         {label}
         {required && (
           <span aria-hidden="true" className="ml-1 text-[var(--color-bad)]">
@@ -143,13 +146,13 @@ function Field({
         )}
       </Label>
       {children}
-      {hint && <p className="text-[length:var(--text-xs)] text-[var(--color-ink-2)]">{hint}</p>}
+      {hint && <p className="text-xs text-[var(--color-ink-2)]">{hint}</p>}
     </div>
   );
 }
 
 const textareaCls =
-  'flex w-full rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3.5 py-2.5 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)]/60 shadow-2xs transition-all duration-180 font-[family-name:var(--font-ui)] hover:border-[var(--color-line-3)] focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:border-[var(--color-brand-600)] focus-visible:border-[var(--color-brand-600)]';
+  'flex w-full rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-4 py-3 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] transition-all duration-[var(--dur)] font-[family-name:var(--font-ui)] hover:border-[var(--color-line-3)] focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:border-[var(--color-brand-600)] focus-visible:border-[var(--color-brand-600)]';
 
 // ---------------------------------------------------------------------------
 // Per-kind editors
@@ -186,9 +189,9 @@ function HeadingEditor({
             onChange({ ...block, level: Number(val) as 1 | 2 | 3 })
           }
           options={[
-            { value: '1', label: t('headingLevel.1'), icon: 'ri-h-1' },
-            { value: '2', label: t('headingLevel.2'), icon: 'ri-h-2' },
-            { value: '3', label: t('headingLevel.3'), icon: 'ri-h-3' },
+            { value: '1', label: t('headingLevel.1'), icon: LuHeading1 },
+            { value: '2', label: t('headingLevel.2'), icon: LuHeading2 },
+            { value: '3', label: t('headingLevel.3'), icon: LuHeading3 },
           ]}
         />
       </Field>
@@ -258,11 +261,11 @@ function SortableStepRow({
           <button
             type="button"
             aria-label="Drag to reorder step"
-            className="inline-flex size-9 cursor-grab items-center justify-center rounded-md text-[var(--color-ink-3)] hover:bg-[var(--color-panel)] active:cursor-grabbing"
+            className="inline-flex size-tap-admin cursor-grab items-center justify-center rounded-md text-[var(--color-ink-3)] hover:bg-[var(--color-panel)] active:cursor-grabbing"
             {...attributes}
             {...listeners}
           >
-            <i aria-hidden="true" className="ri-draggable" />
+            <LuGripVertical aria-hidden="true" />
           </button>
         }
       />
@@ -352,10 +355,10 @@ function StepRow({
       {/* Header: drag handle · step number · kebab menu */}
       <div className="flex items-center gap-2">
         {dragHandle}
-        <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand-tint)] font-mono text-[length:var(--text-xs)] font-semibold text-[var(--color-brand-700)]">
+        <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-panel)] font-mono text-xs font-semibold text-[var(--color-ink)]">
           {String(index + 1).padStart(2, '0')}
         </span>
-        <span className="text-[length:var(--text-xs)] font-semibold uppercase tracking-wide text-[var(--color-ink-3)]">
+        <span className="text-xs font-semibold text-[var(--color-ink-3)]">
           Step
         </span>
         <div className="ml-auto">
@@ -364,22 +367,22 @@ function StepRow({
             items={[
               {
                 label: t('stepActions.moveUp'),
-                icon: 'ri-arrow-up-line',
+                icon: LuArrowUp,
                 onSelect: () => onMove('up'),
               },
               {
                 label: t('stepActions.moveDown'),
-                icon: 'ri-arrow-down-line',
+                icon: LuArrowDown,
                 onSelect: () => onMove('down'),
               },
               {
                 label: t('stepActions.duplicate'),
-                icon: 'ri-file-copy-line',
+                icon: LuCopy,
                 onSelect: onDuplicate,
               },
               {
                 label: t('stepActions.delete'),
-                icon: 'ri-close-line',
+                icon: LuX,
                 destructive: true,
                 onSelect: onRemove,
               },
@@ -404,7 +407,7 @@ function StepRow({
 
       {/* Critical control — value row inline, chevron to expand the rest */}
       <div>
-        <label className="flex items-center gap-2 text-[length:var(--text-sm)] text-[var(--color-ink-2)]">
+        <label className="flex items-center gap-2 text-sm text-[var(--color-ink-2)]">
           <input
             type="checkbox"
             checked={!!step.critical}
@@ -427,20 +430,20 @@ function StepRow({
               aria-expanded={critOpen}
               aria-controls={`crit-${step.id ?? index}`}
             >
-              <span className="text-[length:var(--text-xs)] font-semibold uppercase tracking-wide text-[var(--color-ink-2)]">
-                <i aria-hidden="true" className="ri-focus-3-line mr-1" />
+              <span className="text-xs font-semibold uppercase tracking-caps text-[var(--color-ink-2)]">
+                <LuFocus aria-hidden="true" className="mr-1" />
                 {t('criticalLimit')}
               </span>
-              <span className="font-mono text-[length:var(--text-md)] font-semibold text-[var(--color-ink)]">
+              <span className="font-mono text-md font-semibold text-[var(--color-ink)]">
                 {limit?.value || (
-                  <em className="not-italic text-[length:var(--text-sm)] font-normal text-[var(--color-ink-3)]">
+                  <em className="not-italic text-sm font-normal text-[var(--color-ink-3)]">
                     {t('notSet')}
                   </em>
                 )}
               </span>
-              <i
-                aria-hidden="true"
-                className={`ri-arrow-${critOpen ? 'up' : 'down'}-s-line text-[length:var(--text-md)] text-[var(--color-ink-2)]`}
+              <Icon
+                icon={critOpen ? LuChevronUp : LuChevronDown}
+                className="text-md text-[var(--color-ink-2)]"
               />
             </button>
             {critOpen && (
@@ -495,14 +498,14 @@ function StepRow({
             size="sm"
             onClick={() => setVideoOpen(true)}
           >
-            <i aria-hidden="true" className="ri-video-add-line mr-1" />
+            <LuVideo aria-hidden="true" className="mr-1" />
             {t('addVideo')}
           </Button>
         )}
         {(videoOpen || seg) && (
           <div className="space-y-2 rounded-[var(--radius-md)] border border-[var(--color-line-2)] p-3">
             <div className="flex items-center justify-between">
-              <Label className="text-[length:var(--text-sm)]">{t('videoSegment')}</Label>
+              <Label className="text-sm">{t('videoSegment')}</Label>
               <Button
                 type="button"
                 variant="ghost"
@@ -521,7 +524,7 @@ function StepRow({
                   onChange({ ...step, videoSegment: undefined });
                 }}
               >
-                <i aria-hidden="true" className="ri-close-line mr-1" />
+                <LuX aria-hidden="true" className="mr-1" />
                 {t('removeVideo')}
               </Button>
             </div>
@@ -551,7 +554,7 @@ function StepRow({
                   onClick={() => videoFileRef.current?.click()}
                   className="gap-1 text-xs"
                 >
-                  <i aria-hidden="true" className="ri-upload-cloud-2-line" />
+                  <LuCloudUpload aria-hidden="true" />
                   {upload.state === 'uploading'
                     ? tComp('video.uploading')
                     : tComp('video.uploadChange')}
@@ -559,7 +562,7 @@ function StepRow({
               </div>
             </Field>
             {upload.state === 'uploading' && (
-              <p className="flex items-center gap-1.5 text-[length:var(--text-xs)] text-[var(--color-ink-2)]">
+              <p className="flex items-center gap-2 text-xs text-[var(--color-ink-2)]">
                 <span className="spinner" aria-hidden="true" />
                 {tComp('video.uploading')}
                 {upload.fileName ? ` — ${upload.fileName}` : ''}
@@ -568,25 +571,25 @@ function StepRow({
             {upload.state === 'failed' && upload.error && (
               <p
                 role="alert"
-                className="flex items-center gap-1.5 text-[length:var(--text-xs)] text-[var(--color-bad)]"
+                className="flex items-center gap-2 text-xs text-[var(--color-bad)]"
               >
-                <i aria-hidden="true" className="ri-error-warning-line" />
+                <LuCircleAlert aria-hidden="true" />
                 {upload.error}
               </p>
             )}
             {seg?.src && (
               <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-brand-tint)] px-2.5 py-0.5 text-[length:var(--text-xs)] font-semibold text-[var(--color-brand-700)]">
-                  <i aria-hidden="true" className={isR2Upload ? 'ri-video-fill' : 'ri-link'} />
+                <span className="inline-flex items-center gap-2 rounded-[var(--radius-sm)] bg-[var(--color-panel)] px-3 py-0.5 text-xs font-semibold text-[var(--color-ink-2)]">
+                  <Icon icon={isR2Upload ? LuVideo : LuLink} />
                   {isR2Upload ? tComp('video.uploadDone') : tComp('video.uploadLinked')}
                 </span>
                 <a
                   href={seg.src}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[length:var(--text-sm)] font-medium text-[var(--color-brand-700)] underline-offset-4 hover:underline"
+                  className="inline-flex items-center gap-1 text-sm font-medium text-[var(--color-brand-700)] underline-offset-4 hover:underline"
                 >
-                  <i aria-hidden="true" className="ri-play-circle-line" />
+                  <LuCirclePlay aria-hidden="true" />
                   {t('previewClip')}
                 </a>
               </div>
@@ -756,13 +759,13 @@ function RecipeEditor({
       </Field>
 
       <div className="space-y-3">
-        <Label className="text-[length:var(--text-sm)]">{tForm('allergenTitle')}</Label>
+        <Label className="text-sm">{tForm('allergenTitle')}</Label>
 
         <fieldset className="space-y-2">
-          <legend className="text-[length:var(--text-xs)] uppercase tracking-wide text-[var(--color-ink-3)]">
+          <legend className="text-xs text-[var(--color-ink-3)]">
             {tForm('allergenPickerLabel')}
           </legend>
-          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {ALLERGEN_KEYS.map((key) => {
               const checked = block.allergen?.selectedAllergens?.includes(key) ?? false;
               const ensureAllergen = (mutate: (a: { summary: string; detail: string; selectedAllergens?: string[] }) => void) => {
@@ -779,7 +782,7 @@ function RecipeEditor({
                 <label
                   key={key}
                   className={cn(
-                    'flex cursor-pointer items-center gap-2 rounded-[var(--radius-sm)] border px-2.5 py-1.5 text-[length:var(--text-sm)] transition-colors',
+                    'flex cursor-pointer items-center gap-2 rounded-[var(--radius-sm)] border px-3 py-2 text-sm transition-colors',
                     checked
                       ? 'border-[var(--color-warn)] bg-[var(--color-warn-tint)] text-[var(--color-ink)]'
                       : 'border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:bg-[var(--color-tint)]',
@@ -839,20 +842,20 @@ function RecipeEditor({
 
             return (
               <div className="pt-2 space-y-2">
-                <span className="text-[length:var(--text-xs)] font-semibold text-[var(--color-ink-2)] block">
+                <span className="text-xs font-semibold text-[var(--color-ink-2)] block">
                   Custom Allergens:
                 </span>
-                <div className="flex flex-wrap items-center gap-1.5">
+                <div className="flex flex-wrap items-center gap-2">
                   {customTags.map((tag) => (
                     <span
                       key={tag}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-900 dark:text-amber-300 border border-amber-400/40 shadow-2xs"
+                      className="inline-flex items-center gap-2 rounded-[var(--radius-sm)] bg-[var(--color-warn-tint)] px-3 py-1 text-sm font-semibold text-[var(--color-warn-ink)]"
                     >
                       <span>{tag}</span>
                       <button
                         type="button"
                         onClick={() => removeCustom(tag)}
-                        className="hover:text-red-700 font-bold ml-0.5"
+                        className="hover:text-[var(--color-bad)] font-semibold ml-0.5"
                         title={`Remove ${tag}`}
                       >
                         ✕
@@ -860,7 +863,7 @@ function RecipeEditor({
                     </span>
                   ))}
 
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-2">
                     <Input
                       type="text"
                       placeholder="e.g. Mustard, Sulfites, Gluten..."
@@ -872,7 +875,7 @@ function RecipeEditor({
                           e.currentTarget.value = '';
                         }
                       }}
-                      className="h-8 text-xs w-52"
+                      className="h-8 text-xs w-field-md"
                     />
                     <Button
                       type="button"
@@ -885,7 +888,7 @@ function RecipeEditor({
                           input.value = '';
                         }
                       }}
-                      className="h-8 px-2.5 text-xs font-semibold"
+                      className="h-8 px-3 text-xs font-semibold"
                     >
                       + Add Allergen
                     </Button>
@@ -934,7 +937,7 @@ function RecipeEditor({
 
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-2">
-          <Label className="text-[length:var(--text-sm)]">{tForm('yieldTitle')}</Label>
+          <Label className="text-sm">{tForm('yieldTitle')}</Label>
           <Button
             type="button"
             variant="ghost"
@@ -992,7 +995,7 @@ function RecipeEditor({
                   onChange({ ...block, yieldItems: yields.filter((_, j) => j !== i) })
                 }
               >
-                <i aria-hidden="true" className="ri-close-line" />
+                <LuX aria-hidden="true" />
               </Button>
             )}
           </div>
@@ -1000,7 +1003,7 @@ function RecipeEditor({
       </div>
 
       <div className="space-y-2">
-        <Label className="text-[length:var(--text-sm)]">{tForm('scalerTitle')}</Label>
+        <Label className="text-sm">{tForm('scalerTitle')}</Label>
         <div className="flex flex-wrap gap-2">
           {factors.map((f, i) => (
             <div key={i} className="flex items-center gap-1">
@@ -1019,7 +1022,7 @@ function RecipeEditor({
                 }}
                 className="w-20"
               />
-              <span className="text-[length:var(--text-sm)] text-[var(--color-ink-2)]">×</span>
+              <span className="text-sm text-[var(--color-ink-2)]">×</span>
               <Button
                 type="button"
                 variant="ghost"
@@ -1034,7 +1037,7 @@ function RecipeEditor({
                   });
                 }}
               >
-                <i aria-hidden="true" className="ri-close-line" />
+                <LuX aria-hidden="true" />
               </Button>
             </div>
           ))}
@@ -1059,7 +1062,7 @@ function RecipeEditor({
 
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-2">
-          <Label className="text-[length:var(--text-sm)]">{tForm('ingredientsTitle')}</Label>
+          <Label className="text-sm">{tForm('ingredientsTitle')}</Label>
           <Button
             type="button"
             variant="ghost"
@@ -1075,7 +1078,7 @@ function RecipeEditor({
           </Button>
         </div>
         {ingredients.length === 0 && (
-          <p className="text-[length:var(--text-sm)] text-[var(--color-ink-3)]">{tForm('none')}</p>
+          <p className="text-sm text-[var(--color-ink-3)]">{tForm('none')}</p>
         )}
         {ingredients.map((row, i) => (
           <div key={i} className="space-y-3 rounded-[var(--radius-lg)] border border-[var(--color-line)] p-4">
@@ -1130,11 +1133,11 @@ function RecipeEditor({
                     })
                   }
                 >
-                  <i aria-hidden="true" className="ri-close-line" />
+                  <LuX aria-hidden="true" />
                 </Button>
               </div>
             </div>
-            <label className="flex items-center gap-2 text-[length:var(--text-sm)] text-[var(--color-ink-2)]">
+            <label className="flex items-center gap-2 text-sm text-[var(--color-ink-2)]">
               <input
                 type="checkbox"
                 checked={!!row.allergen}
@@ -1150,7 +1153,7 @@ function RecipeEditor({
               {tForm('ingredientAllergen')}
             </label>
             <div className="space-y-1">
-              <Label className="text-[length:var(--text-xs)] font-semibold uppercase tracking-wide text-[var(--color-ink-3)]">
+              <Label className="text-xs font-semibold text-[var(--color-ink-3)]">
                 {tForm('ingredientQuantity')}
               </Label>
               <div
@@ -1159,7 +1162,7 @@ function RecipeEditor({
               >
                 {factors.map((f, j) => (
                   <div key={j} className="space-y-1">
-                    <Label className="font-mono text-[length:var(--text-xs)] text-[var(--color-ink-3)]">
+                    <Label className="font-mono text-xs text-[var(--color-ink-3)]">
                       {f}×
                     </Label>
                     <Input
@@ -1190,7 +1193,7 @@ function RecipeEditor({
 
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-2">
-          <Label className="text-[length:var(--text-sm)]">{tForm('stepsTitle')}</Label>
+          <Label className="text-sm">{tForm('stepsTitle')}</Label>
           <Button
             type="button"
             variant="ghost"
@@ -1281,44 +1284,44 @@ function ImageEditor({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <Label className="text-[length:var(--text-sm)] font-semibold text-[var(--color-ink)]">
+        <Label className="text-sm font-semibold text-[var(--color-ink)]">
           Procedure Image <span aria-hidden="true" className="text-[var(--color-bad)]">*</span>
         </Label>
-        <div className="inline-flex rounded-md border border-[var(--color-line-3)] bg-[var(--color-surface)] p-0.5 text-[length:var(--text-xs)] font-semibold">
+        <div className="inline-flex rounded-md border border-[var(--color-line-3)] bg-[var(--color-surface)] p-0.5 text-xs font-semibold">
           <button
             type="button"
             onClick={() => setSourceMode('upload')}
             className={cn(
-              'rounded-[5px] px-3 py-1 transition-colors flex items-center gap-1.5',
+              'rounded-[var(--radius-sm)] px-3 py-1 transition-colors flex items-center gap-2',
               sourceMode === 'upload'
-                ? 'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] font-bold shadow-xs'
+                ? 'bg-[var(--color-ink)] text-white font-semibold'
                 : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
             )}
           >
-            <i aria-hidden="true" className="ri-upload-cloud-2-line" />
+            <LuCloudUpload aria-hidden="true" />
             {t('image.uploadMode')}
           </button>
           <button
             type="button"
             onClick={() => setSourceMode('url')}
             className={cn(
-              'rounded-[5px] px-3 py-1 transition-colors flex items-center gap-1.5',
+              'rounded-[var(--radius-sm)] px-3 py-1 transition-colors flex items-center gap-2',
               sourceMode === 'url'
-                ? 'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] font-bold shadow-xs'
+                ? 'bg-[var(--color-ink)] text-white font-semibold'
                 : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
             )}
           >
-            <i aria-hidden="true" className="ri-link" />
+            <LuLink aria-hidden="true" />
             {t('image.urlMode')}
           </button>
         </div>
       </div>
 
       {block.src ? (
-        <div className="space-y-3 rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-3 shadow-xs">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--color-line-2)]/60 pb-2.5">
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-brand-tint)] px-3 py-1 text-[length:var(--text-xs)] font-bold uppercase tracking-wider text-[var(--color-brand-700)]">
-              <i aria-hidden="true" className="ri-image-fill" />
+        <div className="space-y-3 rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--color-line)] pb-3">
+            <div className="inline-flex items-center gap-2 rounded-[var(--radius-sm)] bg-[var(--color-ok-tint)] px-3 py-1 text-xs font-semibold text-[var(--color-ok)]">
+              <LuImage aria-hidden="true" />
               <span>{t('image.uploadDone')}</span>
             </div>
             <div className="flex items-center gap-2">
@@ -1327,9 +1330,9 @@ function ImageEditor({
                 variant="ghost"
                 size="sm"
                 onClick={() => fileInputRef.current?.click()}
-                className="gap-1.5 text-xs font-semibold text-[var(--color-ink-2)]"
+                className="gap-2 text-xs font-semibold text-[var(--color-ink-2)]"
               >
-                <i aria-hidden="true" className="ri-upload-2-line text-sm" />
+                <LuUpload aria-hidden="true" className="text-sm" />
                 {t('image.uploadChange')}
               </Button>
               <Button
@@ -1348,18 +1351,18 @@ function ImageEditor({
                   }
                   onChange({ ...block, src: '' });
                 }}
-                className="gap-1.5 text-xs font-semibold text-[var(--color-bad)] hover:bg-[var(--color-bad-tint)]"
+                className="gap-2 text-xs font-semibold text-[var(--color-bad)] hover:bg-[var(--color-bad-tint)]"
               >
-                <i aria-hidden="true" className="ri-delete-bin-line text-sm" />
+                <LuTrash2 aria-hidden="true" className="text-sm" />
                 {t('image.uploadRemove')}
               </Button>
             </div>
           </div>
-          <div className="flex items-center justify-center overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-wash)]/40 p-3 max-h-80">
+          <div className="flex items-center justify-center overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-wash)] p-3 max-h-media">
             <img
               src={block.src}
               alt={t('image.previewAlt')}
-              className="max-h-72 w-auto rounded object-contain shadow-xs"
+              className="max-h-media w-auto rounded-sm object-contain shadow-e1"
             />
           </div>
         </div>
@@ -1373,8 +1376,8 @@ function ImageEditor({
         </div>
       ) : upload.state === 'failed' ? (
         <div className="upload">
-          <span className="pill-progress" role="alert" style={{ color: 'var(--color-bad)' }}>
-            <i aria-hidden="true" className="ri-error-warning-line" />
+          <span className="err" role="alert">
+            <LuCircleAlert aria-hidden="true" />
             {upload.error}
           </span>
           <Button
@@ -1384,7 +1387,7 @@ function ImageEditor({
             onClick={() => fileInputRef.current?.click()}
             className="gap-1 text-xs"
           >
-            <i aria-hidden="true" className="ri-refresh-line" />
+            <LuRefreshCw aria-hidden="true" />
             {t('image.uploadChange')}
           </Button>
         </div>
@@ -1406,7 +1409,7 @@ function ImageEditor({
           }}
           className="dropzone"
         >
-          <i aria-hidden="true" className="ri-image-add-line" />
+          <LuImagePlus aria-hidden="true" />
           <p>{t('image.uploadClick')}</p>
           <span>{t('image.uploadHint')}</span>
         </div>
@@ -1434,8 +1437,8 @@ function ImageEditor({
           value={block.hint || 'photo'}
           onChange={(v) => onChange({ ...block, hint: v as ProcedureImageHint })}
           options={[
-            { value: 'photo', label: t('imageHint.photo'), icon: 'ri-camera-line' },
-            { value: 'diagram', label: t('imageHint.diagram'), icon: 'ri-flow-chart' },
+            { value: 'photo', label: t('imageHint.photo'), icon: LuCamera },
+            { value: 'diagram', label: t('imageHint.diagram'), icon: LuWorkflow },
           ]}
         />
       </Field>
@@ -1530,47 +1533,44 @@ function VideoEditor({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <Label className="text-[length:var(--text-sm)] font-semibold text-[var(--color-ink)]">
+        <Label className="text-sm font-semibold text-[var(--color-ink)]">
           Procedure Video <span aria-hidden="true" className="text-[var(--color-bad)]">*</span>
         </Label>
-        <div className="inline-flex rounded-md border border-[var(--color-line-3)] bg-[var(--color-surface)] p-0.5 text-[length:var(--text-xs)] font-semibold">
+        <div className="inline-flex rounded-md border border-[var(--color-line-3)] bg-[var(--color-surface)] p-0.5 text-xs font-semibold">
           <button
             type="button"
             onClick={() => setSourceMode('upload')}
             className={cn(
-              'rounded-[5px] px-3 py-1 transition-colors flex items-center gap-1.5',
+              'rounded-[var(--radius-sm)] px-3 py-1 transition-colors flex items-center gap-2',
               sourceMode === 'upload'
-                ? 'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] font-bold shadow-xs'
+                ? 'bg-[var(--color-ink)] text-white font-semibold'
                 : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
             )}
           >
-            <i aria-hidden="true" className="ri-upload-cloud-2-line" />
+            <LuCloudUpload aria-hidden="true" />
             {t('video.uploadMode')}
           </button>
           <button
             type="button"
             onClick={() => setSourceMode('url')}
             className={cn(
-              'rounded-[5px] px-3 py-1 transition-colors flex items-center gap-1.5',
+              'rounded-[var(--radius-sm)] px-3 py-1 transition-colors flex items-center gap-2',
               sourceMode === 'url'
-                ? 'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] font-bold shadow-xs'
+                ? 'bg-[var(--color-ink)] text-white font-semibold'
                 : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
             )}
           >
-            <i aria-hidden="true" className="ri-link" />
+            <LuLink aria-hidden="true" />
             {t('video.urlMode')}
           </button>
         </div>
       </div>
 
       {block.src ? (
-        <div className="space-y-3 rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-3 shadow-xs">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--color-line-2)]/60 pb-2.5">
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-brand-tint)] px-3 py-1 text-[length:var(--text-xs)] font-bold uppercase tracking-wider text-[var(--color-brand-700)]">
-              <i
-                aria-hidden="true"
-                className={source === 'upload' ? 'ri-video-fill' : 'ri-link'}
-              />
+        <div className="space-y-3 rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--color-line)] pb-3">
+            <div className="inline-flex items-center gap-2 rounded-[var(--radius-sm)] bg-[var(--color-ok-tint)] px-3 py-1 text-xs font-semibold text-[var(--color-ok)]">
+              <Icon icon={source === 'upload' ? LuVideo : LuLink} />
               <span>{source === 'upload' ? t('video.uploadDone') : t('video.uploadLinked')}</span>
             </div>
             <div className="flex items-center gap-2">
@@ -1579,9 +1579,9 @@ function VideoEditor({
                 variant="ghost"
                 size="sm"
                 onClick={() => fileInputRef.current?.click()}
-                className="gap-1.5 text-xs font-semibold text-[var(--color-ink-2)]"
+                className="gap-2 text-xs font-semibold text-[var(--color-ink-2)]"
               >
-                <i aria-hidden="true" className="ri-upload-2-line text-sm" />
+                <LuUpload aria-hidden="true" className="text-sm" />
                 {t('video.uploadChange')}
               </Button>
               <Button
@@ -1600,19 +1600,19 @@ function VideoEditor({
                   }
                   onChange({ ...block, src: '' });
                 }}
-                className="gap-1.5 text-xs font-semibold text-[var(--color-bad)] hover:bg-[var(--color-bad-tint)]"
+                className="gap-2 text-xs font-semibold text-[var(--color-bad)] hover:bg-[var(--color-bad-tint)]"
               >
-                <i aria-hidden="true" className="ri-delete-bin-line text-sm" />
+                <LuTrash2 aria-hidden="true" className="text-sm" />
                 {t('video.uploadRemove')}
               </Button>
             </div>
           </div>
-          <div className="overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-black">
+          <div className="overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-ink)]">
             {videoClass.provider === 'file' ? (
               <video
                 controls
                 src={block.src}
-                className="max-h-80 w-full object-contain"
+                className="max-h-media w-full object-contain"
               />
             ) : videoClass.embedUrl ? (
               <iframe
@@ -1636,8 +1636,8 @@ function VideoEditor({
         </div>
       ) : upload.state === 'failed' ? (
         <div className="upload">
-          <span className="pill-progress" role="alert" style={{ color: 'var(--color-bad)' }}>
-            <i aria-hidden="true" className="ri-error-warning-line" />
+          <span className="err" role="alert">
+            <LuCircleAlert aria-hidden="true" />
             {upload.error}
           </span>
           <Button
@@ -1647,7 +1647,7 @@ function VideoEditor({
             onClick={() => fileInputRef.current?.click()}
             className="gap-1 text-xs"
           >
-            <i aria-hidden="true" className="ri-refresh-line" />
+            <LuRefreshCw aria-hidden="true" />
             {t('video.uploadChange')}
           </Button>
         </div>
@@ -1669,7 +1669,7 @@ function VideoEditor({
           }}
           className="dropzone"
         >
-          <i aria-hidden="true" className="ri-video-add-line" />
+          <LuVideo aria-hidden="true" />
           <p>{t('video.uploadClick')}</p>
           <span>{t('video.uploadHint')}</span>
         </div>
@@ -1725,11 +1725,11 @@ function WarningEditor({
           value={block.severity}
           onChange={(val) => onChange({ ...block, severity: val as ProcedureNoteKind })}
           options={[
-            { value: 'warn', label: t('warningSeverity.warn'), icon: 'ri-error-warning-line' },
-            { value: 'tip', label: t('warningSeverity.tip'), icon: 'ri-lightbulb-line' },
-            { value: 'alt', label: t('warningSeverity.alt'), icon: 'ri-loop-left-line' },
-            { value: 'equip', label: t('warningSeverity.equip'), icon: 'ri-tools-line' },
-            { value: 'allergen', label: t('warningSeverity.allergen'), icon: 'ri-alert-line' },
+            { value: 'warn', label: t('warningSeverity.warn'), icon: LuCircleAlert },
+            { value: 'tip', label: t('warningSeverity.tip'), icon: LuLightbulb },
+            { value: 'alt', label: t('warningSeverity.alt'), icon: LuRotateCcw },
+            { value: 'equip', label: t('warningSeverity.equip'), icon: LuWrench },
+            { value: 'allergen', label: t('warningSeverity.allergen'), icon: LuTriangleAlert },
           ]}
         />
       </Field>
@@ -1827,7 +1827,7 @@ function TableEditor({
     <div className="space-y-3">
       <BilingualTabs active={lang} onChange={setLang} enLabel={t('tabs.en')} esLabel={t('tabs.es')} />
       <div className="space-y-2 rounded-[var(--radius-md)] border border-[var(--color-line)] p-3">
-        <Label className="text-[length:var(--text-sm)]">{t('tableHeaders')}</Label>
+        <Label className="text-sm">{t('tableHeaders')}</Label>
         <div className="grid grid-cols-1 gap-2" style={{ gridTemplateColumns: `repeat(${headerCount}, minmax(0,1fr)) auto` }}>
           {block.headers.map((h, j) => (
             <Input
@@ -1838,7 +1838,7 @@ function TableEditor({
           ))}
           {headerCount > 1 && (
             <Button type="button" variant="ghost" size="sm" aria-label={t('table.removeColumn')} onClick={() => removeColumn(headerCount - 1)}>
-              <i aria-hidden="true" className="ri-close-line" />
+              <LuX aria-hidden="true" />
             </Button>
           )}
         </div>
@@ -1850,7 +1850,7 @@ function TableEditor({
       </div>
 
       <div className="space-y-2">
-        <Label className="text-[length:var(--text-sm)]">{t('tableRows')}</Label>
+        <Label className="text-sm">{t('tableRows')}</Label>
         {block.rows.map((row, i) => (
           <div key={i} className="flex items-start gap-2">
             <div
@@ -1868,7 +1868,7 @@ function TableEditor({
             </div>
             {rowCount > 1 && (
               <Button type="button" variant="ghost" size="sm" aria-label={t('table.removeRow')} onClick={() => removeRow(i)}>
-                <i aria-hidden="true" className="ri-close-line" />
+                <LuX aria-hidden="true" />
               </Button>
             )}
           </div>
@@ -1885,16 +1885,16 @@ function TableEditor({
 // Public entry
 // ---------------------------------------------------------------------------
 
-const KIND_ICON: Record<ProcedureBlockKind, string> = {
-  text: 'ri-text',
-  heading: 'ri-h-1',
-  method: 'ri-list-ordered',
-  recipe: 'ri-restaurant-line',
-  image: 'ri-image-line',
-  video: 'ri-video-line',
-  warning: 'ri-alert-line',
-  attachment: 'ri-attachment-line',
-  table: 'ri-table-line',
+const KIND_ICON: Record<ProcedureBlockKind, IconType> = {
+  text: LuType,
+  heading: LuHeading1,
+  method: LuListOrdered,
+  recipe: LuUtensils,
+  image: LuImage,
+  video: LuVideo,
+  warning: LuTriangleAlert,
+  attachment: LuPaperclip,
+  table: LuTable,
 };
 
 export function ProcedureBlockEditor({
@@ -1940,8 +1940,8 @@ export function ProcedureBlockEditor({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2 text-[length:var(--text-xs)] font-semibold uppercase tracking-wide text-[var(--color-ink-2)]">
-        <i aria-hidden="true" className={KIND_ICON[block.kind]} />
+      <div className="flex items-center gap-2 text-xs font-semibold text-[var(--color-ink-2)]">
+        <Icon icon={KIND_ICON[block.kind]} />
         {kindLabel}
       </div>
       {body}

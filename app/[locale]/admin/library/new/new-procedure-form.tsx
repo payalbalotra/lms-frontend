@@ -39,6 +39,9 @@ import {
   type RecipeIngredientItem,
 } from '@/components/admin/recipe-ingredients-editor';
 import { DocumentImportPanel } from '@/components/admin/document-import-panel';
+import { LuArrowLeft, LuArrowRight, LuBrush, LuCheck, LuChevronLeft, LuChevronRight, LuCircleAlert, LuCircleCheck, LuDownload, LuEllipsis, LuEye, LuFileText, LuFolder, LuLayoutGrid, LuPaperclip, LuSearch, LuShieldAlert, LuSparkles, LuStore, LuTriangleAlert, LuTruck, LuUserCog, LuUtensils, LuWrench, LuX } from 'react-icons/lu';
+import { Icon } from '@/components/ui/icon';
+import type { IconType } from 'react-icons';
 
 interface NewProcedureFormProps {
   locale: string;
@@ -79,26 +82,26 @@ const DEFAULT_CATEGORIES: Category[] = [
   { id: 'cat-other', slug: 'other', nameEn: 'Other', nameEs: 'Otros', isArchived: false },
 ];
 
-function getCategoryBadgeStyle(slug: string): { icon: string; bg: string; text: string } {
+function getCategoryBadgeStyle(slug: string): { icon: IconType; bg: string; text: string } {
   switch (slug) {
     case 'recipes':
-      return { icon: 'ri-restaurant-line', bg: 'bg-orange-100', text: 'text-orange-700' };
+      return { icon: LuUtensils, bg: 'bg-[var(--color-panel)]', text: 'text-[var(--color-ink-2)]' };
     case 'station':
-      return { icon: 'ri-store-2-line', bg: 'bg-purple-100', text: 'text-purple-700' };
+      return { icon: LuStore, bg: 'bg-[var(--color-panel)]', text: 'text-[var(--color-ink-2)]' };
     case 'cleaning':
-      return { icon: 'ri-sparkles-line', bg: 'bg-emerald-100', text: 'text-emerald-700' };
+      return { icon: LuBrush, bg: 'bg-[var(--color-panel)]', text: 'text-[var(--color-ink-2)]' };
     case 'admin':
     case 'general':
-      return { icon: 'ri-file-text-line', bg: 'bg-slate-100', text: 'text-slate-700' };
+      return { icon: LuFileText, bg: 'bg-[var(--color-panel)]', text: 'text-[var(--color-ink-2)]' };
     case 'delivery':
-      return { icon: 'ri-truck-line', bg: 'bg-blue-100', text: 'text-blue-700' };
+      return { icon: LuTruck, bg: 'bg-[var(--color-panel)]', text: 'text-[var(--color-ink-2)]' };
     case 'food-safety':
     case 'safety':
-      return { icon: 'ri-shield-cross-line', bg: 'bg-teal-100', text: 'text-teal-700' };
+      return { icon: LuShieldAlert, bg: 'bg-[var(--color-panel)]', text: 'text-[var(--color-ink-2)]' };
     case 'equipment':
-      return { icon: 'ri-tools-line', bg: 'bg-indigo-100', text: 'text-indigo-700' };
+      return { icon: LuWrench, bg: 'bg-[var(--color-panel)]', text: 'text-[var(--color-ink-2)]' };
     default:
-      return { icon: 'ri-folder-3-line', bg: 'bg-amber-100', text: 'text-amber-700' };
+      return { icon: LuFolder, bg: 'bg-[var(--color-panel)]', text: 'text-[var(--color-ink-2)]' };
   }
 }
 
@@ -852,7 +855,7 @@ export function NewProcedureForm({
     : tAccess('notConfigured');
 
   const textareaCls =
-    'flex w-full rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3.5 py-2.5 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)]/50 shadow-2xs transition-all duration-150 hover:border-[var(--color-line-3)] focus:outline-none focus-visible:outline-none focus:border-[var(--color-brand-600)]/70 focus-visible:border-[var(--color-brand-600)]/70 focus:ring-2 focus:ring-[var(--color-brand-tint)]/60 focus-visible:ring-2 focus-visible:ring-[var(--color-brand-tint)]/60';
+    'flex w-full rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-4 py-3 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] transition-all duration-[var(--dur)] hover:border-[var(--color-line-3)] focus:outline-none focus-visible:outline-none focus:border-[var(--color-brand-600)] focus-visible:border-[var(--color-brand-600)] focus:ring-2 focus:ring-[var(--color-brand-tint)] focus-visible:ring-2 focus-visible:ring-[var(--color-brand-tint)]';
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -860,20 +863,20 @@ export function NewProcedureForm({
       <div className="flex items-center justify-between">
         <Link
           href={`/${locale}/admin/library`}
-          className="inline-flex items-center gap-1 text-[length:var(--text-sm)] font-medium text-[var(--color-ink-2)] hover:text-[var(--color-brand-700)]"
+          className="inline-flex items-center gap-1 text-sm font-medium text-[var(--color-ink-2)] hover:text-[var(--color-brand-700)]"
         >
-          <i aria-hidden="true" className="ri-arrow-left-line text-base" />
+          <LuArrowLeft aria-hidden="true" className="text-base" />
           {tNav('crumbBack')}
         </Link>
         <div className="flex items-center gap-3">
           <Button
             type="button"
-            variant="secondary"
+            variant="neutral"
             size="sm"
             onClick={() => setIsPreviewOpen(true)}
-            className="gap-2 border-[var(--color-brand-600)] text-[var(--color-brand-700)] hover:bg-[var(--color-brand-tint)] font-semibold shadow-xs"
+            className="gap-2 font-semibold"
           >
-            <i aria-hidden="true" className="ri-eye-line text-white" />
+            <LuEye aria-hidden="true" />
             <span>Live Preview</span>
           </Button>
           <Link href={`/${locale}/admin/library`}>
@@ -886,20 +889,20 @@ export function NewProcedureForm({
 
       {/* Page Title Header */}
       <header className="space-y-1">
-        <p className="text-[length:var(--text-xs)] font-semibold uppercase tracking-wide text-[var(--color-brand-700)]">
+        <p className="text-xs font-semibold text-[var(--color-ink-2)]">
           {tNav('pageEyebrow')}
         </p>
-        <h1 className="font-[family-name:var(--font-display)] text-[length:var(--text-2xl)] font-bold tracking-[-0.02em] text-[var(--color-ink)]">
+        <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight text-[var(--color-ink)]">
           {tTitles(procedureType as never)}
         </h1>
-        <p className="max-w-3xl text-[length:var(--text-sm)] text-[var(--color-ink-2)]">
+        <p className="max-w-3xl text-sm text-[var(--color-ink-2)]">
           {tTitles(`${procedureType}Subtitle` as never)}
         </p>
       </header>
 
       {/* Start Creation Choice Header */}
-      <div className="flex items-center gap-4 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-4 shadow-xs">
-        <span className="text-[length:var(--text-sm)] font-bold text-[var(--color-ink)]">
+      <div className="flex items-center gap-4 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-4">
+        <span className="text-sm font-semibold text-[var(--color-ink)]">
           How would you like to start?
         </span>
         <div className="flex items-center gap-3">
@@ -907,9 +910,9 @@ export function NewProcedureForm({
             type="button"
             onClick={() => setCreationMode('manual')}
             className={cn(
-              'flex items-center gap-2 rounded-full px-4 py-1.5 text-[length:var(--text-xs)] font-bold transition-all',
+              'flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition-all',
               creationMode === 'manual'
-                ? 'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] border border-[var(--color-brand-600)] shadow-xs'
+                ? 'bg-[var(--color-panel)] text-[var(--color-ink)] border border-[var(--color-ink)]'
                 : 'border border-[var(--color-line-3)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:bg-[var(--color-wash)]',
             )}
           >
@@ -919,13 +922,13 @@ export function NewProcedureForm({
             type="button"
             onClick={() => setCreationMode('import')}
             className={cn(
-              'flex items-center gap-2 rounded-full px-4 py-1.5 text-[length:var(--text-xs)] font-bold transition-all',
+              'flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition-all',
               creationMode === 'import'
-                ? 'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] border border-[var(--color-brand-600)] shadow-xs'
+                ? 'bg-[var(--color-panel)] text-[var(--color-ink)] border border-[var(--color-ink)]'
                 : 'border border-[var(--color-line-3)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:bg-[var(--color-wash)]',
             )}
           >
-            <i aria-hidden="true" className="ri-sparkling-2-line text-[var(--color-brand-700)]" />
+            <LuSparkles aria-hidden="true" />
             Import a document (PDF, DOCX, Photo)
           </button>
         </div>
@@ -947,15 +950,15 @@ export function NewProcedureForm({
       />
 
       {/* Main Single Column Stepped Wizard Form */}
-      <form className="max-w-4xl mx-auto space-y-8 pb-28" onSubmit={(e) => e.preventDefault()}>
+      <form className="max-w-4xl mx-auto space-y-8 pb-20" onSubmit={(e) => e.preventDefault()}>
         {error && (
           <div
             role="alert"
-            className="rounded-[var(--radius-lg)] border border-[var(--color-bad-tint)] bg-[var(--color-bad-tint)] px-4 py-3 text-[length:var(--text-sm)] text-[var(--color-bad)] shadow-xs"
+            className="rounded-[var(--radius-lg)] border border-[var(--color-bad-tint)] bg-[var(--color-bad-tint)] px-4 py-3 text-sm text-[var(--color-bad)]"
           >
             <p className="font-semibold">{error}</p>
             {errorDetails.length > 0 && (
-              <ul className="mt-2 list-inside list-disc space-y-0.5 font-mono text-[length:var(--text-xs)]">
+              <ul className="mt-2 list-inside list-disc space-y-0.5 font-mono text-xs">
                 {errorDetails.map((d, i) => (
                   <li key={i}>{d}</li>
                 ))}
@@ -970,28 +973,28 @@ export function NewProcedureForm({
             {/* Library Category Card Grid Section */}
             <Section
               id="proc-category"
-              icon="ri-folder-3-line"
+              icon={LuFolder}
               title="Library category"
               subtitle="Choose where this procedure will appear in the library."
               headerAction={
                 <div className="flex items-center gap-2">
                   {/* Category Search Input */}
-                  <div className="relative w-48 sm:w-64">
-                    <i aria-hidden="true" className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-ink-3)]" />
+                  <div className="relative w-field-md sm:w-field-lg">
+                    <LuSearch aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-ink-3)]" />
                     <Input
                       type="text"
                       placeholder="Search categories..."
                       value={categorySearch}
                       onChange={(e) => setCategorySearch(e.target.value)}
-                      className="pl-9 pr-7 text-[length:var(--text-xs)] h-9 bg-[var(--color-surface)] border-[var(--color-line-2)] focus:border-[var(--color-brand-600)]"
+                      className="pl-10 pr-8 text-xs h-tap-admin bg-[var(--color-surface)] border-[var(--color-line-2)] focus:border-[var(--color-brand-600)]"
                     />
                     {categorySearch && (
                       <button
                         type="button"
                         onClick={() => setCategorySearch('')}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-[var(--color-ink-3)] hover:text-[var(--color-ink)]"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--color-ink-3)] hover:text-[var(--color-ink)]"
                       >
-                        <i aria-hidden="true" className="ri-close-line" />
+                        <LuX aria-hidden="true" />
                       </button>
                     )}
                   </div>
@@ -1005,10 +1008,10 @@ export function NewProcedureForm({
                           categoryScrollRef.current.scrollBy({ left: -280, behavior: 'smooth' });
                         }
                       }}
-                      className="flex size-9 items-center justify-center rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)] transition-colors shadow-2xs active:scale-95"
+                      className="flex size-tap-admin items-center justify-center rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)] transition-colors active:scale-95"
                       title="Previous categories"
                     >
-                      <i aria-hidden="true" className="ri-arrow-left-s-line text-lg font-bold" />
+                      <LuChevronLeft aria-hidden="true" className="text-lg font-semibold" />
                     </button>
                     <button
                       type="button"
@@ -1017,10 +1020,10 @@ export function NewProcedureForm({
                           categoryScrollRef.current.scrollBy({ left: 280, behavior: 'smooth' });
                         }
                       }}
-                      className="flex size-9 items-center justify-center rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)] transition-colors shadow-2xs active:scale-95"
+                      className="flex size-tap-admin items-center justify-center rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)] transition-colors active:scale-95"
                       title="Next categories"
                     >
-                      <i aria-hidden="true" className="ri-arrow-right-s-line text-lg font-bold" />
+                      <LuChevronRight aria-hidden="true" className="text-lg font-semibold" />
                     </button>
                   </div>
                 </div>
@@ -1030,7 +1033,7 @@ export function NewProcedureForm({
                 ref={categoryScrollRef}
                 className="overflow-x-auto pb-2 pt-1 scrollbar-none scroll-smooth"
               >
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 w-full">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
                   {displayCategories.map((c) => {
                     const isSelected = categoryId === c.id;
                     const style = getCategoryBadgeStyle(c.slug);
@@ -1043,33 +1046,33 @@ export function NewProcedureForm({
                         title={name}
                         onClick={() => handleCategoryChange(c.id)}
                         className={cn(
-                          'group relative flex flex-col justify-between rounded-[var(--radius-lg)] border p-3.5 text-left transition-all duration-150 min-h-[116px] h-full',
+                          'group relative flex flex-col justify-between rounded-[var(--radius-lg)] border p-4 text-left transition-all duration-[var(--dur)] min-h-tile h-full',
                           isSelected
-                            ? 'border-[var(--color-brand-600)] bg-[var(--color-brand-tint)]/40 shadow-sm ring-2 ring-[var(--color-brand-600)]/30'
+                            ? 'border-[var(--color-ink)] bg-[var(--color-surface)] ring-1 ring-[var(--color-ink)]'
                             : 'border-[var(--color-line-2)] bg-[var(--color-surface)] hover:bg-[var(--color-wash)] hover:border-[var(--color-line-3)]',
                         )}
                       >
                         {/* Selected Checkmark Badge */}
                         {isSelected && (
-                          <div className="absolute top-3 right-3 flex size-5 items-center justify-center rounded-full bg-[var(--color-brand-600)] text-white text-xs shadow-xs">
-                            <i aria-hidden="true" className="ri-check-line font-bold" />
+                          <div className="absolute top-3 right-3 flex size-5 items-center justify-center rounded-full bg-[var(--color-ink)] text-white text-xs shadow-e1">
+                            <LuCheck aria-hidden="true" className="font-semibold" />
                           </div>
                         )}
 
                         {/* Icon in Colored Circle/Square Box */}
-                        <div className={cn('flex size-10 items-center justify-center rounded-xl text-lg shadow-2xs transition-transform group-hover:scale-105', style.bg, style.text)}>
-                          <i aria-hidden="true" className={style.icon} />
+                        <div className={cn('flex size-10 items-center justify-center rounded-[var(--radius-lg)] text-lg shadow-e1 transition-transform', style.bg, style.text)}>
+                          <Icon icon={style.icon} />
                         </div>
 
                         {/* Title and subtitle */}
-                        <div className="mt-2.5">
+                        <div className="mt-3">
                           <h4
-                            className="font-[family-name:var(--font-ui)] text-[length:var(--text-sm)] font-bold tracking-[-0.01em] text-[var(--color-ink)] line-clamp-2 leading-tight"
+                            className="font-[family-name:var(--font-ui)] text-sm font-semibold tracking-snug text-[var(--color-ink)] line-clamp-2 leading-tight"
                             title={name}
                           >
                             {name}
                           </h4>
-                          <p className="mt-1 text-[length:var(--text-xs)] text-[var(--color-ink-2)]">
+                          <p className="mt-1 text-xs text-[var(--color-ink-2)]">
                             {c.slug === 'recipes' ? '12 procedures' : c.slug === 'station' ? '18 procedures' : c.slug === 'cleaning' ? '8 procedures' : c.slug === 'admin' ? '10 procedures' : c.slug === 'delivery' ? '6 procedures' : 'Active category'}
                           </p>
                         </div>
@@ -1092,39 +1095,39 @@ export function NewProcedureForm({
                         title={selectedName ? `Selected: ${selectedName}` : 'View all categories'}
                         onClick={() => setIsOtherModalOpen(true)}
                         className={cn(
-                          'group relative flex flex-col justify-between rounded-[var(--radius-lg)] border p-3.5 text-left transition-all duration-150 min-h-[116px] h-full',
+                          'group relative flex flex-col justify-between rounded-[var(--radius-lg)] border p-4 text-left transition-all duration-[var(--dur)] min-h-tile h-full',
                           isOtherSelected
-                            ? 'border-[var(--color-brand-600)] bg-[var(--color-brand-tint)]/40 shadow-sm ring-2 ring-[var(--color-brand-600)]/30'
+                            ? 'border-[var(--color-ink)] bg-[var(--color-surface)] ring-1 ring-[var(--color-ink)]'
                             : 'border-[var(--color-line-2)] bg-[var(--color-surface)] hover:bg-[var(--color-wash)] hover:border-[var(--color-line-3)]',
                         )}
                       >
                         {/* Selected Checkmark Badge */}
                         {isOtherSelected && (
-                          <div className="absolute top-3 right-3 flex size-5 items-center justify-center rounded-full bg-[var(--color-brand-600)] text-white text-xs shadow-xs">
-                            <i aria-hidden="true" className="ri-check-line font-bold" />
+                          <div className="absolute top-3 right-3 flex size-5 items-center justify-center rounded-full bg-[var(--color-ink)] text-white text-xs shadow-e1">
+                            <LuCheck aria-hidden="true" className="font-semibold" />
                           </div>
                         )}
 
                         {/* Icon */}
-                        <div className={cn('flex size-10 items-center justify-center rounded-xl text-lg shadow-2xs transition-transform group-hover:scale-105', style.bg, style.text)}>
-                          <i aria-hidden="true" className="ri-more-fill text-xl font-bold" />
+                        <div className={cn('flex size-10 items-center justify-center rounded-[var(--radius-lg)] text-lg shadow-e1 transition-transform', style.bg, style.text)}>
+                          <LuEllipsis aria-hidden="true" className="text-xl font-semibold" />
                         </div>
 
                         {/* Title and subtitle */}
-                        <div className="mt-2.5">
+                        <div className="mt-3">
                           <h4
-                            className="font-[family-name:var(--font-ui)] text-[length:var(--text-sm)] font-bold tracking-[-0.01em] text-[var(--color-ink)] line-clamp-2 leading-tight"
+                            className="font-[family-name:var(--font-ui)] text-sm font-semibold tracking-snug text-[var(--color-ink)] line-clamp-2 leading-tight"
                             title={selectedName || 'Other'}
                           >
                             {selectedName ? selectedName : (locale === 'es' ? 'Otros' : 'Other')}
                           </h4>
-                          <p className="mt-1 text-[length:var(--text-xs)] text-[var(--color-ink-2)] flex items-center gap-1">
+                          <p className="mt-1 text-xs text-[var(--color-ink-2)] flex items-center gap-1">
                             <span>
                               {selectedName
                                 ? (locale === 'es' ? 'Seleccionada' : 'Selected')
                                 : (locale === 'es' ? 'Ver todas' : 'View all')}
                             </span>
-                            <i aria-hidden="true" className="ri-arrow-right-s-line text-xs" />
+                            <LuChevronRight aria-hidden="true" className="text-xs" />
                           </p>
                         </div>
                       </button>
@@ -1137,7 +1140,7 @@ export function NewProcedureForm({
             {/* Procedure Details Section */}
             <Section
               id="proc-details"
-              icon="ri-file-text-line"
+              icon={LuFileText}
               title="Procedure details"
               subtitle="Give your procedure a clear title and purpose."
             >
@@ -1147,18 +1150,18 @@ export function NewProcedureForm({
                   {/* Title Field */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label className="text-[length:var(--text-sm)] font-semibold text-[var(--color-ink)]">
+                      <Label className="text-sm font-semibold text-[var(--color-ink)]">
                         {tForm('titleLabel')}
                         <span aria-hidden="true" className="ml-1 text-[var(--color-bad)]">*</span>
                       </Label>
-                      <div className="inline-flex rounded-md border border-[var(--color-line-2)] bg-[var(--color-wash)]/60 p-0.5 text-[length:var(--text-xs)] font-semibold">
+                      <div className="inline-flex rounded-md border border-[var(--color-line-2)] bg-[var(--color-wash)] p-0.5 text-xs font-semibold">
                         <button
                           type="button"
                           onClick={() => setTitleLang('en')}
                           className={cn(
-                            'rounded-[5px] px-2.5 py-0.5 transition-colors',
+                            'rounded-[var(--radius-sm)] px-3 py-0.5 transition-colors',
                             titleLang === 'en'
-                              ? 'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] font-bold shadow-xs'
+                              ? 'bg-[var(--color-ink)] text-white font-semibold'
                               : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
                           )}
                         >
@@ -1168,9 +1171,9 @@ export function NewProcedureForm({
                           type="button"
                           onClick={() => setTitleLang('es')}
                           className={cn(
-                            'rounded-[5px] px-2.5 py-0.5 transition-colors',
+                            'rounded-[var(--radius-sm)] px-3 py-0.5 transition-colors',
                             titleLang === 'es'
-                              ? 'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] font-bold shadow-xs'
+                              ? 'bg-[var(--color-ink)] text-white font-semibold'
                               : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
                           )}
                         >
@@ -1207,13 +1210,13 @@ export function NewProcedureForm({
                           required
                         />
                       )}
-                      <span className="pointer-events-none select-none absolute right-3 text-[length:var(--text-xs)] font-medium text-[var(--color-ink-3)]/70">
+                      <span className="pointer-events-none select-none absolute right-3 text-xs font-medium text-[var(--color-ink-3)]">
                         {titleLang === 'en' ? titleEn.length : titleEs.length} / 100
                       </span>
                     </div>
                     {isTitleMissing && (
                       <p className="text-xs font-semibold text-[var(--color-bad)] mt-1 flex items-center gap-1">
-                        <i aria-hidden="true" className="ri-error-warning-line text-sm" />
+                        <LuCircleAlert aria-hidden="true" className="text-sm" />
                         <span>Please enter a procedure title to continue.</span>
                       </p>
                     )}
@@ -1222,18 +1225,18 @@ export function NewProcedureForm({
                   {/* Purpose Field */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label className="text-[length:var(--text-sm)] font-semibold text-[var(--color-ink)]">
+                      <Label className="text-sm font-semibold text-[var(--color-ink)]">
                         {tForm('purposeLabel')}
                         <span aria-hidden="true" className="ml-1 text-[var(--color-bad)]">*</span>
                       </Label>
-                      <div className="inline-flex rounded-md border border-[var(--color-line-2)] bg-[var(--color-wash)]/60 p-0.5 text-[length:var(--text-xs)] font-semibold">
+                      <div className="inline-flex rounded-md border border-[var(--color-line-2)] bg-[var(--color-wash)] p-0.5 text-xs font-semibold">
                         <button
                           type="button"
                           onClick={() => setPurposeLang('en')}
                           className={cn(
-                            'rounded-[5px] px-2.5 py-0.5 transition-colors',
+                            'rounded-[var(--radius-sm)] px-3 py-0.5 transition-colors',
                             purposeLang === 'en'
-                              ? 'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] font-bold shadow-xs'
+                              ? 'bg-[var(--color-ink)] text-white font-semibold'
                               : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
                           )}
                         >
@@ -1243,9 +1246,9 @@ export function NewProcedureForm({
                           type="button"
                           onClick={() => setPurposeLang('es')}
                           className={cn(
-                            'rounded-[5px] px-2.5 py-0.5 transition-colors',
+                            'rounded-[var(--radius-sm)] px-3 py-0.5 transition-colors',
                             purposeLang === 'es'
-                              ? 'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] font-bold shadow-xs'
+                              ? 'bg-[var(--color-ink)] text-white font-semibold'
                               : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
                           )}
                         >
@@ -1270,7 +1273,7 @@ export function NewProcedureForm({
                               ? 'What is this procedure for? (e.g. To teach preparation and cooking method...)'
                               : tForm('purposePlaceholder')
                           }
-                          className={cn(textareaCls, 'pb-7', isPurposeMissing && 'border-[var(--color-bad)] ring-2 ring-[var(--color-bad-tint)]')}
+                          className={cn(textareaCls, 'pb-8', isPurposeMissing && 'border-[var(--color-bad)] ring-2 ring-[var(--color-bad-tint)]')}
                         />
                       ) : (
                         <textarea
@@ -1283,16 +1286,16 @@ export function NewProcedureForm({
                           maxLength={500}
                           rows={2}
                           placeholder={tForm('purposePlaceholder')}
-                          className={cn(textareaCls, 'pb-7', isPurposeMissing && 'border-[var(--color-bad)] ring-2 ring-[var(--color-bad-tint)]')}
+                          className={cn(textareaCls, 'pb-8', isPurposeMissing && 'border-[var(--color-bad)] ring-2 ring-[var(--color-bad-tint)]')}
                         />
                       )}
-                      <span className="pointer-events-none select-none absolute right-3 bottom-2 text-[length:var(--text-xs)] font-medium text-[var(--color-ink-3)]/70">
+                      <span className="pointer-events-none select-none absolute right-3 bottom-2 text-xs font-medium text-[var(--color-ink-3)]">
                         {purposeLang === 'en' ? purposeEn.length : purposeEs.length} / 500
                       </span>
                     </div>
                     {isPurposeMissing && (
                       <p className="text-xs font-semibold text-[var(--color-bad)] mt-1 flex items-center gap-1">
-                        <i aria-hidden="true" className="ri-error-warning-line text-sm" />
+                        <LuCircleAlert aria-hidden="true" className="text-sm" />
                         <span>Please enter a procedure purpose to continue.</span>
                       </p>
                     )}
@@ -1327,7 +1330,7 @@ export function NewProcedureForm({
         {(wizardStep === 'method' || (wizardStep === 'content' && !isRecipeMode)) && (
           <Section
             id="proc-content"
-            icon="ri-layout-grid-line"
+            icon={LuLayoutGrid}
             title={isRecipeMode ? tRecipe('methodTitle') : tForm('contentSectionTitle')}
             subtitle={isRecipeMode ? tRecipe('methodSubtitle') : tForm('contentSectionSubtitle')}
           >
@@ -1339,12 +1342,12 @@ export function NewProcedureForm({
         {wizardStep === 'access' && (
           <Section
             id="proc-access"
-            icon="ri-shield-user-line"
+            icon={LuUserCog}
             title={tAccess('title')}
             subtitle={tAccess('subtitle')}
           >
             <div className="space-y-4">
-              <Label className="text-[length:var(--text-sm)] font-semibold text-[var(--color-ink)]">
+              <Label className="text-sm font-semibold text-[var(--color-ink)]">
                 {tAccess('label')}
                 <span aria-hidden="true" className="ml-1 text-[var(--color-bad)]">*</span>
               </Label>
@@ -1368,11 +1371,11 @@ export function NewProcedureForm({
                       className={cn(
                         'flex flex-col items-start rounded-[var(--radius-lg)] border p-4 text-left transition-all',
                         isSelected
-                          ? 'border-[var(--color-brand-600)] bg-[var(--color-brand-tint)]/40 shadow-xs ring-2 ring-[var(--color-brand-600)]/30'
+                          ? 'border-[var(--color-ink)] bg-[var(--color-surface)] ring-1 ring-[var(--color-ink)]'
                           : 'border-[var(--color-line-2)] bg-[var(--color-surface)] hover:bg-[var(--color-wash)]',
                       )}
                     >
-                      <div className="flex items-center gap-2 font-bold text-[length:var(--text-sm)] text-[var(--color-ink)]">
+                      <div className="flex items-center gap-2 font-semibold text-sm text-[var(--color-ink)]">
                         <input
                           type="radio"
                           name="clearanceLevel"
@@ -1385,7 +1388,7 @@ export function NewProcedureForm({
                         />
                         <span>{tAccess(tier.key as never)}</span>
                       </div>
-                      <p className="mt-1 pl-6 text-[length:var(--text-xs)] text-[var(--color-ink-2)]">
+                      <p className="mt-1 pl-6 text-xs text-[var(--color-ink-2)]">
                         {tAccess(`${tier.key}Desc` as never)}
                       </p>
                     </button>
@@ -1400,23 +1403,23 @@ export function NewProcedureForm({
         {wizardStep === 'review' && (
           <Section
             id="proc-review"
-            icon="ri-checkbox-circle-line"
+            icon={LuCircleCheck}
             title="Review & Finish"
             subtitle="Verify all procedure details before saving or publishing."
           >
             <div className="space-y-6">
               {/* Overview Summary */}
-              <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-wash)]/40 p-4 space-y-3">
-                <div className="flex items-center justify-between border-b border-[var(--color-line)]/60 pb-2">
-                  <span className="text-[length:var(--text-xs)] font-bold uppercase tracking-wider text-[var(--color-brand-700)]">
+              <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-wash)] p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-[var(--color-line)] pb-2">
+                  <span className="text-xs font-semibold text-[var(--color-ink-2)]">
                     {categoryLabel} · {isRecipeMode ? 'Recipe' : 'Procedure'}
                   </span>
-                  <span className="rounded-full bg-[var(--color-brand-tint)] px-2.5 py-0.5 text-[length:var(--text-xs)] font-bold text-[var(--color-brand-700)]">
+                  <span className="rounded-[var(--radius-sm)] bg-[var(--color-panel)] px-3 py-0.5 text-xs font-semibold text-[var(--color-ink-2)]">
                     {clearanceLabel}
                   </span>
                 </div>
                 <div>
-                  <h3 className="font-[family-name:var(--font-display)] text-lg font-bold text-[var(--color-ink)]">
+                  <h3 className="font-[family-name:var(--font-ui)] text-lg font-semibold text-[var(--color-ink)]">
                     {activeTitle || '(Untitled procedure)'}
                   </h3>
                   <p className="mt-1 text-sm text-[var(--color-ink-2)]">
@@ -1428,7 +1431,7 @@ export function NewProcedureForm({
               {/* Recipe Ingredients Summary */}
               {isRecipeMode && (
                 <div className="space-y-2">
-                  <h4 className="text-[length:var(--text-sm)] font-bold text-[var(--color-ink)]">
+                  <h4 className="text-sm font-semibold text-[var(--color-ink)]">
                     Ingredients ({ingredients.filter((i) => i.name.trim()).length})
                   </h4>
                   <div className="rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] p-3 text-sm space-y-1">
@@ -1436,7 +1439,7 @@ export function NewProcedureForm({
                       ingredients
                         .filter((i) => i.name.trim())
                         .map((ing, idx) => (
-                          <div key={ing.id || idx} className="flex items-center justify-between py-1 border-b border-[var(--color-line)]/40 last:border-0">
+                          <div key={ing.id || idx} className="flex items-center justify-between py-1 border-b border-[var(--color-line)] last:border-0">
                             <span className="font-medium text-[var(--color-ink)]">{ing.name}</span>
                             <span className="text-[var(--color-ink-2)] font-mono text-xs">{ing.quantity} {ing.unit}</span>
                           </div>
@@ -1450,7 +1453,7 @@ export function NewProcedureForm({
 
               {/* Content / Blocks Breakdown Summary */}
               <div className="space-y-2">
-                <h4 className="text-[length:var(--text-sm)] font-bold text-[var(--color-ink)]">
+                <h4 className="text-sm font-semibold text-[var(--color-ink)]">
                   Content Blocks ({blocks.length})
                 </h4>
                 <div className="rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] p-3 text-sm">
@@ -1474,8 +1477,8 @@ export function NewProcedureForm({
         )}
 
         {/* Sticky Bottom Toolbar */}
-        <div className="sticky-bar fixed bottom-0 left-0 right-0 z-30 flex items-center justify-between border-t border-[var(--color-line)] bg-[var(--color-surface)]/95 px-6 py-3 backdrop-blur supports-[backdrop-filter]:bg-[var(--color-surface)]/80 shadow-md">
-          <div className="flex items-center gap-2 text-[length:var(--text-xs)] font-semibold uppercase tracking-wide text-[var(--color-ink-2)]">
+        <div className="sticky-bar fixed bottom-0 left-0 right-0 z-sticky flex items-center justify-between border-t border-[var(--color-line)] bg-[var(--color-surface)] px-6 py-3 backdrop-blur supports-[backdrop-filter]:bg-[var(--color-surface)] shadow-e2">
+          <div className="flex items-center gap-2 text-xs font-semibold text-[var(--color-ink-2)]">
             <span
               className={cn(
                 'size-2 rounded-full',
@@ -1486,7 +1489,7 @@ export function NewProcedureForm({
             {isDirty ? (
               <>
                 {tForm('draftLabel')}
-                <span className="text-[var(--color-brand-700)] ml-1">{tForm('unsavedLabel')}</span>
+                <span className="text-[var(--color-warn-ink)] ml-1">{tForm('unsavedLabel')}</span>
               </>
             ) : lastSavedAt ? (
               <span className="font-medium normal-case tracking-normal text-[var(--color-ink-2)]">
@@ -1501,7 +1504,7 @@ export function NewProcedureForm({
               <button
                 type="button"
                 onClick={discard}
-                className="text-[length:var(--text-sm)] font-medium text-[var(--color-ink-2)] underline-offset-4 hover:underline mr-2"
+                className="text-sm font-medium text-[var(--color-ink-2)] underline-offset-4 hover:underline mr-2"
               >
                 {tForm('discard')}
               </button>
@@ -1518,9 +1521,9 @@ export function NewProcedureForm({
                   else if (wizardStep === 'access') setWizardStep(isRecipeMode ? 'method' : 'content');
                   else if (wizardStep === 'review') setWizardStep('access');
                 }}
-                className="gap-1.5"
+                className="gap-2"
               >
-                <i aria-hidden="true" className="ri-arrow-left-line text-sm" />
+                <LuArrowLeft aria-hidden="true" className="text-sm" />
                 <span>Back</span>
               </Button>
             )}
@@ -1549,10 +1552,10 @@ export function NewProcedureForm({
                 variant="primary"
                 size="sm"
                 onClick={handleNextStep}
-                className="gap-1.5"
+                className="gap-2"
               >
                 <span>Next step</span>
-                <i aria-hidden="true" className="ri-arrow-right-line text-sm" />
+                <LuArrowRight aria-hidden="true" className="text-sm" />
               </Button>
             )}
           </div>
@@ -1573,7 +1576,7 @@ export function NewProcedureForm({
           {/* Modal Header */}
           <div className="flex items-center justify-between border-b border-[var(--color-line)] pb-4">
             <div>
-              <h3 className="font-[family-name:var(--font-ui)] text-lg font-bold text-[var(--color-ink)]">
+              <h3 className="font-[family-name:var(--font-ui)] text-lg font-semibold text-[var(--color-ink)]">
                 {locale === 'es' ? 'Seleccionar Categoría' : 'Select Library Category'}
               </h3>
               <p className="text-xs text-[var(--color-ink-2)] mt-0.5">
@@ -1590,22 +1593,19 @@ export function NewProcedureForm({
               }}
               className="flex size-8 items-center justify-center rounded-lg text-[var(--color-ink-3)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)] transition-colors"
             >
-              <i aria-hidden="true" className="ri-close-line text-lg" />
+              <LuX aria-hidden="true" className="text-lg" />
             </button>
           </div>
 
           {/* Search Input inside Modal */}
           <div className="relative">
-            <i
-              aria-hidden="true"
-              className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-ink-3)]"
-            />
+            <LuSearch aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-ink-3)]" />
             <Input
               type="text"
               placeholder={locale === 'es' ? 'Buscar categorías...' : 'Search categories...'}
               value={modalSearchQuery}
               onChange={(e) => setModalSearchQuery(e.target.value)}
-              className="pl-9 pr-8 text-sm h-10 bg-[var(--color-surface)] border-[var(--color-line-2)]"
+              className="pl-10 pr-8 text-sm h-10 bg-[var(--color-surface)] border-[var(--color-line-2)]"
             />
             {modalSearchQuery && (
               <button
@@ -1613,13 +1613,13 @@ export function NewProcedureForm({
                 onClick={() => setModalSearchQuery('')}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--color-ink-3)] hover:text-[var(--color-ink)]"
               >
-                <i aria-hidden="true" className="ri-close-line" />
+                <LuX aria-hidden="true" />
               </button>
             )}
           </div>
 
           {/* Category Grid inside Modal */}
-          <div className="max-h-[380px] overflow-y-auto pr-1">
+          <div className="max-h-list overflow-y-auto pr-1">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {modalFilteredCategories.map((c) => {
                 const isSelected = categoryId === c.id;
@@ -1637,23 +1637,23 @@ export function NewProcedureForm({
                       setModalSearchQuery('');
                     }}
                     className={cn(
-                      'group relative flex items-center gap-3.5 rounded-xl border p-3.5 text-left transition-all duration-150',
+                      'group relative flex items-center gap-4 rounded-[var(--radius-lg)] border p-4 text-left transition-all duration-[var(--dur)]',
                       isSelected
-                        ? 'border-[var(--color-brand-600)] bg-[var(--color-brand-tint)]/40 shadow-xs ring-2 ring-[var(--color-brand-600)]/30'
+                        ? 'border-[var(--color-ink)] bg-[var(--color-surface)] ring-1 ring-[var(--color-ink)]'
                         : 'border-[var(--color-line-2)] bg-[var(--color-surface)] hover:bg-[var(--color-wash)] hover:border-[var(--color-line-3)]',
                     )}
                   >
                     <div
                       className={cn(
-                        'flex size-10 shrink-0 items-center justify-center rounded-lg text-lg shadow-2xs',
+                        'flex size-10 shrink-0 items-center justify-center rounded-lg text-lg shadow-e1',
                         style.bg,
                         style.text,
                       )}
                     >
-                      <i aria-hidden="true" className={style.icon} />
+                      <Icon icon={style.icon} />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h4 className="font-bold text-sm text-[var(--color-ink)] line-clamp-2 leading-tight" title={name}>
+                      <h4 className="font-semibold text-sm text-[var(--color-ink)] line-clamp-2 leading-tight" title={name}>
                         {name}
                       </h4>
                       <p className="mt-0.5 text-xs text-[var(--color-ink-2)] truncate">
@@ -1671,8 +1671,8 @@ export function NewProcedureForm({
                       </p>
                     </div>
                     {isSelected && (
-                      <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand-600)] text-white text-xs">
-                        <i aria-hidden="true" className="ri-check-line font-bold" />
+                      <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-ink)] text-white text-xs">
+                        <LuCheck aria-hidden="true" className="font-semibold" />
                       </div>
                     )}
                   </button>
@@ -1692,9 +1692,9 @@ export function NewProcedureForm({
       <button
         type="button"
         onClick={() => setIsPreviewOpen(true)}
-        className="fixed bottom-20 right-6 z-30 flex items-center gap-2 rounded-full bg-[var(--color-brand-600)] text-white px-4 py-2.5 shadow-xl hover:bg-[var(--color-brand-700)] transition-all font-bold text-xs active:scale-95"
+        className="fixed bottom-20 right-6 z-sticky flex items-center gap-2 rounded-full bg-[var(--color-surface)] text-[var(--color-ink)] px-4 py-3 shadow-e3 hover:bg-[var(--color-panel)] transition-colors duration-[var(--dur)] ease-[var(--ease)] font-semibold text-xs"
       >
-        <i aria-hidden="true" className="ri-eye-line text-base" />
+        <LuEye aria-hidden="true" className="text-base" />
         <span>Live Preview</span>
       </button>
 
@@ -1707,18 +1707,18 @@ export function NewProcedureForm({
       >
         <div className="space-y-6 p-1">
           {/* Drawer Header Language Switcher */}
-          <div className="flex items-center justify-between border-b border-[var(--color-line)]/60 pb-3">
-            <span className="text-[length:var(--text-xs)] font-bold uppercase tracking-wider text-[var(--color-ink-2)]">
+          <div className="flex items-center justify-between border-b border-[var(--color-line)] pb-3">
+            <span className="text-xs font-semibold text-[var(--color-ink-2)]">
               Preview Language
             </span>
-            <div className="inline-flex rounded-lg border border-[var(--color-line-2)] bg-[var(--color-wash)] p-0.5 text-xs font-bold">
+            <div className="inline-flex rounded-lg border border-[var(--color-line-2)] bg-[var(--color-wash)] p-0.5 text-xs font-semibold">
               <button
                 type="button"
                 onClick={() => setPreviewLang('en')}
                 className={cn(
                   'rounded-md px-3 py-1 transition-all',
                   previewLang === 'en'
-                    ? 'bg-[var(--color-brand-600)] text-white shadow-2xs'
+                    ? 'bg-[var(--color-ink)] text-white'
                     : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
                 )}
               >
@@ -1730,7 +1730,7 @@ export function NewProcedureForm({
                 className={cn(
                   'rounded-md px-3 py-1 transition-all',
                   previewLang === 'es'
-                    ? 'bg-[var(--color-brand-600)] text-white shadow-2xs'
+                    ? 'bg-[var(--color-ink)] text-white'
                     : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
                 )}
               >
@@ -1740,23 +1740,23 @@ export function NewProcedureForm({
           </div>
 
           {/* Rendered Employee Procedure View */}
-          <div className="rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-6 space-y-6 shadow-xs">
+          <div className="rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-6 space-y-6">
             {/* Category & Clearance Tag */}
             <div className="flex items-center justify-between">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-brand-tint)] px-3 py-1 text-xs font-bold text-[var(--color-brand-700)]">
-                <i aria-hidden="true" className="ri-folder-3-line text-sm" />
+              <span className="inline-flex items-center gap-2 rounded-[var(--radius-sm)] bg-[var(--color-panel)] px-3 py-1 text-xs font-semibold text-[var(--color-ink-2)]">
+                <LuFolder aria-hidden="true" className="text-sm" />
                 {categoryLabel}
               </span>
               {clearanceLevel && (
-                <span className="rounded-full bg-[var(--color-wash)] px-3 py-1 text-xs font-semibold text-[var(--color-ink-2)] border border-[var(--color-line-2)]">
+                <span className="rounded-[var(--radius-sm)] bg-[var(--color-panel)] px-3 py-1 text-xs font-semibold text-[var(--color-ink-2)] border border-[var(--color-line-2)]">
                   {clearanceLabel}
                 </span>
               )}
             </div>
 
             {/* Title & Purpose */}
-            <div className="space-y-2 border-b border-[var(--color-line)]/60 pb-4">
-              <h2 className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-[-0.02em] text-[var(--color-ink)]">
+            <div className="space-y-2 border-b border-[var(--color-line)] pb-4">
+              <h2 className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight text-[var(--color-ink)]">
                 {(previewLang === 'en' ? titleEn : titleEs) || (previewLang === 'en' ? titleEs : titleEn) || '(Untitled procedure)'}
               </h2>
               <p className="text-sm text-[var(--color-ink-2)] leading-relaxed">
@@ -1766,14 +1766,14 @@ export function NewProcedureForm({
 
             {/* Recipe Ingredients */}
             {isRecipeMode && ingredients.some((i) => i.name.trim()) && (
-              <div className="space-y-3 rounded-xl border border-[var(--color-line-2)] bg-[var(--color-wash)]/40 p-4">
-                <h3 className="font-bold text-sm text-[var(--color-ink)] flex items-center gap-2">
-                  <i aria-hidden="true" className="ri-restaurant-line text-orange-600" />
+              <div className="space-y-3 rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-wash)] p-4">
+                <h3 className="font-semibold text-sm text-[var(--color-ink)] flex items-center gap-2">
+                  <LuUtensils aria-hidden="true" className="text-[var(--color-ink-2)]" />
                   <span>Recipe Ingredients</span>
                 </h3>
-                <div className="divide-y divide-[var(--color-line)]/40 text-xs">
+                <div className="divide-y divide-[var(--color-line)] text-xs">
                   {ingredients.filter((i) => i.name.trim()).map((ing) => (
-                    <div key={ing.id} className="flex items-center justify-between py-1.5">
+                    <div key={ing.id} className="flex items-center justify-between py-2">
                       <span className="font-semibold text-[var(--color-ink)]">{ing.name}</span>
                       <span className="font-mono text-[var(--color-ink-2)]">{ing.quantity} {ing.unit}</span>
                     </div>
@@ -1801,7 +1801,7 @@ export function NewProcedureForm({
                   if (b.kind === 'heading') {
                     const headingText = previewLang === 'en' ? (b.text?.en || b.text?.es) : (b.text?.es || b.text?.en);
                     return (
-                      <h3 key={b.id || idx} className="font-bold text-lg text-[var(--color-ink)] border-b border-[var(--color-line)]/60 pb-1 mt-4">
+                      <h3 key={b.id || idx} className="font-semibold text-lg text-[var(--color-ink)] border-b border-[var(--color-line)] pb-1 mt-4">
                         {headingText || '(Empty heading)'}
                       </h3>
                     );
@@ -1809,7 +1809,7 @@ export function NewProcedureForm({
                   if (b.kind === 'method') {
                     return (
                       <div key={b.id || idx} className="space-y-2">
-                        <h4 className="font-bold text-xs uppercase tracking-wider text-[var(--color-brand-700)]">
+                        <h4 className="font-semibold text-xs text-[var(--color-ink-2)]">
                           Steps & Procedure
                         </h4>
                         <ol className="list-decimal list-inside space-y-2 text-sm text-[var(--color-ink)]">
@@ -1828,8 +1828,8 @@ export function NewProcedureForm({
                   if (b.kind === 'warning') {
                     const warningBody = previewLang === 'en' ? (b.body?.en || b.body?.es) : (b.body?.es || b.body?.en);
                     return (
-                      <div key={b.id || idx} className="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50/90 p-4 text-amber-900">
-                        <i aria-hidden="true" className="ri-alert-fill text-lg text-amber-600 shrink-0 mt-0.5" />
+                      <div key={b.id || idx} className="flex items-start gap-3 rounded-[var(--radius-md)] bg-[var(--color-warn-tint)] p-4 text-[var(--color-warn-ink)]">
+                        <LuTriangleAlert aria-hidden="true" className="text-lg text-[var(--color-warn-ink)] shrink-0 mt-0.5" />
                         <div className="text-xs leading-relaxed font-medium">
                           {warningBody || '(Empty warning callout)'}
                         </div>
@@ -1840,10 +1840,10 @@ export function NewProcedureForm({
                     return (
                       <div key={b.id || idx} className="space-y-2 overflow-x-auto">
                         <table className="w-full text-left text-xs border border-[var(--color-line-2)] rounded-lg overflow-hidden">
-                          <thead className="bg-[var(--color-wash)] font-bold text-[var(--color-ink)] border-b border-[var(--color-line-2)]">
+                          <thead className="bg-[var(--color-wash)] font-semibold text-[var(--color-ink)] border-b border-[var(--color-line-2)]">
                             <tr>
                               {b.headers.map((h, hIdx) => (
-                                <th key={hIdx} className="p-2.5 border-r last:border-0 border-[var(--color-line-2)]">
+                                <th key={hIdx} className="p-3 border-r last:border-0 border-[var(--color-line-2)]">
                                   {(previewLang === 'en' ? (h.en || h.es) : (h.es || h.en)) || `Column ${hIdx + 1}`}
                                 </th>
                               ))}
@@ -1851,9 +1851,9 @@ export function NewProcedureForm({
                           </thead>
                           <tbody className="divide-y divide-[var(--color-line)]">
                             {b.rows.map((row, rIdx) => (
-                              <tr key={rIdx} className="hover:bg-[var(--color-wash)]/40">
+                              <tr key={rIdx} className="hover:bg-[var(--color-wash)]">
                                 {row.map((cell, cIdx) => (
-                                  <td key={cIdx} className="p-2.5 border-r last:border-0 border-[var(--color-line)] text-[var(--color-ink-2)]">
+                                  <td key={cIdx} className="p-3 border-r last:border-0 border-[var(--color-line)] text-[var(--color-ink-2)]">
                                     {(previewLang === 'en' ? (cell.en || cell.es) : (cell.es || cell.en)) || '-'}
                                   </td>
                                 ))}
@@ -1869,9 +1869,9 @@ export function NewProcedureForm({
                     return (
                       <div key={b.id || idx} className="space-y-1 text-center">
                         {b.src ? (
-                          <img src={b.src} alt={b.alt?.en || 'Procedure image'} className="mx-auto max-h-60 rounded-lg object-cover" />
+                          <img src={b.src} alt={b.alt?.en || 'Procedure image'} className="mx-auto max-h-media rounded-lg object-cover" />
                         ) : (
-                          <div className="h-40 rounded-lg bg-[var(--color-wash)] border border-dashed border-[var(--color-line-2)] flex items-center justify-center text-xs text-[var(--color-ink-3)]">
+                          <div className="h-tile rounded-lg bg-[var(--color-wash)] border border-dashed border-[var(--color-line-2)] flex items-center justify-center text-xs text-[var(--color-ink-3)]">
                             (Image placeholder: {b.src || 'No image URL provided'})
                           </div>
                         )}
@@ -1883,9 +1883,9 @@ export function NewProcedureForm({
                     const title = previewLang === 'en' ? (b.title?.en || b.title?.es) : (b.title?.es || b.title?.en);
                     return (
                       <div key={b.id || idx} className="flex items-center gap-3 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-wash)] p-3">
-                        <i aria-hidden="true" className="ri-attachment-line text-lg text-[var(--color-brand-700)]" />
+                        <LuPaperclip aria-hidden="true" className="text-lg text-[var(--color-ink-2)]" />
                         <span className="font-semibold text-xs text-[var(--color-ink)] flex-1">{title || 'Download attachment'}</span>
-                        <i aria-hidden="true" className="ri-download-2-line text-xs text-[var(--color-ink-2)]" />
+                        <LuDownload aria-hidden="true" className="text-xs text-[var(--color-ink-2)]" />
                       </div>
                     );
                   }
@@ -1909,7 +1909,7 @@ function Section({
   children,
 }: {
   id?: string;
-  icon?: string;
+  icon?: IconType;
   title: string;
   subtitle?: string;
   headerAction?: React.ReactNode;
@@ -1918,21 +1918,21 @@ function Section({
   return (
     <section
       id={id}
-      className="scroll-mt-6 space-y-4 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-6 shadow-sm"
+      className="scroll-mt-6 space-y-4 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-6"
     >
-      <header className="flex items-start justify-between gap-4 border-b border-[var(--color-line)]/60 pb-3">
+      <header className="flex items-start justify-between gap-4 border-b border-[var(--color-line)] pb-3">
         <div className="flex items-start gap-3">
           {icon && (
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] text-lg">
-              <i aria-hidden="true" className={icon} />
+            <div className="flex size-tap-admin shrink-0 items-center justify-center rounded-lg bg-[var(--color-panel)] text-[var(--color-ink-2)] text-lg">
+              <Icon icon={icon} />
             </div>
           )}
           <div>
-            <h2 className="font-[family-name:var(--font-ui)] text-[length:var(--text-md)] font-bold tracking-[-0.01em] text-[var(--color-ink)]">
+            <h2 className="font-[family-name:var(--font-ui)] text-md font-semibold tracking-snug text-[var(--color-ink)]">
               {title}
             </h2>
             {subtitle && (
-              <p className="mt-0.5 text-[length:var(--text-sm)] text-[var(--color-ink-2)]">
+              <p className="mt-0.5 text-sm text-[var(--color-ink-2)]">
                 {subtitle}
               </p>
             )}

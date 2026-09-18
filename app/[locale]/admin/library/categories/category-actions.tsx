@@ -11,6 +11,8 @@ import { RowActions, type RowActionItem } from '@/components/ui/row-actions';
 import { cn } from '@/lib/utils';
 import { createCategory, updateCategory, archiveCategory, ApiException } from '@/lib/api';
 import type { Category } from '@/lib/types';
+import { LuArchive, LuFolderPlus, LuGlobe, LuHistory, LuLink, LuPencil, LuPlus, LuUndo2, LuX } from 'react-icons/lu';
+import { Icon } from '@/components/ui/icon';
 
 interface CategoryActionsProps {
   category: Category;
@@ -28,14 +30,14 @@ export function CategoryActions({ category }: CategoryActionsProps): React.React
     const out: RowActionItem[] = [
       {
         label: t('renameAction'),
-        icon: 'ri-pencil-line',
+        icon: LuPencil,
         onSelect: () => setRenameOpen(true),
       },
     ];
     if (category.isArchived) {
       out.push({
         label: t('unarchive'),
-        icon: 'ri-arrow-go-back-line',
+        icon: LuUndo2,
         onSelect: () => {
           void runUnarchive(category);
         },
@@ -43,7 +45,7 @@ export function CategoryActions({ category }: CategoryActionsProps): React.React
     } else {
       out.push({
         label: t('archive'),
-        icon: 'ri-archive-line',
+        icon: LuArchive,
         destructive: true,
         onSelect: () => {
           void runArchive(category);
@@ -144,7 +146,7 @@ export function CreateCategoryButton({ locationId }: CreateButtonProps): React.R
   return (
     <>
       <Button size="sm" variant="secondary" onClick={() => setOpen(true)} disabled={pending}>
-        <i aria-hidden="true" className="ri-add-line mr-1.5 text-[length:var(--text-md)]" />
+        <LuPlus aria-hidden="true" className="mr-2 text-md" />
         {t('addButton')}
       </Button>
 
@@ -270,10 +272,10 @@ function CategoryForm({
   return (
     <form onSubmit={onSubmit} className="flex flex-col">
       {/* Modal Header */}
-      <div className="flex items-start justify-between border-b border-[var(--color-line-2)]/60 p-6 pb-5">
-        <div className="flex items-start gap-3.5">
-          <div className="flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] text-xl shadow-2xs">
-            <i aria-hidden="true" className={mode === 'create' ? 'ri-folder-add-line' : 'ri-edit-line'} />
+      <div className="flex items-start justify-between border-b border-[var(--color-line)] p-6 pb-5">
+        <div className="flex items-start gap-4">
+          <div className="flex size-12 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-panel)] text-[var(--color-ink-2)] text-xl shadow-e1">
+            <Icon icon={mode === 'create' ? LuFolderPlus : LuPencil} />
           </div>
           <div className="space-y-0.5">
             <h2 className="font-[family-name:var(--font-display)] text-xl font-bold tracking-tight text-[var(--color-ink)]">
@@ -285,7 +287,7 @@ function CategoryForm({
                   ? 'Renombrar categoría'
                   : 'Rename category'}
             </h2>
-            <p className="text-[length:var(--text-xs)] text-[var(--color-ink-2)] font-medium">
+            <p className="text-xs text-[var(--color-ink-2)] font-medium">
               {isEs
                 ? 'Añade una categoría para organizar tus procedimientos en la biblioteca.'
                 : 'Add a category to organize your procedures in the library.'}
@@ -299,7 +301,7 @@ function CategoryForm({
           aria-label="Close"
           className="flex size-8 items-center justify-center rounded-md text-[var(--color-ink-3)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)] transition-colors"
         >
-          <i aria-hidden="true" className="ri-close-line text-xl" />
+          <LuX aria-hidden="true" className="text-xl" />
         </button>
       </div>
 
@@ -308,10 +310,10 @@ function CategoryForm({
         {/* Category Details Section */}
         <div className="space-y-4">
           <div>
-            <h3 className="text-[length:var(--text-sm)] font-bold text-[var(--color-ink)]">
+            <h3 className="text-sm font-semibold text-[var(--color-ink)]">
               {isEs ? 'Detalles de la categoría' : 'Category details'}
             </h3>
-            <p className="text-[length:var(--text-xs)] text-[var(--color-ink-2)] font-medium mt-0.5">
+            <p className="text-xs text-[var(--color-ink-2)] font-medium mt-0.5">
               {isEs
                 ? 'Introduce el nombre en inglés. El nombre en español es opcional.'
                 : 'Enter the name in English. The Spanish name is optional and can be added later.'}
@@ -322,7 +324,7 @@ function CategoryForm({
           <div className="space-y-1">
             <Label
               htmlFor="category-name-en"
-              className="text-[length:var(--text-xs)] font-bold text-[var(--color-ink)]"
+              className="text-xs font-semibold text-[var(--color-ink)]"
             >
               {isEs ? 'Nombre de la categoría (Inglés)' : 'Category name (English)'}{' '}
               <span aria-hidden="true" className="text-[var(--color-bad)]">
@@ -340,7 +342,7 @@ function CategoryForm({
               autoFocus
               autoComplete="off"
             />
-            <div className="text-[10px] text-[var(--color-ink-3)] text-right font-mono font-semibold pt-0.5">
+            <div className="text-xs text-[var(--color-ink-3)] text-right font-mono font-semibold pt-0.5">
               {nameEn.length} / 100
             </div>
           </div>
@@ -349,7 +351,7 @@ function CategoryForm({
           <div className="space-y-1">
             <Label
               htmlFor="category-name-es"
-              className="text-[length:var(--text-xs)] font-bold text-[var(--color-ink)]"
+              className="text-xs font-semibold text-[var(--color-ink)]"
             >
               {isEs ? 'Nombre en español' : 'Spanish name'}{' '}
               <span className="text-[var(--color-ink-3)] font-normal">(optional)</span>
@@ -362,8 +364,8 @@ function CategoryForm({
               placeholder={isEs ? 'Procedimientos de estación' : 'Procedimientos de estación'}
               autoComplete="off"
             />
-            <p className="flex items-center gap-1.5 text-[11px] text-[var(--color-ink-2)] pt-1 font-medium">
-              <i aria-hidden="true" className="ri-global-line text-sm text-[var(--color-ink-3)]" />
+            <p className="flex items-center gap-2 text-xs text-[var(--color-ink-2)] pt-1 font-medium">
+              <LuGlobe aria-hidden="true" className="text-sm text-[var(--color-ink-3)]" />
               {isEs
                 ? 'Se usa cuando la biblioteca se ve en español.'
                 : 'Used when the library is viewed in Spanish.'}
@@ -373,16 +375,16 @@ function CategoryForm({
 
         {/* URL Identifier Callout Card */}
         {mode === 'create' && (
-          <div className="rounded-[var(--radius-lg)] border border-[var(--color-brand-600)]/20 bg-[#fff8f5] dark:bg-[var(--color-brand-tint)]/15 p-4 space-y-3">
+          <div className="rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-4 space-y-3">
             <div className="flex items-start gap-3">
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] text-sm mt-0.5 shadow-2xs">
-                <i aria-hidden="true" className="ri-link" />
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-panel)] text-[var(--color-ink-2)] text-sm mt-0.5 shadow-e1">
+                <LuLink aria-hidden="true" />
               </span>
               <div className="space-y-0.5">
-                <h4 className="text-[length:var(--text-xs)] font-bold text-[var(--color-ink)]">
+                <h4 className="text-xs font-semibold text-[var(--color-ink)]">
                   {isEs ? 'Identificador URL' : 'URL identifier'}
                 </h4>
-                <p className="text-[11px] text-[var(--color-ink-2)] font-medium">
+                <p className="text-xs text-[var(--color-ink-2)] font-medium">
                   {isEs
                     ? 'Generado automáticamente a partir del nombre en inglés.'
                     : 'Automatically generated from the English name.'}
@@ -402,14 +404,14 @@ function CategoryForm({
                 required
                 autoComplete="off"
                 spellCheck={false}
-                className="pr-9 font-mono text-xs"
+                className="pr-10 font-mono text-xs"
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-3)] pointer-events-none">
-                <i aria-hidden="true" className="ri-history-line text-sm" />
+                <LuHistory aria-hidden="true" className="text-sm" />
               </span>
             </div>
 
-            <p className="text-[11px] text-[var(--color-ink-3)] font-medium">
+            <p className="text-xs text-[var(--color-ink-3)] font-medium">
               {isEs ? 'Puedes editarlo más tarde si es necesario.' : 'You can edit it later if needed.'}
             </p>
           </div>
@@ -418,7 +420,7 @@ function CategoryForm({
         {error && (
           <p
             role="alert"
-            className="rounded-[var(--radius-md)] border border-[var(--color-bad)]/40 bg-[var(--color-bad-tint)] px-3.5 py-2 text-[length:var(--text-xs)] font-medium text-[var(--color-bad)]"
+            className="rounded-[var(--radius-md)] bg-[var(--color-bad-tint)] px-4 py-2 text-xs font-medium text-[var(--color-bad)]"
           >
             {error}
           </p>
@@ -426,7 +428,7 @@ function CategoryForm({
       </div>
 
       {/* Modal Action Footer */}
-      <div className="flex items-center justify-end gap-3 border-t border-[var(--color-line-2)]/60 bg-[var(--color-wash)]/30 px-6 py-4">
+      <div className="flex items-center justify-end gap-3 border-t border-[var(--color-line)] bg-[var(--color-wash)] px-6 py-4">
         <Button
           type="button"
           variant="neutral"
@@ -440,7 +442,7 @@ function CategoryForm({
           type="submit"
           variant="primary"
           disabled={!canSubmit}
-          className="rounded-full bg-[var(--color-brand-600)] hover:bg-[var(--color-brand-700)] text-white px-5 text-xs font-semibold shadow-xs"
+          className="rounded-full bg-[var(--color-brand-600)] hover:bg-[var(--color-brand-700)] text-white px-5 text-xs font-semibold shadow-e1"
         >
           {mode === 'create' ? (isEs ? 'Crear categoría' : 'Create category') : saveLabel}
         </Button>

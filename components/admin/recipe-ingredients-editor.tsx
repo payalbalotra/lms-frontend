@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CustomSelect } from '@/components/ui/custom-select';
 import { cn } from '@/lib/utils';
+import { LuGripVertical, LuLayers, LuPlus, LuScale, LuTrash2, LuUtensils } from 'react-icons/lu';
 
 export interface RecipeIngredientItem {
   id: string;
@@ -84,18 +85,18 @@ export function RecipeIngredientsEditor({
   return (
     <section
       id="proc-ingredients"
-      className="scroll-mt-6 space-y-5 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-6 shadow-sm"
+      className="scroll-mt-6 space-y-5 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-6"
     >
-      <header className="flex items-center justify-between border-b border-[var(--color-line)]/60 pb-3">
+      <header className="flex items-center justify-between border-b border-[var(--color-line)] pb-3">
         <div className="flex items-center gap-3">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] text-lg">
-            <i aria-hidden="true" className="ri-restaurant-line" />
+          <div className="flex size-tap-admin shrink-0 items-center justify-center rounded-lg bg-[var(--color-panel)] text-[var(--color-ink-2)] text-lg">
+            <LuUtensils aria-hidden="true" />
           </div>
           <div>
-            <h2 className="font-[family-name:var(--font-ui)] text-[length:var(--text-md)] font-bold text-[var(--color-ink)]">
+            <h2 className="font-[family-name:var(--font-ui)] text-md font-semibold text-[var(--color-ink)]">
               {t('ingredientsTitle')}
             </h2>
-            <p className="mt-0.5 text-[length:var(--text-sm)] text-[var(--color-ink-2)]">
+            <p className="mt-0.5 text-sm text-[var(--color-ink-2)]">
               {t('ingredientsSubtitle')}
             </p>
           </div>
@@ -107,24 +108,24 @@ export function RecipeIngredientsEditor({
           onClick={addItem}
           className="gap-1 text-xs"
         >
-          <i aria-hidden="true" className="ri-add-line" />
+          <LuPlus aria-hidden="true" />
           {t('addIngredient')}
         </Button>
       </header>
 
       {/* Ingredients Table */}
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-[length:var(--text-sm)]">
+        <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-[var(--color-line-2)] text-[length:var(--text-xs)] font-semibold uppercase tracking-wide text-[var(--color-ink-3)]">
+            <tr className="border-b border-[var(--color-line-2)] text-xs font-semibold text-[var(--color-ink-3)]">
               <th scope="col" className="w-8 py-2 text-center"></th>
               <th scope="col" className="py-2 pl-2">
                 {t('colIngredient')}
               </th>
-              <th scope="col" className="w-28 py-2 px-2">
+              <th scope="col" className="w-field-xs py-2 px-2">
                 {t('colQuantity')}
               </th>
-              <th scope="col" className="w-28 py-2 px-2">
+              <th scope="col" className="w-field-xs py-2 px-2">
                 {t('colUnit')}
               </th>
               <th scope="col" className="py-2 px-2">
@@ -133,11 +134,11 @@ export function RecipeIngredientsEditor({
               <th scope="col" className="w-10 py-2 text-center"></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[var(--color-line)]/40">
+          <tbody className="divide-y divide-[var(--color-line)]">
             {ingredients.map((item) => (
-              <tr key={item.id} className="group transition-colors hover:bg-[var(--color-wash)]/50">
+              <tr key={item.id} className="group transition-colors hover:bg-[var(--color-wash)]">
                 <td className="py-2 text-center text-[var(--color-ink-3)] cursor-grab">
-                  <i aria-hidden="true" className="ri-draggable" />
+                  <LuGripVertical aria-hidden="true" />
                 </td>
                 <td className="py-2 pl-2">
                   <Input
@@ -180,7 +181,7 @@ export function RecipeIngredientsEditor({
                     aria-label={t('removeIngredient')}
                     className="size-8 text-[var(--color-ink-3)] hover:text-[var(--color-bad)]"
                   >
-                    <i aria-hidden="true" className="ri-delete-bin-line" />
+                    <LuTrash2 aria-hidden="true" />
                   </Button>
                 </td>
               </tr>
@@ -190,14 +191,14 @@ export function RecipeIngredientsEditor({
       </div>
 
       {/* Yield capture (total yield, portions, portion size, total time) */}
-      <div className="rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-wash)]/40 p-4 space-y-3">
-        <div className="flex items-center gap-2 text-[var(--color-brand-700)]">
-          <i aria-hidden="true" className="ri-scales-2-line text-lg" />
-          <h3 className="font-[family-name:var(--font-ui)] text-[length:var(--text-sm)] font-bold">
+      <div className="rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-wash)] p-4 space-y-3">
+        <div className="flex items-center gap-2 text-[var(--color-ink-2)]">
+          <LuScale aria-hidden="true" className="text-lg" />
+          <h3 className="font-[family-name:var(--font-ui)] text-sm font-semibold">
             {t('yieldTitle')}
           </h3>
         </div>
-        <p className="text-[length:var(--text-xs)] text-[var(--color-ink-2)]">
+        <p className="text-xs text-[var(--color-ink-2)]">
           {t('yieldSubtitle')}
         </p>
 
@@ -205,9 +206,9 @@ export function RecipeIngredientsEditor({
           {yieldItems.map((row) => (
             <li
               key={row.label}
-              className="grid grid-cols-[minmax(0,1fr)_6rem_6rem] items-center gap-3"
+              className="grid grid-cols-[minmax(0,1fr)_var(--field-xs)_var(--field-xs)] items-center gap-3"
             >
-              <label className="text-[length:var(--text-xs)] font-semibold text-[var(--color-ink-2)]">
+              <label className="text-xs font-semibold text-[var(--color-ink-2)]">
                 {row.label}
               </label>
               <Input
@@ -229,14 +230,14 @@ export function RecipeIngredientsEditor({
       </div>
 
       {/* Batch size section */}
-      <div className="rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-wash)]/40 p-4 space-y-3">
-        <div className="flex items-center gap-2 text-[var(--color-brand-700)]">
-          <i aria-hidden="true" className="ri-stack-line text-lg" />
-          <h3 className="font-[family-name:var(--font-ui)] text-[length:var(--text-sm)] font-bold">
+      <div className="rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-wash)] p-4 space-y-3">
+        <div className="flex items-center gap-2 text-[var(--color-ink-2)]">
+          <LuLayers aria-hidden="true" className="text-lg" />
+          <h3 className="font-[family-name:var(--font-ui)] text-sm font-semibold">
             {t('batchSizeTitle')}
           </h3>
         </div>
-        <p className="text-[length:var(--text-xs)] text-[var(--color-ink-2)]">
+        <p className="text-xs text-[var(--color-ink-2)]">
           {t('batchSizeSubtitle')}
         </p>
 
@@ -253,10 +254,10 @@ export function RecipeIngredientsEditor({
                 aria-pressed={isSelected}
                 aria-label={`${factor} ${batchWord}`}
                 className={cn(
-                  'flex items-center gap-2 rounded-full border px-4 py-1.5 text-[length:var(--text-xs)] font-bold transition-all',
+                  'flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold transition-all',
                   isSelected
-                    ? 'border-[var(--color-brand-600)] bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] shadow-sm'
-                    : 'border-[var(--color-line-3)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:border-[var(--color-brand-600)]/50',
+                    ? 'border-[var(--color-ink)] bg-[var(--color-ink)] text-white'
+                    : 'border-[var(--color-line-3)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:border-[var(--color-brand-tint-2)]',
                 )}
               >
                 <span>

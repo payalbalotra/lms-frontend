@@ -7,6 +7,8 @@ import { getCategoryIcon } from '@/lib/category-icons';
 import type { Category } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { CategoryActions, CreateCategoryButton } from './category-actions';
+import { LuArrowLeft, LuFolders } from 'react-icons/lu';
+import { Icon } from '@/components/ui/icon';
 
 /**
  * Admin → Library → Categories — manager CRUD.
@@ -102,26 +104,26 @@ export default async function AdminLibraryCategoriesPage({
     <div className="mx-auto max-w-5xl space-y-6">
       <nav
         aria-label="Breadcrumb"
-        className="flex items-center gap-2 text-[length:var(--text-sm)] text-[var(--color-ink-2)]"
+        className="flex items-center gap-2 text-sm text-[var(--color-ink-2)]"
       >
         <Link
           href={`/${locale}/admin/library`}
           className="inline-flex items-center gap-1 font-medium hover:text-[var(--color-brand-700)]"
         >
-          <i aria-hidden="true" className="ri-arrow-left-line" />
+          <LuArrowLeft aria-hidden="true" />
           {t('crumbBack')}
         </Link>
       </nav>
 
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="space-y-1">
-          <p className="text-[length:var(--text-xs)] font-semibold uppercase tracking-wide text-[var(--color-brand-700)]">
+          <p className="text-xs font-semibold text-[var(--color-ink-2)]">
             {t('pageEyebrow')}
           </p>
-          <h1 className="font-[family-name:var(--font-display)] text-[length:var(--text-2xl)] font-bold tracking-[-0.02em] text-[var(--color-ink)]">
+          <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight text-[var(--color-ink)]">
             {t('pageTitle')}
           </h1>
-          <p className="max-w-2xl text-[length:var(--text-sm)] text-[var(--color-ink-2)]">
+          <p className="max-w-2xl text-sm text-[var(--color-ink-2)]">
             {t('pageSubtitle')}
           </p>
         </div>
@@ -132,8 +134,8 @@ export default async function AdminLibraryCategoriesPage({
         <p
           role="alert"
           className={cn(
-            'rounded-[var(--radius-md)] border border-[var(--color-bad)]/40 bg-[var(--color-bad-tint)]',
-            'px-3 py-2 text-[length:var(--text-sm)] text-[var(--color-bad)]',
+            'rounded-[var(--radius-md)] bg-[var(--color-bad-tint)]',
+            'px-3 py-2 text-sm text-[var(--color-bad)]',
           )}
         >
           {loadError}
@@ -160,7 +162,7 @@ export default async function AdminLibraryCategoriesPage({
         <section className="space-y-3 pt-4" aria-labelledby="archived-heading">
           <h2
             id="archived-heading"
-            className="text-[length:var(--text-sm)] font-semibold uppercase tracking-wide text-[var(--color-ink-3)]"
+            className="text-sm font-semibold text-[var(--color-ink-3)]"
           >
             {t('archivedHeading')}
           </h2>
@@ -200,26 +202,25 @@ function CategoryCard({
       className={cn(
         'flex items-center gap-3 rounded-[var(--radius-lg)]',
         'border border-[var(--color-line)] bg-[var(--color-surface)] p-4',
-        'transition-shadow duration-[180ms] ease-[var(--ease)] hover:shadow-[var(--e-1)]',
         archivedChipLabel ? 'opacity-75' : undefined,
       )}
     >
       <span
         aria-hidden="true"
-        className="inline-flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-brand-tint)] text-[var(--color-brand-700)]"
+        className="inline-flex size-12 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-panel)] text-[var(--color-ink-2)]"
       >
-        <i className={`${getCategoryIcon(category)} text-[length:var(--text-lg)]`} />
+        <Icon icon={getCategoryIcon(category)} className="text-lg" />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[length:var(--text-sm)] font-semibold text-[var(--color-ink)]">
+        <p className="truncate text-sm font-semibold text-[var(--color-ink)]">
           {isEs ? category.nameEs : category.nameEn}
         </p>
-        <p className="truncate text-[length:var(--text-xs)] text-[var(--color-ink-3)]">
+        <p className="truncate text-xs text-[var(--color-ink-3)]">
           {category.slug}
         </p>
       </div>
       {archivedChipLabel ? (
-        <span className="inline-flex items-center rounded-[var(--radius-pill)] bg-[var(--color-panel)] px-2 py-0.5 text-[length:var(--text-xs)] font-semibold text-[var(--color-ink-2)]">
+        <span className="inline-flex items-center rounded-[var(--radius-sm)] bg-[var(--color-panel)] px-2 py-0.5 text-xs font-semibold text-[var(--color-ink-2)]">
           {archivedChipLabel}
         </span>
       ) : null}
@@ -239,11 +240,11 @@ function EmptyCategories({ heading }: { heading: string }): React.ReactElement {
     >
       <span
         aria-hidden="true"
-        className="inline-flex size-14 items-center justify-center rounded-[var(--radius-pill)] bg-[var(--color-brand-tint)] text-[var(--color-brand-700)]"
+        className="inline-flex size-12 items-center justify-center rounded-[var(--radius-pill)] bg-[var(--color-panel)] text-[var(--color-ink-2)]"
       >
-        <i className="ri-folders-line text-[length:var(--text-2xl)]" />
+        <LuFolders className="text-2xl" />
       </span>
-      <h2 className="font-[family-name:var(--font-display)] text-[length:var(--text-lg)] font-bold tracking-[-0.02em] text-[var(--color-ink)]">
+      <h2 className="font-[family-name:var(--font-ui)] text-lg font-semibold tracking-tight text-[var(--color-ink)]">
         {heading}
       </h2>
     </article>

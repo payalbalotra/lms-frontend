@@ -20,6 +20,7 @@ import {
   ApiException,
 } from '@/lib/api';
 import type { Location } from '@/lib/types';
+import { LuPencil, LuPlus, LuTrash2 } from 'react-icons/lu';
 
 interface LocationsManagerProps {
   locale: string;
@@ -127,12 +128,12 @@ export function LocationsManager({
     return [
       {
         label: t('actionsEdit'),
-        icon: 'ri-pencil-line',
+        icon: LuPencil,
         onSelect: () => startEdit(l),
       },
       {
         label: t('actionsDelete'),
-        icon: 'ri-delete-bin-line',
+        icon: LuTrash2,
         destructive: true,
         onSelect: () => onDelete(l),
       },
@@ -149,7 +150,7 @@ export function LocationsManager({
             setCreateOpen(true);
           }}
         >
-          <i aria-hidden="true" className="ri-add-line text-[length:var(--text-lg)]" />
+          <LuPlus aria-hidden="true" className="text-lg" />
           {t('locationsCreateHeading')}
         </Button>
       </div>

@@ -68,7 +68,7 @@ export default async function StationsSettingsPage({
         </p>
         <Link
           href={`/${locale}/admin/settings/locations`}
-          className="text-[length:var(--text-sm)] font-semibold text-[var(--color-brand-700)] underline-offset-4 hover:underline"
+          className="text-sm font-semibold text-[var(--color-brand-700)] underline-offset-4 hover:underline"
         >
           {t('navLocations')} →
         </Link>
@@ -80,13 +80,13 @@ export default async function StationsSettingsPage({
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-[length:var(--text-xs)] font-semibold uppercase tracking-wide text-[var(--color-brand-700)]">
+          <p className="text-xs font-semibold text-[var(--color-ink-2)]">
             {t('settingsLocationEyebrow')}
           </p>
-          <h2 className="font-[family-name:var(--font-display)] text-[length:var(--text-xl)] font-bold tracking-[-0.02em] text-[var(--color-ink)]">
+          <h2 className="font-[family-name:var(--font-display)] text-xl font-bold tracking-tight text-[var(--color-ink)]">
             {activeLocation.name}
           </h2>
-          <p className="text-[length:var(--text-sm)] text-[var(--color-ink-2)]">
+          <p className="text-sm text-[var(--color-ink-2)]">
             {t('settingsLocationSub')}
           </p>
         </div>
@@ -100,7 +100,7 @@ export default async function StationsSettingsPage({
                   href={`/${locale}/admin/settings/stations?locationId=${encodeURIComponent(l.id)}`}
                   className={
                     active
-                      ? 'inline-flex items-center rounded-full bg-[var(--color-brand-600)] px-3 py-1 text-xs font-medium text-white'
+                      ? 'inline-flex items-center rounded-full bg-[var(--color-ink)] px-3 py-1 text-xs font-medium text-white'
                       : 'inline-flex items-center rounded-full border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-1 text-xs font-medium text-[var(--color-ink-2)] hover:bg-[var(--color-panel)]'
                   }
                 >

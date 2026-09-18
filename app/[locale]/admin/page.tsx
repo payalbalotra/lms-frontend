@@ -1,17 +1,34 @@
 import * as React from 'react';
-import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { fetchMe, ApiException, listLocations, listProcedures } from '@/lib/api';
-import { Button } from '@/components/ui/button';
-import { StatTile } from './components/StatTile';
-import { NeedsAttentionList } from './components/NeedsAttentionList';
-import { RecentActivityList } from './components/RecentActivityList';
-import { PendingApprovalsCard } from './components/PendingApprovalsCard';
-import { TrainingOverviewCard } from './components/TrainingOverviewCard';
-import { QuickActionsList } from './components/QuickActionsList';
-import { QuickInfoCard } from './components/QuickInfoCard';
-import { SystemStatusStrip } from './components/SystemStatusStrip';
+import {
+  ApiException,
+  fetchMe,
+  listCategories,
+  listEmployees,
+  listLocations,
+  listProcedures,
+  listRoles,
+  listStations,
+} from '@/lib/api';
+import type { AdminEmployee, Category, Procedure, Role, Station } from '@/lib/types';
+import {
+  buildAttention,
+  recentProcedures,
+  relativeDays,
+  resumeDraft,
+  type AttentionGroup,
+} from './components/home/home-data';
+import {
+  AttentionList,
+  HomeHeader,
+  RecentProcedures,
+  ResumeLine,
+  StatStrip,
+  type GroupCopy,
+  type Stat,
+} from './components/home/HomeSections';
+import { LuFilePen, LuFileText, LuGraduationCap, LuPlus, LuUpload, LuUsers } from 'react-icons/lu';
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -19,26 +36,15 @@ interface PageProps {
 
 export const dynamic = 'force-dynamic';
 
-const DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
-  weekday: 'long',
-  month: 'short',
-  day: 'numeric',
-  year: 'numeric',
-});
-
-function greetingKey(now: Date): 'greetingMorning' | 'greetingAfternoon' | 'greetingEvening' {
-  const h = now.getHours();
-  if (h < 12) return 'greetingMorning';
-  if (h < 18) return 'greetingAfternoon';
-  return 'greetingEvening';
-}
-
-export default async function AdminDashboardPage({
-  params,
-}: PageProps): Promise<React.ReactElement> {
+/**
+ * The manager's home answers one question first: does anything need me? Then
+ * where did I leave off, and what changed. Every count on it comes from the
+ * API; a section with nothing real to say is left out rather than filled.
+ */
+export default async function AdminHomePage({ params }: PageProps): Promise<React.ReactElement> {
   const { locale } = await params;
   setRequestLocale(locale);
-  const isEs = locale === 'es';
+  const t = await getTranslations('admin.home');
 
   const cookieStore = await cookies();
   const cookieHeader = cookieStore
@@ -46,162 +52,165 @@ export default async function AdminDashboardPage({
     .map((c) => `${c.name}=${c.value}`)
     .join('; ');
 
-  let managerName: string | null = null;
-  let locationSub: string | null = null;
-  let totalProcedures = 24;
-  let totalDrafts = 3;
+  let meId: string | null = null;
+  let employees: AdminEmployee[] = [];
+  let procedures: Procedure[] = [];
+  let categories: Category[] = [];
+  let roles: Role[] = [];
+  let stations: Station[] = [];
 
   try {
     const me = await fetchMe(cookieHeader);
-    managerName = me.employee.name;
+    meId = me.employee.id;
     const { locations } = await listLocations(cookieHeader);
-    const meLocationId = me.employee.locationId;
-    const active = locations.find((l) => l.id === meLocationId) ?? locations[0];
-    if (active) {
-      locationSub = active.name;
-    }
-
-    const { procedures } = await listProcedures({}, cookieHeader);
-    if (procedures && procedures.length > 0) {
-      totalProcedures = procedures.length;
-      totalDrafts = procedures.filter((p) => p.status === 'draft').length || 3;
-    }
+    const location = locations.find((l) => l.id === me.employee.locationId) ?? locations[0];
+    const locationId = location?.id ?? me.employee.locationId;
+    [{ employees }, { procedures }, { categories }, { roles }, { stations }] = await Promise.all([
+      listEmployees({ status: 'all' }, cookieHeader),
+      listProcedures({}, cookieHeader),
+      listCategories(locationId, {}, cookieHeader),
+      listRoles(cookieHeader),
+      listStations(locationId, cookieHeader),
+    ]);
   } catch (err) {
-    if (err instanceof ApiException) return <DashboardError code={err.code} />;
-    // Fall back smoothly if unauthorized during dev static checks
+    if (err instanceof ApiException) return <HomeError message={err.message} />;
+    throw err;
   }
 
-  const t = await getTranslations('admin.dashboard');
-  const now = new Date();
-  const greeting = t(greetingKey(now));
-  const todayLabel = DATE_FORMATTER.format(now);
+  const now = Date.now();
+  const nameById = new Map(employees.map((e) => [e.id, e.name]));
+
+  const groups = buildAttention({
+    locale,
+    now,
+    meId,
+    employees,
+    procedures,
+    categories,
+    roles,
+    stations,
+    t: {
+      inviteTitle: (name) => t('inviteTitle', { name }),
+      invitedAgo: (when) => t('invitedAgo', { when }),
+      readsSpanish: t('readsSpanish'),
+      spanishTitle: (title) => t('spanishTitle', { title }),
+      spanishReaders: (count) => t('spanishReaders', { count }),
+      editedAgo: (when, name) => (name ? t('editedAgoBy', { when, name }) : t('editedAgo', { when })),
+      noSpanishYet: t('noSpanishYet'),
+      emptyCategoryTitle: (name) => t('emptyCategoryTitle', { name }),
+      emptyCategoryMeta: t('emptyCategoryMeta'),
+      uncategorised: t('uncategorised'),
+    },
+  });
+
+  const total = groups.reduce((n, g) => n + g.items.length, 0);
+
+  const dateLabel = new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long' }).format(now);
+  const resume = resumeDraft(procedures, meId);
+
+  const groupCopy: Record<AttentionGroup['kind'], GroupCopy> = {
+    invite: { title: t('group.invite.title'), action: t('group.invite.action'), tone: 'warn' },
+    spanish: { title: t('group.spanish.title'), action: t('group.spanish.action'), tone: 'bad' },
+    draft: { title: t('group.draft.title'), action: t('group.draft.action'), tone: 'ink' },
+    emptyCategory: { title: t('group.emptyCategory.title'), action: t('group.emptyCategory.action'), tone: 'ink' },
+  };
+
+  const active = employees.filter((e) => e.status === 'active');
+  const invited = employees.filter((e) => e.status === 'pending').length;
+  const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
+  const newThisWeek = (iso: string): boolean => new Date(iso).getTime() >= weekAgo;
+  const drafts = procedures.filter((p) => p.status === 'draft').length;
+  const addedProcedures = procedures.filter((p) => newThisWeek(p.createdAt)).length;
+  const joinedPeople = active.filter((e) => newThisWeek(e.createdAt)).length;
+
+  // Training has no data behind it until the training module exists. The figure
+  // and the ring below are placeholders for the demo — swap TRAINING_DEMO for the
+  // real completion rate, and drop `stat.trainingSample` from the messages, the
+  // moment the module lands.
+  const TRAINING_DEMO = { done: 34, total: 48 };
+  const stats: Stat[] = [
+    {
+      label: t('stat.procedures'),
+      icon: LuFileText,
+      value: String(procedures.length),
+      note: addedProcedures ? t('stat.proceduresNew', { count: addedProcedures }) : t('stat.proceduresNoneNew'),
+      tone: addedProcedures ? 'up' : undefined,
+    },
+    {
+      label: t('stat.drafts'),
+      icon: LuFilePen,
+      value: String(drafts),
+      note: drafts ? t('stat.draftsWaiting') : t('stat.draftsNone'),
+      tone: drafts ? 'caution' : undefined,
+    },
+    {
+      label: t('stat.people'),
+      icon: LuUsers,
+      value: String(active.length),
+      note: invited ? t('stat.peopleInvited', { count: invited }) : joinedPeople ? t('stat.peopleNew', { count: joinedPeople }) : t('stat.peopleSteady'),
+      tone: invited ? 'caution' : joinedPeople ? 'up' : undefined,
+    },
+    {
+      label: t('stat.training'),
+      icon: LuGraduationCap,
+      value: `${Math.round((TRAINING_DEMO.done / TRAINING_DEMO.total) * 100)}%`,
+      note: t('stat.trainingSample', { done: TRAINING_DEMO.done, total: TRAINING_DEMO.total }),
+      meter: { value: TRAINING_DEMO.done, total: TRAINING_DEMO.total },
+    },
+  ];
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8 pb-12">
-      {/* 1. Header Greeting & Primary Actions Bar */}
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--color-line-2)]/60 pb-6">
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2 text-[length:var(--text-xs)] font-medium text-[var(--color-ink-2)]">
-            <span className="font-semibold text-[var(--color-ink)]">
-              {locationSub || 'Main Street'}
-            </span>
-            <span>•</span>
-            <span className="inline-flex items-center gap-1.5 text-emerald-600 font-semibold">
-              <span className="size-1.5 rounded-full bg-current" />
-              {isEs ? 'Al día' : 'All caught up'}
-            </span>
-          </div>
-
-          <h1 className="font-[family-name:var(--font-display)] text-[length:var(--text-2xl)] sm:text-3xl font-bold tracking-tight text-[var(--color-ink)]">
-            {greeting}
-            {managerName ? <span className="ml-1">, {managerName}.</span> : null}
-          </h1>
-
-          <p className="text-[length:var(--text-sm)] text-[var(--color-ink-2)]">
-            {isEs
-              ? 'Esto es lo que está sucediendo en tu LMS hoy.'
-              : "Here's what's happening with your LMS today."}
-          </p>
-        </div>
-
-        {/* Top Right Action Buttons */}
-        <div className="flex flex-wrap items-center gap-3 shrink-0">
-          <Link href={`/${locale}/admin/library/new`}>
-            <Button
-              type="button"
-              variant="primary"
-              size="default"
-              className="gap-2 shadow-sm"
-            >
-              <i aria-hidden="true" className="ri-add-line text-lg" />
-              {isEs ? 'Crear procedimiento' : 'Create procedure'}
-            </Button>
-          </Link>
-
-          <Link href={`/${locale}/admin/library/new`}>
-            <Button
-              type="button"
-              variant="neutral"
-              size="default"
-              className="gap-2 font-semibold shadow-2xs"
-            >
-              <i aria-hidden="true" className="ri-upload-2-line text-lg text-[var(--color-ink-2)]" />
-              {isEs ? 'Importar documento' : 'Import document'}
-            </Button>
-          </Link>
-        </div>
-      </header>
-
-      {/* 2. Top Metric Stat Tiles (4 Columns) */}
-      <section aria-labelledby="dashboard-stats" className="space-y-3">
-        <h2 id="dashboard-stats" className="sr-only">
-          {t('statsHeading')}
-        </h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatTile
-            label={isEs ? 'Procedimientos' : 'Procedures'}
-            value={totalProcedures}
-            trend={isEs ? '2 esta semana' : '2 this week'}
-            trendTone="positive"
-            icon="ri-file-text-line"
-            tone="orange"
+    <div className="mx-auto max-w-7xl space-y-10 pb-12">
+      <div className="space-y-8">
+        <HomeHeader
+          place={dateLabel}
+          headline={total === 0 ? t('headlineClear') : t('headline', { count: total })}
+          actions={[
+            { href: `/${locale}/admin/library/new`, label: t('actionCreate'), icon: LuPlus, primary: true },
+            { href: `/${locale}/admin/library/new`, label: t('actionImport'), icon: LuUpload },
+          ]}
+        />
+        <StatStrip stats={stats} />
+        {resume ? (
+          <ResumeLine
+            procedure={resume}
+            locale={locale}
+            label={t('resumeEyebrow')}
+            meta={t('resumeMeta', { when: relativeDays(resume.updatedAt, locale, now) })}
+            cta={t('resumeCta')}
           />
-          <StatTile
-            label={isEs ? 'Borradores' : 'Drafts'}
-            value={totalDrafts}
-            trend={isEs ? 'Requiere revisión' : 'Needs review'}
-            trendTone="warning"
-            icon="ri-draft-line"
-            tone="purple"
-          />
-          <StatTile
-            label={isEs ? 'Empleados' : 'Employees'}
-            value={42}
-            trend={isEs ? '3 nuevos esta semana' : '3 new this week'}
-            trendTone="positive"
-            icon="ri-group-line"
-            tone="green"
-          />
-          <StatTile
-            label={isEs ? 'Capacitación' : 'Training'}
-            value="87%"
-            trend={isEs ? '12% vs sem. pasada' : '12% vs last week'}
-            trendTone="positive"
-            icon="ri-graduation-cap-line"
-            tone="blue"
-          />
-        </div>
-      </section>
+        ) : null}
+      </div>
 
-      {/* 3. Needs Attention Banner Box */}
-      <NeedsAttentionList locale={locale} />
+      <AttentionList
+        heading={t('attentionHeading')}
+        groups={groups}
+        copy={groupCopy}
+        empty={{ title: t('clearTitle'), body: t('clearBody') }}
+      />
 
-      {/* 4. Main Two-Column Content Grid */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        {/* Main Column (8 Cols) */}
-        <div className="lg:col-span-8 space-y-6">
-          <RecentActivityList locale={locale} />
-          <PendingApprovalsCard locale={locale} />
-          <SystemStatusStrip locale={locale} />
-        </div>
-
-        {/* Right Sidebar Panel (4 Cols) */}
-        <div className="lg:col-span-4 space-y-6">
-          <TrainingOverviewCard locale={locale} />
-          <QuickActionsList locale={locale} />
-          <QuickInfoCard locale={locale} />
-        </div>
+      <div>
+        <RecentProcedures
+          locale={locale}
+          heading={t('recentHeading')}
+          seeAll={t('recentSeeAll')}
+          procedures={recentProcedures(procedures)}
+          statusLabel={(p) => (p.status === 'draft' ? t('statusDraft') : t('statusPublished'))}
+          metaFor={(p) => {
+            const when = relativeDays(p.updatedAt, locale, now);
+            const name = nameById.get(p.createdBy);
+            return name ? t('updatedAgoBy', { when, name }) : t('updatedAgo', { when });
+          }}
+        />
       </div>
     </div>
   );
 }
 
-function DashboardError({ code }: { code: string }): React.ReactElement {
+function HomeError({ message }: { message: string }): React.ReactElement {
   return (
-    <div className="mx-auto max-w-2xl rounded-[var(--radius-lg)] border border-[var(--color-bad-tint)] bg-[var(--color-bad-tint)] p-6">
-      <p className="text-[length:var(--text-sm)] font-semibold text-[var(--color-bad)]">
-        {code}
-      </p>
+    <div role="alert" className="mx-auto max-w-2xl rounded-[var(--radius-lg)] bg-[var(--color-bad-tint)] p-6">
+      <p className="font-semibold text-[var(--color-bad)]">{message}</p>
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
+import { LuCheck } from 'react-icons/lu';
 
 export type WizardStepId = 'details' | 'ingredients' | 'method' | 'content' | 'access' | 'review';
 
@@ -51,7 +52,7 @@ export function ProcedureWizardStepper({
 
   return (
     <nav aria-label={t('ariaLabel')} className="max-w-4xl mx-auto my-6">
-      <div className="rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-4 sm:px-6 sm:py-4 shadow-xs">
+      <div className="rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-4 sm:px-6 sm:py-4">
         <ol className="flex items-center justify-between w-full">
           {steps.map((step, idx) => {
             const isActive = step.id === activeId;
@@ -64,29 +65,29 @@ export function ProcedureWizardStepper({
                   <button
                     type="button"
                     onClick={() => onSelectStep?.(step.id)}
-                    className="group flex items-center gap-2.5 bg-[var(--color-surface)] focus-visible:outline-none"
+                    className="group flex items-center gap-3 bg-[var(--color-surface)] focus-visible:outline-none"
                   >
                     <span
                       className={cn(
-                        'flex size-8 shrink-0 items-center justify-center rounded-full text-[length:var(--text-xs)] font-bold transition-all shadow-2xs',
+                        'flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all shadow-e1',
                         isActive
                           ? 'bg-[var(--color-brand-600)] text-white ring-4 ring-[var(--color-brand-tint)] scale-105'
                           : isCompleted
                             ? 'bg-[var(--color-brand-600)] text-white'
-                            : 'border border-[var(--color-line-3)] bg-[var(--color-surface)] text-[var(--color-ink-3)] group-hover:border-[var(--color-brand-600)]/50',
+                            : 'border border-[var(--color-line-3)] bg-[var(--color-surface)] text-[var(--color-ink-3)] group-hover:border-[var(--color-brand-tint-2)]',
                       )}
                     >
                       {isCompleted ? (
-                        <i aria-hidden="true" className="ri-check-line text-sm font-bold" />
+                        <LuCheck aria-hidden="true" className="text-sm font-semibold" />
                       ) : (
                         step.num
                       )}
                     </span>
                     <span
                       className={cn(
-                        'text-[length:var(--text-sm)] font-semibold transition-colors hidden sm:inline-block',
+                        'text-sm font-semibold transition-colors hidden sm:inline-block',
                         isActive
-                          ? 'text-[var(--color-brand-700)] font-bold'
+                          ? 'text-[var(--color-brand-700)] font-semibold'
                           : isCompleted
                             ? 'text-[var(--color-ink)]'
                             : 'text-[var(--color-ink-3)] group-hover:text-[var(--color-ink-2)]',
@@ -99,10 +100,10 @@ export function ProcedureWizardStepper({
 
                 {/* Connecting Line Segment between adjacent steps */}
                 {idx < steps.length - 1 && (
-                  <div className="flex-1 min-w-[20px] sm:min-w-[32px] mx-2 sm:mx-3 h-0.5 rounded-full overflow-hidden bg-[var(--color-line-2)]">
+                  <div className="flex-1 min-w-5 sm:min-w-8 mx-2 sm:mx-3 h-0.5 rounded-full overflow-hidden bg-[var(--color-line-2)]">
                     <div
                       className={cn(
-                        'h-full transition-all duration-300',
+                        'h-full transition-all duration-[var(--dur)]',
                         isConnectorActive ? 'bg-[var(--color-brand-600)] w-full' : 'w-0',
                       )}
                     />

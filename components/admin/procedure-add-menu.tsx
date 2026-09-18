@@ -6,6 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverGroup, PopoverItem } from '@/components/ui/popover';
 import type { ProcedureBlockKind } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { LuChevronDown, LuHeading1, LuImage, LuListOrdered, LuPaperclip, LuPlus, LuSearch, LuTable, LuTriangleAlert, LuType, LuUtensils, LuVideo } from 'react-icons/lu';
+import { Icon } from '@/components/ui/icon';
+import type { IconType } from 'react-icons';
 
 interface ProcedureAddMenuProps {
   onAdd: (kind: ProcedureBlockKind) => void;
@@ -17,7 +20,7 @@ interface BlockMenuItem {
   kind: ProcedureBlockKind;
   label: string;
   description: string;
-  icon: string;
+  icon: IconType;
   group: 'basic' | 'media' | 'structured' | 'safety';
 }
 
@@ -49,63 +52,63 @@ export function ProcedureAddMenu({
         kind: 'text',
         label: 'Text',
         description: 'Add rich text with formatting options',
-        icon: 'ri-text',
+        icon: LuType,
         group: 'basic',
       },
       {
         kind: 'heading',
         label: 'Heading',
         description: 'Add a section heading',
-        icon: 'ri-h-1',
+        icon: LuHeading1,
         group: 'basic',
       },
       {
         kind: 'method',
         label: 'Numbered steps',
         description: 'Add sequential steps',
-        icon: 'ri-list-ordered',
+        icon: LuListOrdered,
         group: 'basic',
       },
       {
         kind: 'image',
         label: 'Photograph',
         description: 'Add an image with caption',
-        icon: 'ri-image-line',
+        icon: LuImage,
         group: 'media',
       },
       {
         kind: 'video',
         label: 'Video',
         description: 'Add a video with time markers',
-        icon: 'ri-video-line',
+        icon: LuVideo,
         group: 'media',
       },
       {
         kind: 'attachment',
         label: 'Attachment',
         description: 'Add a file (PDF, Word, etc.)',
-        icon: 'ri-attachment-line',
+        icon: LuPaperclip,
         group: 'media',
       },
       {
         kind: 'recipe',
         label: 'Recipe',
         description: 'Add recipe details (ingredients, yield, etc.)',
-        icon: 'ri-restaurant-line',
+        icon: LuUtensils,
         group: 'structured',
       },
       {
         kind: 'table',
         label: 'Table',
         description: 'Add a table with custom columns',
-        icon: 'ri-table-line',
+        icon: LuTable,
         group: 'structured',
       },
       {
         kind: 'warning',
         label: 'Warning callout',
         description: 'Highlight important safety information',
-        icon: 'ri-alert-line',
+        icon: LuTriangleAlert,
         group: 'safety',
       },
     ],
@@ -128,56 +131,56 @@ export function ProcedureAddMenu({
   return (
     <div className={cn('flex flex-wrap items-center gap-2', variant === 'inline' ? 'justify-between w-full' : 'justify-start')}>
       {/* Visible Block Type Quick Buttons */}
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-[length:var(--text-xs)] font-semibold text-[var(--color-ink-3)] mr-1">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-semibold text-[var(--color-ink-3)] mr-1">
           Add block:
         </span>
         <button
           type="button"
           onClick={() => onAdd('text')}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-1.5 text-[length:var(--text-xs)] font-bold text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-brand-600)] transition-colors shadow-2xs"
+          className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2 text-xs font-semibold text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-brand-600)] transition-colors"
         >
-          <i aria-hidden="true" className="ri-text text-sm text-[var(--color-brand-700)]" />
+          <LuType aria-hidden="true" className="text-sm text-[var(--color-ink-2)]" />
           <span>Text</span>
         </button>
         <button
           type="button"
           onClick={() => onAdd('table')}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-1.5 text-[length:var(--text-xs)] font-bold text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-brand-600)] transition-colors shadow-2xs"
+          className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2 text-xs font-semibold text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-brand-600)] transition-colors"
         >
-          <i aria-hidden="true" className="ri-table-line text-sm text-emerald-600" />
+          <LuTable aria-hidden="true" className="text-sm text-[var(--color-ink-2)]" />
           <span>Table</span>
         </button>
         <button
           type="button"
           onClick={() => onAdd('method')}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-1.5 text-[length:var(--text-xs)] font-bold text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-brand-600)] transition-colors shadow-2xs"
+          className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2 text-xs font-semibold text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-brand-600)] transition-colors"
         >
-          <i aria-hidden="true" className="ri-list-ordered text-sm text-blue-600" />
+          <LuListOrdered aria-hidden="true" className="text-sm text-[var(--color-ink-2)]" />
           <span>Steps</span>
         </button>
         <button
           type="button"
           onClick={() => onAdd('warning')}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-1.5 text-[length:var(--text-xs)] font-bold text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-brand-600)] transition-colors shadow-2xs"
+          className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2 text-xs font-semibold text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-brand-600)] transition-colors"
         >
-          <i aria-hidden="true" className="ri-alert-line text-sm text-amber-600" />
+          <LuTriangleAlert aria-hidden="true" className="text-sm text-[var(--color-ink-2)]" />
           <span>Warning</span>
         </button>
         <button
           type="button"
           onClick={() => onAdd('heading')}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-1.5 text-[length:var(--text-xs)] font-bold text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-brand-600)] transition-colors shadow-2xs"
+          className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2 text-xs font-semibold text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-brand-600)] transition-colors"
         >
-          <i aria-hidden="true" className="ri-h-1 text-sm text-purple-600" />
+          <LuHeading1 aria-hidden="true" className="text-sm text-[var(--color-ink-2)]" />
           <span>Heading</span>
         </button>
         <button
           type="button"
           onClick={() => onAdd('image')}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-1.5 text-[length:var(--text-xs)] font-bold text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-brand-600)] transition-colors shadow-2xs"
+          className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2 text-xs font-semibold text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-brand-600)] transition-colors"
         >
-          <i aria-hidden="true" className="ri-image-line text-sm text-indigo-600" />
+          <LuImage aria-hidden="true" className="text-sm text-[var(--color-ink-2)]" />
           <span>Image</span>
         </button>
       </div>
@@ -192,42 +195,36 @@ export function ProcedureAddMenu({
           aria-haspopup="menu"
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
-          className="gap-1.5 px-3 shadow-2xs text-[length:var(--text-xs)]"
+          className="gap-2 px-3 shadow-e1 text-xs"
         >
-          <i aria-hidden="true" className="ri-add-line text-sm" />
+          <LuPlus aria-hidden="true" className="text-sm" />
           <span>More blocks</span>
-          <i
+          <LuChevronDown
             aria-hidden="true"
-            className={cn(
-              'ri-arrow-down-s-line text-sm transition-transform duration-200',
-              open && 'rotate-180',
-            )}
+            className={cn('text-sm transition-transform duration-[var(--dur)]', open && 'rotate-180')}
           />
         </Button>
       </div>
 
       <Popover open={open} onClose={close} triggerRef={triggerRef} align="end" width={360}>
         {/* Search input bar */}
-        <div className="p-2 border-b border-[var(--color-line)]/60">
+        <div className="p-2 border-b border-[var(--color-line)]">
           <div className="relative">
-            <i
-              aria-hidden="true"
-              className="ri-search-line absolute left-3 top-2.5 text-base text-[var(--color-ink-3)]"
-            />
+            <LuSearch aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-base text-[var(--color-ink-3)]" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search content blocks..."
-              className="w-full rounded-[var(--radius-md)] border border-[var(--color-line-3)] bg-[var(--color-input)] py-1.5 pl-9 pr-3 text-[length:var(--text-sm)] text-[var(--color-foreground)] placeholder:text-[var(--color-muted-foreground)] focus-visible:border-[var(--color-brand-600)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-tint-2)]"
+              className="w-full rounded-[var(--radius-md)] border border-[var(--color-line-3)] bg-[var(--color-input)] py-2 pl-10 pr-3 text-sm text-[var(--color-foreground)] placeholder:text-[var(--color-muted-foreground)] focus-visible:border-[var(--color-brand-600)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-tint-2)]"
             />
           </div>
         </div>
 
         {/* Scrollable list of groups */}
-        <div className="max-h-[380px] overflow-y-auto p-1 space-y-1 divide-y divide-[var(--color-line)]/40">
+        <div className="max-h-list overflow-y-auto p-1 space-y-1 divide-y divide-[var(--color-line)]">
           {filteredItems.length === 0 ? (
-            <div className="p-6 text-center text-[length:var(--text-sm)] text-[var(--color-ink-3)]">
+            <div className="p-6 text-center text-sm text-[var(--color-ink-3)]">
               No matching blocks found.
             </div>
           ) : (

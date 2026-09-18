@@ -58,7 +58,7 @@ export function ProcedureOutline(): React.ReactElement {
   return (
     <nav aria-label={tForm('outlineHeading')} className="hidden lg:block">
       <div className="sticky top-6 space-y-3">
-        <p className="text-[length:var(--text-xs)] font-semibold uppercase tracking-wide text-[var(--color-ink-3)]">
+        <p className="text-xs font-semibold text-[var(--color-ink-3)]">
           {tForm('outlineHeading')}
         </p>
         <ol className="space-y-1 border-l border-[var(--color-line-2)] pl-3">
@@ -69,7 +69,7 @@ export function ProcedureOutline(): React.ReactElement {
                 <a
                   href={`#${it.id}`}
                   className={cn(
-                    '-ml-px inline-flex items-center gap-2 border-l py-1 pl-3 text-[length:var(--text-sm)] transition-colors',
+                    '-ml-px inline-flex items-center gap-2 border-l py-1 pl-3 text-sm transition-colors',
                     active
                       ? 'border-[var(--color-brand-600)] font-semibold text-[var(--color-ink)]'
                       : 'border-transparent text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
@@ -78,7 +78,7 @@ export function ProcedureOutline(): React.ReactElement {
                 >
                   <span
                     className={cn(
-                      'size-1.5 rounded-full',
+                      'size-2 rounded-full',
                       active ? 'bg-[var(--color-brand-600)]' : 'bg-[var(--color-line-3)]',
                     )}
                     aria-hidden="true"
