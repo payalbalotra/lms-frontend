@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Button } from '@/components/ui/button';
-import { listProcedures, listCategories, fetchMe, ApiException } from '@/lib/api';
+import { listProcedures, listCategories, listLocations, fetchMe, ApiException } from '@/lib/api';
 import type { Procedure, Category } from '@/lib/types';
 import { LibraryProcedureExplorer } from '@/components/admin/library-procedure-explorer';
 
@@ -24,22 +24,12 @@ const DEFAULT_CATEGORIES: Category[] = [
   { id: 'cat-other', slug: 'other', nameEn: 'Other', nameEs: 'Otros', isArchived: false },
 ];
 
-interface AdminLocationsResponse {
-  locations: { id: string }[];
-}
-
 async function readFirstManagedLocation(
   cookieHeader: string,
 ): Promise<string | null> {
-  const base = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:4000';
   try {
-    const res = await fetch(`${base}/api/admin/employees/locations`, {
-      headers: { cookie: cookieHeader },
-      cache: 'no-store',
-    });
-    if (!res.ok) return null;
-    const body = (await res.json()) as AdminLocationsResponse;
-    return body.locations[0]?.id ?? null;
+    const res = await listLocations(cookieHeader);
+    return res.locations[0]?.id ?? null;
   } catch {
     return null;
   }
