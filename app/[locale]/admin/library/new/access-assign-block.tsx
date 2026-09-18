@@ -1,146 +1,150 @@
 'use client';
 
 /**
- * Assign tab — search input + scrollable list of employees.
+ * Compact People row on the Access step.
  *
- * Separate file from the location/role/station AccessBlock because it has a
- * different layout (search box + list with avatar + meta) and shares nothing
- * with the option grid. The wizard only needs to import and render this; no
- * other wizard code changes when this file is updated.
+ * Same small-tab affordance as Locations / Roles / Stations — every
+ * employee renders as a tab in a 4-column grid showing initials (or a
+ * check icon when assigned) plus their name. Clicking a tab toggles
+ * assignment.
+ *
+ * The row's trigger slot holds a search input that filters the tab
+ * list in-place so the manager can quickly narrow a long roster down
+ * to one or two tabs. When the search is empty, every employee is
+ * shown. The grid wraps responsively (2-up → 3-up → 4-up).
+ *
+ * Lives in its own file because the employee tab carries an avatar
+ * (initials) instead of an icon — sharing one file with AccessBlock
+ * would mean branching on the affordance.
  */
 
 import * as React from 'react';
-import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 import { Input } from '@/components/ui/input';
-import { filterEmployees } from './access-data';
+import { cn } from '@/lib/utils';
+import { AccessRow } from './access-row';
+import { ACCESS_EMPLOYEES, filterEmployees } from './access-data';
 
 export interface AccessAssignBlockProps {
   title: string;
-  subtitle: string;
   emptyLabel: string;
-  searchPlaceholder: string;
-  hint: string;
-  selectedCount: number;
-  selectedLabel: (count: number) => string;
+  countLabel: (count: number) => string;
   selected: Set<string>;
   onToggle: (id: string) => void;
-  search: string;
-  onSearchChange: (next: string) => void;
+  disabled?: boolean;
 }
 
 export function AccessAssignBlock({
   title,
-  subtitle,
   emptyLabel,
-  searchPlaceholder,
-  hint,
-  selectedCount,
-  selectedLabel,
+  countLabel,
   selected,
   onToggle,
-  search,
-  onSearchChange,
+  disabled = false,
 }: AccessAssignBlockProps): React.ReactElement {
-  const filtered = filterEmployees(search);
+  const tAccess = useTranslations('admin.library.new.access');
+  const [search, setSearch] = React.useState('');
+
+  const filtered = React.useMemo(() => {
+    if (!search.trim()) return ACCESS_EMPLOYEES;
+    return filterEmployees(search);
+  }, [search]);
 
   return (
-    <section className="space-y-4 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-6 shadow-sm">
-      <header className="flex items-start justify-between gap-4 border-b border-[var(--color-line)]/60 pb-3">
-        <div className="flex items-start gap-3">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] text-lg">
-            <i aria-hidden="true" className="ri-team-line" />
-          </div>
-          <div>
-            <h2 className="font-[family-name:var(--font-ui)] text-[length:var(--text-md)] font-bold tracking-[-0.01em] text-[var(--color-ink)]">
-              {title}
-            </h2>
-            <p className="mt-0.5 text-[length:var(--text-sm)] text-[var(--color-ink-2)]">
-              {subtitle}
-            </p>
-          </div>
-        </div>
-        {selectedCount > 0 && (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-ok-tint)] px-2.5 py-1 text-[length:var(--text-xs)] font-bold text-[var(--color-ok)] border border-[var(--color-ok-tint-2)]">
-            <i aria-hidden="true" className="ri-check-line text-sm" />
-            {selectedLabel(selectedCount)}
-          </span>
-        )}
-      </header>
-
-      <div className="space-y-3 pt-1">
-        <div className="relative">
+    <AccessRow
+      icon="ri-team-line"
+      title={title}
+      count={selected.size}
+      emptyLabel={emptyLabel}
+      countLabel={countLabel}
+      disabled={disabled}
+      trigger={
+        <div className="relative w-56">
           <i
             aria-hidden="true"
-            className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-ink-3)]"
+            className="ri-search-line pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-[var(--color-ink-3)]"
           />
           <Input
             type="text"
-            placeholder={searchPlaceholder}
             value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-9 pr-3 text-sm h-9 bg-[var(--color-surface)] border-[var(--color-line-2)] focus:border-[var(--color-brand-600)]"
+            onChange={(e) => setSearch(e.target.value)}
+            disabled={disabled}
+            placeholder={tAccess('rowSearchPlaceholder')}
+            className="h-8 pl-7 pr-7 text-[length:var(--text-xs)] bg-[var(--color-surface)] border-[var(--color-line-2)] focus:border-[var(--color-brand-600)] disabled:cursor-not-allowed"
           />
-        </div>
-
-        <div className="overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)]">
-          {filtered.length === 0 ? (
-            <div className="px-4 py-6 text-center text-sm text-[var(--color-ink-3)] italic">
-              {emptyLabel}
-            </div>
-          ) : (
-            <ul className="divide-y divide-[var(--color-line)]/60 max-h-72 overflow-y-auto">
-              {filtered.map((emp) => {
-                const isAssigned = selected.has(emp.id);
-                return (
-                  <li key={emp.id}>
-                    <button
-                      type="button"
-                      onClick={() => onToggle(emp.id)}
-                      className={cn(
-                        'flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors',
-                        isAssigned
-                          ? 'bg-[var(--color-brand-tint)]/30'
-                          : 'hover:bg-[var(--color-wash)]',
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          'flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold uppercase tracking-wide shadow-2xs',
-                          isAssigned
-                            ? 'bg-[var(--color-brand-600)] text-white'
-                            : 'bg-[var(--color-panel)] text-[var(--color-ink-2)] border border-[var(--color-line-2)]',
-                        )}
-                        aria-hidden="true"
-                      >
-                        {isAssigned ? <i className="ri-check-line" /> : emp.initials}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold text-[var(--color-ink)]">
-                          {emp.name}
-                        </span>
-                        <span className="block truncate text-xs text-[var(--color-ink-2)]">
-                          {emp.role} · {emp.station}
-                        </span>
-                      </span>
-                      <i
-                        aria-hidden="true"
-                        className={cn(
-                          'ri-checkbox-blank-circle-line text-lg',
-                          isAssigned
-                            ? 'text-[var(--color-brand-600)]'
-                            : 'text-[var(--color-ink-3)]',
-                        )}
-                      />
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              aria-label={tAccess('clearSearch')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--color-ink-3)] hover:text-[var(--color-ink)]"
+            >
+              <i aria-hidden="true" className="ri-close-line text-sm" />
+            </button>
           )}
         </div>
-
-        <p className="text-xs text-[var(--color-ink-3)] italic">{hint}</p>
+      }
+    >
+      <div
+        className={cn(
+          'grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 pl-10 pt-1',
+          disabled && 'pointer-events-none',
+        )}
+      >
+        {filtered.length === 0 ? (
+          <p className="col-span-full rounded-[var(--radius-md)] border border-dashed border-[var(--color-line-2)] bg-[var(--color-wash)]/40 px-3 py-3 text-center text-[length:var(--text-xs)] text-[var(--color-ink-3)] italic">
+            {tAccess('rowNoMatch', { query: search })}
+          </p>
+        ) : (
+          filtered.map((emp) => {
+            const isAssigned = selected.has(emp.id);
+            return (
+              <button
+                key={emp.id}
+                type="button"
+                onClick={() => onToggle(emp.id)}
+                disabled={disabled}
+                aria-pressed={isAssigned}
+                className={cn(
+                  'group relative flex items-center gap-2 rounded-[var(--radius-md)] border px-2.5 py-2 text-left transition-all min-h-[40px]',
+                  isAssigned
+                    ? 'border-[var(--color-brand-600)] bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] shadow-xs ring-2 ring-[var(--color-brand-600)]/30'
+                    : 'border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-line-3)]',
+                  disabled && 'cursor-not-allowed hover:bg-[var(--color-surface)] hover:border-[var(--color-line-2)] hover:text-[var(--color-ink)]',
+                )}
+              >
+                <span
+                  className={cn(
+                    'flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold uppercase tracking-wide shadow-2xs',
+                    isAssigned
+                      ? 'bg-[var(--color-brand-600)] text-white'
+                      : 'bg-[var(--color-panel)] text-[var(--color-ink-2)] border border-[var(--color-line-2)]',
+                  )}
+                  aria-hidden="true"
+                >
+                  {isAssigned ? <i className="ri-check-line" /> : emp.initials}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span
+                    className={cn(
+                      'block text-[length:var(--text-xs)] font-bold truncate',
+                      isAssigned ? 'text-[var(--color-brand-700)]' : 'text-[var(--color-ink)]',
+                    )}
+                  >
+                    {emp.name}
+                  </span>
+                </span>
+              </button>
+            );
+          })
+        )}
       </div>
-    </section>
+
+      {disabled && (
+        <p className="pl-10 text-[length:var(--text-xs)] text-[var(--color-ink-3)] italic">
+          {tAccess('publicDisabledHint')}
+        </p>
+      )}
+    </AccessRow>
   );
 }

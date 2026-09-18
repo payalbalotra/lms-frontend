@@ -99,29 +99,33 @@ export default async function AdminLibraryPage({
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 pb-12">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div className="space-y-1">
-          <p className="text-[length:var(--text-xs)] font-semibold uppercase tracking-wide text-[var(--color-brand-700)]">
-            {t('pageEyebrow')}
-          </p>
-          <h1 className="font-[family-name:var(--font-display)] text-[length:var(--text-2xl)] font-bold tracking-[-0.02em] text-[var(--color-ink)]">
-            {t('pageTitle')}
-          </h1>
-          <p className="max-w-2xl text-[length:var(--text-sm)] text-[var(--color-ink-2)]">
-            {t('pageSubtitle')}
-          </p>
+      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-100 pb-5">
+        <div className="flex items-center gap-3.5">
+          <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-orange-100/90 text-[#E0533C] text-2xl shadow-2xs">
+            <i aria-hidden="true" className="ri-article-line" />
+          </div>
+          <div className="space-y-0.5">
+            <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight text-balck-900 dark:text-black">
+              {locale === 'es' ? 'Biblioteca de procedimientos' : 'Procedures Library'}
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {locale === 'es'
+                ? 'Gestiona y organiza todos los procedimientos de tu restaurante.'
+                : 'Manage and organize all your restaurant procedures.'}
+            </p>
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2.5">
           <Link href={`/${locale}/admin/library/categories`}>
-            <Button variant="secondary" size="sm">
-              <i aria-hidden="true" className="ri-folders-line mr-1.5 text-[length:var(--text-md)]" />
-              {t('manageCategories')}
+            <Button variant="secondary" size="sm" className="rounded-xl border-gray-200 bg-white hover:bg-gray-50 font-semibold shadow-2xs text-gray-700 gap-1.5">
+              <i aria-hidden="true" className="ri-folders-line text-base text-gray-500" />
+              <span>{t('manageCategories')}</span>
             </Button>
           </Link>
           <Link href={`/${locale}/admin/library/new`}>
-            <Button size="sm">
-              <i aria-hidden="true" className="ri-add-line mr-1.5 text-[length:var(--text-md)]" />
-              {t('newProcedure')}
+            <Button size="sm" className="rounded-xl bg-[#E0533C] hover:bg-[#d04530] text-white font-semibold shadow-2xs gap-1.5">
+              <i aria-hidden="true" className="ri-add-line text-base" />
+              <span>{t('newProcedure')}</span>
             </Button>
           </Link>
         </div>
@@ -131,8 +135,6 @@ export default async function AdminLibraryPage({
         <p role="alert" className="text-sm text-[var(--color-bad)]">
           {loadError}
         </p>
-      ) : procedures.length === 0 ? (
-        <EmptyLibrary heading={t('emptyHeading')} body={t('emptyBody')} />
       ) : (
         <LibraryProcedureExplorer
           procedures={procedures}

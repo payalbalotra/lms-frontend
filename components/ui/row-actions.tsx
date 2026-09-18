@@ -30,6 +30,8 @@ export interface RowActionItem {
   onSelect: () => void;
   /** If true, the item is styled bad-tone and triggers an inline confirm. */
   destructive?: boolean;
+  /** Custom label for the confirmation button (e.g. "Delete block"). Defaults to "Delete". */
+  confirmLabel?: string;
   /** Optional Remix icon class — `ri-pencil-line`, `ri-delete-bin-line`, etc. */
   icon?: string;
 }
@@ -126,27 +128,29 @@ export function RowActions({ items, triggerLabel, className }: RowActionsProps):
           role="menu"
           aria-label={triggerLabel ?? t('rowActionsLabel')}
           className={cn(
-            'absolute right-0 top-full z-20 mt-1 min-w-[12rem]',
+            'absolute right-0 top-full z-50 mt-1 min-w-[12rem]',
             'rounded-[var(--radius-md)] border border-[var(--color-line)] bg-[var(--color-surface)]',
             'shadow-[var(--e-2)]',
           )}
         >
           {confirmIndex !== null ? (
-            <div className="space-y-2 p-3">
-              <p className="text-[length:var(--text-sm)] font-semibold text-[var(--color-ink)]">
-                {t('rowActionsConfirmTitle')}
-              </p>
-              <p className="text-[length:var(--text-xs)] text-[var(--color-ink-2)]">
+            <div className="space-y-2.5 p-4 rounded-[var(--radius-lg)] bg-[var(--color-surface)] border-l-4 border-l-[var(--color-bad)]">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--color-bad)]">
+                <i aria-hidden="true" className="ri-error-warning-line text-sm" />
+                <span>Confirm action</span>
+              </div>
+              <p className="text-xs font-medium text-[var(--color-ink)]">
                 {items[confirmIndex]?.label}
               </p>
-              <div className="flex justify-end gap-2 pt-1">
+              <div className="flex justify-end gap-2 pt-1.5">
                 <Button size="sm" variant="neutral" onClick={closeAll}>
                   {t('confirmNo')}
                 </Button>
                 <Button size="sm" variant="destructive" onClick={handleConfirm}>
-                  {items[confirmIndex]?.destructive === true
-                    ? t('confirmYesDanger')
-                    : t('confirmYes')}
+                  {items[confirmIndex]?.confirmLabel ??
+                    (items[confirmIndex]?.destructive === true
+                      ? 'Delete'
+                      : t('confirmYes'))}
                 </Button>
               </div>
             </div>

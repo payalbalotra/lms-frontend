@@ -40,8 +40,7 @@ const variantClasses: Record<ButtonVariant, string> = {
   secondary:
     'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] hover:bg-[var(--color-brand-tint-2)] active:translate-y-px',
   destructive:
-    // Light tone by default. Solid red on hover + a confirm CTA behind it (DESIGN.md).
-    'bg-[var(--color-bad-tint)] text-[var(--color-bad)] hover:bg-[var(--color-bad)] hover:text-white active:translate-y-px',
+    'bg-[var(--color-bad)] text-white! hover:bg-red-800 active:translate-y-px',
   neutral:
     'bg-[var(--color-panel)] text-[var(--color-ink)] hover:bg-[var(--color-panel-2)] active:translate-y-px',
   ghost:

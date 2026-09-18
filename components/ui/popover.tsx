@@ -83,6 +83,9 @@ export function Popover({
       return;
     }
     recompute();
+    const anim = requestAnimationFrame(() => {
+      recompute();
+    });
     const onResize = (): void => recompute();
     const onScroll = (): void => recompute();
     window.addEventListener('resize', onResize);
@@ -100,6 +103,7 @@ export function Popover({
     };
     document.addEventListener('pointerdown', onPointer);
     return () => {
+      cancelAnimationFrame(anim);
       window.removeEventListener('resize', onResize);
       window.removeEventListener('scroll', onScroll, true);
       document.removeEventListener('keydown', onKey);

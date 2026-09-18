@@ -3,103 +3,147 @@
 /**
  * Access step on the new-procedure wizard.
  *
- * Composes four blocks: Location → Role → Station → Assign. Multi-select on
- * every block; assignments are local component state and are not persisted
- * (this is the demo surface described in the brief).
+ * Top-level: AccessLevelSelector (Everyone / Restricted). When
+ * "Everyone" is selected, the four rows below render inert and stay
+ * inert until the manager flips back to Restricted — the selected sets
+ * are preserved either way.
  *
- * Lives in its own file so the wizard can render `<AccessScreen />` without
- * any of the block code being interleaved with the wizard's other step
- * markup. Merge conflicts only touch the import line in the wizard.
+ * Below that: four compact rows (Locations, Roles, Stations, People).
+ * Each row is a thin wrapper around the same `AccessRow` layout — only
+ * the option list and the picker affordance differ (Add button for the
+ * first three, search input for People).
+ *
+ * Lives in its own file so the wizard renders `<AccessScreen />` without
+ * any of the row / picker markup being interleaved with the wizard's
+ * other step markup. Merge conflicts only touch the import + JSX in the
+ * wizard.
  */
 
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { AccessBlock } from './access-block';
 import { AccessAssignBlock } from './access-assign-block';
-import {
-  ACCESS_LOCATIONS,
-  ACCESS_ROLES,
-  ACCESS_STATIONS,
-  toggleSet,
-} from './access-data';
+import { AccessLevelSelector, type AccessLevel } from './access-level-selector';
+import { ACCESS_LOCATIONS, ACCESS_ROLES, ACCESS_STATIONS } from './access-data';
 
-export function AccessScreen(): React.ReactElement {
+interface AccessScreenProps {
+  selectedLocations: Set<string>;
+  selectedRoles: Set<string>;
+  selectedStations: Set<string>;
+  assignedEmployees: Set<string>;
+  accessLevel: AccessLevel;
+  onToggleLocation: (id: string) => void;
+  onToggleRole: (id: string) => void;
+  onToggleStation: (id: string) => void;
+  onToggleEmployee: (id: string) => void;
+  onChangeAccessLevel: (next: AccessLevel) => void;
+}
+
+export function AccessScreen({
+  selectedLocations,
+  selectedRoles,
+  selectedStations,
+  assignedEmployees,
+  accessLevel,
+  onToggleLocation,
+  onToggleRole,
+  onToggleStation,
+  onToggleEmployee,
+  onChangeAccessLevel,
+}: AccessScreenProps): React.ReactElement {
   const tAccess = useTranslations('admin.library.new.access');
 
-  const [selectedLocations, setSelectedLocations] = React.useState<Set<string>>(new Set());
-  const [selectedRoles, setSelectedRoles] = React.useState<Set<string>>(new Set());
-  const [selectedStations, setSelectedStations] = React.useState<Set<string>>(new Set());
-  const [assignedEmployees, setAssignedEmployees] = React.useState<Set<string>>(new Set());
-  const [assignSearch, setAssignSearch] = React.useState('');
+  const isRestricted = accessLevel === 'restricted';
 
   return (
-    <div className="space-y-6">
-      {/* Page-level heading for the access step */}
-      <header className="flex items-start justify-between gap-4 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-6 shadow-sm">
-        <div className="flex items-start gap-3">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] text-lg">
-            <i aria-hidden="true" className="ri-shield-user-line" />
-          </div>
-          <div>
-            <h2 className="font-[family-name:var(--font-ui)] text-[length:var(--text-md)] font-bold tracking-[-0.01em] text-[var(--color-ink)]">
-              {tAccess('title')}
-            </h2>
-            <p className="mt-0.5 text-[length:var(--text-sm)] text-[var(--color-ink-2)]">
-              {tAccess('subtitle')}
-            </p>
-          </div>
+    <div className="space-y-8">
+      {/* Page-level heading */}
+      <header className="flex items-start gap-3">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] text-lg">
+          <i aria-hidden="true" className="ri-shield-user-line" />
+        </div>
+        <div>
+          <p className="text-[length:var(--text-xs)] font-bold uppercase tracking-[0.08em] text-[var(--color-ink-3)]">
+            {tAccess('accessEyebrow')}
+          </p>
+          <h2 className="mt-0.5 font-[family-name:var(--font-ui)] text-[length:var(--text-md)] font-bold tracking-[-0.01em] text-[var(--color-ink)]">
+            {tAccess('accessTitle')}
+          </h2>
+          <p className="mt-0.5 text-[length:var(--text-sm)] text-[var(--color-ink-2)]">
+            {tAccess('accessSubtitle')}
+          </p>
         </div>
       </header>
 
-      <AccessBlock
-        icon="ri-map-pin-line"
-        title={tAccess('locationTitle')}
-        subtitle={tAccess('locationSubtitle')}
-        count={selectedLocations.size}
-        emptyLabel={tAccess('locationEmpty')}
-        items={ACCESS_LOCATIONS}
-        selected={selectedLocations}
-        onToggle={(id) => setSelectedLocations((prev) => toggleSet(prev, id))}
-        hint={tAccess('locationHint')}
-      />
+      {/* Access-level choice */}
+      <AccessLevelSelector value={accessLevel} onChange={onChangeAccessLevel} />
 
-      <AccessBlock
-        icon="ri-user-star-line"
-        title={tAccess('roleTitle')}
-        subtitle={tAccess('roleSubtitle')}
-        count={selectedRoles.size}
-        emptyLabel={tAccess('roleEmpty')}
-        items={ACCESS_ROLES}
-        selected={selectedRoles}
-        onToggle={(id) => setSelectedRoles((prev) => toggleSet(prev, id))}
-        hint={tAccess('roleHint')}
-      />
+      {/* Restricted access rows */}
+      <section
+        aria-disabled={!isRestricted}
+        className="rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-6 shadow-sm transition-opacity"
+      >
+        <header className="mb-4">
+          <p className="text-[length:var(--text-xs)] font-bold uppercase tracking-[0.08em] text-[var(--color-ink-3)]">
+            {tAccess('restrictedEyebrow')}
+          </p>
+          <h3 className="mt-1 text-[length:var(--text-md)] font-bold tracking-[-0.01em] text-[var(--color-ink)]">
+            {tAccess('restrictedSectionTitle')}
+          </h3>
+          <p className="mt-1 text-[length:var(--text-sm)] text-[var(--color-ink-2)]">
+            {tAccess('restrictedSectionSubtitle')}
+          </p>
+        </header>
 
-      <AccessBlock
-        icon="ri-store-2-line"
-        title={tAccess('stationTitle')}
-        subtitle={tAccess('stationSubtitle')}
-        count={selectedStations.size}
-        emptyLabel={tAccess('stationEmpty')}
-        items={ACCESS_STATIONS}
-        selected={selectedStations}
-        onToggle={(id) => setSelectedStations((prev) => toggleSet(prev, id))}
-        hint={tAccess('stationHint')}
-      />
+        <div className={isRestricted ? '' : 'pointer-events-none opacity-50'}>
+          <AccessBlock
+            icon="ri-map-pin-line"
+            title={tAccess('locationTitle')}
+            emptyLabel={tAccess('locationEmpty')}
+            countLabel={(count) => tAccess('rowSelected', { count })}
+            options={ACCESS_LOCATIONS}
+            selected={selectedLocations}
+            onToggle={onToggleLocation}
+            columns={2}
+          />
 
-      <AccessAssignBlock
-        title={tAccess('assignTitle')}
-        subtitle={tAccess('assignSubtitle')}
-        emptyLabel={tAccess('assignEmpty')}
-        searchPlaceholder={tAccess('assignSearchPlaceholder')}
-        hint={tAccess('assignHint')}
-        selectedCount={assignedEmployees.size}
-        selectedLabel={(count) => tAccess('assignSelected', { count })}
-        selected={assignedEmployees}
-        onToggle={(id) => setAssignedEmployees((prev) => toggleSet(prev, id))}
-        search={assignSearch}
-        onSearchChange={setAssignSearch}
-      />
+          <AccessBlock
+            icon="ri-user-star-line"
+            title={tAccess('roleTitle')}
+            emptyLabel={tAccess('roleEmpty')}
+            countLabel={(count) => tAccess('rowSelected', { count })}
+            options={ACCESS_ROLES}
+            selected={selectedRoles}
+            onToggle={onToggleRole}
+            columns={3}
+          />
+
+          <AccessBlock
+            icon="ri-store-2-line"
+            title={tAccess('stationTitle')}
+            emptyLabel={tAccess('stationEmpty')}
+            countLabel={(count) => tAccess('rowSelected', { count })}
+            options={ACCESS_STATIONS}
+            selected={selectedStations}
+            onToggle={onToggleStation}
+            columns={3}
+          />
+
+          <AccessAssignBlock
+            title={tAccess('assignTitle')}
+            emptyLabel={tAccess('assignEmpty')}
+            countLabel={(count) => tAccess('rowSelected', { count })}
+            selected={assignedEmployees}
+            onToggle={onToggleEmployee}
+          />
+        </div>
+
+        {!isRestricted && (
+          <p className="mt-4 text-[length:var(--text-xs)] text-[var(--color-ink-3)] italic">
+            {tAccess('publicDisabledHint')}
+          </p>
+        )}
+      </section>
     </div>
   );
 }

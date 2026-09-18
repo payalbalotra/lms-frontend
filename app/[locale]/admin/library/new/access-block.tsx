@@ -1,93 +1,94 @@
 'use client';
 
 /**
- * Multi-select access block — Location, Role, Station.
+ * Compact access row for Locations / Roles / Stations.
  *
- * One card per option, 2-up grid. The card lights up (brand border + tint +
- * check badge) when its id is in the `selected` set. The header shows the
- * block title, subtitle, and either a green count chip or a dashed "empty"
- * placeholder.
+ * Renders every option as a small selectable "tab" inside a 4-column
+ * grid — same pill-tab affordance used by the procedure library's
+ * category filter, just grid-laid. Each tab has an icon, a label, and
+ * a check badge when selected. Clicking a tab toggles its membership in
+ * the selected set.
  *
- * Lives in its own file so the Access screen can be merged independently of
- * the wizard form. The wizard only imports this component; nothing else in
- * the form changes.
+ * The grid wraps to 2-up on narrow viewports so the tabs never get too
+ * cramped to read. The `disabled` prop dims the whole grid when Public
+ * visibility is on — Public overrides these without losing selections
+ * (they stay in state for the audit trail).
+ *
+ * Lives in its own file because Locations, Roles, and Stations share the
+ * same exact UX — only the option list and i18n labels change.
  */
 
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
+import { AccessRow } from './access-row';
 import type { AccessOption } from './access-data';
 
 export interface AccessBlockProps {
   icon: string;
   title: string;
-  subtitle: string;
-  count: number;
   emptyLabel: string;
-  items: AccessOption[];
+  countLabel: (count: number) => string;
+  options: AccessOption[];
   selected: Set<string>;
   onToggle: (id: string) => void;
-  hint: string;
+  /** Number of columns on the `sm` breakpoint and up. Defaults to 2 so
+   *  Locations renders as a clean 2×2 grid (matching the procedure
+   *  library's 2x2 metadata pattern). Pass 3 or 4 for wider option sets. */
+  columns?: 2 | 3 | 4;
+  disabled?: boolean;
 }
 
 export function AccessBlock({
   icon,
   title,
-  subtitle,
-  count,
   emptyLabel,
-  items,
+  countLabel,
+  options,
   selected,
   onToggle,
-  hint,
+  columns = 2,
+  disabled = false,
 }: AccessBlockProps): React.ReactElement {
-  return (
-    <section className="space-y-4 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-6 shadow-sm">
-      <header className="flex items-start justify-between gap-4 border-b border-[var(--color-line)]/60 pb-3">
-        <div className="flex items-start gap-3">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] text-lg">
-            <i aria-hidden="true" className={icon} />
-          </div>
-          <div>
-            <h2 className="font-[family-name:var(--font-ui)] text-[length:var(--text-md)] font-bold tracking-[-0.01em] text-[var(--color-ink)]">
-              {title}
-            </h2>
-            <p className="mt-0.5 text-[length:var(--text-sm)] text-[var(--color-ink-2)]">
-              {subtitle}
-            </p>
-          </div>
-        </div>
-        {count > 0 ? (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-ok-tint)] px-2.5 py-1 text-[length:var(--text-xs)] font-bold text-[var(--color-ok)] border border-[var(--color-ok-tint-2)]">
-            <i aria-hidden="true" className="ri-check-line text-sm" />
-            {count}
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-[var(--color-line-3)] bg-[var(--color-wash)] px-2.5 py-1 text-[length:var(--text-xs)] font-semibold text-[var(--color-ink-3)]">
-            <i aria-hidden="true" className="ri-add-line text-sm" />
-            {emptyLabel}
-          </span>
-        )}
-      </header>
+  const tAccess = useTranslations('admin.library.new.access');
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 pt-1">
-        {items.map((opt) => {
+  const gridCols = cn(
+    'grid grid-cols-2 gap-2 pl-10 pt-1',
+    columns === 3 && 'sm:grid-cols-3',
+    columns === 4 && 'sm:grid-cols-4',
+    disabled && 'pointer-events-none',
+  );
+
+  return (
+    <AccessRow
+      icon={icon}
+      title={title}
+      count={selected.size}
+      emptyLabel={emptyLabel}
+      countLabel={countLabel}
+      disabled={disabled}
+    >
+      <div className={gridCols}>
+        {options.map((opt) => {
           const isSelected = selected.has(opt.id);
           return (
             <button
               key={opt.id}
               type="button"
               onClick={() => onToggle(opt.id)}
+              disabled={disabled}
               aria-pressed={isSelected}
               className={cn(
-                'group relative flex items-start gap-3 rounded-[var(--radius-lg)] border p-3.5 text-left transition-all min-h-[64px]',
+                'group relative flex items-center gap-2 rounded-[var(--radius-md)] border px-2.5 py-2 text-left transition-all min-h-[40px]',
                 isSelected
-                  ? 'border-[var(--color-brand-600)] bg-[var(--color-brand-tint)]/40 shadow-xs ring-2 ring-[var(--color-brand-600)]/30'
-                  : 'border-[var(--color-line-2)] bg-[var(--color-surface)] hover:bg-[var(--color-wash)] hover:border-[var(--color-line-3)]',
+                  ? 'border-[var(--color-brand-600)] bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] shadow-xs ring-2 ring-[var(--color-brand-600)]/30'
+                  : 'border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-line-3)]',
+                disabled && 'cursor-not-allowed hover:bg-[var(--color-surface)] hover:border-[var(--color-line-2)] hover:text-[var(--color-ink)]',
               )}
             >
               <span
                 className={cn(
-                  'flex size-9 shrink-0 items-center justify-center rounded-lg text-base shadow-2xs transition-colors',
+                  'flex size-6 shrink-0 items-center justify-center rounded-md text-xs shadow-2xs transition-colors',
                   isSelected
                     ? 'bg-[var(--color-brand-600)] text-white'
                     : 'bg-[var(--color-panel)] text-[var(--color-ink-2)]',
@@ -97,16 +98,21 @@ export function AccessBlock({
                 <i className={opt.icon} />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-bold text-[var(--color-ink)] truncate">
+                <span
+                  className={cn(
+                    'block text-[length:var(--text-xs)] font-bold truncate',
+                    isSelected ? 'text-[var(--color-brand-700)]' : 'text-[var(--color-ink)]',
+                  )}
+                >
                   {opt.label}
-                </span>
-                <span className="mt-0.5 block text-xs text-[var(--color-ink-2)] truncate">
-                  {opt.sub}
                 </span>
               </span>
               {isSelected && (
-                <span className="absolute top-2.5 right-2.5 flex size-5 items-center justify-center rounded-full bg-[var(--color-brand-600)] text-white text-xs shadow-xs">
-                  <i aria-hidden="true" className="ri-check-line font-bold" />
+                <span
+                  aria-hidden="true"
+                  className="flex size-4 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand-600)] text-white text-[10px] shadow-xs"
+                >
+                  <i className="ri-check-line font-bold" />
                 </span>
               )}
             </button>
@@ -114,7 +120,11 @@ export function AccessBlock({
         })}
       </div>
 
-      <p className="text-xs text-[var(--color-ink-3)] italic">{hint}</p>
-    </section>
+      {disabled && (
+        <p className="pl-10 text-[length:var(--text-xs)] text-[var(--color-ink-3)] italic">
+          {tAccess('publicDisabledHint')}
+        </p>
+      )}
+    </AccessRow>
   );
 }
