@@ -598,15 +598,14 @@ export function LibraryProcedureExplorer({
   const [currentPage, setCurrentPage] = React.useState<number>(1);
   const pageSize = 6;
 
-  // Use full suite of 28 items if database has fewer items or merge them cleanly
-  const allProcedures = React.useMemo(() => {
-    if (!procedures || procedures.length === 0) {
-      return FULL_DEMO_SUITE;
-    }
-    const existingSlugs = new Set(procedures.map((p) => p.slug));
-    const extraDemos = FULL_DEMO_SUITE.filter((d) => !existingSlugs.has(d.slug));
-    return [...procedures, ...extraDemos];
-  }, [procedures]);
+  // The demo suite fills an empty library so the screen can be shown with nothing
+  // in it — it is not mixed into a library that has something. Mixing them listed
+  // rows whose documents do not exist: every one of those 28 titles opened a 404,
+  // which is why the slug lookup used to fall back to "some other procedure".
+  const allProcedures = React.useMemo(
+    () => (procedures && procedures.length > 0 ? procedures : FULL_DEMO_SUITE),
+    [procedures],
+  );
 
   // Category counts & deduplication matching exact category pills in design reference
   const { categoryList, categoryCounts, categorySlugMap } = React.useMemo(() => {

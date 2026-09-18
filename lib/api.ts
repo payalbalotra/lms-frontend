@@ -608,21 +608,11 @@ export async function getProcedureBySlug(
   slug: string,
   _cookieHeader?: string,
 ): Promise<{ procedure: Procedure }> {
+  // Exact match only. A near-match is not a match: this returns the document a
+  // cook is about to follow, and handing them a different procedure that looks
+  // right is worse than telling them the link is dead.
   const normSlug = slug.toLowerCase();
-  let proc = mockProcedures.find(
-    (p) =>
-      p.slug === normSlug ||
-      p.id === normSlug ||
-      p.slug.includes(normSlug) ||
-      normSlug.includes(p.slug) ||
-      p.slug.replace('-safety', '-setup') === normSlug ||
-      p.slug.replace('-setup', '-safety') === normSlug,
-  );
-
-  // Fallback in demo mode: if slug not explicitly matched, return the first procedure
-  if (!proc && mockProcedures.length > 0) {
-    proc = mockProcedures[0];
-  }
+  const proc = mockProcedures.find((p) => p.slug.toLowerCase() === normSlug || p.id.toLowerCase() === normSlug);
 
   if (!proc) {
     throw new ApiException(404, 'PROCEDURE_NOT_FOUND', `Procedure ${slug} not found`);
