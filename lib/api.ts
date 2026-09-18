@@ -137,6 +137,8 @@ const SEED_PROCEDURES: Procedure[] = [
     updatedAt: '2026-09-04T00:00:00Z',
     bodyEn: {
       blocks: [
+        { id: 'cl-img', kind: 'image', src: '/img/cover-sanitising.jpg', hint: 'photo',
+          alt: { en: 'Two red buckets on a stainless bench, labelled WASH and SANITISE, a cloth over each rim and a bottle of test strips beside them.', es: 'Dos cubetas rojas sobre una mesa de acero, rotuladas LAVAR y DESINFECTAR, con un paño en cada borde y un frasco de tiras reactivas al lado.' } },
         { id: 'b1', kind: 'heading', level: 2, text: { en: 'Who this is for', es: 'A quién está dirigido' } },
         { id: 'b2', kind: 'text', body: { en: 'Everyone who prepares, cooks or plates food. It covers cutting boards, prep tables, knives, tongs, and slicers.', es: 'Todos los que preparan o sirven alimentos.' } },
         { id: 'b3', kind: 'heading', level: 2, text: { en: 'Equipment Needed', es: 'Equipo Necesario' } },
@@ -168,6 +170,8 @@ const SEED_PROCEDURES: Procedure[] = [
     },
     bodyEs: {
       blocks: [
+        { id: 'cl-img', kind: 'image', src: '/img/cover-sanitising.jpg', hint: 'photo',
+          alt: { en: 'Two red buckets on a stainless bench, labelled WASH and SANITISE, a cloth over each rim and a bottle of test strips beside them.', es: 'Dos cubetas rojas sobre una mesa de acero, rotuladas LAVAR y DESINFECTAR, con un paño en cada borde y un frasco de tiras reactivas al lado.' } },
         { id: 'b1', kind: 'heading', level: 2, text: { en: 'Who this is for', es: 'A quién está dirigido' } },
         { id: 'b2', kind: 'text', body: { en: 'Everyone who prepares, cooks or plates food.', es: 'Todos los que preparan o sirven alimentos.' } },
         { id: 'b3', kind: 'heading', level: 2, text: { en: 'Equipment Needed', es: 'Equipo Necesario' } },
@@ -241,6 +245,8 @@ const SEED_PROCEDURES: Procedure[] = [
     updatedAt: '2026-09-02T00:00:00Z',
     bodyEn: {
       blocks: [
+        { id: 'op-img', kind: 'image', src: '/img/equipment.jpg', hint: 'photo',
+          alt: { en: 'Everything for the shift laid out on the bench before service: produce, a stone molcajete, a digital scale and a stainless pan.', es: 'Todo lo del turno dispuesto en la mesa antes del servicio: producto, un molcajete de piedra, una báscula digital y una charola de acero.' } },
         { id: 'op-h1', kind: 'heading', level: 1, text: { en: 'Opening Sequence', es: 'Secuencia de Apertura' } },
         { id: 'op-t1', kind: 'text', body: { en: 'Turn on main ventilation hoods and verify air flow.', es: 'Encienda las campanas de extracción y verifique el flujo de aire.' } },
         { id: 'op-t2', kind: 'text', body: { en: 'Inspect walk-in cooler temperatures (must be below 40°F / 4°C).', es: 'Inspeccione la temperatura del refrigerador (debe estar por debajo de 4°C).' } },
@@ -250,6 +256,8 @@ const SEED_PROCEDURES: Procedure[] = [
     },
     bodyEs: {
       blocks: [
+        { id: 'op-img', kind: 'image', src: '/img/equipment.jpg', hint: 'photo',
+          alt: { en: 'Everything for the shift laid out on the bench before service: produce, a stone molcajete, a digital scale and a stainless pan.', es: 'Todo lo del turno dispuesto en la mesa antes del servicio: producto, un molcajete de piedra, una báscula digital y una charola de acero.' } },
         { id: 'op-h1', kind: 'heading', level: 1, text: { en: 'Opening Sequence', es: 'Secuencia de Apertura' } },
         { id: 'op-t1', kind: 'text', body: { en: 'Turn on main ventilation hoods and verify air flow.', es: 'Encienda las campanas de extracción y verifique el flujo de aire.' } },
         { id: 'op-t2', kind: 'text', body: { en: 'Inspect walk-in cooler temperatures (must be below 40°F / 4°C).', es: 'Inspeccione la temperatura del refrigerador (debe estar por debajo de 4°C).' } },
@@ -272,6 +280,8 @@ const SEED_PROCEDURES: Procedure[] = [
     updatedAt: '2026-09-03T00:00:00Z',
     bodyEn: {
       blocks: [
+        { id: 'sv-img', kind: 'image', src: '/img/video-cover.jpg', hint: 'photo',
+          alt: { en: 'Finished green salsa in a stone molcajete, on a bench with limes and chillies.', es: 'Salsa verde terminada en un molcajete de piedra, sobre la mesa con limones y chiles.' } },
         { id: 'sv-h1', kind: 'heading', level: 1, text: { en: 'Ingredients & Preparation', es: 'Ingredientes y Preparación' } },
         { id: 'sv-t1', kind: 'text', body: { en: 'Roast 5kg husked tomatillos on the plancha until evenly charred.', es: 'Ase 5 kg de tomatillos pelados en la plancha hasta que estén tatemados.' } },
         { id: 'sv-t2', kind: 'text', body: { en: 'Blend with fresh cilantro, jalapeno, garlic, onion, and sea salt.', es: 'Licúe con cilantro fresco, jalapeño, ajo, cebolla y sal de mar.' } },
@@ -281,6 +291,8 @@ const SEED_PROCEDURES: Procedure[] = [
     },
     bodyEs: {
       blocks: [
+        { id: 'sv-img', kind: 'image', src: '/img/video-cover.jpg', hint: 'photo',
+          alt: { en: 'Finished green salsa in a stone molcajete, on a bench with limes and chillies.', es: 'Salsa verde terminada en un molcajete de piedra, sobre la mesa con limones y chiles.' } },
         { id: 'sv-h1', kind: 'heading', level: 1, text: { en: 'Ingredients & Preparation', es: 'Ingredientes y Preparación' } },
         { id: 'sv-t1', kind: 'text', body: { en: 'Roast 5kg husked tomatillos on the plancha until evenly charred.', es: 'Ase 5 kg de tomatillos pelados en la plancha hasta que estén tatemados.' } },
         { id: 'sv-t2', kind: 'text', body: { en: 'Blend with fresh cilantro, jalapeno, garlic, onion, and sea salt.', es: 'Licúe con cilantro fresco, jalapeño, ajo, cebolla y sal de mar.' } },
@@ -303,6 +315,8 @@ const SEED_PROCEDURES: Procedure[] = [
     updatedAt: '2026-09-05T00:00:00Z',
     bodyEn: {
       blocks: [
+        { id: 'gr-img', kind: 'image', src: '/img/cover-fryer-oil.jpg', hint: 'photo',
+          alt: { en: 'The hot line at the start of a shift, with the equipment clean and the guards in place.', es: 'La línea caliente al inicio del turno, con el equipo limpio y los protectores colocados.' } },
         { id: 'gr-h1', kind: 'heading', level: 1, text: { en: 'Safety & Setup Guidelines', es: 'Instrucciones de Seguridad y Configuración' } },
         { id: 'gr-t1', kind: 'text', body: { en: 'Verify grease trays are emptied and flame guards are positioned correctly.', es: 'Verifique que las charolas de grasa estén vacías y los protectores colocados.' } },
         { id: 'gr-t2', kind: 'text', body: { en: 'Preheat grill surface to minimum 450°F (230°C) before placing proteins.', es: 'Precaliente la superficie de la parrilla a un mínimo de 230°C.' } },
@@ -311,6 +325,8 @@ const SEED_PROCEDURES: Procedure[] = [
     },
     bodyEs: {
       blocks: [
+        { id: 'gr-img', kind: 'image', src: '/img/cover-fryer-oil.jpg', hint: 'photo',
+          alt: { en: 'The hot line at the start of a shift, with the equipment clean and the guards in place.', es: 'La línea caliente al inicio del turno, con el equipo limpio y los protectores colocados.' } },
         { id: 'gr-h1', kind: 'heading', level: 1, text: { en: 'Safety & Setup Guidelines', es: 'Instrucciones de Seguridad y Configuración' } },
         { id: 'gr-t1', kind: 'text', body: { en: 'Verify grease trays are emptied and flame guards are positioned correctly.', es: 'Verifique que las charolas de grasa estén vacías y los protectores colocados.' } },
         { id: 'gr-t2', kind: 'text', body: { en: 'Preheat grill surface to minimum 450°F (230°C) before placing proteins.', es: 'Precaliente la superficie de la parrilla a un mínimo de 230°C.' } },
