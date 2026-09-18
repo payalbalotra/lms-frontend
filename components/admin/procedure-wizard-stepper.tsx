@@ -40,64 +40,79 @@ export function ProcedureWizardStepper({
 }: ProcedureWizardStepperProps): React.ReactElement {
   const t = useTranslations('admin.library.new.stepper');
   const steps = isRecipe ? RECIPE_WIZARD_STEPS : GENERAL_WIZARD_STEPS;
-  const currentIdx = steps.findIndex((s) => s.id === currentStep);
+
+  // If currentStep points at an id that's not in the current array (e.g.
+  // 'ingredients' when isRecipe is false because the procedure type just
+  // changed), clamp to the first step rather than rendering every step as
+  // "not yet completed" with no active highlight.
+  const rawIdx = steps.findIndex((s) => s.id === currentStep);
+  const currentIdx = rawIdx >= 0 ? rawIdx : 0;
+  const activeId = steps[currentIdx].id;
 
   return (
-    <nav aria-label={t('ariaLabel')} className="my-6">
-      <ol className="flex items-center justify-between gap-2 max-w-4xl mx-auto">
-        {steps.map((step, idx) => {
-          const isActive = step.id === currentStep;
-          const isCompleted = idx < currentIdx;
+    <nav aria-label={t('ariaLabel')} className="max-w-4xl mx-auto my-6">
+      <div className="rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-4 sm:px-6 sm:py-4 shadow-xs">
+        <ol className="flex items-center justify-between w-full">
+          {steps.map((step, idx) => {
+            const isActive = step.id === activeId;
+            const isCompleted = idx < currentIdx;
+            const isConnectorActive = idx < currentIdx;
 
-          return (
-            <li key={step.id} className="flex-1 flex items-center">
-              <button
-                type="button"
-                onClick={() => onSelectStep?.(step.id)}
-                className="group flex items-center gap-2.5 focus-visible:outline-none"
-              >
-                <span
-                  className={cn(
-                    'flex size-8 shrink-0 items-center justify-center rounded-full text-[length:var(--text-xs)] font-bold transition-all',
-                    isActive
-                      ? 'bg-[var(--color-brand-600)] text-white ring-4 ring-[var(--color-brand-tint)]'
-                      : isCompleted
-                        ? 'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)]'
-                        : 'border border-[var(--color-line-3)] bg-[var(--color-surface)] text-[var(--color-ink-3)]',
-                  )}
-                >
-                  {isCompleted ? (
-                    <i aria-hidden="true" className="ri-check-line text-sm" />
-                  ) : (
-                    step.num
-                  )}
-                </span>
-                <span
-                  className={cn(
-                    'text-[length:var(--text-sm)] font-semibold transition-colors',
-                    isActive
-                      ? 'text-[var(--color-ink)] font-bold'
-                      : isCompleted
-                        ? 'text-[var(--color-ink)]'
-                        : 'text-[var(--color-ink-3)] group-hover:text-[var(--color-ink-2)]',
-                  )}
-                >
-                  {t(step.labelKey as never)}
-                </span>
-              </button>
+            return (
+              <React.Fragment key={step.id}>
+                <li className="flex items-center shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => onSelectStep?.(step.id)}
+                    className="group flex items-center gap-2.5 bg-[var(--color-surface)] focus-visible:outline-none"
+                  >
+                    <span
+                      className={cn(
+                        'flex size-8 shrink-0 items-center justify-center rounded-full text-[length:var(--text-xs)] font-bold transition-all shadow-2xs',
+                        isActive
+                          ? 'bg-[var(--color-brand-600)] text-white ring-4 ring-[var(--color-brand-tint)] scale-105'
+                          : isCompleted
+                            ? 'bg-[var(--color-brand-600)] text-white'
+                            : 'border border-[var(--color-line-3)] bg-[var(--color-surface)] text-[var(--color-ink-3)] group-hover:border-[var(--color-brand-600)]/50',
+                      )}
+                    >
+                      {isCompleted ? (
+                        <i aria-hidden="true" className="ri-check-line text-sm font-bold" />
+                      ) : (
+                        step.num
+                      )}
+                    </span>
+                    <span
+                      className={cn(
+                        'text-[length:var(--text-sm)] font-semibold transition-colors hidden sm:inline-block',
+                        isActive
+                          ? 'text-[var(--color-brand-700)] font-bold'
+                          : isCompleted
+                            ? 'text-[var(--color-ink)]'
+                            : 'text-[var(--color-ink-3)] group-hover:text-[var(--color-ink-2)]',
+                      )}
+                    >
+                      {t(step.labelKey as never)}
+                    </span>
+                  </button>
+                </li>
 
-              {idx < steps.length - 1 && (
-                <div
-                  className={cn(
-                    'mx-4 h-0.5 flex-1 rounded-full transition-colors',
-                    idx < currentIdx ? 'bg-[var(--color-brand-600)]' : 'bg-[var(--color-line-2)]',
-                  )}
-                />
-              )}
-            </li>
-          );
-        })}
-      </ol>
+                {/* Connecting Line Segment between adjacent steps */}
+                {idx < steps.length - 1 && (
+                  <div className="flex-1 min-w-[20px] sm:min-w-[32px] mx-2 sm:mx-3 h-0.5 rounded-full overflow-hidden bg-[var(--color-line-2)]">
+                    <div
+                      className={cn(
+                        'h-full transition-all duration-300',
+                        isConnectorActive ? 'bg-[var(--color-brand-600)] w-full' : 'w-0',
+                      )}
+                    />
+                  </div>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </ol>
+      </div>
     </nav>
   );
 }

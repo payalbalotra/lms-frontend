@@ -2,16 +2,48 @@ import * as React from 'react';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { listProcedures, ApiException } from '@/lib/api';
-import type { Procedure } from '@/lib/types';
+import { listProcedures, listCategories, fetchMe, ApiException } from '@/lib/api';
+import type { Procedure, Category } from '@/lib/types';
+import { LibraryProcedureExplorer } from '@/components/admin/library-procedure-explorer';
 
 interface PageProps {
   params: Promise<{ locale: string }>;
 }
 
 export const dynamic = 'force-dynamic';
+
+const DEFAULT_CATEGORIES: Category[] = [
+  { id: 'cat-recipes', slug: 'recipes', nameEn: 'Recipes', nameEs: 'Recetas', isArchived: false },
+  { id: 'cat-station', slug: 'station', nameEn: 'Station Procedures', nameEs: 'Procedimientos de Estación', isArchived: false },
+  { id: 'cat-cleaning', slug: 'cleaning', nameEn: 'Cleaning Schedules', nameEs: 'Horarios de Limpieza', isArchived: false },
+  { id: 'cat-admin', slug: 'admin', nameEn: 'General Procedures', nameEs: 'Procedimientos Generales', isArchived: false },
+  { id: 'cat-delivery', slug: 'delivery', nameEn: 'Delivery & Receiving', nameEs: 'Entrega y Recepción', isArchived: false },
+  { id: 'cat-safety', slug: 'food-safety', nameEn: 'Food Safety', nameEs: 'Seguridad Alimentaria', isArchived: false },
+  { id: 'cat-equipment', slug: 'equipment', nameEn: 'Equipment Handling', nameEs: 'Manejo de Equipos', isArchived: false },
+  { id: 'cat-other', slug: 'other', nameEn: 'Other', nameEs: 'Otros', isArchived: false },
+];
+
+interface AdminLocationsResponse {
+  locations: { id: string }[];
+}
+
+async function readFirstManagedLocation(
+  cookieHeader: string,
+): Promise<string | null> {
+  const base = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:4000';
+  try {
+    const res = await fetch(`${base}/api/admin/employees/locations`, {
+      headers: { cookie: cookieHeader },
+      cache: 'no-store',
+    });
+    if (!res.ok) return null;
+    const body = (await res.json()) as AdminLocationsResponse;
+    return body.locations[0]?.id ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export default async function AdminLibraryPage({
   params,
@@ -28,10 +60,33 @@ export default async function AdminLibraryPage({
     .join('; ');
 
   let procedures: Procedure[] = [];
+  let categories: Category[] = [];
   let loadError: string | null = null;
+
+  let locationId: string | null = null;
   try {
-    const result = await listProcedures({}, cookieHeader);
-    procedures = result.procedures;
+    const me = await fetchMe(cookieHeader);
+    locationId = me.employee.locationId;
+  } catch (err) {
+    if (!(err instanceof ApiException)) throw err;
+    locationId = await readFirstManagedLocation(cookieHeader);
+  }
+  if (!locationId) {
+    locationId = await readFirstManagedLocation(cookieHeader);
+  }
+
+  try {
+    const procResult = await listProcedures({}, cookieHeader);
+    procedures = procResult.procedures;
+
+    if (locationId) {
+      try {
+        const catResult = await listCategories(locationId, {}, cookieHeader);
+        categories = catResult.categories;
+      } catch {
+        // Keep fallback categories
+      }
+    }
   } catch (err) {
     if (err instanceof ApiException) {
       loadError = err.code;
@@ -40,8 +95,10 @@ export default async function AdminLibraryPage({
     }
   }
 
+  const finalCategories = categories.length > 0 ? categories : DEFAULT_CATEGORIES;
+
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="mx-auto max-w-6xl space-y-6 pb-12">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="space-y-1">
           <p className="text-[length:var(--text-xs)] font-semibold uppercase tracking-wide text-[var(--color-brand-700)]">
@@ -70,8 +127,6 @@ export default async function AdminLibraryPage({
         </div>
       </header>
 
-      <ToolbarStub placeholder={t('searchPlaceholder')} filterLabel={t('filterAllCategories')} />
-
       {loadError ? (
         <p role="alert" className="text-sm text-[var(--color-bad)]">
           {loadError}
@@ -79,86 +134,12 @@ export default async function AdminLibraryPage({
       ) : procedures.length === 0 ? (
         <EmptyLibrary heading={t('emptyHeading')} body={t('emptyBody')} />
       ) : (
-        <ProcedureList procedures={procedures} locale={locale} />
+        <LibraryProcedureExplorer
+          procedures={procedures}
+          categories={finalCategories}
+          locale={locale}
+        />
       )}
-    </div>
-  );
-}
-
-// Pick the localised label from the joined category. Empty when category is
-// null (archived or never assigned). Returns an em dash so the row stays
-// visually balanced.
-function categoryLabel(proc: Procedure, locale: string): string {
-  if (!proc.category) return '—';
-  return locale === 'es' ? proc.category.nameEs : proc.category.nameEn;
-}
-
-function ProcedureList({
-  procedures,
-  locale,
-}: {
-  procedures: Procedure[];
-  locale: string;
-}): React.ReactElement {
-  return (
-    <ul className="divide-y divide-[var(--color-line)] rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)]">
-      {procedures.map((p) => (
-        <li key={p.id} className="flex items-center gap-4 px-4 py-3">
-          <div className="min-w-0 flex-1 space-y-0.5">
-            <div className="flex items-center gap-2">
-              <p className="truncate text-[length:var(--text-sm)] font-semibold text-[var(--color-ink)]">
-                {p.titleEn || p.titleEs || p.slug}
-              </p>
-              {p.status === 'draft' ? (
-                <span className="inline-flex items-center rounded-[var(--radius-pill)] bg-[var(--color-warn-tint)] px-2 py-0.5 text-[length:var(--text-xs)] font-semibold uppercase tracking-wide text-[var(--color-warn-ink)]">
-                  Draft
-                </span>
-              ) : (
-                <span className="inline-flex items-center rounded-[var(--radius-pill)] bg-[var(--color-ok-tint)] px-2 py-0.5 text-[length:var(--text-xs)] font-semibold uppercase tracking-wide text-[var(--color-ok-ink)]">
-                  Published
-                </span>
-              )}
-            </div>
-            <p className="text-[length:var(--text-xs)] text-[var(--color-ink-2)]">
-              {categoryLabel(p, locale)} · Updated{' '}
-              {new Date(p.updatedAt).toLocaleString()}
-            </p>
-          </div>
-          <Link
-            href={`/procedures/${p.slug}`}
-            className="text-[length:var(--text-sm)] font-medium text-[var(--color-brand-700)] underline-offset-4 hover:underline"
-          >
-            View
-          </Link>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function ToolbarStub({
-  placeholder,
-  filterLabel,
-}: {
-  placeholder: string;
-  filterLabel: string;
-}): React.ReactElement {
-  return (
-    <div className="flex flex-wrap items-center gap-2 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-2">
-      <div className="flex h-9 min-w-0 flex-1 items-center gap-2 px-3">
-        <i aria-hidden="true" className="ri-search-line text-[var(--color-ink-3)]" />
-        <span className="text-[length:var(--text-sm)] text-[var(--color-ink-3)]">{placeholder}</span>
-      </div>
-      <span
-        className={cn(
-          'inline-flex h-9 items-center gap-1.5 rounded-[var(--radius-md)]',
-          'border border-[var(--color-line)] bg-[var(--color-surface)] px-3',
-          'text-[length:var(--text-sm)] font-medium text-[var(--color-ink-2)]',
-        )}
-      >
-        <i aria-hidden="true" className="ri-filter-3-line" />
-        {filterLabel}
-      </span>
     </div>
   );
 }
@@ -172,11 +153,7 @@ function EmptyLibrary({
 }): React.ReactElement {
   return (
     <article
-      className={cn(
-        'flex flex-col items-center gap-4 rounded-[var(--radius-lg)]',
-        'border border-dashed border-[var(--color-line-2)] bg-[var(--color-surface)]',
-        'px-6 py-16 text-center',
-      )}
+      className="flex flex-col items-center gap-4 rounded-[var(--radius-lg)] border border-dashed border-[var(--color-line-2)] bg-[var(--color-surface)] px-6 py-16 text-center"
     >
       <span
         aria-hidden="true"

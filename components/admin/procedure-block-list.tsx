@@ -18,6 +18,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { ProcedureBlockCard } from './procedure-block-card';
 import { ProcedureAddMenu } from './procedure-add-menu';
 import { BLOCK_FACTORIES, duplicateBlock } from '@/lib/procedure-blocks';
@@ -75,29 +76,45 @@ export function ProcedureBlockList({
 
   if (blocks.length === 0) {
     return (
-      <div className="space-y-4">
-        <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--color-line-2)] bg-[var(--color-surface)] p-8 text-center">
-          <div className="mx-auto mb-3 grid size-12 place-items-center rounded-full bg-[var(--color-wash)] text-[var(--color-brand-700)]">
-            <i aria-hidden="true" className="ri-add-line text-xl" />
+      <div className="space-y-5">
+        <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--color-line-2)] bg-[var(--color-surface)] p-6 space-y-4">
+          <div className="text-center">
+            <h3 className="font-[family-name:var(--font-ui)] text-[length:var(--text-md)] font-bold text-[var(--color-ink)]">
+              Choose a content block to add
+            </h3>
+            <p className="mt-0.5 text-[length:var(--text-xs)] text-[var(--color-ink-2)]">
+              Click any block below to start adding instructions, tables, warnings, or media.
+            </p>
           </div>
-          <h3 className="font-[family-name:var(--font-ui)] text-[length:var(--text-md)] font-semibold text-[var(--color-ink)]">
-            {t('emptyTitle')}
-          </h3>
-          <p className="mx-auto mt-1 max-w-sm text-[length:var(--text-sm)] text-[var(--color-ink-2)]">
-            {t('emptyBody')}
-          </p>
-          <div className="mt-4">
-            <Button
-              type="button"
-              variant="secondary"
-              size="default"
-              onClick={() => addBlock('text')}
-            >
-              <i aria-hidden="true" className="ri-add-line" />
-              {t('emptyCta')}
-            </Button>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { kind: 'text', label: 'Text Area', icon: 'ri-text', color: 'text-amber-600 bg-amber-50 border-amber-200' },
+              { kind: 'table', label: 'Table', icon: 'ri-table-line', color: 'text-emerald-600 bg-emerald-50 border-emerald-200' },
+              { kind: 'method', label: 'Numbered Steps', icon: 'ri-list-ordered', color: 'text-blue-600 bg-blue-50 border-blue-200' },
+              { kind: 'warning', label: 'Warning Callout', icon: 'ri-alert-line', color: 'text-orange-600 bg-orange-50 border-orange-200' },
+              { kind: 'heading', label: 'Heading', icon: 'ri-h-1', color: 'text-purple-600 bg-purple-50 border-purple-200' },
+              { kind: 'image', label: 'Photograph', icon: 'ri-image-line', color: 'text-indigo-600 bg-indigo-50 border-indigo-200' },
+              { kind: 'video', label: 'Video', icon: 'ri-video-line', color: 'text-rose-600 bg-rose-50 border-rose-200' },
+              { kind: 'attachment', label: 'Attachment', icon: 'ri-attachment-line', color: 'text-slate-600 bg-slate-50 border-slate-200' },
+            ].map((item) => (
+              <button
+                key={item.kind}
+                type="button"
+                onClick={() => addBlock(item.kind as ProcedureBlockKind)}
+                className="group flex flex-col items-center justify-center rounded-xl border border-[var(--color-line-2)] bg-[var(--color-surface)] p-3.5 text-center transition-all duration-150 hover:bg-[var(--color-wash)] hover:border-[var(--color-brand-600)] shadow-2xs hover:shadow-xs active:scale-95"
+              >
+                <div className={cn('mb-2 flex size-9 items-center justify-center rounded-lg border text-lg transition-transform group-hover:scale-110', item.color)}>
+                  <i aria-hidden="true" className={item.icon} />
+                </div>
+                <span className="font-bold text-[length:var(--text-xs)] text-[var(--color-ink)] group-hover:text-[var(--color-brand-700)]">
+                  {item.label}
+                </span>
+              </button>
+            ))}
           </div>
         </div>
+
         <ProcedureAddMenu onAdd={addBlock} variant="inline" />
       </div>
     );

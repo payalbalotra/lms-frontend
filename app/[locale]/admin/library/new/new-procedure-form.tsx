@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CustomSelect } from '@/components/ui/custom-select';
+import { Modal } from '@/components/ui/modal';
+import { Drawer } from '@/components/ui/drawer';
 import { cn } from '@/lib/utils';
 import { createProcedure, ApiException } from '@/lib/api';
 import { getCategoryIcon } from '@/lib/category-icons';
@@ -19,6 +21,7 @@ import type {
   ProcedureBody,
   ProcedureIngredient,
   ProcedureMethodStep,
+  ProcedureYieldItem,
   Localised,
   LocalisedOptional,
 } from '@/lib/types';
@@ -27,7 +30,6 @@ import {
   ProcedureTypeSelector,
   type ProcedureTypeId,
 } from '@/components/admin/procedure-type-selector';
-import { ProcedureProgressSidebar } from '@/components/admin/procedure-progress-sidebar';
 import {
   ProcedureWizardStepper,
   type WizardStepId,
@@ -36,7 +38,6 @@ import {
   RecipeIngredientsEditor,
   type RecipeIngredientItem,
 } from '@/components/admin/recipe-ingredients-editor';
-import { RecipeLivePreview } from '@/components/admin/recipe-live-preview';
 import { DocumentImportPanel } from '@/components/admin/document-import-panel';
 
 interface NewProcedureFormProps {
@@ -45,6 +46,79 @@ interface NewProcedureFormProps {
 }
 
 export type ClearanceTier = 'general' | 'station' | 'confidential' | 'master';
+
+/** The set of batch sizes a recipe exposes. Always saved on the recipe
+ *  block — the manager's *selected* factor stays as client-side state so the
+ *  reader sees their previous choice without the doc having to persist it. */
+const RECIPE_BATCH_FACTORS = [1, 2, 4] as const;
+
+/** Stable labels for the four recipe yield fields. Order matches the panel
+ *  layout and the order entries render in the reader view. Manager may leave
+ *  any field's value blank. */
+const YIELD_FIELD_LABELS = {
+  total: 'Total yield',
+  portions: 'Portions',
+  portionSize: 'Portion size',
+  time: 'Total time',
+} as const;
+
+type YieldFieldKey = keyof typeof YIELD_FIELD_LABELS;
+
+function emptyYieldItem(): ProcedureYieldItem {
+  return { label: '', value: '', unit: '' };
+}
+
+const DEFAULT_CATEGORIES: Category[] = [
+  { id: 'cat-recipes', slug: 'recipes', nameEn: 'Recipes', nameEs: 'Recetas', isArchived: false },
+  { id: 'cat-station', slug: 'station', nameEn: 'Station Procedures', nameEs: 'Procedimientos de Estación', isArchived: false },
+  { id: 'cat-cleaning', slug: 'cleaning', nameEn: 'Cleaning Schedules', nameEs: 'Horarios de Limpieza', isArchived: false },
+  { id: 'cat-admin', slug: 'admin', nameEn: 'General Procedures', nameEs: 'Procedimientos Generales', isArchived: false },
+  { id: 'cat-delivery', slug: 'delivery', nameEn: 'Delivery & Receiving', nameEs: 'Entrega y Recepción', isArchived: false },
+  { id: 'cat-safety', slug: 'food-safety', nameEn: 'Food Safety', nameEs: 'Seguridad Alimentaria', isArchived: false },
+  { id: 'cat-equipment', slug: 'equipment', nameEn: 'Equipment Handling', nameEs: 'Manejo de Equipos', isArchived: false },
+  { id: 'cat-other', slug: 'other', nameEn: 'Other', nameEs: 'Otros', isArchived: false },
+];
+
+function getCategoryBadgeStyle(slug: string): { icon: string; bg: string; text: string } {
+  switch (slug) {
+    case 'recipes':
+      return { icon: 'ri-restaurant-line', bg: 'bg-orange-100', text: 'text-orange-700' };
+    case 'station':
+      return { icon: 'ri-store-2-line', bg: 'bg-purple-100', text: 'text-purple-700' };
+    case 'cleaning':
+      return { icon: 'ri-sparkles-line', bg: 'bg-emerald-100', text: 'text-emerald-700' };
+    case 'admin':
+    case 'general':
+      return { icon: 'ri-file-text-line', bg: 'bg-slate-100', text: 'text-slate-700' };
+    case 'delivery':
+      return { icon: 'ri-truck-line', bg: 'bg-blue-100', text: 'text-blue-700' };
+    case 'food-safety':
+    case 'safety':
+      return { icon: 'ri-shield-cross-line', bg: 'bg-teal-100', text: 'text-teal-700' };
+    case 'equipment':
+      return { icon: 'ri-tools-line', bg: 'bg-indigo-100', text: 'text-indigo-700' };
+    default:
+      return { icon: 'ri-folder-3-line', bg: 'bg-amber-100', text: 'text-amber-700' };
+  }
+}
+
+function deriveTypeFromCategory(cat?: Category): ProcedureTypeId {
+  if (!cat) return 'recipe';
+  const slug = (cat.slug || '').toLowerCase();
+  const nameEn = (cat.nameEn || '').toLowerCase();
+  const id = (cat.id || '').toLowerCase();
+
+  if (slug.includes('recipe') || nameEn.includes('recipe') || id.includes('recipe')) {
+    return 'recipe';
+  }
+  if (slug.includes('station') || nameEn.includes('station') || id.includes('station')) {
+    return 'station';
+  }
+  if (slug.includes('clean') || nameEn.includes('clean') || id.includes('clean')) {
+    return 'cleaning';
+  }
+  return 'general';
+}
 
 interface FormSnapshot {
   titleEn: string;
@@ -80,11 +154,19 @@ function buildRecipeBody(args: {
   titleEs: string;
   ingredients: RecipeIngredientItem[];
   factors: number[];
+  yieldItems?: ProcedureYieldItem[];
 }): ProcedureBody {
-  const { titleEn, titleEs, ingredients, factors } = args;
+  const { titleEn, titleEs, ingredients, factors, yieldItems } = args;
   const backendIngredients = ingredients
     .map(toBackendIngredient)
     .filter((i): i is ProcedureIngredient => i !== null);
+  const cleanedYield = (yieldItems ?? [])
+    .filter((y) => y.label.trim().length > 0 && y.value.trim().length > 0)
+    .map((y) => ({
+      label: y.label.trim(),
+      value: y.value.trim(),
+      ...(y.unit && y.unit.trim().length > 0 ? { unit: y.unit.trim() } : {}),
+    }));
   const placeholderBody: Localised = {
     en: titleEn.trim() || titleEs.trim() || 'Recipe steps',
     es: titleEs.trim() || titleEn.trim() || 'Pasos de la receta',
@@ -93,8 +175,9 @@ function buildRecipeBody(args: {
     id: `r-${Date.now().toString(36)}`,
     kind: 'recipe',
     audience: '',
-    factors,
+    factors: [...factors],
     ingredients: backendIngredients,
+    ...(cleanedYield.length > 0 ? { yieldItems: cleanedYield } : {}),
     steps: [{ id: `s-${Math.random().toString(36).slice(2, 8)}`, body: placeholderBody }],
   };
   return { blocks: [backfillBlock(block)] };
@@ -353,13 +436,20 @@ export function NewProcedureForm({
   const tErr = useTranslations('admin.library.new.errors');
   const router = useRouter();
 
+  const sourceCategories = React.useMemo(() => {
+    return categories && categories.length >= 4 ? categories : DEFAULT_CATEGORIES;
+  }, [categories]);
+
+  const initialCat = sourceCategories[0];
+  const initialType = React.useMemo(() => deriveTypeFromCategory(initialCat), [initialCat]);
+
   const [creationMode, setCreationMode] = useState<'manual' | 'import'>('manual');
   const [wizardStep, setWizardStep] = useState<WizardStepId>('details');
-  const [procedureType, setProcedureType] = useState<ProcedureTypeId>('recipe');
-  // Default to the first category (likely 'recipes' once the seed migration
-  // has run). Fall back to empty string so the form can still render while
-  // the categories API is in flight.
-  const [categoryId, setCategoryId] = useState(categories[0]?.id ?? '');
+  const [categoryId, setCategoryId] = useState<string>(() => initialCat?.id ?? DEFAULT_CATEGORIES[0].id);
+  const [procedureType, setProcedureType] = useState<ProcedureTypeId>(() => initialType);
+  const isRecipeMode = procedureType === 'recipe';
+  const [categorySearch, setCategorySearch] = useState('');
+  const categoryScrollRef = useRef<HTMLDivElement>(null);
   const [titleEn, setTitleEn] = useState('');
   const [titleEs, setTitleEs] = useState('');
   const [titleLang, setTitleLang] = useState<'en' | 'es'>('en');
@@ -374,6 +464,15 @@ export function NewProcedureForm({
     { id: 'ing-1', name: '', quantity: '', unit: 'kg', notes: '' },
   ]);
   const [selectedFactor, setSelectedFactor] = useState<number>(1);
+  // Yield panel — one slot per known field. Manager may leave value/unit blank
+  // for any field; only items with both a value and a label are persisted.
+  const [yieldItems, setYieldItems] = useState<ProcedureYieldItem[]>(() =>
+    (Object.keys(YIELD_FIELD_LABELS) as YieldFieldKey[]).map((k) => ({
+      label: YIELD_FIELD_LABELS[k],
+      value: '',
+      unit: '',
+    })),
+  );
 
   const [error, setError] = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<string[]>([]);
@@ -381,7 +480,130 @@ export function NewProcedureForm({
   const [isDirty, setIsDirty] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
 
-  const isRecipeMode = procedureType === 'recipe';
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewLang, setPreviewLang] = useState<'en' | 'es'>('en');
+
+  const hasTitle = titleEn.trim().length > 0 || titleEs.trim().length > 0;
+  const hasPurpose = purposeEn.trim().length > 0 || purposeEs.trim().length > 0;
+
+  const isTitleMissing = !hasTitle && !!error;
+  const isPurposeMissing = !hasPurpose && !!error;
+
+  // When the procedure type changes, snap the wizard back onto a step that
+  // exists in the new flow. Without this, switching from a recipe category
+  // (which uses 'ingredients' + 'method') to a non-recipe category (which
+  // uses 'content') leaves wizardStep pointing at a step the stepper no
+  // longer renders — the user is stuck on a phantom step.
+  const stepForType = React.useCallback(
+    (type: ProcedureTypeId, current: WizardStepId): WizardStepId => {
+      const recipe = type === 'recipe';
+      if (current === 'ingredients' || current === 'method') {
+        return recipe ? current : 'content';
+      }
+      if (current === 'content') {
+        return recipe ? 'method' : 'content';
+      }
+      return current; // details / access / review are type-agnostic
+    },
+    [],
+  );
+
+  const handleSelectStep = React.useCallback(
+    (targetStep: WizardStepId): void => {
+      if (targetStep !== 'details') {
+        if (!isRecipeMode && (targetStep === 'ingredients' || targetStep === 'method')) {
+          return; // recipe-only step on a non-recipe procedure
+        }
+        if (!hasTitle) {
+          setError(tErr('missingTitle'));
+          return;
+        }
+        if (!hasPurpose) {
+          setError(tErr('missingPurpose'));
+          return;
+        }
+      }
+      setError(null);
+      setWizardStep(targetStep);
+    },
+    [hasTitle, hasPurpose, isRecipeMode, tErr],
+  );
+
+  const handleNextStep = React.useCallback((): void => {
+    setError(null);
+
+    if (wizardStep === 'details') {
+      if (!hasTitle) {
+        setError(tErr('missingTitle'));
+        return;
+      }
+      if (!hasPurpose) {
+        setError(tErr('missingPurpose'));
+        return;
+      }
+      setWizardStep(isRecipeMode ? 'ingredients' : 'content');
+      return;
+    }
+
+    if (wizardStep === 'ingredients') {
+      const hasNamedIngredient = ingredients.some((i) => i.name.trim().length > 0);
+      if (!hasNamedIngredient) {
+        setError(tErr('missingIngredient'));
+        return;
+      }
+      setWizardStep('method');
+      return;
+    }
+
+    if (wizardStep === 'method' || wizardStep === 'content') {
+      setWizardStep('access');
+      return;
+    }
+
+    if (wizardStep === 'access') {
+      if (clearanceLevel === null) {
+        setError(tErr('missingAccess'));
+        return;
+      }
+      setWizardStep('review');
+      return;
+    }
+  }, [wizardStep, hasTitle, hasPurpose, isRecipeMode, ingredients, clearanceLevel, tErr]);
+
+  const primaryCategories = React.useMemo(() => {
+    return sourceCategories.slice(0, 7);
+  }, [sourceCategories]);
+
+  const isPrimaryCategorySelected = React.useMemo(() => {
+    return primaryCategories.some((c) => c.id === categoryId);
+  }, [primaryCategories, categoryId]);
+
+  const selectedCategory = React.useMemo(() => {
+    return sourceCategories.find((c) => c.id === categoryId);
+  }, [sourceCategories, categoryId]);
+
+  const selectedExceedingCategory = !isPrimaryCategorySelected ? selectedCategory : null;
+
+  const displayCategories = React.useMemo(() => {
+    const query = categorySearch.toLowerCase().trim();
+    if (!query) return primaryCategories;
+    return sourceCategories.filter((c) => {
+      const name = (locale === 'es' ? c.nameEs : c.nameEn).toLowerCase();
+      return name.includes(query) || c.slug.toLowerCase().includes(query);
+    });
+  }, [sourceCategories, primaryCategories, categorySearch, locale]);
+
+  const [isOtherModalOpen, setIsOtherModalOpen] = useState(false);
+  const [modalSearchQuery, setModalSearchQuery] = useState('');
+
+  const modalFilteredCategories = React.useMemo(() => {
+    const query = modalSearchQuery.toLowerCase().trim();
+    if (!query) return sourceCategories;
+    return sourceCategories.filter((c) => {
+      const name = (locale === 'es' ? c.nameEs : c.nameEn).toLowerCase();
+      return name.includes(query) || c.slug.toLowerCase().includes(query);
+    });
+  }, [sourceCategories, modalSearchQuery, locale]);
 
   // Map slug -> id so the type/category auto-sync can still target the
   // standard slugs even if the manager added custom categories alongside.
@@ -394,10 +616,10 @@ export function NewProcedureForm({
   const initialRef = useRef<FormSnapshot>({
     titleEn: '',
     titleEs: '',
-    categoryId: categories[0]?.id ?? '',
+    categoryId: initialCat?.id ?? DEFAULT_CATEGORIES[0].id,
     purposeEn: '',
     purposeEs: '',
-    procedureType: 'recipe',
+    procedureType: initialType,
     clearanceLevel: null,
     blocks: [],
   });
@@ -410,6 +632,7 @@ export function NewProcedureForm({
   // Option A: Auto-sync Type with valid Category
   const handleTypeChange = (nextType: ProcedureTypeId): void => {
     setProcedureType(nextType);
+    setWizardStep((s) => stepForType(nextType, s));
     setIsDirty(true);
 
     const slugByType: Record<ProcedureTypeId, string | null> = {
@@ -430,15 +653,31 @@ export function NewProcedureForm({
     setIsDirty(true);
 
     // Sync type if user picks a category mapped to one of the standard
-    // type buckets. Custom slugs leave the procedureType as-is.
-    const picked = categories.find((c) => c.id === nextId);
+    // type buckets.
+    const source = categories && categories.length >= 4 ? categories : DEFAULT_CATEGORIES;
+    const picked = source.find((c) => c.id === nextId);
     if (!picked) return;
-    if (picked.slug === 'recipes' && procedureType !== 'recipe') {
-      setProcedureType('recipe');
-    } else if (picked.slug === 'station' && procedureType !== 'station') {
-      setProcedureType('station');
-    } else if (picked.slug === 'cleaning' && procedureType !== 'cleaning') {
-      setProcedureType('cleaning');
+
+    const slug = (picked.slug || '').toLowerCase();
+    const nameEn = (picked.nameEn || '').toLowerCase();
+    const id = (picked.id || '').toLowerCase();
+
+    const isRecipeCategory = slug.includes('recipe') || nameEn.includes('recipe') || id.includes('recipe');
+    const isStationCategory = slug.includes('station') || nameEn.includes('station') || id.includes('station');
+    const isCleaningCategory = slug.includes('clean') || nameEn.includes('clean') || id.includes('clean');
+
+    let nextType: ProcedureTypeId = 'general';
+    if (isRecipeCategory) {
+      nextType = 'recipe';
+    } else if (isStationCategory) {
+      nextType = 'station';
+    } else if (isCleaningCategory) {
+      nextType = 'cleaning';
+    }
+
+    if (nextType !== procedureType) {
+      setProcedureType(nextType);
+      setWizardStep((s) => stepForType(nextType, s));
     }
   };
 
@@ -530,7 +769,13 @@ export function NewProcedureForm({
     }
 
     const body = isRecipeMode
-      ? buildRecipeBody({ titleEn, titleEs, ingredients, factors: [selectedFactor] })
+      ? buildRecipeBody({
+          titleEn,
+          titleEs,
+          ingredients,
+          factors: [...RECIPE_BATCH_FACTORS],
+          yieldItems,
+        })
       : buildGenericBody(blocks);
 
     startTransition(async () => {
@@ -621,6 +866,16 @@ export function NewProcedureForm({
           {tNav('crumbBack')}
         </Link>
         <div className="flex items-center gap-3">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => setIsPreviewOpen(true)}
+            className="gap-2 border-[var(--color-brand-600)] text-[var(--color-brand-700)] hover:bg-[var(--color-brand-tint)] font-semibold shadow-xs"
+          >
+            <i aria-hidden="true" className="ri-eye-line text-white" />
+            <span>Live Preview</span>
+          </Button>
           <Link href={`/${locale}/admin/library`}>
             <Button type="button" variant="ghost" size="sm">
               {tNav('cancel')}
@@ -688,198 +943,369 @@ export function NewProcedureForm({
       <ProcedureWizardStepper
         currentStep={wizardStep}
         isRecipe={isRecipeMode}
-        onSelectStep={setWizardStep}
+        onSelectStep={handleSelectStep}
       />
 
-      {/* Main 2-Column Grid */}
-      <form className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_20rem] items-start pb-24" onSubmit={(e) => e.preventDefault()}>
-        <div className="space-y-8 min-w-0">
-          {error && (
-            <div
-              role="alert"
-              className="rounded-[var(--radius-lg)] border border-[var(--color-bad-tint)] bg-[var(--color-bad-tint)] px-4 py-3 text-[length:var(--text-sm)] text-[var(--color-bad)]"
-            >
-              <p className="font-semibold">{error}</p>
-              {errorDetails.length > 0 && (
-                <ul className="mt-2 list-inside list-disc space-y-0.5 font-mono text-[length:var(--text-xs)]">
-                  {errorDetails.map((d, i) => (
-                    <li key={i}>{d}</li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-
-          {/* Section 1: Basic information / Details */}
-          <Section
-            id="proc-details"
-            icon="ri-file-text-line"
-            title={isRecipeMode ? 'Basic information' : tForm('detailsSectionTitle')}
-            subtitle={isRecipeMode ? undefined : tForm('detailsSectionSubtitle')}
+      {/* Main Single Column Stepped Wizard Form */}
+      <form className="max-w-4xl mx-auto space-y-8 pb-28" onSubmit={(e) => e.preventDefault()}>
+        {error && (
+          <div
+            role="alert"
+            className="rounded-[var(--radius-lg)] border border-[var(--color-bad-tint)] bg-[var(--color-bad-tint)] px-4 py-3 text-[length:var(--text-sm)] text-[var(--color-bad)] shadow-xs"
           >
-            <div className="space-y-4">
-              {/* Type Selection */}
-              <ProcedureTypeSelector selected={procedureType} onChange={handleTypeChange} />
+            <p className="font-semibold">{error}</p>
+            {errorDetails.length > 0 && (
+              <ul className="mt-2 list-inside list-disc space-y-0.5 font-mono text-[length:var(--text-xs)]">
+                {errorDetails.map((d, i) => (
+                  <li key={i}>{d}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
 
-              {/* Category Selection */}
-              <div className="space-y-1">
-                <Label className="text-[length:var(--text-sm)] font-semibold text-[var(--color-ink)]">
-                  {tForm('category')}
-                  <span aria-hidden="true" className="ml-1 text-[var(--color-bad)]">*</span>
-                </Label>
-                <CustomSelect
-                  value={categoryId}
-                  onChange={handleCategoryChange}
-                  options={categories.map((c) => ({
-                    value: c.id,
-                    label: locale === 'es' ? c.nameEs : c.nameEn,
-                    icon: getCategoryIcon(c),
-                  }))}
-                />
-              </div>
+        {/* Step 1: Basic information / Details */}
+        {wizardStep === 'details' && (
+          <div className="space-y-8">
+            {/* Library Category Card Grid Section */}
+            <Section
+              id="proc-category"
+              icon="ri-folder-3-line"
+              title="Library category"
+              subtitle="Choose where this procedure will appear in the library."
+              headerAction={
+                <div className="flex items-center gap-2">
+                  {/* Category Search Input */}
+                  <div className="relative w-48 sm:w-64">
+                    <i aria-hidden="true" className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-ink-3)]" />
+                    <Input
+                      type="text"
+                      placeholder="Search categories..."
+                      value={categorySearch}
+                      onChange={(e) => setCategorySearch(e.target.value)}
+                      className="pl-9 pr-7 text-[length:var(--text-xs)] h-9 bg-[var(--color-surface)] border-[var(--color-line-2)] focus:border-[var(--color-brand-600)]"
+                    />
+                    {categorySearch && (
+                      <button
+                        type="button"
+                        onClick={() => setCategorySearch('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-[var(--color-ink-3)] hover:text-[var(--color-ink)]"
+                      >
+                        <i aria-hidden="true" className="ri-close-line" />
+                      </button>
+                    )}
+                  </div>
 
-              {/* Title with Clean Language Tabs & Fixed Dynamic Character Counter */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-[length:var(--text-sm)] font-semibold text-[var(--color-ink)]">
-                    {tForm('titleLabel')}
-                    <span aria-hidden="true" className="ml-1 text-[var(--color-bad)]">*</span>
-                  </Label>
-                  <div className="inline-flex rounded-md border border-[var(--color-line-2)] bg-[var(--color-wash)]/60 p-0.5 text-[length:var(--text-xs)] font-semibold">
+                  {/* Scroll Carousel Controls (Prev < and Next >) */}
+                  <div className="flex items-center gap-1 shrink-0">
                     <button
                       type="button"
-                      onClick={() => setTitleLang('en')}
-                      className={cn(
-                        'rounded-[5px] px-3 py-1 transition-colors',
-                        titleLang === 'en'
-                          ? 'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] font-bold shadow-xs'
-                          : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
-                      )}
+                      onClick={() => {
+                        if (categoryScrollRef.current) {
+                          categoryScrollRef.current.scrollBy({ left: -280, behavior: 'smooth' });
+                        }
+                      }}
+                      className="flex size-9 items-center justify-center rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)] transition-colors shadow-2xs active:scale-95"
+                      title="Previous categories"
                     >
-                      English
+                      <i aria-hidden="true" className="ri-arrow-left-s-line text-lg font-bold" />
                     </button>
                     <button
                       type="button"
-                      onClick={() => setTitleLang('es')}
-                      className={cn(
-                        'rounded-[5px] px-3 py-1 transition-colors',
-                        titleLang === 'es'
-                          ? 'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] font-bold shadow-xs'
-                          : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
-                      )}
+                      onClick={() => {
+                        if (categoryScrollRef.current) {
+                          categoryScrollRef.current.scrollBy({ left: 280, behavior: 'smooth' });
+                        }
+                      }}
+                      className="flex size-9 items-center justify-center rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)] transition-colors shadow-2xs active:scale-95"
+                      title="Next categories"
                     >
-                      Español
+                      <i aria-hidden="true" className="ri-arrow-right-s-line text-lg font-bold" />
                     </button>
                   </div>
                 </div>
+              }
+            >
+              <div
+                ref={categoryScrollRef}
+                className="overflow-x-auto pb-2 pt-1 scrollbar-none scroll-smooth"
+              >
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 w-full">
+                  {displayCategories.map((c) => {
+                    const isSelected = categoryId === c.id;
+                    const style = getCategoryBadgeStyle(c.slug);
+                    const name = locale === 'es' ? c.nameEs : c.nameEn;
 
-                <div className="relative flex items-center">
-                  {titleLang === 'en' ? (
-                    <Input
-                      value={titleEn}
-                      onChange={(e) => {
-                        setTitleEn(e.target.value);
-                        setIsDirty(true);
-                      }}
-                      maxLength={100}
-                      placeholder={isRecipeMode ? 'Grilled Chicken Breast' : tForm('titlePlaceholder')}
-                      className="pr-16"
-                      required
-                    />
-                  ) : (
-                    <Input
-                      value={titleEs}
-                      onChange={(e) => {
-                        setTitleEs(e.target.value);
-                        setIsDirty(true);
-                      }}
-                      maxLength={100}
-                      placeholder={tForm('titlePlaceholder')}
-                      className="pr-16"
-                      required
-                    />
-                  )}
-                  <span className="pointer-events-none select-none absolute right-3 text-[length:var(--text-xs)] font-medium text-[var(--color-ink-3)]/70">
-                    {titleLang === 'en' ? titleEn.length : titleEs.length} / 100
-                  </span>
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        title={name}
+                        onClick={() => handleCategoryChange(c.id)}
+                        className={cn(
+                          'group relative flex flex-col justify-between rounded-[var(--radius-lg)] border p-3.5 text-left transition-all duration-150 min-h-[116px] h-full',
+                          isSelected
+                            ? 'border-[var(--color-brand-600)] bg-[var(--color-brand-tint)]/40 shadow-sm ring-2 ring-[var(--color-brand-600)]/30'
+                            : 'border-[var(--color-line-2)] bg-[var(--color-surface)] hover:bg-[var(--color-wash)] hover:border-[var(--color-line-3)]',
+                        )}
+                      >
+                        {/* Selected Checkmark Badge */}
+                        {isSelected && (
+                          <div className="absolute top-3 right-3 flex size-5 items-center justify-center rounded-full bg-[var(--color-brand-600)] text-white text-xs shadow-xs">
+                            <i aria-hidden="true" className="ri-check-line font-bold" />
+                          </div>
+                        )}
+
+                        {/* Icon in Colored Circle/Square Box */}
+                        <div className={cn('flex size-10 items-center justify-center rounded-xl text-lg shadow-2xs transition-transform group-hover:scale-105', style.bg, style.text)}>
+                          <i aria-hidden="true" className={style.icon} />
+                        </div>
+
+                        {/* Title and subtitle */}
+                        <div className="mt-2.5">
+                          <h4
+                            className="font-[family-name:var(--font-ui)] text-[length:var(--text-sm)] font-bold tracking-[-0.01em] text-[var(--color-ink)] line-clamp-2 leading-tight"
+                            title={name}
+                          >
+                            {name}
+                          </h4>
+                          <p className="mt-1 text-[length:var(--text-xs)] text-[var(--color-ink-2)]">
+                            {c.slug === 'recipes' ? '12 procedures' : c.slug === 'station' ? '18 procedures' : c.slug === 'cleaning' ? '8 procedures' : c.slug === 'admin' ? '10 procedures' : c.slug === 'delivery' ? '6 procedures' : 'Active category'}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+
+                  {/* 8th Card: Other (triggers modal to view/select from all exceeding categories) */}
+                  {!categorySearch && (() => {
+                    const isOtherSelected = !isPrimaryCategorySelected;
+                    const style = getCategoryBadgeStyle('other');
+                    const selectedName = selectedExceedingCategory
+                      ? (locale === 'es' ? selectedExceedingCategory.nameEs : selectedExceedingCategory.nameEn)
+                      : null;
+
+                    return (
+                      <button
+                        key="card-other-trigger"
+                        type="button"
+                        title={selectedName ? `Selected: ${selectedName}` : 'View all categories'}
+                        onClick={() => setIsOtherModalOpen(true)}
+                        className={cn(
+                          'group relative flex flex-col justify-between rounded-[var(--radius-lg)] border p-3.5 text-left transition-all duration-150 min-h-[116px] h-full',
+                          isOtherSelected
+                            ? 'border-[var(--color-brand-600)] bg-[var(--color-brand-tint)]/40 shadow-sm ring-2 ring-[var(--color-brand-600)]/30'
+                            : 'border-[var(--color-line-2)] bg-[var(--color-surface)] hover:bg-[var(--color-wash)] hover:border-[var(--color-line-3)]',
+                        )}
+                      >
+                        {/* Selected Checkmark Badge */}
+                        {isOtherSelected && (
+                          <div className="absolute top-3 right-3 flex size-5 items-center justify-center rounded-full bg-[var(--color-brand-600)] text-white text-xs shadow-xs">
+                            <i aria-hidden="true" className="ri-check-line font-bold" />
+                          </div>
+                        )}
+
+                        {/* Icon */}
+                        <div className={cn('flex size-10 items-center justify-center rounded-xl text-lg shadow-2xs transition-transform group-hover:scale-105', style.bg, style.text)}>
+                          <i aria-hidden="true" className="ri-more-fill text-xl font-bold" />
+                        </div>
+
+                        {/* Title and subtitle */}
+                        <div className="mt-2.5">
+                          <h4
+                            className="font-[family-name:var(--font-ui)] text-[length:var(--text-sm)] font-bold tracking-[-0.01em] text-[var(--color-ink)] line-clamp-2 leading-tight"
+                            title={selectedName || 'Other'}
+                          >
+                            {selectedName ? selectedName : (locale === 'es' ? 'Otros' : 'Other')}
+                          </h4>
+                          <p className="mt-1 text-[length:var(--text-xs)] text-[var(--color-ink-2)] flex items-center gap-1">
+                            <span>
+                              {selectedName
+                                ? (locale === 'es' ? 'Seleccionada' : 'Selected')
+                                : (locale === 'es' ? 'Ver todas' : 'View all')}
+                            </span>
+                            <i aria-hidden="true" className="ri-arrow-right-s-line text-xs" />
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })()}
                 </div>
               </div>
+            </Section>
 
-              {/* Purpose Field */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-[length:var(--text-sm)] font-semibold text-[var(--color-ink)]">
-                    {tForm('purposeLabel')}
-                    <span aria-hidden="true" className="ml-1 text-[var(--color-bad)]">*</span>
-                  </Label>
-                  <div className="inline-flex rounded-md border border-[var(--color-line-2)] bg-[var(--color-wash)]/60 p-0.5 text-[length:var(--text-xs)] font-semibold">
-                    <button
-                      type="button"
-                      onClick={() => setPurposeLang('en')}
-                      className={cn(
-                        'rounded-[5px] px-3 py-1 transition-colors',
-                        purposeLang === 'en'
-                          ? 'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] font-bold shadow-xs'
-                          : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
+            {/* Procedure Details Section */}
+            <Section
+              id="proc-details"
+              icon="ri-file-text-line"
+              title="Procedure details"
+              subtitle="Give your procedure a clear title and purpose."
+            >
+              <div className="space-y-6">
+                {/* Title & Purpose Stacked Full-Width Layout */}
+                <div className="space-y-6 pt-1">
+                  {/* Title Field */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-[length:var(--text-sm)] font-semibold text-[var(--color-ink)]">
+                        {tForm('titleLabel')}
+                        <span aria-hidden="true" className="ml-1 text-[var(--color-bad)]">*</span>
+                      </Label>
+                      <div className="inline-flex rounded-md border border-[var(--color-line-2)] bg-[var(--color-wash)]/60 p-0.5 text-[length:var(--text-xs)] font-semibold">
+                        <button
+                          type="button"
+                          onClick={() => setTitleLang('en')}
+                          className={cn(
+                            'rounded-[5px] px-2.5 py-0.5 transition-colors',
+                            titleLang === 'en'
+                              ? 'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] font-bold shadow-xs'
+                              : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
+                          )}
+                        >
+                          EN
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setTitleLang('es')}
+                          className={cn(
+                            'rounded-[5px] px-2.5 py-0.5 transition-colors',
+                            titleLang === 'es'
+                              ? 'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] font-bold shadow-xs'
+                              : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
+                          )}
+                        >
+                          ES
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="relative flex items-center">
+                      {titleLang === 'en' ? (
+                        <Input
+                          value={titleEn}
+                          onChange={(e) => {
+                            setTitleEn(e.target.value);
+                            setIsDirty(true);
+                            if (error) setError(null);
+                          }}
+                          maxLength={100}
+                          placeholder={isRecipeMode ? 'Grilled Chicken Breast' : tForm('titlePlaceholder')}
+                          className={cn('pr-16', isTitleMissing && 'border-[var(--color-bad)] ring-2 ring-[var(--color-bad-tint)]')}
+                          required
+                        />
+                      ) : (
+                        <Input
+                          value={titleEs}
+                          onChange={(e) => {
+                            setTitleEs(e.target.value);
+                            setIsDirty(true);
+                            if (error) setError(null);
+                          }}
+                          maxLength={100}
+                          placeholder={tForm('titlePlaceholder')}
+                          className={cn('pr-16', isTitleMissing && 'border-[var(--color-bad)] ring-2 ring-[var(--color-bad-tint)]')}
+                          required
+                        />
                       )}
-                    >
-                      English
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPurposeLang('es')}
-                      className={cn(
-                        'rounded-[5px] px-3 py-1 transition-colors',
-                        purposeLang === 'es'
-                          ? 'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] font-bold shadow-xs'
-                          : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
+                      <span className="pointer-events-none select-none absolute right-3 text-[length:var(--text-xs)] font-medium text-[var(--color-ink-3)]/70">
+                        {titleLang === 'en' ? titleEn.length : titleEs.length} / 100
+                      </span>
+                    </div>
+                    {isTitleMissing && (
+                      <p className="text-xs font-semibold text-[var(--color-bad)] mt-1 flex items-center gap-1">
+                        <i aria-hidden="true" className="ri-error-warning-line text-sm" />
+                        <span>Please enter a procedure title to continue.</span>
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Purpose Field */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-[length:var(--text-sm)] font-semibold text-[var(--color-ink)]">
+                        {tForm('purposeLabel')}
+                        <span aria-hidden="true" className="ml-1 text-[var(--color-bad)]">*</span>
+                      </Label>
+                      <div className="inline-flex rounded-md border border-[var(--color-line-2)] bg-[var(--color-wash)]/60 p-0.5 text-[length:var(--text-xs)] font-semibold">
+                        <button
+                          type="button"
+                          onClick={() => setPurposeLang('en')}
+                          className={cn(
+                            'rounded-[5px] px-2.5 py-0.5 transition-colors',
+                            purposeLang === 'en'
+                              ? 'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] font-bold shadow-xs'
+                              : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
+                          )}
+                        >
+                          EN
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPurposeLang('es')}
+                          className={cn(
+                            'rounded-[5px] px-2.5 py-0.5 transition-colors',
+                            purposeLang === 'es'
+                              ? 'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] font-bold shadow-xs'
+                              : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
+                          )}
+                        >
+                          ES
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="relative">
+                      {purposeLang === 'en' ? (
+                        <textarea
+                          value={purposeEn}
+                          onChange={(e) => {
+                            setPurposeEn(e.target.value);
+                            setIsDirty(true);
+                            if (error) setError(null);
+                          }}
+                          maxLength={500}
+                          rows={2}
+                          placeholder={
+                            isRecipeMode
+                              ? 'What is this procedure for? (e.g. To teach preparation and cooking method...)'
+                              : tForm('purposePlaceholder')
+                          }
+                          className={cn(textareaCls, 'pb-7', isPurposeMissing && 'border-[var(--color-bad)] ring-2 ring-[var(--color-bad-tint)]')}
+                        />
+                      ) : (
+                        <textarea
+                          value={purposeEs}
+                          onChange={(e) => {
+                            setPurposeEs(e.target.value);
+                            setIsDirty(true);
+                            if (error) setError(null);
+                          }}
+                          maxLength={500}
+                          rows={2}
+                          placeholder={tForm('purposePlaceholder')}
+                          className={cn(textareaCls, 'pb-7', isPurposeMissing && 'border-[var(--color-bad)] ring-2 ring-[var(--color-bad-tint)]')}
+                        />
                       )}
-                    >
-                      Español
-                    </button>
+                      <span className="pointer-events-none select-none absolute right-3 bottom-2 text-[length:var(--text-xs)] font-medium text-[var(--color-ink-3)]/70">
+                        {purposeLang === 'en' ? purposeEn.length : purposeEs.length} / 500
+                      </span>
+                    </div>
+                    {isPurposeMissing && (
+                      <p className="text-xs font-semibold text-[var(--color-bad)] mt-1 flex items-center gap-1">
+                        <i aria-hidden="true" className="ri-error-warning-line text-sm" />
+                        <span>Please enter a procedure purpose to continue.</span>
+                      </p>
+                    )}
                   </div>
                 </div>
-
-                <div className="relative">
-                  {purposeLang === 'en' ? (
-                    <textarea
-                      value={purposeEn}
-                      onChange={(e) => {
-                        setPurposeEn(e.target.value);
-                        setIsDirty(true);
-                      }}
-                      maxLength={500}
-                      rows={3}
-                      placeholder={
-                        isRecipeMode
-                          ? 'This recipe teaches the correct preparation and cooking method for grilled chicken breast.'
-                          : tForm('purposePlaceholder')
-                      }
-                      className={cn(textareaCls, 'pb-7')}
-                    />
-                  ) : (
-                    <textarea
-                      value={purposeEs}
-                      onChange={(e) => {
-                        setPurposeEs(e.target.value);
-                        setIsDirty(true);
-                      }}
-                      maxLength={500}
-                      rows={3}
-                      placeholder={tForm('purposePlaceholder')}
-                      className={cn(textareaCls, 'pb-7')}
-                    />
-                  )}
-                  <span className="pointer-events-none select-none absolute right-3 bottom-2.5 text-[length:var(--text-xs)] font-medium text-[var(--color-ink-3)]/70">
-                    {purposeLang === 'en' ? purposeEn.length : purposeEs.length} / 500
-                  </span>
-                </div>
               </div>
-            </div>
-          </Section>
+            </Section>
+          </div>
+        )}
 
-          {/* Section 2: Ingredients (Recipe mode only) */}
-          {isRecipeMode && (
+        {/* Step 2: Ingredients (Recipe mode only) */}
+        {wizardStep === 'ingredients' && isRecipeMode && (
+          <div className="space-y-6">
             <RecipeIngredientsEditor
               ingredients={ingredients}
               onChange={(next) => {
@@ -888,27 +1314,36 @@ export function NewProcedureForm({
               }}
               selectedFactor={selectedFactor}
               onSelectFactor={setSelectedFactor}
+              yieldItems={yieldItems}
+              onChangeYield={(next) => {
+                setYieldItems(next);
+                setIsDirty(true);
+              }}
             />
-          )}
+          </div>
+        )}
 
-          {/* Section 3: Method / Content */}
+        {/* Step 3 (Recipe) / Step 2 (Non-Recipe): Notion-type Block Editor Screen */}
+        {(wizardStep === 'method' || (wizardStep === 'content' && !isRecipeMode)) && (
           <Section
             id="proc-content"
-            icon="ri-list-check-2"
+            icon="ri-layout-grid-line"
             title={isRecipeMode ? tRecipe('methodTitle') : tForm('contentSectionTitle')}
             subtitle={isRecipeMode ? tRecipe('methodSubtitle') : tForm('contentSectionSubtitle')}
           >
             <ProcedureBlockList blocks={blocks} onChange={setBlocks} />
           </Section>
+        )}
 
-          {/* Section 4: Access & Clearance Level Section */}
+        {/* Step: Access & Clearance Level Section */}
+        {wizardStep === 'access' && (
           <Section
             id="proc-access"
             icon="ri-shield-user-line"
             title={tAccess('title')}
             subtitle={tAccess('subtitle')}
           >
-            <div className="space-y-3">
+            <div className="space-y-4">
               <Label className="text-[length:var(--text-sm)] font-semibold text-[var(--color-ink)]">
                 {tAccess('label')}
                 <span aria-hidden="true" className="ml-1 text-[var(--color-bad)]">*</span>
@@ -959,38 +1394,87 @@ export function NewProcedureForm({
               </div>
             </div>
           </Section>
-        </div>
+        )}
 
-        {/* Right Sidebar Column */}
-        <div className="hidden lg:block">
-          <div className="sticky top-6 max-h-[calc(100vh-6rem)] overflow-y-auto space-y-6 pr-1.5 scrollbar-thin">
-            <ProcedureProgressSidebar
-              completedCount={completedCount}
-              totalCount={sections.length}
-              selectedType={procedureType}
-              categoryLabel={categoryLabel}
-              hasEn={Boolean(titleEn.trim())}
-              hasEs={Boolean(titleEs.trim())}
-              clearanceLabel={clearanceLabel}
-              sections={sections}
-            />
+        {/* Step: Review & Finish Section */}
+        {wizardStep === 'review' && (
+          <Section
+            id="proc-review"
+            icon="ri-checkbox-circle-line"
+            title="Review & Finish"
+            subtitle="Verify all procedure details before saving or publishing."
+          >
+            <div className="space-y-6">
+              {/* Overview Summary */}
+              <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-wash)]/40 p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-[var(--color-line)]/60 pb-2">
+                  <span className="text-[length:var(--text-xs)] font-bold uppercase tracking-wider text-[var(--color-brand-700)]">
+                    {categoryLabel} · {isRecipeMode ? 'Recipe' : 'Procedure'}
+                  </span>
+                  <span className="rounded-full bg-[var(--color-brand-tint)] px-2.5 py-0.5 text-[length:var(--text-xs)] font-bold text-[var(--color-brand-700)]">
+                    {clearanceLabel}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="font-[family-name:var(--font-display)] text-lg font-bold text-[var(--color-ink)]">
+                    {activeTitle || '(Untitled procedure)'}
+                  </h3>
+                  <p className="mt-1 text-sm text-[var(--color-ink-2)]">
+                    {activePurpose || '(No purpose provided)'}
+                  </p>
+                </div>
+              </div>
 
-            {/* Live Recipe Preview Card in right sidebar */}
-            {isRecipeMode && (
-              <RecipeLivePreview
-                title={activeTitle}
-                purpose={activePurpose}
-                categoryLabel={categoryLabel}
-                ingredients={ingredients}
-                selectedFactor={selectedFactor}
-                blocks={blocks}
-              />
-            )}
-          </div>
-        </div>
+              {/* Recipe Ingredients Summary */}
+              {isRecipeMode && (
+                <div className="space-y-2">
+                  <h4 className="text-[length:var(--text-sm)] font-bold text-[var(--color-ink)]">
+                    Ingredients ({ingredients.filter((i) => i.name.trim()).length})
+                  </h4>
+                  <div className="rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] p-3 text-sm space-y-1">
+                    {ingredients.filter((i) => i.name.trim()).length > 0 ? (
+                      ingredients
+                        .filter((i) => i.name.trim())
+                        .map((ing, idx) => (
+                          <div key={ing.id || idx} className="flex items-center justify-between py-1 border-b border-[var(--color-line)]/40 last:border-0">
+                            <span className="font-medium text-[var(--color-ink)]">{ing.name}</span>
+                            <span className="text-[var(--color-ink-2)] font-mono text-xs">{ing.quantity} {ing.unit}</span>
+                          </div>
+                        ))
+                    ) : (
+                      <p className="text-xs text-[var(--color-ink-3)] italic">No ingredients added yet.</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Content / Blocks Breakdown Summary */}
+              <div className="space-y-2">
+                <h4 className="text-[length:var(--text-sm)] font-bold text-[var(--color-ink)]">
+                  Content Blocks ({blocks.length})
+                </h4>
+                <div className="rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] p-3 text-sm">
+                  {blocks.length > 0 ? (
+                    <ul className="list-disc list-inside space-y-1 text-[var(--color-ink-2)] text-xs">
+                      {blocks.map((b, i) => (
+                        <li key={b.id || i}>
+                          <span className="font-semibold capitalize text-[var(--color-ink)]">{b.kind}</span>
+                          {b.kind === 'heading' && b.text?.en && `: "${b.text.en}"`}
+                          {b.kind === 'text' && b.body?.en && `: "${b.body.en.slice(0, 40)}..."`}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-xs text-[var(--color-ink-3)] italic">No blocks added yet.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </Section>
+        )}
 
         {/* Sticky Bottom Toolbar */}
-        <div className="sticky-bar fixed bottom-0 left-0 right-0 z-30 flex items-center justify-between border-t border-[var(--color-line)] bg-[var(--color-surface)]/95 px-6 py-3 backdrop-blur supports-[backdrop-filter]:bg-[var(--color-surface)]/80">
+        <div className="sticky-bar fixed bottom-0 left-0 right-0 z-30 flex items-center justify-between border-t border-[var(--color-line)] bg-[var(--color-surface)]/95 px-6 py-3 backdrop-blur supports-[backdrop-filter]:bg-[var(--color-surface)]/80 shadow-md">
           <div className="flex items-center gap-2 text-[length:var(--text-xs)] font-semibold uppercase tracking-wide text-[var(--color-ink-2)]">
             <span
               className={cn(
@@ -1002,7 +1486,7 @@ export function NewProcedureForm({
             {isDirty ? (
               <>
                 {tForm('draftLabel')}
-                <span className="text-[var(--color-brand-700)]">{tForm('unsavedLabel')}</span>
+                <span className="text-[var(--color-brand-700)] ml-1">{tForm('unsavedLabel')}</span>
               </>
             ) : lastSavedAt ? (
               <span className="font-medium normal-case tracking-normal text-[var(--color-ink-2)]">
@@ -1017,15 +1501,29 @@ export function NewProcedureForm({
               <button
                 type="button"
                 onClick={discard}
-                className="text-[length:var(--text-sm)] font-medium text-[var(--color-ink-2)] underline-offset-4 hover:underline"
+                className="text-[length:var(--text-sm)] font-medium text-[var(--color-ink-2)] underline-offset-4 hover:underline mr-2"
               >
                 {tForm('discard')}
               </button>
             )}
-            <Button type="button" variant="neutral" size="sm" className="gap-1.5" title={tForm('previewSoon')}>
-              <i aria-hidden="true" className="ri-eye-line text-sm" />
-              {tForm('preview')}
-            </Button>
+            {wizardStep !== 'details' && (
+              <Button
+                type="button"
+                variant="neutral"
+                size="sm"
+                onClick={() => {
+                  if (wizardStep === 'ingredients') setWizardStep('details');
+                  else if (wizardStep === 'method') setWizardStep(isRecipeMode ? 'ingredients' : 'details');
+                  else if (wizardStep === 'content') setWizardStep('details');
+                  else if (wizardStep === 'access') setWizardStep(isRecipeMode ? 'method' : 'content');
+                  else if (wizardStep === 'review') setWizardStep('access');
+                }}
+                className="gap-1.5"
+              >
+                <i aria-hidden="true" className="ri-arrow-left-line text-sm" />
+                <span>Back</span>
+              </Button>
+            )}
             <Button
               type="button"
               variant="secondary"
@@ -1035,18 +1533,369 @@ export function NewProcedureForm({
             >
               {tForm('saveDraft')}
             </Button>
-            <Button
-              type="button"
-              variant="primary"
-              size="sm"
-              disabled={isPending}
-              onClick={() => void submit('published')}
-            >
-              {isPending ? tForm('publishing') : tForm('publish')}
-            </Button>
+            {wizardStep === 'review' ? (
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                disabled={isPending}
+                onClick={() => void submit('published')}
+              >
+                {isPending ? tForm('publishing') : tForm('publish')}
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={handleNextStep}
+                className="gap-1.5"
+              >
+                <span>Next step</span>
+                <i aria-hidden="true" className="ri-arrow-right-line text-sm" />
+              </Button>
+            )}
           </div>
         </div>
       </form>
+
+      {/* Category Selection Modal for Exceeding Categories ("Other") */}
+      <Modal
+        open={isOtherModalOpen}
+        onClose={() => {
+          setIsOtherModalOpen(false);
+          setModalSearchQuery('');
+        }}
+        title={locale === 'es' ? 'Todas las categorías' : 'All Library Categories'}
+        size="lg"
+      >
+        <div className="p-6 space-y-5">
+          {/* Modal Header */}
+          <div className="flex items-center justify-between border-b border-[var(--color-line)] pb-4">
+            <div>
+              <h3 className="font-[family-name:var(--font-ui)] text-lg font-bold text-[var(--color-ink)]">
+                {locale === 'es' ? 'Seleccionar Categoría' : 'Select Library Category'}
+              </h3>
+              <p className="text-xs text-[var(--color-ink-2)] mt-0.5">
+                {locale === 'es'
+                  ? 'Elige cualquier categoría para este procedimiento'
+                  : 'Choose any category where this procedure will appear.'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setIsOtherModalOpen(false);
+                setModalSearchQuery('');
+              }}
+              className="flex size-8 items-center justify-center rounded-lg text-[var(--color-ink-3)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)] transition-colors"
+            >
+              <i aria-hidden="true" className="ri-close-line text-lg" />
+            </button>
+          </div>
+
+          {/* Search Input inside Modal */}
+          <div className="relative">
+            <i
+              aria-hidden="true"
+              className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-ink-3)]"
+            />
+            <Input
+              type="text"
+              placeholder={locale === 'es' ? 'Buscar categorías...' : 'Search categories...'}
+              value={modalSearchQuery}
+              onChange={(e) => setModalSearchQuery(e.target.value)}
+              className="pl-9 pr-8 text-sm h-10 bg-[var(--color-surface)] border-[var(--color-line-2)]"
+            />
+            {modalSearchQuery && (
+              <button
+                type="button"
+                onClick={() => setModalSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--color-ink-3)] hover:text-[var(--color-ink)]"
+              >
+                <i aria-hidden="true" className="ri-close-line" />
+              </button>
+            )}
+          </div>
+
+          {/* Category Grid inside Modal */}
+          <div className="max-h-[380px] overflow-y-auto pr-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {modalFilteredCategories.map((c) => {
+                const isSelected = categoryId === c.id;
+                const style = getCategoryBadgeStyle(c.slug);
+                const name = locale === 'es' ? c.nameEs : c.nameEn;
+
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    title={name}
+                    onClick={() => {
+                      handleCategoryChange(c.id);
+                      setIsOtherModalOpen(false);
+                      setModalSearchQuery('');
+                    }}
+                    className={cn(
+                      'group relative flex items-center gap-3.5 rounded-xl border p-3.5 text-left transition-all duration-150',
+                      isSelected
+                        ? 'border-[var(--color-brand-600)] bg-[var(--color-brand-tint)]/40 shadow-xs ring-2 ring-[var(--color-brand-600)]/30'
+                        : 'border-[var(--color-line-2)] bg-[var(--color-surface)] hover:bg-[var(--color-wash)] hover:border-[var(--color-line-3)]',
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        'flex size-10 shrink-0 items-center justify-center rounded-lg text-lg shadow-2xs',
+                        style.bg,
+                        style.text,
+                      )}
+                    >
+                      <i aria-hidden="true" className={style.icon} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-bold text-sm text-[var(--color-ink)] line-clamp-2 leading-tight" title={name}>
+                        {name}
+                      </h4>
+                      <p className="mt-0.5 text-xs text-[var(--color-ink-2)] truncate">
+                        {c.slug === 'recipes'
+                          ? '12 procedures'
+                          : c.slug === 'station'
+                            ? '18 procedures'
+                            : c.slug === 'cleaning'
+                              ? '8 procedures'
+                              : c.slug === 'admin'
+                                ? '10 procedures'
+                                : c.slug === 'delivery'
+                                  ? '6 procedures'
+                                  : 'Active category'}
+                      </p>
+                    </div>
+                    {isSelected && (
+                      <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand-600)] text-white text-xs">
+                        <i aria-hidden="true" className="ri-check-line font-bold" />
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            {modalFilteredCategories.length === 0 && (
+              <div className="py-8 text-center text-sm text-[var(--color-ink-2)]">
+                {locale === 'es' ? 'No se encontraron categorías.' : 'No categories found.'}
+              </div>
+            )}
+          </div>
+        </div>
+      </Modal>
+
+      {/* Floating Live Preview Pill Button */}
+      <button
+        type="button"
+        onClick={() => setIsPreviewOpen(true)}
+        className="fixed bottom-20 right-6 z-30 flex items-center gap-2 rounded-full bg-[var(--color-brand-600)] text-white px-4 py-2.5 shadow-xl hover:bg-[var(--color-brand-700)] transition-all font-bold text-xs active:scale-95"
+      >
+        <i aria-hidden="true" className="ri-eye-line text-base" />
+        <span>Live Preview</span>
+      </button>
+
+      {/* Live Procedure Preview Drawer */}
+      <Drawer
+        open={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        title="Live Procedure Preview"
+        size="lg"
+      >
+        <div className="space-y-6 p-1">
+          {/* Drawer Header Language Switcher */}
+          <div className="flex items-center justify-between border-b border-[var(--color-line)]/60 pb-3">
+            <span className="text-[length:var(--text-xs)] font-bold uppercase tracking-wider text-[var(--color-ink-2)]">
+              Preview Language
+            </span>
+            <div className="inline-flex rounded-lg border border-[var(--color-line-2)] bg-[var(--color-wash)] p-0.5 text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => setPreviewLang('en')}
+                className={cn(
+                  'rounded-md px-3 py-1 transition-all',
+                  previewLang === 'en'
+                    ? 'bg-[var(--color-brand-600)] text-white shadow-2xs'
+                    : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
+                )}
+              >
+                English
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreviewLang('es')}
+                className={cn(
+                  'rounded-md px-3 py-1 transition-all',
+                  previewLang === 'es'
+                    ? 'bg-[var(--color-brand-600)] text-white shadow-2xs'
+                    : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
+                )}
+              >
+                Español
+              </button>
+            </div>
+          </div>
+
+          {/* Rendered Employee Procedure View */}
+          <div className="rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-6 space-y-6 shadow-xs">
+            {/* Category & Clearance Tag */}
+            <div className="flex items-center justify-between">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-brand-tint)] px-3 py-1 text-xs font-bold text-[var(--color-brand-700)]">
+                <i aria-hidden="true" className="ri-folder-3-line text-sm" />
+                {categoryLabel}
+              </span>
+              {clearanceLevel && (
+                <span className="rounded-full bg-[var(--color-wash)] px-3 py-1 text-xs font-semibold text-[var(--color-ink-2)] border border-[var(--color-line-2)]">
+                  {clearanceLabel}
+                </span>
+              )}
+            </div>
+
+            {/* Title & Purpose */}
+            <div className="space-y-2 border-b border-[var(--color-line)]/60 pb-4">
+              <h2 className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-[-0.02em] text-[var(--color-ink)]">
+                {(previewLang === 'en' ? titleEn : titleEs) || (previewLang === 'en' ? titleEs : titleEn) || '(Untitled procedure)'}
+              </h2>
+              <p className="text-sm text-[var(--color-ink-2)] leading-relaxed">
+                {(previewLang === 'en' ? purposeEn : purposeEs) || (previewLang === 'en' ? purposeEs : purposeEn) || '(No purpose specified)'}
+              </p>
+            </div>
+
+            {/* Recipe Ingredients */}
+            {isRecipeMode && ingredients.some((i) => i.name.trim()) && (
+              <div className="space-y-3 rounded-xl border border-[var(--color-line-2)] bg-[var(--color-wash)]/40 p-4">
+                <h3 className="font-bold text-sm text-[var(--color-ink)] flex items-center gap-2">
+                  <i aria-hidden="true" className="ri-restaurant-line text-orange-600" />
+                  <span>Recipe Ingredients</span>
+                </h3>
+                <div className="divide-y divide-[var(--color-line)]/40 text-xs">
+                  {ingredients.filter((i) => i.name.trim()).map((ing) => (
+                    <div key={ing.id} className="flex items-center justify-between py-1.5">
+                      <span className="font-semibold text-[var(--color-ink)]">{ing.name}</span>
+                      <span className="font-mono text-[var(--color-ink-2)]">{ing.quantity} {ing.unit}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Rendered Content Blocks */}
+            <div className="space-y-5">
+              {blocks.length === 0 ? (
+                <div className="py-8 text-center text-xs text-[var(--color-ink-3)] italic">
+                  No content blocks added yet. Use the block editor to add text, tables, steps, images, or warnings.
+                </div>
+              ) : (
+                blocks.map((b, idx) => {
+                  if (b.kind === 'text') {
+                    const text = previewLang === 'en' ? (b.body?.en || b.body?.es) : (b.body?.es || b.body?.en);
+                    return (
+                      <div key={b.id || idx} className="text-sm text-[var(--color-ink)] leading-relaxed whitespace-pre-wrap">
+                        {text || '(Empty text block)'}
+                      </div>
+                    );
+                  }
+                  if (b.kind === 'heading') {
+                    const headingText = previewLang === 'en' ? (b.text?.en || b.text?.es) : (b.text?.es || b.text?.en);
+                    return (
+                      <h3 key={b.id || idx} className="font-bold text-lg text-[var(--color-ink)] border-b border-[var(--color-line)]/60 pb-1 mt-4">
+                        {headingText || '(Empty heading)'}
+                      </h3>
+                    );
+                  }
+                  if (b.kind === 'method') {
+                    return (
+                      <div key={b.id || idx} className="space-y-2">
+                        <h4 className="font-bold text-xs uppercase tracking-wider text-[var(--color-brand-700)]">
+                          Steps & Procedure
+                        </h4>
+                        <ol className="list-decimal list-inside space-y-2 text-sm text-[var(--color-ink)]">
+                          {b.steps.map((step, sIdx) => {
+                            const stepBody = previewLang === 'en' ? (step.body?.en || step.body?.es) : (step.body?.es || step.body?.en);
+                            return (
+                              <li key={step.id || sIdx} className="pl-1">
+                                <span className="font-medium">{stepBody}</span>
+                              </li>
+                            );
+                          })}
+                        </ol>
+                      </div>
+                    );
+                  }
+                  if (b.kind === 'warning') {
+                    const warningBody = previewLang === 'en' ? (b.body?.en || b.body?.es) : (b.body?.es || b.body?.en);
+                    return (
+                      <div key={b.id || idx} className="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50/90 p-4 text-amber-900">
+                        <i aria-hidden="true" className="ri-alert-fill text-lg text-amber-600 shrink-0 mt-0.5" />
+                        <div className="text-xs leading-relaxed font-medium">
+                          {warningBody || '(Empty warning callout)'}
+                        </div>
+                      </div>
+                    );
+                  }
+                  if (b.kind === 'table') {
+                    return (
+                      <div key={b.id || idx} className="space-y-2 overflow-x-auto">
+                        <table className="w-full text-left text-xs border border-[var(--color-line-2)] rounded-lg overflow-hidden">
+                          <thead className="bg-[var(--color-wash)] font-bold text-[var(--color-ink)] border-b border-[var(--color-line-2)]">
+                            <tr>
+                              {b.headers.map((h, hIdx) => (
+                                <th key={hIdx} className="p-2.5 border-r last:border-0 border-[var(--color-line-2)]">
+                                  {(previewLang === 'en' ? (h.en || h.es) : (h.es || h.en)) || `Column ${hIdx + 1}`}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[var(--color-line)]">
+                            {b.rows.map((row, rIdx) => (
+                              <tr key={rIdx} className="hover:bg-[var(--color-wash)]/40">
+                                {row.map((cell, cIdx) => (
+                                  <td key={cIdx} className="p-2.5 border-r last:border-0 border-[var(--color-line)] text-[var(--color-ink-2)]">
+                                    {(previewLang === 'en' ? (cell.en || cell.es) : (cell.es || cell.en)) || '-'}
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+                  }
+                  if (b.kind === 'image') {
+                    const caption = previewLang === 'en' ? (b.caption?.en || b.caption?.es) : (b.caption?.es || b.caption?.en);
+                    return (
+                      <div key={b.id || idx} className="space-y-1 text-center">
+                        {b.src ? (
+                          <img src={b.src} alt={b.alt?.en || 'Procedure image'} className="mx-auto max-h-60 rounded-lg object-cover" />
+                        ) : (
+                          <div className="h-40 rounded-lg bg-[var(--color-wash)] border border-dashed border-[var(--color-line-2)] flex items-center justify-center text-xs text-[var(--color-ink-3)]">
+                            (Image placeholder: {b.src || 'No image URL provided'})
+                          </div>
+                        )}
+                        {caption && <p className="text-xs text-[var(--color-ink-2)] italic">{caption}</p>}
+                      </div>
+                    );
+                  }
+                  if (b.kind === 'attachment') {
+                    const title = previewLang === 'en' ? (b.title?.en || b.title?.es) : (b.title?.es || b.title?.en);
+                    return (
+                      <div key={b.id || idx} className="flex items-center gap-3 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-wash)] p-3">
+                        <i aria-hidden="true" className="ri-attachment-line text-lg text-[var(--color-brand-700)]" />
+                        <span className="font-semibold text-xs text-[var(--color-ink)] flex-1">{title || 'Download attachment'}</span>
+                        <i aria-hidden="true" className="ri-download-2-line text-xs text-[var(--color-ink-2)]" />
+                      </div>
+                    );
+                  }
+                  return null;
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      </Drawer>
     </div>
   );
 }
