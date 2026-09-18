@@ -46,12 +46,12 @@ export function ProcedureProgressSidebar({
   return (
     <aside className="space-y-6">
       {/* 1. Progress Card */}
-      <div className="rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-5 space-y-4 shadow-xs">
+      <div className="rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-5 space-y-4">
         <div>
-          <h3 className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-ink-3)]">
+          <h3 className="text-xs font-semibold text-[var(--color-ink-3)]">
             {t('progressTitle')}
           </h3>
-          <p className="mt-1 text-[length:var(--text-sm)] font-bold text-[var(--color-ink)]">
+          <p className="mt-1 text-sm font-semibold text-[var(--color-ink)]">
             {completedCount} of {totalCount} complete
           </p>
         </div>
@@ -59,16 +59,16 @@ export function ProcedureProgressSidebar({
         {/* Visual Progress Bar */}
         <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--color-line-2)]">
           <div
-            className="h-full bg-[var(--color-brand-600)] transition-all duration-300 ease-in-out"
+            className="h-full bg-[var(--color-brand-600)] transition-all duration-[var(--dur)] ease-[var(--ease)]"
             style={{ width: `${percentage}%` }}
           />
         </div>
 
-        <ul className="space-y-2.5 text-[length:var(--text-sm)] pt-1 border-t border-[var(--color-line)]/50">
+        <ul className="space-y-3 text-sm pt-1 border-t border-[var(--color-line)]">
           {sections.map((sec) => (
-            <li key={sec.key} className="flex items-center gap-2.5">
+            <li key={sec.key} className="flex items-center gap-3">
               {sec.completed ? (
-                <span className="flex size-4 items-center justify-center rounded-full bg-[var(--color-brand-600)] text-white text-[10px] font-bold">
+                <span className="flex size-4 items-center justify-center rounded-full bg-[var(--color-ok)] text-white text-xs font-bold">
                   ✓
                 </span>
               ) : (
@@ -89,11 +89,11 @@ export function ProcedureProgressSidebar({
       </div>
 
       {/* 2. Quick info Card */}
-      <div className="rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-5 space-y-3 shadow-xs">
-        <h3 className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-ink-3)]">
+      <div className="rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-5 space-y-3">
+        <h3 className="text-xs font-semibold text-[var(--color-ink-3)]">
           {t('quickInfoTitle')}
         </h3>
-        <dl className="space-y-2.5 text-[length:var(--text-xs)]">
+        <dl className="space-y-3 text-xs">
           <div className="flex items-center justify-between">
             <dt className="text-[var(--color-ink-3)]">{t('quickType')}</dt>
             <dd className="font-semibold text-[var(--color-ink)]">{typeLabel}</dd>
@@ -110,9 +110,9 @@ export function ProcedureProgressSidebar({
             <dt className="text-[var(--color-ink-3)]">Access</dt>
             <dd className="font-semibold text-[var(--color-ink)]">{clearanceLabel}</dd>
           </div>
-          <div className="flex items-center justify-between pt-1 border-t border-[var(--color-line)]/50">
+          <div className="flex items-center justify-between pt-1 border-t border-[var(--color-line)]">
             <dt className="text-[var(--color-ink-3)]">Status</dt>
-            <dd className="font-semibold text-[var(--color-brand-700)]">Draft</dd>
+            <dd className="font-semibold text-[var(--color-ink-2)]">Draft</dd>
           </div>
         </dl>
       </div>

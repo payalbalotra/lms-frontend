@@ -36,7 +36,7 @@ export function StatusPill({
     <span
       data-slot="status-pill"
       className={cn(
-        'inline-flex items-center gap-1.5 whitespace-nowrap rounded-md',
+        'inline-flex items-center gap-2 whitespace-nowrap rounded-md',
         'px-2 py-0.5 text-xs font-medium',
         toneClasses[tone],
         className,
@@ -46,7 +46,7 @@ export function StatusPill({
       {withDot ? (
         <span
           aria-hidden="true"
-          className="inline-block size-1.5 rounded-full bg-current"
+          className="inline-block size-2 rounded-full bg-current"
         />
       ) : null}
       {children}

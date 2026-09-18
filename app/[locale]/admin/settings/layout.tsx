@@ -27,7 +27,7 @@ export default function SettingsLayout({
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-[-0.02em] text-[var(--color-ink)]">
+      <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight text-[var(--color-ink)]">
         {t('settingsHeading')}
       </h1>
 

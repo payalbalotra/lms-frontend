@@ -3,7 +3,7 @@ import * as React from 'react';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { setRequestLocale } from 'next-intl/server';
-import { fetchMe, ApiException, logout } from '@/lib/api';
+import { fetchMe, ApiException, listLocations, logout } from '@/lib/api';
 import { AdminShell } from './admin-shell';
 
 /**
@@ -49,6 +49,16 @@ export default async function AdminLayout({ children, params }: AdminLayoutProps
     redirect(`/${locale}/login`);
   }
 
+  // The workspace name for the sidebar. A failure here is not worth blocking the
+  // admin area for: the sidebar then shows only the section name.
+  let workspace = '';
+  try {
+    const { locations } = await listLocations(cookieHeader);
+    workspace = (locations.find((l) => l.id === employee.locationId) ?? locations[0])?.name ?? '';
+  } catch {
+    workspace = '';
+  }
+
   if (employee.clearanceLevel !== 'master') {
     redirect(`/${locale}/employee/assigned`);
   }
@@ -63,6 +73,7 @@ export default async function AdminLayout({ children, params }: AdminLayoutProps
     <AdminShell
       locale={locale}
       employee={{ id: employee.id, name: employee.name, clearanceLevel: employee.clearanceLevel }}
+      workspace={workspace}
       signOutAction={signOut}
     >
       {children}
@@ -79,10 +90,10 @@ function AuthGateError(): React.ReactElement {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[var(--color-bg-admin)] px-4 py-12">
       <article className="w-full max-w-md rounded-[var(--radius-lg)] border border-[var(--color-bad-tint)] bg-[var(--color-bad-tint)] p-6">
-        <p className="text-[length:var(--text-sm)] font-semibold text-[var(--color-bad)]">
+        <p className="text-sm font-semibold text-[var(--color-bad)]">
           Auth check failed
         </p>
-        <p className="mt-1 text-[length:var(--text-sm)] text-[var(--color-ink)]">
+        <p className="mt-1 text-sm text-[var(--color-ink)]">
           We couldn&rsquo;t confirm your session just now. Refresh the page to try again.
         </p>
       </article>

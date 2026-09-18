@@ -17,6 +17,7 @@ import type {
   ImportProcedureType,
   Localised,
 } from '@/lib/types';
+import { LuCheckCheck, LuCloudUpload, LuLoaderCircle, LuWandSparkles } from 'react-icons/lu';
 
 const MAX_BYTES = 20 * 1024 * 1024;
 const ACCEPTED_MIME = new Set([
@@ -153,14 +154,14 @@ export function DocumentImportPanel({
     );
 
   return (
-    <div className="rounded-[var(--radius-lg)] border border-[var(--color-brand-tint-2)] bg-[var(--color-brand-tint)]/25 p-6 space-y-4">
-      <header className="flex items-center gap-2 text-[var(--color-brand-700)]">
-        <i aria-hidden="true" className="ri-magic-line text-xl" />
-        <h3 className="font-[family-name:var(--font-ui)] text-[length:var(--text-md)] font-bold">
+    <div className="rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-bg-admin)] p-6 space-y-4">
+      <header className="flex items-center gap-2 text-[var(--color-ink)]">
+        <LuWandSparkles aria-hidden="true" className="text-xl" />
+        <h3 className="font-[family-name:var(--font-ui)] text-md font-semibold">
           {t('title')}
         </h3>
       </header>
-      <p className="text-[length:var(--text-sm)] text-[var(--color-ink-2)]">{t('body')}</p>
+      <p className="text-sm text-[var(--color-ink-2)]">{t('body')}</p>
 
       {/* Idle / failed — show drop zone */}
       {(state.kind === 'idle' || state.kind === 'failed') && (
@@ -178,14 +179,14 @@ export function DocumentImportPanel({
               if (file) void handleFile(file);
             }}
             className={cn(
-              'flex flex-col items-center justify-center rounded-[var(--radius-lg)] border-2 border-dashed bg-white/90 p-8 text-center transition-colors',
+              'flex flex-col items-center justify-center rounded-[var(--radius-lg)] border-2 border-dashed bg-[var(--color-surface)] p-8 text-center transition-colors',
               dragOver
-                ? 'border-[var(--color-brand-600)] bg-white'
-                : 'border-[var(--color-brand-600)]/40 hover:bg-white',
+                ? 'border-[var(--color-brand-600)] bg-[var(--color-surface)]'
+                : 'border-[var(--color-line-3)] hover:bg-[var(--color-surface)]',
             )}
           >
-            <i aria-hidden="true" className="ri-cloud-upload-line text-4xl text-[var(--color-brand-700)] mb-2" />
-            <p className="text-[length:var(--text-sm)] font-semibold text-[var(--color-ink)]">
+            <LuCloudUpload aria-hidden="true" className="text-2xl text-[var(--color-ink-2)] mb-2" />
+            <p className="text-sm font-semibold text-[var(--color-ink)]">
               {t('dropHint')} <span className="text-[var(--color-ink-2)] font-normal">{t('or')}</span>
             </p>
             <div className="mt-3">
@@ -198,7 +199,7 @@ export function DocumentImportPanel({
                 {t('browse')}
               </Button>
             </div>
-            <span className="mt-2 text-[length:var(--text-xs)] text-[var(--color-ink-3)]">{t('formatsHint')}</span>
+            <span className="mt-2 text-xs text-[var(--color-ink-3)]">{t('formatsHint')}</span>
             <input
               ref={inputRef}
               type="file"
@@ -213,16 +214,16 @@ export function DocumentImportPanel({
           {state.kind === 'failed' && (
             <div
               role="alert"
-              className="rounded-[var(--radius-md)] border border-[var(--color-bad-tint)] bg-[var(--color-bad-tint)] px-3 py-2 text-[length:var(--text-sm)] text-[var(--color-bad)]"
+              className="rounded-[var(--radius-md)] border border-[var(--color-bad-tint)] bg-[var(--color-bad-tint)] px-3 py-2 text-sm text-[var(--color-bad)]"
             >
               <p className="font-semibold">{state.error}</p>
-              <p className="mt-1 text-[length:var(--text-xs)] opacity-80">
+              <p className="mt-1 text-xs opacity-80">
                 {state.filename}
               </p>
               <button
                 type="button"
                 onClick={reset}
-                className="mt-2 text-[length:var(--text-xs)] font-semibold underline-offset-4 hover:underline"
+                className="mt-2 text-xs font-semibold underline-offset-4 hover:underline"
               >
                 {t('tryAgain')}
               </button>
@@ -267,8 +268,8 @@ export function DocumentImportPanel({
 
 function BusyCard({ label }: { label: string }): React.ReactElement {
   return (
-    <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--color-brand-tint-2)] bg-white/90 px-4 py-3 text-[length:var(--text-sm)] text-[var(--color-ink-2)]">
-      <i aria-hidden="true" className="ri-loader-4-line animate-spin text-lg text-[var(--color-brand-700)]" />
+    <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3 text-sm text-[var(--color-ink-2)]">
+      <LuLoaderCircle aria-hidden="true" className="animate-spin text-lg text-[var(--color-brand-700)]" />
       <span>{label}</span>
     </div>
   );
@@ -310,15 +311,15 @@ function ReadyPreview({
   const blocks = extraction.blocks ?? [];
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2 text-[length:var(--text-sm)] font-semibold text-[var(--color-ink)]">
-        <i aria-hidden="true" className="ri-check-double-line text-[var(--color-ok)]" />
+      <div className="flex items-center gap-2 text-sm font-semibold text-[var(--color-ink)]">
+        <LuCheckCheck aria-hidden="true" className="text-[var(--color-ok)]" />
         <span>{t('readyHeading', { filename })}</span>
       </div>
 
       {!hasAnything && (
         <div
           role="status"
-          className="rounded-[var(--radius-md)] border border-[var(--color-warn-tint)] bg-[var(--color-warn-tint)] px-3 py-2 text-[length:var(--text-sm)] text-[var(--color-warn)]"
+          className="rounded-[var(--radius-md)] border border-[var(--color-warn-tint)] bg-[var(--color-warn-tint)] px-3 py-2 text-sm text-[var(--color-warn)]"
         >
           {t('noExtraction')}
         </div>
@@ -367,7 +368,7 @@ function ReadyPreview({
       ))}
 
       {extraction.notes && (
-        <p className="text-[length:var(--text-xs)] italic text-[var(--color-ink-3)]">
+        <p className="text-xs italic text-[var(--color-ink-3)]">
           {t('sectionsNotes')}: {extraction.notes}
         </p>
       )}
@@ -404,7 +405,7 @@ function AcceptRow({
   return (
     <label
       className={cn(
-        'flex cursor-pointer items-start gap-3 rounded-[var(--radius-md)] border bg-white/90 px-3 py-2 transition-opacity',
+        'flex cursor-pointer items-start gap-3 rounded-[var(--radius-md)] border bg-[var(--color-surface)] px-3 py-2 transition-opacity',
         accepted
           ? 'border-[var(--color-line)] opacity-100'
           : 'border-[var(--color-line-2)] opacity-50',
@@ -417,10 +418,10 @@ function AcceptRow({
         className="mt-1 size-4 accent-[var(--color-brand-600)]"
       />
       <div className="min-w-0 flex-1">
-        <p className="text-[length:var(--text-xs)] font-semibold uppercase tracking-wide text-[var(--color-ink-3)]">
+        <p className="text-xs font-semibold text-[var(--color-ink-3)]">
           {label}
         </p>
-        <p className="text-[length:var(--text-sm)] text-[var(--color-ink)]">{value}</p>
+        <p className="text-sm text-[var(--color-ink)]">{value}</p>
       </div>
     </label>
   );
@@ -442,7 +443,7 @@ function BlockRow({
   return (
     <label
       className={cn(
-        'flex cursor-pointer items-start gap-3 rounded-[var(--radius-md)] border bg-white/90 px-3 py-2 transition-opacity',
+        'flex cursor-pointer items-start gap-3 rounded-[var(--radius-md)] border bg-[var(--color-surface)] px-3 py-2 transition-opacity',
         accepted
           ? 'border-[var(--color-line)] opacity-100'
           : 'border-[var(--color-line-2)] opacity-50',
@@ -455,12 +456,12 @@ function BlockRow({
         className="mt-1 size-4 accent-[var(--color-brand-600)]"
       />
       <div className="min-w-0 flex-1">
-        <p className="text-[length:var(--text-xs)] font-semibold uppercase tracking-wide text-[var(--color-ink-3)]">
+        <p className="text-xs font-semibold text-[var(--color-ink-3)]">
           {blockLabel}
         </p>
         <BlockBody block={block} />
       </div>
-      <span className="text-[length:var(--text-xs)] text-[var(--color-ink-3)]">#{index + 1}</span>
+      <span className="text-xs text-[var(--color-ink-3)]">#{index + 1}</span>
     </label>
   );
 }
@@ -468,15 +469,15 @@ function BlockRow({
 function BlockBody({ block }: { block: ExtractedBlock }): React.ReactElement {
   switch (block.kind) {
     case 'text':
-      return <p className="text-[length:var(--text-sm)] text-[var(--color-ink)]">{localisedPreview(block.body)}</p>;
+      return <p className="text-sm text-[var(--color-ink)]">{localisedPreview(block.body)}</p>;
     case 'heading':
       return (
         <p
           className={cn(
             'text-[var(--color-ink)]',
-            block.level === 1 && 'text-[length:var(--text-md)] font-bold',
-            block.level === 2 && 'text-[length:var(--text-sm)] font-bold',
-            block.level === 3 && 'text-[length:var(--text-sm)] font-semibold',
+            block.level === 1 && 'text-md font-semibold',
+            block.level === 2 && 'text-sm font-semibold',
+            block.level === 3 && 'text-sm font-semibold',
           )}
         >
           {localisedPreview(block.text)}
@@ -484,7 +485,7 @@ function BlockBody({ block }: { block: ExtractedBlock }): React.ReactElement {
       );
     case 'method':
       return (
-        <ol className="list-decimal pl-5 text-[length:var(--text-sm)] text-[var(--color-ink)]">
+        <ol className="list-decimal pl-5 text-sm text-[var(--color-ink)]">
           {block.steps.map((s, i) => (
             <li key={i}>{localisedPreview(s.body)}</li>
           ))}
@@ -492,8 +493,8 @@ function BlockBody({ block }: { block: ExtractedBlock }): React.ReactElement {
       );
     case 'warning':
       return (
-        <p className="text-[length:var(--text-sm)] text-[var(--color-warn)]">
-          <span className="mr-1 inline-block rounded bg-[var(--color-warn-tint)] px-1.5 py-0.5 text-[length:var(--text-xs)] font-bold uppercase">
+        <p className="text-sm text-[var(--color-warn)]">
+          <span className="mr-1 inline-block rounded-sm bg-[var(--color-warn-tint)] px-2 py-0.5 text-xs font-semibold">
             {block.severity}
           </span>
           {localisedPreview(block.body)}
@@ -501,8 +502,8 @@ function BlockBody({ block }: { block: ExtractedBlock }): React.ReactElement {
       );
     case 'table':
       return (
-        <div className="overflow-x-auto rounded border border-[var(--color-line-2)]">
-          <table className="w-full text-[length:var(--text-xs)]">
+        <div className="overflow-x-auto rounded-sm border border-[var(--color-line-2)]">
+          <table className="w-full text-xs">
             <thead className="bg-[var(--color-panel)]">
               <tr>
                 {block.headers.map((h, i) => (
@@ -528,7 +529,7 @@ function BlockBody({ block }: { block: ExtractedBlock }): React.ReactElement {
       );
     case 'recipe':
       return (
-        <p className="text-[length:var(--text-sm)] text-[var(--color-ink)]">
+        <p className="text-sm text-[var(--color-ink)]">
           {block.ingredients?.length ?? 0} ingredients ·{' '}
           {block.steps?.length ?? 0} steps
         </p>

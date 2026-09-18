@@ -2,10 +2,14 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import type { Employee } from '@/lib/types';
+import { LuArrowLeft, LuArrowUpRight, LuChartColumn, LuChefHat, LuCirclePlus, LuClipboardList, LuFolders, LuGraduationCap, LuHouse, LuLogOut, LuMapPin, LuMenu, LuUserCog, LuUserPlus, LuUsers, LuX } from 'react-icons/lu';
+import { Icon } from '@/components/ui/icon';
+import { AdminSearch } from '@/components/admin/admin-search';
+import type { IconType } from 'react-icons';
 
 /**
  * AdminShell — DESIGN.md §3.5 admin navigation.
@@ -22,11 +26,13 @@ import type { Employee } from '@/lib/types';
  * it opens, and pressing Escape closes it. Body scroll is locked while
  * the drawer is open so the page underneath doesn't move.
  *
- * Collapsible parents: `Library` is a parent item with two children
- * (`Procedures` and `Categories`). Clicking the parent row navigates to
- * its href AND toggles expand; the caret is a visual indicator and an
- * explicit toggle target on its own. A parent auto-expands when the
- * user lands on a child path.
+ * The nav is flat: one level, one name per thing. `Library` used to be a
+ * parent row holding a child also called `Library`, so the same word appeared
+ * twice in a column and neither one said what it opened.
+ *
+ * What is not built yet (training, reports) is marked rather than hidden: a
+ * manager who was promised it looks for it, and a row that says "Soon" answers
+ * that, where an unmarked row that lands on an empty page does not.
  *
  * Active-state rules: the longest-prefix matching href wins. So when
  * the user is on /admin/library/categories, only `Categories` shows as
@@ -34,84 +40,107 @@ import type { Employee } from '@/lib/types';
  * never double-active.
  */
 
+/**
+ * English or Spanish, on every admin screen.
+ *
+ * The kitchen is bilingual and so is the library: a manager writing a procedure
+ * in Spanish has to be able to see the app the way the cook reading it will. The
+ * switch swaps the locale segment of the current path, so it keeps you on the
+ * page you are on rather than sending you home.
+ */
+const LOCALES = ['en', 'es'] as const;
+
+function LocaleSwitch({ locale, label }: { locale: string; label: string }): React.ReactElement {
+  const pathname = usePathname();
+  const rest = pathname.split('/').slice(2).join('/');
+  // The query goes with you: switching language on a filtered list should change
+  // the language, not clear the filter.
+  const query = useSearchParams().toString();
+  const suffix = query ? `?${query}` : '';
+  // .segbar is the recipe scaler's control at admin size — same shape, same
+  // seats, same filled answer — so the two places the app asks "which one?" look
+  // alike.
+  return (
+    <div className="segbar" role="group" aria-label={label}>
+      {LOCALES.map((code) => {
+        const current = code === locale;
+        return (
+          <Link
+            key={code}
+            href={`/${code}${rest ? `/${rest}` : ''}${suffix}`}
+            aria-current={current ? 'true' : undefined}
+          >
+            {/* The code is written in caps, rather than a lowercase word set in
+                caps by CSS: a screen reader should say "E S", not "es". */}
+            {code.toUpperCase()}
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
 interface AdminShellProps {
   children: React.ReactNode;
   locale: string;
   employee: Pick<Employee, 'id' | 'name' | 'clearanceLevel'>;
+  /** The restaurant this admin area belongs to. The sidebar is the chrome, so
+   *  the workspace name lives there rather than being repeated on every page. */
+  workspace: string;
   signOutAction: () => Promise<void>;
 }
 
-type NavLeaf = {
+type NavItem = {
   href: string;
-  icon: string;
+  icon: IconType;
   labelKey: string;
+  /** Marked in the nav and reachable, but the page behind it is a placeholder. */
+  soon?: boolean;
 };
-
-type NavItem =
-  | ({ kind: 'leaf' } & NavLeaf)
-  | ({
-      kind: 'parent';
-    } & NavLeaf & { children: NavLeaf[] });
 
 type NavGroup = {
   headingKey:
     | 'groupWorkspace'
     | 'groupLibrary'
-    | 'groupTraining'
-    | 'groupReports'
     | 'groupPeople'
-    | 'groupSettings';
+    | 'groupSettings'
+    | 'groupSoon';
   items: NavItem[];
 };
 
 const NAV_GROUPS: NavGroup[] = [
   {
     headingKey: 'groupWorkspace',
-    items: [
-      { kind: 'leaf', href: '', icon: 'ri-home-5-line', labelKey: 'navHome' },
-    ],
+    items: [{ href: '', icon: LuHouse, labelKey: 'navHome' }],
   },
   {
     headingKey: 'groupLibrary',
     items: [
-      {
-        kind: 'parent',
-        href: '/library',
-        icon: 'ri-book-3-line',
-        labelKey: 'navLibrary',
-        children: [
-          { href: '/library', icon: 'ri-file-list-3-line', labelKey: 'navProcedures' },
-          { href: '/library/categories', icon: 'ri-folders-line', labelKey: 'navCategories' },
-        ],
-      },
-      { kind: 'leaf', href: '/library/new', icon: 'ri-add-circle-line', labelKey: 'navNewProcedure' },
-    ],
-  },
-  {
-    headingKey: 'groupTraining',
-    items: [
-      { kind: 'leaf', href: '/training', icon: 'ri-graduation-cap-line', labelKey: 'navTraining' },
-    ],
-  },
-  {
-    headingKey: 'groupReports',
-    items: [
-      { kind: 'leaf', href: '/reports', icon: 'ri-bar-chart-box-line', labelKey: 'navReports' },
+      { href: '/library', icon: LuClipboardList, labelKey: 'navProcedures' },
+      { href: '/library/categories', icon: LuFolders, labelKey: 'navCategories' },
+      { href: '/library/new', icon: LuCirclePlus, labelKey: 'navNewProcedure' },
     ],
   },
   {
     headingKey: 'groupPeople',
     items: [
-      { kind: 'leaf', href: '/employees', icon: 'ri-team-line', labelKey: 'navEmployees' },
-      { kind: 'leaf', href: '/employees/new', icon: 'ri-user-add-line', labelKey: 'inviteEmployee' },
+      { href: '/employees', icon: LuUsers, labelKey: 'navEmployees' },
+      { href: '/employees/new', icon: LuUserPlus, labelKey: 'inviteEmployee' },
     ],
   },
   {
     headingKey: 'groupSettings',
     items: [
-      { kind: 'leaf', href: '/settings/stations', icon: 'ri-restaurant-2-line', labelKey: 'navStations' },
-      { kind: 'leaf', href: '/settings/roles', icon: 'ri-shield-user-line', labelKey: 'navRoles' },
-      { kind: 'leaf', href: '/settings/locations', icon: 'ri-map-pin-2-line', labelKey: 'navLocations' },
+      { href: '/settings/stations', icon: LuChefHat, labelKey: 'navStations' },
+      { href: '/settings/roles', icon: LuUserCog, labelKey: 'navRoles' },
+      { href: '/settings/locations', icon: LuMapPin, labelKey: 'navLocations' },
+    ],
+  },
+  {
+    headingKey: 'groupSoon',
+    items: [
+      { href: '/training', icon: LuGraduationCap, labelKey: 'navTraining', soon: true },
+      { href: '/reports', icon: LuChartColumn, labelKey: 'navReports', soon: true },
     ],
   },
 ];
@@ -120,6 +149,7 @@ export function AdminShell({
   children,
   locale,
   employee,
+  workspace,
   signOutAction,
 }: AdminShellProps): React.ReactElement {
   const t = useTranslations('admin');
@@ -127,50 +157,18 @@ export function AdminShell({
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = React.useState(false);
 
-  // Auto-open any parent whose child is the current page; the user can
-  // then collapse it explicitly if they prefer.
-  const [openParents, setOpenParents] = React.useState<Set<string>>(
-    () => new Set(),
-  );
-
-  React.useEffect(() => {
-    setOpenParents((prev) => {
-      const next = new Set(prev);
-      let changed = false;
-      for (const group of NAV_GROUPS) {
-        for (const item of group.items) {
-          if (item.kind !== 'parent') continue;
-          const parentFull = `/${locale}/admin${item.href}`;
-          const onOrUnder =
-            pathname === parentFull ||
-            pathname === `${parentFull}/` ||
-            pathname.startsWith(`${parentFull}/`);
-          if (onOrUnder && !next.has(item.href)) {
-            next.add(item.href);
-            changed = true;
-          }
-        }
-      }
-      return changed ? next : prev;
-    });
-  }, [pathname, locale]);
-
   const activeHref = React.useMemo(() => {
     // Longest matching href wins — the most specific item is "the"
     // current page.
     let best = '';
     for (const group of NAV_GROUPS) {
       for (const item of group.items) {
-        const candidates: NavLeaf[] =
-          item.kind === 'parent' ? [item, ...item.children] : [item];
-        for (const c of candidates) {
-          const full = `/${locale}/admin${c.href}`;
-          const matches =
-            c.href === ''
-              ? pathname === full || pathname === `${full}/`
-              : pathname === full || pathname.startsWith(`${full}/`);
-          if (matches && c.href.length > best.length) best = c.href;
-        }
+        const full = `/${locale}/admin${item.href}`;
+        const matches =
+          item.href === ''
+            ? pathname === full || pathname === `${full}/`
+            : pathname === full || pathname.startsWith(`${full}/`);
+        if (matches && item.href.length > best.length) best = item.href;
       }
     }
     return best;
@@ -178,27 +176,6 @@ export function AdminShell({
 
   function isActive(href: string): boolean {
     return activeHref === href;
-  }
-
-  function isAncestorActive(href: string): boolean {
-    // A parent is "ancestor-active" when the longest match is one of
-    // its children (so it's a softer highlight than the child itself).
-    if (activeHref === href) return false;
-    const full = `/${locale}/admin${href}`;
-    return (
-      pathname === full ||
-      pathname === `${full}/` ||
-      pathname.startsWith(`${full}/`)
-    );
-  }
-
-  function toggleParent(href: string): void {
-    setOpenParents((prev) => {
-      const next = new Set(prev);
-      if (next.has(href)) next.delete(href);
-      else next.add(href);
-      return next;
-    });
   }
 
   // Close drawer on route change so the user lands clean.
@@ -228,19 +205,16 @@ export function AdminShell({
   const sidebarProps = {
     locale,
     employee,
+    workspace,
     groups: NAV_GROUPS,
     labelFor: (key: string) => t(key),
     headingFor: (key: string) => tShell(key),
     isActive,
-    isAncestorActive,
-    openParents,
-    onToggleParent: toggleParent,
     onNavigate: () => setDrawerOpen(false),
     signOutLabel: t('signOut'),
     backToAppLabel: t('backToApp'),
     titleLabel: tShell('title'),
-    expandAriaLabel: tShell('expandSection'),
-    collapseAriaLabel: tShell('collapseSection'),
+    soonLabel: tShell('soon'),
     signOutAction,
   };
 
@@ -250,45 +224,45 @@ export function AdminShell({
       <Sidebar {...sidebarProps} className="hidden lg:flex" />
 
       {/* Mobile top bar — visible below 900 px. */}
-      <header className="fixed inset-x-0 top-0 z-30 flex h-14 items-center justify-between border-b border-[var(--color-line)] bg-[var(--color-surface)] px-4 lg:hidden">
+      <header className="fixed inset-x-0 top-0 z-sticky flex h-bar items-center justify-between border-b border-[var(--color-line)] bg-[var(--color-surface)] px-4 lg:hidden">
         <button
           type="button"
           onClick={() => setDrawerOpen(true)}
           aria-label={tShell('openNav')}
           className={cn(
-            'inline-flex h-11 w-11 items-center justify-center rounded-[var(--radius-md)]',
-            'text-[var(--color-ink)] transition-colors duration-[180ms] ease-[var(--ease)]',
+            'inline-flex h-12 w-12 items-center justify-center rounded-[var(--radius-md)]',
+            'text-[var(--color-ink)] transition-colors duration-[var(--dur)] ease-[var(--ease)]',
             'hover:bg-[var(--color-panel)] active:translate-y-px',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-tint-2)] focus-visible:ring-offset-2',
           )}
         >
-          <i aria-hidden="true" className="ri-menu-line text-[length:var(--text-lg)]" />
+          <LuMenu aria-hidden="true" className="text-lg" />
         </button>
-        <span className="font-[family-name:var(--font-display)] text-[length:var(--text-md)] font-bold tracking-[-0.02em] text-[var(--color-ink)]">
+        <span className="font-[family-name:var(--font-ui)] text-md font-semibold tracking-tight text-[var(--color-ink)]">
           {tShell('title')}
         </span>
-        <span className="w-11" aria-hidden="true" />
+        <span className="w-12" aria-hidden="true" />
       </header>
 
       {/* Mobile drawer — slide-in from the left, full-height, dark backdrop. */}
       {drawerOpen ? (
-        <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label={tShell('title')}>
+        <div className="fixed inset-0 z-backdrop lg:hidden" role="dialog" aria-modal="true" aria-label={tShell('title')}>
           <button
             type="button"
             aria-label={tShell('closeNav')}
             onClick={() => setDrawerOpen(false)}
-            className="absolute inset-0 cursor-default bg-[rgb(34_34_34_/_0.45)]"
+            className="absolute inset-0 cursor-default bg-scrim"
           />
           <div
             className={cn(
-              'absolute inset-y-0 left-0 flex w-[min(20rem,90vw)] flex-col',
+              'absolute inset-y-0 left-0 flex w-sheet max-w-sheet flex-col',
               'border-r border-[var(--color-line)] bg-[var(--color-surface)]',
               'shadow-[var(--e-3)]',
             )}
             style={{ animation: 'drawer-in var(--dur) var(--ease) both' }}
           >
-            <div className="flex h-14 items-center justify-between border-b border-[var(--color-line)] px-4">
-              <span className="font-[family-name:var(--font-display)] text-[length:var(--text-md)] font-bold tracking-[-0.02em] text-[var(--color-ink)]">
+            <div className="flex h-bar items-center justify-between border-b border-[var(--color-line)] px-4">
+              <span className="font-[family-name:var(--font-ui)] text-md font-semibold tracking-tight text-[var(--color-ink)]">
                 {tShell('title')}
               </span>
               <button
@@ -296,13 +270,13 @@ export function AdminShell({
                 onClick={() => setDrawerOpen(false)}
                 aria-label={tShell('closeNav')}
                 className={cn(
-                  'inline-flex h-11 w-11 items-center justify-center rounded-[var(--radius-md)]',
-                  'text-[var(--color-ink)] transition-colors duration-[180ms] ease-[var(--ease)]',
+                  'inline-flex h-12 w-12 items-center justify-center rounded-[var(--radius-md)]',
+                  'text-[var(--color-ink)] transition-colors duration-[var(--dur)] ease-[var(--ease)]',
                   'hover:bg-[var(--color-panel)] active:translate-y-px',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-tint-2)] focus-visible:ring-offset-2',
                 )}
               >
-                <i aria-hidden="true" className="ri-close-line text-[length:var(--text-lg)]" />
+                <LuX aria-hidden="true" className="text-lg" />
               </button>
             </div>
             <Sidebar {...sidebarProps} className="flex flex-1 flex-col" />
@@ -311,9 +285,49 @@ export function AdminShell({
       ) : null}
 
       {/* Main column. Pad-top accounts for the fixed mobile header. */}
-      <main className="min-w-0 flex-1 px-4 pb-12 pt-6 sm:px-6 lg:px-10 lg:py-10">
-        <div className="pt-10 lg:pt-0">{children}</div>
-      </main>
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* The desktop bar. It holds the two things that belong to the whole admin
+            area rather than to one page: find anything, and which language you are
+            reading it in. The page's own title stays on the page — repeating it
+            here would be the same words twice on one screen.
+
+            It is not shown below 900px: there the mobile header already occupies
+            that row, and a phone has no space for a field this wide. */}
+        <div className="sticky top-0 z-sticky hidden min-h-bar items-center gap-4 border-b border-[var(--color-line)] bg-[var(--color-ground)] px-10 py-3 lg:flex">
+          <AdminSearch
+            locale={locale}
+            labels={{
+              label: tShell('searchLabel'),
+              placeholder: tShell('searchPlaceholder'),
+              procedures: tShell('searchProcedures'),
+              people: tShell('searchPeople'),
+              empty: tShell('searchEmpty'),
+              hint: tShell('searchHint'),
+              results: (n: number) => tShell('searchResults', { count: n }),
+            }}
+          />
+          <div className="ml-auto flex items-center gap-3">
+            {/* The way across to what the cooks see. The employee bar has the same
+                link back, under the name of the area it opens — so this one is
+                "Employee", not "Preview" or "Back": the two sides name each other
+                the same way. The sidebar footer has it too, for the phone, where
+                this bar is not shown. */}
+            <Link
+              href={`/${locale}/employee/assigned`}
+              className="inline-flex min-h-tap-admin items-center gap-1 rounded-full px-3 text-sm font-medium text-[var(--color-ink-2)] transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:bg-[var(--color-panel)] hover:text-[var(--color-ink)]"
+            >
+              {t('backToApp')}
+              {/* The mark for a link that leaves this area for the other one. */}
+              <LuArrowUpRight aria-hidden="true" />
+            </Link>
+            <LocaleSwitch locale={locale} label={tShell('langLabel')} />
+          </div>
+        </div>
+
+        <main className="min-w-0 flex-1 px-4 pb-12 pt-6 sm:px-6 lg:px-10 lg:pb-12 lg:pt-8">
+          <div className="pt-10 lg:pt-0">{children}</div>
+        </main>
+      </div>
     </div>
   );
 }
@@ -321,19 +335,16 @@ export function AdminShell({
 interface SidebarProps {
   locale: string;
   employee: Pick<Employee, 'id' | 'name' | 'clearanceLevel'>;
+  workspace: string;
   groups: NavGroup[];
   labelFor: (key: string) => string;
   headingFor: (key: NavGroup['headingKey']) => string;
   isActive: (href: string) => boolean;
-  isAncestorActive: (href: string) => boolean;
-  openParents: Set<string>;
-  onToggleParent: (href: string) => void;
   onNavigate: () => void;
   signOutLabel: string;
   backToAppLabel: string;
   titleLabel: string;
-  expandAriaLabel: string;
-  collapseAriaLabel: string;
+  soonLabel: string;
   signOutAction: () => Promise<void>;
   className?: string;
 }
@@ -341,120 +352,133 @@ interface SidebarProps {
 function Sidebar({
   locale,
   employee,
+  workspace,
   groups,
   labelFor,
   headingFor,
   isActive,
-  isAncestorActive,
-  openParents,
-  onToggleParent,
   onNavigate,
   signOutLabel,
   backToAppLabel,
   titleLabel,
-  expandAriaLabel,
-  collapseAriaLabel,
+  soonLabel,
   signOutAction,
   className,
 }: SidebarProps): React.ReactElement {
   return (
     <aside
       className={cn(
-        'sticky top-0 h-screen w-64 shrink-0 flex-col border-r border-[var(--color-line)] bg-[var(--color-surface)]',
+        'sticky top-0 h-screen w-sidebar shrink-0 flex-col border-r border-[var(--color-line)] bg-[var(--color-surface)]',
         className,
       )}
       aria-label={titleLabel}
     >
-      <div className="flex h-16 items-center gap-2 border-b border-[var(--color-line)] px-5">
-        <span
-          aria-hidden="true"
-          className="inline-flex size-9 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-brand-600)] text-white"
-        >
-          <i className="ri-book-3-line text-[length:var(--text-md)]" />
+      {/* The brand block is the restaurant's block: its colour, ending in its own
+          stepped zigzag instead of a 1px rule. It is the one place in the admin
+          chrome that looks like the restaurant rather than like software, which
+          is why it is also the only terracotta field on the screen. */}
+      <div className="flex min-h-16 items-center gap-3 bg-[var(--color-brand-600)] px-4 py-3">
+        {/* The restaurant's own mark, from alimentariamexicana.com. It carries its
+            own cream ground, so it sits in a plain rounded frame. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/brand-mark.png"
+          alt=""
+          width={40}
+          height={40}
+          className="size-10 shrink-0 rounded-[var(--radius-md)] object-cover"
+        />
+        <span className="min-w-0">
+          <span className="block truncate text-sm font-semibold leading-heading text-[var(--color-white)]">
+            {workspace.split(',')[0] || titleLabel}
+          </span>
+          {/* White, not the peach tint: the tint reads at 4.09:1 on terracotta,
+              under the 4.5:1 this size needs. The weight carries the hierarchy. */}
+          <span className="block truncate text-sm leading-meta text-[var(--color-white)]">
+            {workspace.split(',').slice(1).join(',').trim() || titleLabel}
+          </span>
         </span>
-        <div className="min-w-0">
-          <p className="truncate font-[family-name:var(--font-display)] text-[length:var(--text-sm)] font-bold tracking-[-0.02em] text-[var(--color-ink)]">
-            {titleLabel}
-          </p>
-          <p className="truncate text-[length:var(--text-xs)] text-[var(--color-ink-3)]">
-            {employee.name}
-          </p>
-        </div>
       </div>
+      {/* Teeth down: the block above owns the edge, the way the site draws it. */}
+      <span className="pix-edge is-down" aria-hidden="true" />
 
-      <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-5">
+      {/* The zigzag is a piece of ornament, not a rule, so it needs room under it
+          before the first row — pressed up against Home it reads as that row's
+          decoration rather than as the brand block's edge. */}
+      <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-4 pt-6">
         {groups.map((group) => (
           <div key={group.headingKey} className="space-y-1">
-            <p className="px-2 text-[length:var(--text-xs)] font-semibold uppercase tracking-wide text-[var(--color-ink-3)]">
-              {headingFor(group.headingKey)}
-            </p>
+            {/* 14px, because 12px is the one size this system does not use on an
+                admin screen — and a group label is read, not decoration. The first
+                group is a single row called Home, which needs no heading over it. */}
+            {group.headingKey === 'groupWorkspace' ? null : (
+              <p className="px-3 pb-1 text-sm leading-meta text-[var(--color-ink-3)]">
+                {headingFor(group.headingKey)}
+              </p>
+            )}
             <ul className="space-y-0.5">
-              {group.items.map((item) => {
-                if (item.kind === 'parent') {
-                  return (
-                    <ParentNavRow
-                      key={item.href}
-                      locale={locale}
-                      item={item}
-                      open={openParents.has(item.href)}
-                      isParentActive={isActive(item.href)}
-                      isAncestorActive={isAncestorActive(item.href)}
-                      isChildActive={isActive}
-                      labelFor={labelFor}
-                      onToggle={onToggleParent}
-                      onNavigate={onNavigate}
-                      expandAriaLabel={expandAriaLabel}
-                      collapseAriaLabel={collapseAriaLabel}
-                    />
-                  );
-                }
-                return (
-                  <li key={item.href || 'home'}>
-                    <NavLink
-                      href={`/${locale}/admin${item.href}`}
-                      icon={item.icon}
-                      label={labelFor(item.labelKey)}
-                      active={isActive(item.href)}
-                      onClick={onNavigate}
-                    />
-                  </li>
-                );
-              })}
+              {group.items.map((item) => (
+                <li key={item.href || 'home'}>
+                  <NavLink
+                    href={`/${locale}/admin${item.href}`}
+                    icon={item.icon}
+                    label={labelFor(item.labelKey)}
+                    active={isActive(item.href)}
+                    onClick={onNavigate}
+                    soon={item.soon ? soonLabel : undefined}
+                  />
+                </li>
+              ))}
             </ul>
           </div>
         ))}
       </nav>
 
       <div className="border-t border-[var(--color-line)] p-3">
+        <p className="flex items-center gap-3 px-3 py-2">
+          <span
+            aria-hidden="true"
+            className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-panel)] text-sm font-semibold text-[var(--color-ink)]"
+          >
+            {employee.name.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase()}
+          </span>
+          <span className="min-w-0 truncate text-sm font-medium text-[var(--color-ink)]">
+            {employee.name}
+          </span>
+        </p>
         <Link
           href={`/${locale}/employee/assigned`}
           onClick={onNavigate}
           className={cn(
-            'flex min-h-9 items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 py-1.5',
-            'text-[length:var(--text-sm)] font-medium text-[var(--color-ink-2)]',
-            'transition-colors duration-[180ms] ease-[var(--ease)]',
+            'flex min-h-10 items-center gap-3 rounded-[var(--radius-md)] px-3 py-2',
+            'text-sm font-medium text-[var(--color-ink-2)]',
+            'transition-colors duration-[var(--dur)] ease-[var(--ease)]',
             'hover:bg-[var(--color-panel)] hover:text-[var(--color-ink)]',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-tint-2)] focus-visible:ring-offset-2',
           )}
         >
-          <i aria-hidden="true" className="ri-arrow-left-line text-[length:var(--text-md)]" />
+          <LuArrowLeft aria-hidden="true" className="text-md" />
           <span className="flex-1 truncate">{backToAppLabel}</span>
         </Link>
+        {/* Sign out is hidden in the sidebar for now — UI only. The action and its
+            label are still wired, so putting this row back is uncommenting it.
+            Signing out is still reachable from the employee bar via "Back to app".
         <form action={signOutAction}>
           <button
             type="submit"
             className={cn(
-              'mt-1 flex w-full min-h-9 items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 py-1.5',
-              'text-[length:var(--text-sm)] font-medium text-[var(--color-ink-2)]',
-              'transition-colors duration-[180ms] ease-[var(--ease)]',
+              'mt-1 flex w-full min-h-10 items-center gap-3 rounded-[var(--radius-md)] px-3 py-2',
+              'text-sm font-medium text-[var(--color-ink-3)]',
+              'transition-colors duration-[var(--dur)] ease-[var(--ease)]',
               'hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)]',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-tint-2)] focus-visible:ring-offset-2',
             )}
           >
-            <i aria-hidden="true" className="ri-logout-box-r-line text-[length:var(--text-md)]" />
+            <LuLogOut aria-hidden="true" className="text-md" />
             <span className="flex-1 truncate text-left">{signOutLabel}</span>
           </button>
         </form>
+        */}
       </div>
     </aside>
   );
@@ -466,14 +490,15 @@ function NavLink({
   label,
   active,
   onClick,
-  indent = false,
+  soon,
 }: {
   href: string;
-  icon: string;
+  icon: IconType;
   label: string;
   active: boolean;
   onClick: () => void;
-  indent?: boolean;
+  /** Text of the badge for a page that is not built yet. */
+  soon?: string;
 }): React.ReactElement {
   return (
     <Link
@@ -481,128 +506,30 @@ function NavLink({
       onClick={onClick}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'group flex min-h-9 items-center gap-2.5 rounded-[var(--radius-md)] py-1.5',
-        indent ? 'pl-9 pr-2.5' : 'px-2.5',
-        'text-[length:var(--text-sm)] font-medium',
-        'transition-colors duration-[180ms] ease-[var(--ease)]',
+        'group flex min-h-10 items-center gap-3 rounded-[var(--radius-md)] px-3 py-2',
+        'text-sm font-medium',
+        'transition-colors duration-[var(--dur)] ease-[var(--ease)]',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-tint-2)] focus-visible:ring-offset-2',
         active
           ? 'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)]'
           : 'text-[var(--color-ink-2)] hover:bg-[var(--color-panel)] hover:text-[var(--color-ink)]',
       )}
     >
-      <i
-        aria-hidden="true"
+      <Icon
+        icon={icon}
         className={cn(
-          `${icon} text-[length:var(--text-md)]`,
+          'text-md',
           active
             ? 'text-[var(--color-brand-700)]'
             : 'text-[var(--color-ink-3)] group-hover:text-[var(--color-ink-2)]',
         )}
       />
       <span className="flex-1 truncate">{label}</span>
-    </Link>
-  );
-}
-
-interface ParentNavRowProps {
-  locale: string;
-  item: Extract<NavItem, { kind: 'parent' }>;
-  open: boolean;
-  isParentActive: boolean;
-  isAncestorActive: boolean;
-  isChildActive: (href: string) => boolean;
-  labelFor: (key: string) => string;
-  onToggle: (href: string) => void;
-  onNavigate: () => void;
-  expandAriaLabel: string;
-  collapseAriaLabel: string;
-}
-
-function ParentNavRow({
-  locale,
-  item,
-  open,
-  isParentActive,
-  isAncestorActive,
-  isChildActive,
-  labelFor,
-  onToggle,
-  onNavigate,
-  expandAriaLabel,
-  collapseAriaLabel,
-}: ParentNavRowProps): React.ReactElement {
-  const highlighted = isParentActive;
-  return (
-    <li>
-      <div
-        className={cn(
-          'flex items-center rounded-[var(--radius-md)] transition-colors duration-[180ms] ease-[var(--ease)]',
-          highlighted ? 'bg-[var(--color-brand-tint)]' : 'hover:bg-[var(--color-panel)]',
-        )}
-      >
-        <Link
-          href={`/${locale}/admin${item.href}`}
-          onClick={onNavigate}
-          aria-current={isParentActive ? 'page' : undefined}
-          className={cn(
-            'flex min-h-9 flex-1 items-center gap-2.5 rounded-l-[var(--radius-md)] px-2.5 py-1.5',
-            'text-[length:var(--text-sm)] font-semibold',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-tint-2)] focus-visible:ring-offset-2',
-            isParentActive || isAncestorActive
-              ? 'text-[var(--color-brand-700)]'
-              : 'text-[var(--color-ink)]',
-          )}
-        >
-          <i
-            aria-hidden="true"
-            className={cn(
-              `${item.icon} text-[length:var(--text-md)]`,
-              highlighted ? 'text-[var(--color-brand-700)]' : 'text-[var(--color-ink-3)]',
-            )}
-          />
-          <span className="flex-1 truncate">{labelFor(item.labelKey)}</span>
-        </Link>
-        <button
-          type="button"
-          onClick={() => onToggle(item.href)}
-          aria-label={open ? collapseAriaLabel : expandAriaLabel}
-          aria-expanded={open}
-          className={cn(
-            'inline-flex h-9 w-8 items-center justify-center rounded-r-[var(--radius-md)]',
-            'text-[length:var(--text-sm)] transition-colors duration-[180ms] ease-[var(--ease)]',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-tint-2)] focus-visible:ring-offset-2',
-            highlighted
-              ? 'text-[var(--color-brand-700)]'
-              : 'text-[var(--color-ink-3)] hover:text-[var(--color-ink)]',
-          )}
-        >
-          <i
-            aria-hidden="true"
-            className={cn(
-              'transition-transform duration-[180ms] ease-[var(--ease)]',
-              open ? 'ri-arrow-down-s-line' : 'ri-arrow-right-s-line',
-              'text-[length:var(--text-lg)]',
-            )}
-          />
-        </button>
-      </div>
-      {open ? (
-        <ul className="mt-0.5 ml-3 space-y-0.5 border-l border-[var(--color-line)] pl-3">
-          {item.children.map((child) => (
-            <li key={child.href}>
-              <NavLink
-                href={`/${locale}/admin${child.href}`}
-                icon={child.icon}
-                label={labelFor(child.labelKey)}
-                active={isChildActive(child.href)}
-                onClick={onNavigate}
-                indent
-              />
-            </li>
-          ))}
-        </ul>
+      {soon ? (
+        <span className="rounded-[var(--radius-sm)] bg-[var(--color-panel)] px-2 py-0.5 text-xs font-semibold text-[var(--color-ink-2)]">
+          {soon}
+        </span>
       ) : null}
-    </li>
+    </Link>
   );
 }

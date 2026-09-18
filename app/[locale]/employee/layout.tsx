@@ -6,7 +6,7 @@ import { cookies } from 'next/headers';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { fetchMe, logout, ApiException } from '@/lib/api';
 import type { Employee } from '@/lib/types';
-import { Button } from '@/components/ui/button';
+import { LuArrowUpRight, LuLogOut } from 'react-icons/lu';
 
 // Force per-request SSR — without this Next.js prerenders the layout at build
 // time when no dynamic API is observed at module-init, and the build-time
@@ -58,21 +58,34 @@ export default async function EmployeeLayout({ children, params }: EmployeeLayou
         <div className="flex items-center gap-3">
           {employee.clearanceLevel === 'master' ? (
             <Link
-              href={`/${locale}/admin/employees`}
-              className="text-xs font-medium text-[var(--color-ink-2)] hover:text-[var(--color-brand-600)]"
+              href={`/${locale}/admin`}
+              className="inline-flex items-center gap-1 text-sm font-medium text-[var(--color-ink-2)] hover:text-[var(--color-brand-600)]"
             >
               {tCommon('admin')}
+              {/* The same mark the admin bar uses on the link back here. */}
+              <LuArrowUpRight aria-hidden="true" />
             </Link>
           ) : null}
           <form action={signOut}>
-            <Button type="submit" variant="neutral" size="sm">
+            {/* Sign out carries its own mark and stays quiet at rest: red is what
+                a wrong tap looks like, not what the control looks like sitting
+                there. It turns red on hover and on focus, where the intent is
+                already there. */}
+            <button
+              type="submit"
+              className="inline-flex min-h-tap-admin items-center gap-2 rounded-full px-4 text-sm font-medium text-[var(--color-ink-2)] transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)] focus-visible:bg-[var(--color-bad-tint)] focus-visible:text-[var(--color-bad)]"
+            >
+              <LuLogOut aria-hidden="true" className="text-md" />
               {t('signOut')}
-            </Button>
+            </button>
           </form>
         </div>
       </header>
 
-      <main className="flex-1 px-4 py-8 sm:px-6">{children}</main>
+      {/* A div, not a second <main>: the page inside brings its own, and a document
+          has one main. The page also brings its own padding and its own reading
+          column, so this one only has to fill the height. */}
+      <div className="flex-1">{children}</div>
     </div>
   );
 }

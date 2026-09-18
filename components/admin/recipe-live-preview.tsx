@@ -4,6 +4,7 @@ import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import type { RecipeIngredientItem } from './recipe-ingredients-editor';
 import type { ProcedureBlock, ProcedureMethodStep } from '@/lib/types';
+import { LuChefHat, LuEye } from 'react-icons/lu';
 
 interface RecipeLivePreviewProps {
   title: string;
@@ -30,35 +31,34 @@ export function RecipeLivePreview({
     .flatMap((b) => b.steps);
 
   return (
-    <div className="rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-5 space-y-4 shadow-sm">
+    <div className="rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-5 space-y-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-[var(--color-ink)] font-bold text-[length:var(--text-sm)]">
-          <i aria-hidden="true" className="ri-eye-line text-[var(--color-brand-700)]" />
+        <div className="flex items-center gap-2 text-[var(--color-ink)] font-semibold text-sm">
+          <LuEye aria-hidden="true" className="text-[var(--color-ink-2)]" />
           <span>{t('previewTitle')}</span>
         </div>
         <button
           type="button"
           onClick={() => alert('Full Preview: Shows exact employee view full screen.')}
-          className="text-[length:var(--text-xs)] font-medium text-[var(--color-brand-700)] hover:underline"
+          className="text-xs font-medium text-[var(--color-brand-700)] hover:underline"
         >
           {t('viewFullPreview')}
         </button>
       </div>
 
       {/* Live Preview Card Content */}
-      <div className="overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-line)] bg-white space-y-3 p-4 shadow-xs">
+      <div className="overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-line)] bg-[var(--color-surface)] space-y-3 p-4">
         {/* Mock Food / Recipe Image Banner */}
-        <div className="relative h-28 w-full overflow-hidden rounded-md bg-gradient-to-r from-amber-500 to-red-500 flex items-center justify-center text-white">
-          <div className="absolute inset-0 bg-black/20" />
-          <i aria-hidden="true" className="ri-restaurant-2-line text-4xl opacity-80" />
+        <div className="relative h-tile w-full overflow-hidden rounded-[var(--radius-md)] bg-[var(--color-panel)] flex items-center justify-center text-[var(--color-ink-3)]">
+          <LuChefHat aria-hidden="true" className="text-2xl opacity-80" />
         </div>
 
         {/* Title & Category Badge */}
         <div>
-          <h4 className="font-[family-name:var(--font-ui)] text-[length:var(--text-md)] font-bold text-[var(--color-ink)]">
+          <h4 className="font-[family-name:var(--font-ui)] text-md font-semibold text-[var(--color-ink)]">
             {title.trim() || t('previewTitlePlaceholder')}
           </h4>
-          <span className="mt-1 inline-block rounded-full bg-[var(--color-brand-tint)] px-2.5 py-0.5 text-[length:var(--text-xs)] font-semibold text-[var(--color-brand-700)]">
+          <span className="mt-1 inline-block rounded-[var(--radius-sm)] bg-[var(--color-panel)] px-3 py-0.5 text-xs font-semibold text-[var(--color-ink-2)]">
             {categoryLabel}
           </span>
         </div>
@@ -66,10 +66,10 @@ export function RecipeLivePreview({
         {/* Purpose */}
         {purpose.trim() && (
           <div className="space-y-1">
-            <h5 className="text-[length:var(--text-xs)] font-bold uppercase tracking-wide text-[var(--color-ink-3)]">
+            <h5 className="text-xs font-semibold text-[var(--color-ink-3)]">
               Purpose
             </h5>
-            <p className="text-[length:var(--text-xs)] text-[var(--color-ink-2)] line-clamp-3">
+            <p className="text-xs text-[var(--color-ink-2)] line-clamp-3">
               {purpose}
             </p>
           </div>
@@ -77,11 +77,11 @@ export function RecipeLivePreview({
 
         {/* Ingredients List */}
         {ingredients.length > 0 && (
-          <div className="space-y-1.5 border-t border-[var(--color-line)]/50 pt-2">
-            <h5 className="text-[length:var(--text-xs)] font-bold uppercase tracking-wide text-[var(--color-ink-3)]">
+          <div className="space-y-2 border-t border-[var(--color-line)] pt-2">
+            <h5 className="text-xs font-semibold text-[var(--color-ink-3)]">
               {t('previewIngredientsHeader', { factor: `${selectedFactor}×` })}
             </h5>
-            <ul className="space-y-1 text-[length:var(--text-xs)]">
+            <ul className="space-y-1 text-xs">
               {ingredients.map((ing) => {
                 if (!ing.name.trim()) return null;
                 const qtyNum = parseFloat(ing.quantity);
@@ -101,16 +101,16 @@ export function RecipeLivePreview({
 
         {/* Method Steps List */}
         {methodSteps.length > 0 && (
-          <div className="space-y-2 border-t border-[var(--color-line)]/50 pt-2">
-            <h5 className="text-[length:var(--text-xs)] font-bold uppercase tracking-wide text-[var(--color-ink-3)]">
+          <div className="space-y-2 border-t border-[var(--color-line)] pt-2">
+            <h5 className="text-xs font-semibold text-[var(--color-ink-3)]">
               Method
             </h5>
-            <div className="space-y-2 text-[length:var(--text-xs)]">
+            <div className="space-y-2 text-xs">
               {methodSteps.map((step, idx) => {
                 const bodyText = step.body.en || step.body.es || '';
                 return (
                   <div key={step.id || idx} className="flex items-start gap-2">
-                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand-tint)] font-mono text-[10px] font-bold text-[var(--color-brand-700)]">
+                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-panel)] font-mono text-xs font-bold text-[var(--color-ink)]">
                       {idx + 1}
                     </span>
                     <div>

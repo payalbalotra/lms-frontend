@@ -3,9 +3,10 @@ import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Button } from '@/components/ui/button';
-import { listProcedures, listCategories, fetchMe, ApiException } from '@/lib/api';
+import { listProcedures, listCategories, listLocations, fetchMe, ApiException } from '@/lib/api';
 import type { Procedure, Category } from '@/lib/types';
 import { LibraryProcedureExplorer } from '@/components/admin/library-procedure-explorer';
+import { LuBook, LuFolders, LuPlus } from 'react-icons/lu';
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -24,22 +25,12 @@ const DEFAULT_CATEGORIES: Category[] = [
   { id: 'cat-other', slug: 'other', nameEn: 'Other', nameEs: 'Otros', isArchived: false },
 ];
 
-interface AdminLocationsResponse {
-  locations: { id: string }[];
-}
-
 async function readFirstManagedLocation(
   cookieHeader: string,
 ): Promise<string | null> {
-  const base = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:4000';
   try {
-    const res = await fetch(`${base}/api/admin/employees/locations`, {
-      headers: { cookie: cookieHeader },
-      cache: 'no-store',
-    });
-    if (!res.ok) return null;
-    const body = (await res.json()) as AdminLocationsResponse;
-    return body.locations[0]?.id ?? null;
+    const res = await listLocations(cookieHeader);
+    return res.locations[0]?.id ?? null;
   } catch {
     return null;
   }
@@ -101,26 +92,26 @@ export default async function AdminLibraryPage({
     <div className="mx-auto max-w-6xl space-y-6 pb-12">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="space-y-1">
-          <p className="text-[length:var(--text-xs)] font-semibold uppercase tracking-wide text-[var(--color-brand-700)]">
+          <p className="text-xs font-semibold text-[var(--color-ink-2)]">
             {t('pageEyebrow')}
           </p>
-          <h1 className="font-[family-name:var(--font-display)] text-[length:var(--text-2xl)] font-bold tracking-[-0.02em] text-[var(--color-ink)]">
+          <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight text-[var(--color-ink)]">
             {t('pageTitle')}
           </h1>
-          <p className="max-w-2xl text-[length:var(--text-sm)] text-[var(--color-ink-2)]">
+          <p className="max-w-2xl text-sm text-[var(--color-ink-2)]">
             {t('pageSubtitle')}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-3">
           <Link href={`/${locale}/admin/library/categories`}>
             <Button variant="secondary" size="sm">
-              <i aria-hidden="true" className="ri-folders-line mr-1.5 text-[length:var(--text-md)]" />
+              <LuFolders aria-hidden="true" className="mr-2 text-md" />
               {t('manageCategories')}
             </Button>
           </Link>
           <Link href={`/${locale}/admin/library/new`}>
             <Button size="sm">
-              <i aria-hidden="true" className="ri-add-line mr-1.5 text-[length:var(--text-md)]" />
+              <LuPlus aria-hidden="true" className="mr-2 text-md" />
               {t('newProcedure')}
             </Button>
           </Link>
@@ -131,8 +122,6 @@ export default async function AdminLibraryPage({
         <p role="alert" className="text-sm text-[var(--color-bad)]">
           {loadError}
         </p>
-      ) : procedures.length === 0 ? (
-        <EmptyLibrary heading={t('emptyHeading')} body={t('emptyBody')} />
       ) : (
         <LibraryProcedureExplorer
           procedures={procedures}
@@ -157,15 +146,15 @@ function EmptyLibrary({
     >
       <span
         aria-hidden="true"
-        className="inline-flex size-14 items-center justify-center rounded-[var(--radius-pill)] bg-[var(--color-brand-tint)] text-[var(--color-brand-700)]"
+        className="inline-flex size-12 items-center justify-center rounded-[var(--radius-pill)] bg-[var(--color-panel)] text-[var(--color-ink-2)]"
       >
-        <i className="ri-book-3-line text-[length:var(--text-2xl)]" />
+        <LuBook className="text-2xl" />
       </span>
       <div className="space-y-1">
-        <h2 className="font-[family-name:var(--font-display)] text-[length:var(--text-lg)] font-bold tracking-[-0.02em] text-[var(--color-ink)]">
+        <h2 className="font-[family-name:var(--font-ui)] text-lg font-semibold tracking-tight text-[var(--color-ink)]">
           {heading}
         </h2>
-        <p className="max-w-md text-[length:var(--text-sm)] text-[var(--color-ink-2)]">
+        <p className="max-w-md text-sm text-[var(--color-ink-2)]">
           {body}
         </p>
       </div>

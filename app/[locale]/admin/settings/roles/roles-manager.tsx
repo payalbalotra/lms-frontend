@@ -21,6 +21,7 @@ import {
   ApiException,
 } from '@/lib/api';
 import type { ClearanceLevel, Role } from '@/lib/types';
+import { LuPencil, LuPlus, LuTrash2 } from 'react-icons/lu';
 
 interface RolesManagerProps {
   locale: string;
@@ -142,12 +143,12 @@ export function RolesManager({
     return [
       {
         label: t('actionsEdit'),
-        icon: 'ri-pencil-line',
+        icon: LuPencil,
         onSelect: () => startEdit(r),
       },
       {
         label: t('actionsDelete'),
-        icon: 'ri-delete-bin-line',
+        icon: LuTrash2,
         destructive: true,
         onSelect: () => onDelete(r),
       },
@@ -164,7 +165,7 @@ export function RolesManager({
             setCreateOpen(true);
           }}
         >
-          <i aria-hidden="true" className="ri-add-line text-[length:var(--text-lg)]" />
+          <LuPlus aria-hidden="true" className="text-lg" />
           {t('rolesCreateHeading')}
         </Button>
       </div>
@@ -229,7 +230,7 @@ export function RolesManager({
                                 })
                               }
                               disabled={isPending}
-                              className="h-9 w-auto px-2"
+                              className="h-tap-admin w-auto px-2"
                             >
                               <option value="general">general</option>
                               <option value="station">station</option>

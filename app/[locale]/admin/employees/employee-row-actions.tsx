@@ -12,6 +12,7 @@ import {
 } from '@/lib/api';
 import { RowActions, type RowActionItem } from '@/components/ui/row-actions';
 import type { AdminEmployee, InviteResult } from '@/lib/types';
+import { LuBan, LuRotateCw, LuSend } from 'react-icons/lu';
 
 interface EmployeeRowActionsProps {
   locale: string;
@@ -71,12 +72,12 @@ export function EmployeeRowActions({ locale, employee }: EmployeeRowActionsProps
       return [
         {
           label: t('actionsResend'),
-          icon: 'ri-mail-send-line',
+          icon: LuSend,
           onSelect: onResend,
         },
         {
           label: t('actionsDeactivate'),
-          icon: 'ri-forbid-line',
+          icon: LuBan,
           destructive: true,
           onSelect: onDeactivate,
         },
@@ -86,7 +87,7 @@ export function EmployeeRowActions({ locale, employee }: EmployeeRowActionsProps
       return [
         {
           label: t('actionsDeactivate'),
-          icon: 'ri-forbid-line',
+          icon: LuBan,
           destructive: true,
           onSelect: onDeactivate,
         },
@@ -96,7 +97,7 @@ export function EmployeeRowActions({ locale, employee }: EmployeeRowActionsProps
     return [
       {
         label: t('actionsReactivate'),
-        icon: 'ri-restart-line',
+        icon: LuRotateCw,
         onSelect: onReactivate,
       },
     ];

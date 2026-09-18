@@ -14,7 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { createEmployee, ApiException } from '@/lib/api';
+import { createEmployee, listStations, ApiException } from '@/lib/api';
 import type {
   ClearanceLevel,
   Employee,
@@ -68,16 +68,8 @@ export function NewEmployeeForm({
 
   async function loadStations(locationId: string): Promise<void> {
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:4000'}/api/admin/employees/stations?locationId=${encodeURIComponent(locationId)}`,
-        { credentials: 'include' },
-      );
-      if (res.ok) {
-        const data = (await res.json()) as { stations: Station[] };
-        setStations(data.stations);
-      } else {
-        setStations([]);
-      }
+      const data = await listStations(locationId);
+      setStations(data.stations);
     } catch {
       setStations([]);
     }

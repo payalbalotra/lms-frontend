@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { InviteResult } from '@/lib/types';
+import { LuPlus } from 'react-icons/lu';
 
 interface InviteResultProps {
   locale: string;
@@ -55,7 +56,7 @@ export function InviteResultCard({ locale, invite, employeeName, onCreateAnother
         <div>
           <p className="mb-1 text-sm font-medium">{t('codeLabel')}</p>
           <div className="flex items-center gap-2">
-            <code className="rounded-md border border-[var(--color-line)] bg-[var(--color-panel)] px-4 py-2 font-mono text-2xl tracking-widest text-[var(--color-ink)]">
+            <code className="rounded-md border border-[var(--color-line)] bg-[var(--color-panel)] px-4 py-2 font-mono text-2xl text-[var(--color-ink)]">
               {invite.code}
             </code>
             <Button size="sm" variant="neutral" onClick={() => void copy(invite.code, 'code')}>
@@ -71,7 +72,7 @@ export function InviteResultCard({ locale, invite, employeeName, onCreateAnother
 
         <div className="flex flex-wrap gap-2 pt-2">
           <Button variant="secondary" onClick={onCreateAnother}>
-            <i aria-hidden="true" className="ri-add-line text-[length:var(--text-lg)]" />
+            <LuPlus aria-hidden="true" className="text-lg" />
             {t('createAnother')}
           </Button>
           <Link href={`/${locale}/admin/employees`}>

@@ -10,17 +10,40 @@ import { classifyVideoUrl } from '@/lib/procedure-media';
 import {
   Allergen,
   CriticalLimitFull,
-  IngredientsTable,
   MethodSteps,
   NoteBlock,
-  Scaler,
   Section,
   Shot,
-  VideoCover,
-  Yield,
+  Triggers,
   type MethodStep,
   type ChapterRow,
 } from './index';
+import { LuDownload, LuFileText } from 'react-icons/lu';
+import { Icon } from '@/components/ui/icon';
+import { RecipeBody } from './recipe-body';
+
+/**
+ * The block stream, laid out as the templates in /sop-template.html and
+ * /sop-recipe-format.html lay a document out.
+ *
+ * Those templates are not a wall of blocks: they are a run of
+ * `<section class="doc-sec">`, each with one h2 and the paragraphs, lists, photos
+ * and notes that belong under it. The API sends a flat list, so this groups it —
+ * a heading opens a section, everything after it falls inside — which is what
+ * gives the page its left margin, its section rhythm, and callouts that sit
+ * inside the text column instead of running the full width of the sheet.
+ *
+ * Everything below uses the document's own classes (.triggers, .shot, .ing,
+ * .note-block). No Tailwind is added here: a change to the template's CSS has to
+ * land on this page too, and it cannot if the page has restyled it.
+ */
+
+const NOTE_KINDS: ProcedureNoteKind[] = ['warn', 'tip', 'alt', 'equip', 'allergen'];
+
+const LABELS = {
+  en: { yieldTitle: 'Yield', method: 'Method', steps: (n: number) => `${n} steps`, batch: 'Batch', attachments: 'Attachments' },
+  es: { yieldTitle: 'Rendimiento', method: 'Método', steps: (n: number) => `${n} pasos`, batch: 'Lote', attachments: 'Archivos adjuntos' },
+} as const;
 
 function pickText(value: Localised, locale: 'en' | 'es'): string {
   return value[locale];
@@ -59,193 +82,222 @@ function toMethodStep(step: ProcedureMethodStep, locale: 'en' | 'es'): MethodSte
   return out;
 }
 
+/** The allergen banner belongs under the title, above the purpose — see the
+ *  recipe template. The page renders the first one there; the id comes back with
+ *  it so only that block's banner is skipped below. A document with a sauce and
+ *  its base has two recipe blocks and two sets of allergens, and the second one
+ *  is not less dangerous for being second. */
+export function findAllergen(
+  blocks: ProcedureBlock[],
+): { id: string; allergen: { summary: string; detail: string; selectedAllergens?: readonly string[] } } | null {
+  for (const [i, b] of blocks.entries()) {
+    if (b.kind === 'recipe' && b.allergen) return { id: b.id ?? String(i), allergen: b.allergen };
+  }
+  return null;
+}
+
 export function BlockRenderer({
   blocks,
   locale,
+  hoistedAllergenId,
 }: {
   blocks: ProcedureBlock[];
   locale: 'en' | 'es';
+  /** The block whose allergen banner the page has already rendered at the head. */
+  hoistedAllergenId?: string;
 }): React.ReactElement {
+  const t = LABELS[locale];
   const attachmentRows: ChapterRow[] = [];
+  const out: React.ReactNode[] = [];
 
-  const rendered = blocks.map((block, i) => {
+  // The section being filled. A heading opens one; a method or a recipe closes it,
+  // because those bring their own heading with them.
+  let open: { key: string; title?: string; nodes: React.ReactNode[] } | null = null;
+
+  const flush = (): void => {
+    if (!open) return;
+    if (open.title || open.nodes.length > 0) {
+      out.push(
+        <Section key={open.key} title={open.title}>
+          {open.nodes}
+        </Section>,
+      );
+    }
+    open = null;
+  };
+  const add = (key: string, node: React.ReactNode): void => {
+    if (!open) open = { key: `sec-${key}`, nodes: [] };
+    open.nodes.push(<React.Fragment key={key}>{node}</React.Fragment>);
+  };
+
+  blocks.forEach((block, i) => {
+    const key = block.id ?? String(i);
     switch (block.kind) {
-      case 'text':
-        return (
-          <p key={block.id ?? i} className="text-[length:var(--text-base)] text-[var(--color-ink)] leading-relaxed my-3 font-normal">
-            {pickText(block.body, locale)}
-          </p>
-        );
       case 'heading': {
         const text = pickText(block.text, locale);
-        if (block.level === 1) {
-          return (
-            <h2 key={block.id ?? i} className="font-[family-name:var(--font-display)] text-[length:var(--text-xl)] sm:text-[length:var(--text-2xl)] font-bold text-[var(--color-ink)] mt-8 mb-3 pb-2 border-b border-[var(--color-line)]">
-              {text}
-            </h2>
-          );
+        // h1 and h2 are the document's sections; anything deeper is a subheading
+        // inside the section that is already open. Deeper-but-first opens a
+        // section anyway: an h3 with no h2 above it is a hole in the outline, and
+        // the fix belongs here rather than in every document that has one.
+        if (block.level >= 3 && open && open.title) {
+          add(key, <h3>{text}</h3>);
+          return;
         }
-        if (block.level === 2) {
-          return (
-            <h3 key={block.id ?? i} className="font-[family-name:var(--font-ui)] text-[length:var(--text-lg)] font-bold text-[var(--color-ink)] mt-6 mb-2">
-              {text}
-            </h3>
-          );
-        }
-        return (
-          <h4 key={block.id ?? i} className="font-[family-name:var(--font-ui)] text-[length:var(--text-md)] font-semibold text-[var(--color-ink)] mt-4 mb-2">
-            {text}
-          </h4>
+        flush();
+        open = { key: `sec-${key}`, title: text, nodes: [] };
+        return;
+      }
+      case 'text': {
+        // A body written as one line per item is a list — the template's
+        // .triggers, a row of dot-marked lines, not a paragraph of sentences.
+        const body = pickText(block.body, locale);
+        const lines = body.split('\n').map((l) => l.trim()).filter(Boolean);
+        add(key, lines.length > 1 ? <Triggers items={lines} /> : <p>{body}</p>);
+        return;
+      }
+      case 'warning': {
+        // A severity this build does not know about still has something to say,
+        // so it is shown as a warning rather than thrown at the reader as a 500.
+        const kind: ProcedureNoteKind = NOTE_KINDS.includes(block.severity as ProcedureNoteKind)
+          ? (block.severity as ProcedureNoteKind)
+          : 'warn';
+        add(key, <NoteBlock kind={kind}>{pickText(block.body, locale)}</NoteBlock>);
+        return;
+      }
+      case 'image': {
+        add(key, <Shot src={block.src} alt={pickText(block.alt, locale)} caption={pickOpt(block.caption, locale)} />);
+        return;
+      }
+      case 'video': {
+        const caption = pickOpt(block.caption, locale);
+        const videoClass = classifyVideoUrl(block.src);
+        add(
+          key,
+          <figure className="shot">
+            {videoClass.provider === 'file' ? (
+              <video controls src={block.src} />
+            ) : videoClass.embedUrl ? (
+              <iframe
+                src={videoClass.embedUrl}
+                title={caption ?? 'video'}
+                className="aspect-video w-full rounded-[var(--radius-md)]"
+                allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                referrerPolicy="no-referrer"
+              />
+            ) : null}
+            {caption ? <figcaption>{caption}</figcaption> : null}
+          </figure>,
         );
+        return;
+      }
+      case 'table': {
+        // The recipe's ingredient table frame, with prose cells: same document,
+        // same table, but these cells are sentences rather than quantities.
+        add(
+          key,
+          <table className="dtable">
+            <thead>
+              <tr>
+                {block.headers.map((h, j) => (
+                  <th key={j} scope="col">
+                    {pickText(h, locale)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {block.rows.map((row, ri) => (
+                <tr key={ri}>
+                  {row.map((cell, j) => (
+                    <td key={j}>{pickText(cell, locale)}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>,
+        );
+        return;
+      }
+      case 'attachment': {
+        attachmentRows.push({
+          icon: LuFileText,
+          title: pickText(block.title, locale),
+          meta: block.meta,
+          href: block.href,
+          kind: 'attachment',
+        });
+        return;
       }
       case 'method': {
+        flush();
         const steps = block.steps.map((s) => toMethodStep(s, locale));
-        return (
-          <Section key={block.id ?? i} title="Method" count={`${steps.length} steps`}>
+        out.push(
+          <Section key={key} title={t.method} count={t.steps(steps.length)}>
             <MethodSteps steps={steps} />
-          </Section>
+          </Section>,
         );
+        return;
       }
       case 'recipe': {
+        flush();
         const steps = block.steps.map((s) => toMethodStep(s, locale));
-        return (
-          <Section key={block.id ?? i} title="Recipe">
-            {block.allergen && (
+        out.push(
+          <React.Fragment key={key}>
+            {block.allergen && key !== hoistedAllergenId ? (
               <Allergen
                 summary={block.allergen.summary}
                 detail={block.allergen.detail}
                 selectedAllergens={block.allergen.selectedAllergens}
                 locale={locale}
               />
-            )}
-            {block.yieldItems && block.yieldItems.length > 0 && (
-              <Yield
-                items={block.yieldItems.map((y) => ({ label: y.label, value: y.value }))}
-              />
-            )}
-            {block.factors && block.factors.length > 0 && (
-              <Scaler factors={block.factors} selected={block.factors[0]} />
-            )}
-            {block.ingredients && block.ingredients.length > 0 && block.factors && (
-              <IngredientsTable
-                ingredients={block.ingredients.map((ing) => ({
-                  name: ing.name,
-                  form: ing.form,
-                  allergen: ing.allergen,
-                  amounts: ing.amounts,
-                }))}
-                factors={block.factors}
-                selectedFactor={block.factors[0]}
-              />
-            )}
-            <MethodSteps steps={steps} />
-          </Section>
-        );
-      }
-      case 'image': {
-        const alt = pickText(block.alt, locale);
-        const caption = pickOpt(block.caption, locale);
-        return (
-          <figure key={block.id ?? i} className="my-6 space-y-2 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-wash)]/40 p-3 shadow-xs">
-            <div className="flex items-center justify-center overflow-hidden rounded-[var(--radius-md)] bg-white max-h-96">
-              {/* eslint-disable-next-html-element-suppress */}
-              <img src={block.src} alt={alt} className="max-h-96 w-auto object-contain rounded" loading="lazy" />
-            </div>
-            {caption && <figcaption className="text-center text-[length:var(--text-xs)] text-[var(--color-ink-2)] font-medium pt-1">{caption}</figcaption>}
-          </figure>
-        );
-      }
-      case 'video': {
-        const caption = pickOpt(block.caption, locale);
-        const videoClass = classifyVideoUrl(block.src);
-        return (
-          <figure key={block.id ?? i} className="my-6 space-y-2 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-black p-2 shadow-xs">
-            {videoClass.provider === 'file' ? (
-              <video controls src={block.src} className="w-full max-h-96 object-contain rounded-md" />
-            ) : videoClass.embedUrl ? (
-              <iframe
-                src={videoClass.embedUrl}
-                title={caption ?? 'video'}
-                className="aspect-video w-full rounded-md"
-                allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                referrerPolicy="no-referrer"
-              />
             ) : null}
-            {caption && <figcaption className="text-center text-[length:var(--text-xs)] text-white/80 font-medium pt-1">{caption}</figcaption>}
-          </figure>
+            <RecipeBody
+              factors={block.factors ?? []}
+              yieldItems={block.yieldItems ?? []}
+              ingredients={(block.ingredients ?? []).map((ing) => ({
+                name: ing.name,
+                form: ing.form,
+                allergen: ing.allergen,
+                amounts: ing.amounts,
+              }))}
+              steps={steps}
+              batchLabel={t.batch}
+              yieldTitle={t.yieldTitle}
+              methodTitle={t.method}
+              stepsCount={t.steps(steps.length)}
+            />
+          </React.Fragment>,
         );
-      }
-      case 'warning': {
-        const sev = block.severity as ProcedureNoteKind;
-        return (
-          <NoteBlock key={block.id ?? i} kind={sev}>
-            {pickText(block.body, locale)}
-          </NoteBlock>
-        );
-      }
-      case 'attachment': {
-        const title = pickText(block.title, locale);
-        const row: ChapterRow = {
-          icon: 'ri-file-pdf-2-line',
-          title,
-          meta: block.meta,
-          href: block.href,
-          kind: 'attachment',
-        };
-        attachmentRows.push(row);
-        return null;
-      }
-      case 'table': {
-        return (
-          <div key={block.id ?? i} className="my-6 overflow-x-auto rounded-[var(--radius-md)] border border-[var(--color-line-2)]">
-            <table className="w-full text-left text-[length:var(--text-sm)]">
-              <thead className="border-b border-[var(--color-line-2)] bg-[var(--color-wash)] text-[length:var(--text-xs)] font-semibold uppercase tracking-wide text-[var(--color-ink-3)]">
-                <tr>
-                  {block.headers.map((h, j) => (
-                    <th key={j} className="px-4 py-3">{pickText(h, locale)}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--color-line)] bg-white">
-                {block.rows.map((row, ri) => (
-                  <tr key={ri} className="hover:bg-[var(--color-wash)]/50 transition-colors">
-                    {row.map((cell, j) => (
-                      <td key={j} className="px-4 py-3 text-[var(--color-ink)]">{pickText(cell, locale)}</td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        );
+        return;
       }
     }
   });
+  flush();
 
   return (
-    <div className="doc-prose">
-      {rendered}
+    <>
+      {out}
       {attachmentRows.length > 0 && (
-        <Section title="Attachments">
+        <Section title={t.attachments}>
           <div className="chapters">
             {attachmentRows.map((r, i) => (
               <a key={i} className="chapter" href={r.href}>
                 <span className="idx">
-                  <i className={r.icon + ' i i-sm'} aria-hidden="true" />
+                  <Icon icon={r.icon} className="i i-sm" />
                 </span>
                 <div>
                   <div className="title">{r.title}</div>
                   {r.meta && <div className="meta">{r.meta}</div>}
                 </div>
                 <span className="tail">
-                  <i className="ri-download-line i" aria-hidden="true" />
+                  <LuDownload aria-hidden="true" className="i" />
                 </span>
               </a>
             ))}
           </div>
         </Section>
       )}
-    </div>
+    </>
   );
 }

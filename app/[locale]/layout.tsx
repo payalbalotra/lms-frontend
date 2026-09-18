@@ -40,11 +40,6 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,600;9..40,700&family=Inter:wght@400;500;600;700&display=swap"
         />
-        {/* Remix Icon — line style throughout, sized by font-size. */}
-        <link
-          rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/remixicon@4.9.0/fonts/remixicon.css"
-        />
       </head>
       <body>
         <NextIntlClientProvider messages={messages}>{children}</NextIntlClientProvider>

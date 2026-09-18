@@ -22,6 +22,7 @@ import {
   ApiException,
 } from '@/lib/api';
 import type { Location, Station } from '@/lib/types';
+import { LuInbox, LuPencil, LuPlus } from 'react-icons/lu';
 
 interface StationsManagerProps {
   locale: string;
@@ -157,12 +158,12 @@ export function StationsManager({
       return [
         {
           label: t('actionsEdit'),
-          icon: 'ri-pencil-line',
+          icon: LuPencil,
           onSelect: () => startEdit(s),
         },
         {
           label: t('actionsUnarchive'),
-          icon: 'ri-inbox-archive-line',
+          icon: LuInbox,
           onSelect: () => doUnarchive(s),
         },
       ];
@@ -170,12 +171,12 @@ export function StationsManager({
     return [
       {
         label: t('actionsEdit'),
-        icon: 'ri-pencil-line',
+        icon: LuPencil,
         onSelect: () => startEdit(s),
       },
       {
         label: t('actionsArchive'),
-        icon: 'ri-inbox-archive-line',
+        icon: LuInbox,
         destructive: true,
         onSelect: () => doArchive(s),
       },
@@ -192,7 +193,7 @@ export function StationsManager({
             setCreateOpen(true);
           }}
         >
-          <i aria-hidden="true" className="ri-add-line text-[length:var(--text-lg)]" />
+          <LuPlus aria-hidden="true" className="text-lg" />
           {t('stationsCreateHeading')}
         </Button>
       </div>

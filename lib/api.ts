@@ -137,6 +137,8 @@ const SEED_PROCEDURES: Procedure[] = [
     updatedAt: '2026-09-04T00:00:00Z',
     bodyEn: {
       blocks: [
+        { id: 'cl-img', kind: 'image', src: '/img/cover-sanitising.jpg', hint: 'photo',
+          alt: { en: 'Two red buckets on a stainless bench, labelled WASH and SANITISE, a cloth over each rim and a bottle of test strips beside them.', es: 'Dos cubetas rojas sobre una mesa de acero, rotuladas LAVAR y DESINFECTAR, con un paño en cada borde y un frasco de tiras reactivas al lado.' } },
         { id: 'b1', kind: 'heading', level: 2, text: { en: 'Who this is for', es: 'A quién está dirigido' } },
         { id: 'b2', kind: 'text', body: { en: 'Everyone who prepares, cooks or plates food. It covers cutting boards, prep tables, knives, tongs, and slicers.', es: 'Todos los que preparan o sirven alimentos.' } },
         { id: 'b3', kind: 'heading', level: 2, text: { en: 'Equipment Needed', es: 'Equipo Necesario' } },
@@ -168,6 +170,8 @@ const SEED_PROCEDURES: Procedure[] = [
     },
     bodyEs: {
       blocks: [
+        { id: 'cl-img', kind: 'image', src: '/img/cover-sanitising.jpg', hint: 'photo',
+          alt: { en: 'Two red buckets on a stainless bench, labelled WASH and SANITISE, a cloth over each rim and a bottle of test strips beside them.', es: 'Dos cubetas rojas sobre una mesa de acero, rotuladas LAVAR y DESINFECTAR, con un paño en cada borde y un frasco de tiras reactivas al lado.' } },
         { id: 'b1', kind: 'heading', level: 2, text: { en: 'Who this is for', es: 'A quién está dirigido' } },
         { id: 'b2', kind: 'text', body: { en: 'Everyone who prepares, cooks or plates food.', es: 'Todos los que preparan o sirven alimentos.' } },
         { id: 'b3', kind: 'heading', level: 2, text: { en: 'Equipment Needed', es: 'Equipo Necesario' } },
@@ -241,6 +245,8 @@ const SEED_PROCEDURES: Procedure[] = [
     updatedAt: '2026-09-02T00:00:00Z',
     bodyEn: {
       blocks: [
+        { id: 'op-img', kind: 'image', src: '/img/equipment.jpg', hint: 'photo',
+          alt: { en: 'Everything for the shift laid out on the bench before service: produce, a stone molcajete, a digital scale and a stainless pan.', es: 'Todo lo del turno dispuesto en la mesa antes del servicio: producto, un molcajete de piedra, una báscula digital y una charola de acero.' } },
         { id: 'op-h1', kind: 'heading', level: 1, text: { en: 'Opening Sequence', es: 'Secuencia de Apertura' } },
         { id: 'op-t1', kind: 'text', body: { en: 'Turn on main ventilation hoods and verify air flow.', es: 'Encienda las campanas de extracción y verifique el flujo de aire.' } },
         { id: 'op-t2', kind: 'text', body: { en: 'Inspect walk-in cooler temperatures (must be below 40°F / 4°C).', es: 'Inspeccione la temperatura del refrigerador (debe estar por debajo de 4°C).' } },
@@ -250,6 +256,8 @@ const SEED_PROCEDURES: Procedure[] = [
     },
     bodyEs: {
       blocks: [
+        { id: 'op-img', kind: 'image', src: '/img/equipment.jpg', hint: 'photo',
+          alt: { en: 'Everything for the shift laid out on the bench before service: produce, a stone molcajete, a digital scale and a stainless pan.', es: 'Todo lo del turno dispuesto en la mesa antes del servicio: producto, un molcajete de piedra, una báscula digital y una charola de acero.' } },
         { id: 'op-h1', kind: 'heading', level: 1, text: { en: 'Opening Sequence', es: 'Secuencia de Apertura' } },
         { id: 'op-t1', kind: 'text', body: { en: 'Turn on main ventilation hoods and verify air flow.', es: 'Encienda las campanas de extracción y verifique el flujo de aire.' } },
         { id: 'op-t2', kind: 'text', body: { en: 'Inspect walk-in cooler temperatures (must be below 40°F / 4°C).', es: 'Inspeccione la temperatura del refrigerador (debe estar por debajo de 4°C).' } },
@@ -272,6 +280,8 @@ const SEED_PROCEDURES: Procedure[] = [
     updatedAt: '2026-09-03T00:00:00Z',
     bodyEn: {
       blocks: [
+        { id: 'sv-img', kind: 'image', src: '/img/video-cover.jpg', hint: 'photo',
+          alt: { en: 'Finished green salsa in a stone molcajete, on a bench with limes and chillies.', es: 'Salsa verde terminada en un molcajete de piedra, sobre la mesa con limones y chiles.' } },
         { id: 'sv-h1', kind: 'heading', level: 1, text: { en: 'Ingredients & Preparation', es: 'Ingredientes y Preparación' } },
         { id: 'sv-t1', kind: 'text', body: { en: 'Roast 5kg husked tomatillos on the plancha until evenly charred.', es: 'Ase 5 kg de tomatillos pelados en la plancha hasta que estén tatemados.' } },
         { id: 'sv-t2', kind: 'text', body: { en: 'Blend with fresh cilantro, jalapeno, garlic, onion, and sea salt.', es: 'Licúe con cilantro fresco, jalapeño, ajo, cebolla y sal de mar.' } },
@@ -281,6 +291,8 @@ const SEED_PROCEDURES: Procedure[] = [
     },
     bodyEs: {
       blocks: [
+        { id: 'sv-img', kind: 'image', src: '/img/video-cover.jpg', hint: 'photo',
+          alt: { en: 'Finished green salsa in a stone molcajete, on a bench with limes and chillies.', es: 'Salsa verde terminada en un molcajete de piedra, sobre la mesa con limones y chiles.' } },
         { id: 'sv-h1', kind: 'heading', level: 1, text: { en: 'Ingredients & Preparation', es: 'Ingredientes y Preparación' } },
         { id: 'sv-t1', kind: 'text', body: { en: 'Roast 5kg husked tomatillos on the plancha until evenly charred.', es: 'Ase 5 kg de tomatillos pelados en la plancha hasta que estén tatemados.' } },
         { id: 'sv-t2', kind: 'text', body: { en: 'Blend with fresh cilantro, jalapeno, garlic, onion, and sea salt.', es: 'Licúe con cilantro fresco, jalapeño, ajo, cebolla y sal de mar.' } },
@@ -303,6 +315,8 @@ const SEED_PROCEDURES: Procedure[] = [
     updatedAt: '2026-09-05T00:00:00Z',
     bodyEn: {
       blocks: [
+        { id: 'gr-img', kind: 'image', src: '/img/cover-fryer-oil.jpg', hint: 'photo',
+          alt: { en: 'The hot line at the start of a shift, with the equipment clean and the guards in place.', es: 'La línea caliente al inicio del turno, con el equipo limpio y los protectores colocados.' } },
         { id: 'gr-h1', kind: 'heading', level: 1, text: { en: 'Safety & Setup Guidelines', es: 'Instrucciones de Seguridad y Configuración' } },
         { id: 'gr-t1', kind: 'text', body: { en: 'Verify grease trays are emptied and flame guards are positioned correctly.', es: 'Verifique que las charolas de grasa estén vacías y los protectores colocados.' } },
         { id: 'gr-t2', kind: 'text', body: { en: 'Preheat grill surface to minimum 450°F (230°C) before placing proteins.', es: 'Precaliente la superficie de la parrilla a un mínimo de 230°C.' } },
@@ -311,6 +325,8 @@ const SEED_PROCEDURES: Procedure[] = [
     },
     bodyEs: {
       blocks: [
+        { id: 'gr-img', kind: 'image', src: '/img/cover-fryer-oil.jpg', hint: 'photo',
+          alt: { en: 'The hot line at the start of a shift, with the equipment clean and the guards in place.', es: 'La línea caliente al inicio del turno, con el equipo limpio y los protectores colocados.' } },
         { id: 'gr-h1', kind: 'heading', level: 1, text: { en: 'Safety & Setup Guidelines', es: 'Instrucciones de Seguridad y Configuración' } },
         { id: 'gr-t1', kind: 'text', body: { en: 'Verify grease trays are emptied and flame guards are positioned correctly.', es: 'Verifique que las charolas de grasa estén vacías y los protectores colocados.' } },
         { id: 'gr-t2', kind: 'text', body: { en: 'Preheat grill surface to minimum 450°F (230°C) before placing proteins.', es: 'Precaliente la superficie de la parrilla a un mínimo de 230°C.' } },
@@ -350,6 +366,31 @@ let mockCategories: Category[] = getStored('categories', SEED_CATEGORIES);
 let mockEmployees: AdminEmployee[] = getStored('employees', SEED_EMPLOYEES);
 let mockProcedures: Procedure[] = getStored('procedures', SEED_PROCEDURES);
 
+function getLocationsStore(): Location[] {
+  if (typeof window !== 'undefined') mockLocations = getStored('locations', SEED_LOCATIONS);
+  return mockLocations;
+}
+function getRolesStore(): Role[] {
+  if (typeof window !== 'undefined') mockRoles = getStored('roles', SEED_ROLES);
+  return mockRoles;
+}
+function getStationsStore(): Station[] {
+  if (typeof window !== 'undefined') mockStations = getStored('stations', SEED_STATIONS);
+  return mockStations;
+}
+function getCategoriesStore(): Category[] {
+  if (typeof window !== 'undefined') mockCategories = getStored('categories', SEED_CATEGORIES);
+  return mockCategories;
+}
+function getEmployeesStore(): AdminEmployee[] {
+  if (typeof window !== 'undefined') mockEmployees = getStored('employees', SEED_EMPLOYEES);
+  return mockEmployees;
+}
+function getProceduresStore(): Procedure[] {
+  if (typeof window !== 'undefined') mockProcedures = getStored('procedures', SEED_PROCEDURES);
+  return mockProcedures;
+}
+
 // ----------------------------------------------------------------------------
 // Typed endpoints (Zero Backend Demo Mode)
 // ----------------------------------------------------------------------------
@@ -362,7 +403,7 @@ export interface LoginInput {
 }
 
 export async function login(_input: LoginInput): Promise<{ employee: Employee }> {
-  const emp = mockEmployees[0];
+  const emp = getEmployeesStore()[0];
   return { employee: emp };
 }
 
@@ -371,7 +412,7 @@ export async function logout(): Promise<{ ok: true }> {
 }
 
 export async function fetchMe(_cookieHeader?: string, _signal?: AbortSignal): Promise<{ employee: Employee }> {
-  const emp = mockEmployees[0];
+  const emp = getEmployeesStore()[0];
   return { employee: emp };
 }
 
@@ -380,7 +421,7 @@ export async function fetchMe(_cookieHeader?: string, _signal?: AbortSignal): Pr
 // ----------------------------------------------------------------------------
 
 export async function listRoles(_cookieHeader?: string): Promise<{ roles: Role[] }> {
-  return { roles: [...mockRoles] };
+  return { roles: [...getRolesStore()] };
 }
 
 export async function listStations(
@@ -388,14 +429,14 @@ export async function listStations(
   _cookieHeader?: string,
   opts: { includeArchived?: boolean } = {},
 ): Promise<{ stations: Station[] }> {
-  const filtered = mockStations.filter(
+  const filtered = getStationsStore().filter(
     (s) => s.locationId === locationId && (opts.includeArchived || !s.isArchived),
   );
   return { stations: filtered };
 }
 
 export async function listLocations(_cookieHeader?: string): Promise<{ locations: Location[] }> {
-  return { locations: [...mockLocations] };
+  return { locations: [...getLocationsStore()] };
 }
 
 // ----------------------------------------------------------------------------
@@ -407,7 +448,8 @@ export async function listEmployees(
   _cookieHeader?: string,
 ): Promise<{ employees: AdminEmployee[] }> {
   const status = opts.status ?? 'all';
-  const filtered = status === 'all' ? mockEmployees : mockEmployees.filter((e) => e.status === status);
+  const emps = getEmployeesStore();
+  const filtered = status === 'all' ? emps : emps.filter((e) => e.status === status);
   return { employees: [...filtered] };
 }
 
@@ -572,7 +614,8 @@ export async function activate(_input: { token: string; code: string; password: 
 // ----------------------------------------------------------------------------
 
 export async function createProcedure(input: CreateProcedureInput): Promise<{ procedure: Procedure }> {
-  const cat = mockCategories.find((c) => c.id === input.categoryId) ?? null;
+  const cats = getCategoriesStore();
+  const cat = cats.find((c) => c.id === input.categoryId) ?? null;
   const slug = input.titleEn.toLowerCase().replace(/[^a-z0-0]+/g, '-').replace(/(^-|-$)/g, '') || `proc-${Date.now()}`;
 
   const newProc: Procedure = {
@@ -591,7 +634,7 @@ export async function createProcedure(input: CreateProcedureInput): Promise<{ pr
     updatedAt: new Date().toISOString(),
   };
 
-  mockProcedures = [newProc, ...mockProcedures];
+  mockProcedures = [newProc, ...getProceduresStore()];
   setStored('procedures', mockProcedures);
   return { procedure: newProc };
 }
@@ -600,7 +643,8 @@ export async function listProcedures(
   filter: { status?: Procedure['status'] } = {},
   _cookieHeader?: string,
 ): Promise<{ procedures: Procedure[] }> {
-  const filtered = filter.status ? mockProcedures.filter((p) => p.status === filter.status) : mockProcedures;
+  const procs = getProceduresStore();
+  const filtered = filter.status ? procs.filter((p) => p.status === filter.status) : procs;
   return { procedures: [...filtered] };
 }
 
@@ -609,20 +653,8 @@ export async function getProcedureBySlug(
   _cookieHeader?: string,
 ): Promise<{ procedure: Procedure }> {
   const normSlug = slug.toLowerCase();
-  let proc = mockProcedures.find(
-    (p) =>
-      p.slug === normSlug ||
-      p.id === normSlug ||
-      p.slug.includes(normSlug) ||
-      normSlug.includes(p.slug) ||
-      p.slug.replace('-safety', '-setup') === normSlug ||
-      p.slug.replace('-setup', '-safety') === normSlug,
-  );
-
-  // Fallback in demo mode: if slug not explicitly matched, return the first procedure
-  if (!proc && mockProcedures.length > 0) {
-    proc = mockProcedures[0];
-  }
+  const procs = getProceduresStore();
+  const proc = procs.find((p) => p.slug.toLowerCase() === normSlug || p.id.toLowerCase() === normSlug);
 
   if (!proc) {
     throw new ApiException(404, 'PROCEDURE_NOT_FOUND', `Procedure ${slug} not found`);
@@ -639,7 +671,8 @@ export async function listCategories(
   opts: { includeArchived?: boolean } = {},
   _cookieHeader?: string,
 ): Promise<{ categories: Category[] }> {
-  const filtered = opts.includeArchived ? mockCategories : mockCategories.filter((c) => !c.isArchived);
+  const cats = getCategoriesStore();
+  const filtered = opts.includeArchived ? cats : cats.filter((c) => !c.isArchived);
   return { categories: [...filtered] };
 }
 
@@ -656,7 +689,7 @@ export async function createCategory(input: {
     nameEs: input.nameEs,
     isArchived: false,
   };
-  mockCategories = [...mockCategories, newCat];
+  mockCategories = [...getCategoriesStore(), newCat];
   setStored('categories', mockCategories);
   return { category: newCat };
 }
@@ -665,7 +698,8 @@ export async function updateCategory(
   id: string,
   patch: { nameEn?: string; nameEs?: string; isArchived?: boolean },
 ): Promise<{ category: Category }> {
-  mockCategories = mockCategories.map((c) => (c.id === id ? { ...c, ...patch } : c));
+  const cats = getCategoriesStore();
+  mockCategories = cats.map((c) => (c.id === id ? { ...c, ...patch } : c));
   setStored('categories', mockCategories);
   const updated = mockCategories.find((c) => c.id === id)!;
   return { category: updated };
