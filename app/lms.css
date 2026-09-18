@@ -1233,7 +1233,9 @@ dl.yield { margin: 0 0 var(--s-5); }
    the control is one white pill floating next to a word, and there is nothing to
    say the two belong together. The chosen seat drops the ring and takes the
    surface, lifted: the same "I am the thing on top" the cards on this ground use. */
-.segbar { display: inline-flex; gap: var(--s-1); padding: var(--s-1); border-radius: var(--r-pill); background: var(--panel); }
+/* Two rings, one line colour: the tray says "these belong together", each seat
+   says "this is a seat". Different colours would read as two controls. */
+.segbar { display: inline-flex; gap: var(--s-1); padding: var(--s-1); border-radius: var(--r-pill); background: var(--panel); box-shadow: inset 0 0 0 1px var(--line); }
 .segbar > * {
   display: inline-flex; align-items: center; min-height: var(--tap-admin); padding: 0 var(--s-3);
   border-radius: var(--r-pill); box-shadow: inset 0 0 0 1px var(--line);

@@ -6,7 +6,7 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import type { Employee } from '@/lib/types';
-import { LuArrowLeft, LuChartColumn, LuChefHat, LuCirclePlus, LuClipboardList, LuFolders, LuGraduationCap, LuHouse, LuLogOut, LuMapPin, LuMenu, LuUserCog, LuUserPlus, LuUsers, LuX } from 'react-icons/lu';
+import { LuArrowLeft, LuArrowUpRight, LuChartColumn, LuChefHat, LuCirclePlus, LuClipboardList, LuFolders, LuGraduationCap, LuHouse, LuLogOut, LuMapPin, LuMenu, LuUserCog, LuUserPlus, LuUsers, LuX } from 'react-icons/lu';
 import { Icon } from '@/components/ui/icon';
 import { AdminSearch } from '@/components/admin/admin-search';
 import type { IconType } from 'react-icons';
@@ -314,9 +314,11 @@ export function AdminShell({
                 this bar is not shown. */}
             <Link
               href={`/${locale}/employee/assigned`}
-              className="inline-flex min-h-tap-admin items-center rounded-full px-3 text-sm font-medium text-[var(--color-ink-2)] transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:bg-[var(--color-panel)] hover:text-[var(--color-ink)]"
+              className="inline-flex min-h-tap-admin items-center gap-1 rounded-full px-3 text-sm font-medium text-[var(--color-ink-2)] transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:bg-[var(--color-panel)] hover:text-[var(--color-ink)]"
             >
               {t('backToApp')}
+              {/* The mark for a link that leaves this area for the other one. */}
+              <LuArrowUpRight aria-hidden="true" />
             </Link>
             <LocaleSwitch locale={locale} label={tShell('langLabel')} />
           </div>

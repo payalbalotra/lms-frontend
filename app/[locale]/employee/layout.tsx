@@ -6,7 +6,7 @@ import { cookies } from 'next/headers';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { fetchMe, logout, ApiException } from '@/lib/api';
 import type { Employee } from '@/lib/types';
-import { LuLogOut } from 'react-icons/lu';
+import { LuArrowUpRight, LuLogOut } from 'react-icons/lu';
 
 // Force per-request SSR — without this Next.js prerenders the layout at build
 // time when no dynamic API is observed at module-init, and the build-time
@@ -59,9 +59,11 @@ export default async function EmployeeLayout({ children, params }: EmployeeLayou
           {employee.clearanceLevel === 'master' ? (
             <Link
               href={`/${locale}/admin`}
-              className="text-sm font-medium text-[var(--color-ink-2)] hover:text-[var(--color-brand-600)]"
+              className="inline-flex items-center gap-1 text-sm font-medium text-[var(--color-ink-2)] hover:text-[var(--color-brand-600)]"
             >
               {tCommon('admin')}
+              {/* The same mark the admin bar uses on the link back here. */}
+              <LuArrowUpRight aria-hidden="true" />
             </Link>
           ) : null}
           <form action={signOut}>
