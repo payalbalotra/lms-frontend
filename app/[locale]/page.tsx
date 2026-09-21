@@ -1,8 +1,5 @@
 import { redirect } from 'next/navigation';
-import { cookies, headers } from 'next/headers';
-import { fetchMe, ApiException } from '@/lib/api';
 
-// Root locale page: if signed in, send to /employee/assigned; otherwise to /login.
 export default async function LocaleRootPage({
   params,
 }: {
