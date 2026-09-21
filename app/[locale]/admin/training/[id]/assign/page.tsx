@@ -5,6 +5,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { LuArrowLeft, LuBookOpen, LuGraduationCap, LuSignature } from 'react-icons/lu';
 import { Icon } from '@/components/ui/icon';
 import { StatusPill } from '@/components/ui/status-pill';
+import { getQuizById } from '@/lib/api';
 import {
   getCourseById,
   listTrainingAssignmentsForCourse,
@@ -70,7 +71,7 @@ export default async function AssignCoursePage({
           </div>
 
           <div className="flex flex-wrap items-center gap-2 pt-1">
-            {course.quiz?.questions?.length ? (
+            {(course.quizId && getQuizById(course.quizId)?.questions?.length) ? (
               <StatusPill tone="info">{tCourse('quizAttached')}</StatusPill>
             ) : (
               <StatusPill tone="neutral">{tCourse('noQuiz')}</StatusPill>

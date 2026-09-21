@@ -262,6 +262,32 @@ export interface ProcedureQuiz {
   attached: boolean;
 }
 
+/** A quiz row in the centralised `quizzes` table — the single source of
+ *  truth for quiz data. Referenced by `Procedure.quizId` and (stage 3)
+ *  by `Course.quizId`. Quizzes are never shared across procedures or
+ *  courses; if the admin wants the same questions in two places, they
+ *  author once and duplicate. Mirrors the legacy `ProcedureQuiz` authoring
+ *  shape so `QuizEditor` and `QuizReader` work unchanged — the wizard
+ *  authors `ProcedureQuiz` locally, and on save creates a `Quiz` row and
+ *  stamps its id back onto the procedure. */
+export interface Quiz {
+  id: string;
+  questions: ProcedureQuizQuestion[];
+  /** Manual toggle. Visibility on the read side is the OR of this flag
+   *  and the parent procedure / course's training-attached flag. */
+  attached: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** How the attached quiz surfaces on the employee side.
+ *  - `'training'` (default): quiz only shows when the employee opens this SOP
+ *    from inside its linked training course. Standalone reads hide it.
+ *  - `'always'`: quiz surfaces on every read of the SOP, with completion
+ *    state tracked per employee (stage 3 — collapse + completed badge UX).
+ *  Ignored when `quizId` is null. */
+export type ProcedureQuizMode = 'training' | 'always';
+
 export interface Procedure {
   id: string;
   slug: string;
@@ -287,13 +313,28 @@ export interface Procedure {
    *  Archived procedures stay visible in the admin library under an
    *  opt-in filter for audit; the cook-side reader hides them. */
   isArchived: boolean;
-  /** Quiz attached to this procedure. Absent means no quiz authored yet.
-   *  Note: per PROJECT_OVERVIEW §02 Training Module, quizzes live on
-   *  training chapters — when a procedure is attached to a course via
-   *  `course_procedures`, the quiz lives on the chapter, not the SOP.
-   *  This inline field is the legacy / mock shape and will be removed
-   *  once the training slice lands. */
-  quiz?: ProcedureQuiz | null;
+  /** FK to the training course this SOP feeds into. `null` means the SOP
+   *  is standalone — it is not part of any training plan and the employee
+   *  only ever sees it via the library search. When non-null the linked
+   *  training course is what gates quiz visibility per `quizMode`. The
+   *  backend will add this column as `linked_training_id text` (nullable,
+   *  no FK constraint yet — the `training_courses` table itself lands in
+   *  stage 3, so the column stays free of the FK until then). */
+  linkedTrainingId: string | null;
+  /** How the attached quiz surfaces on the employee side. Defaults to
+   *  `'training'` for new procedures; ignored when `quizId` is null. See
+   *  `ProcedureQuizMode` for the full rules. */
+  quizMode: ProcedureQuizMode;
+  /** FK to the centralised `quizzes` table. `null` means no quiz attached.
+   *  The wizard authors the quiz locally in form state, and on save
+   *  creates a `Quiz` row via `createQuiz()` and stamps its id here. The
+   *  backend persists this as `quiz_id text` (nullable). */
+  quizId: string | null;
+  /** FK to the centralised `quizzes` table. `null` means no quiz attached.
+   *  The wizard authors the quiz locally in form state, and on save
+   *  creates a `Quiz` row via `createQuiz()` and stamps its id here. The
+   *  backend persists this as `quiz_id text` (nullable). */
+  quizId: string | null;
   /** Whether this procedure is part of a training plan. Legacy field —
    *  kept until the training-course UI is reworked (employee phase). */
   attachedToTraining?: boolean;
@@ -335,10 +376,19 @@ export interface CreateProcedureInput {
    *  sets this explicitly — archive is a separate admin action (⋯ kebab
    *  → Archive → modal confirm). */
   isArchived?: boolean;
-  /** Quiz to attach on save. `null` / omitted means no quiz yet. The
-   *  backend will mirror this onto the read side as `procedure.quiz`
-   *  until the training-chapter quiz model replaces it (stage 3). */
-  quiz?: ProcedureQuiz | null;
+  /** Training course this SOP feeds into. `null` / omitted means
+   *  standalone — no training plan attached. The wizard's Training &
+   *  Quiz step captures this; leaving it unset is the default. */
+  linkedTrainingId?: string | null;
+  /** How the attached quiz surfaces on the employee side. Defaults to
+   *  `'training'`. Ignored when `quiz` is null. The wizard's Training &
+   *  Quiz step captures this with a radio pair (Training only / Always). */
+  quizMode?: ProcedureQuizMode;
+  /** FK to a `Quiz` row to attach on save. `null` / omitted means no quiz
+   *  yet. The wizard authors the quiz locally in form state, calls
+   *  `createQuiz()` first to materialise the row, and passes the returned
+   *  id here. The backend persists this as `quiz_id text` (nullable). */
+  quizId?: string | null;
   /** Marks this procedure as a training course (vs an SOP / recipe).
    *  Surfaces it in the admin Training list, makes the employee Training
    *  tab its home, and gates the optional quiz block on read. */

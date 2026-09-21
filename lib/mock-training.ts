@@ -4,8 +4,6 @@ import type {
   ProcedureBody,
   ProcedureBlock,
   ProcedureMethodStep,
-  ProcedureQuiz,
-  ProcedureQuizQuestion,
   TrainingAssignment,
   TrainingAssignmentStatus,
   TrainingAssignmentRow,
@@ -140,35 +138,6 @@ const knifeSafetyBody: ProcedureBody = {
   ],
 };
 
-const knifeQuizQuestions: ProcedureQuizQuestion[] = [
-  {
-    id: 'kn-q1',
-    prompt: {
-      en: 'A cook drops a knife on the floor. What is the correct action?',
-      es: 'A un cocinero se le cae un cuchillo al piso. ¿Cuál es la acción correcta?',
-    },
-    choices: [
-      { id: 'kn-q1-a', label: { en: 'Try to catch it before it hits the floor.', es: 'Intentar atraparlo antes de que caiga.' } },
-      { id: 'kn-q1-b', label: { en: 'Step back. Do not try to catch it.', es: 'Dar un paso atrás. No intentar atraparlo.' } },
-      { id: 'kn-q1-c', label: { en: 'Pick it up immediately with a bare hand.', es: 'Recogerlo inmediatamente con la mano desnuda.' } },
-    ],
-    correctChoiceId: 'kn-q1-b',
-  },
-  {
-    id: 'kn-q2',
-    prompt: {
-      en: 'How do you hand a knife to another cook?',
-      es: '¿Cómo se le pasa un cuchillo a otro cocinero?',
-    },
-    choices: [
-      { id: 'kn-q2-a', label: { en: 'Blade first — they take the tip to control it.', es: 'Primero el filo — ellos agarran la punta para controlarlo.' } },
-      { id: 'kn-q2-b', label: { en: 'Handle first, announce "Knife behind you".', es: 'Por el mango, diciendo "Cuchillo detrás de usted".' } },
-      { id: 'kn-q2-c', label: { en: 'Lay it on a board and step aside.', es: 'Ponerlo sobre una tabla y hacerse a un lado.' } },
-    ],
-    correctChoiceId: 'kn-q2-b',
-  },
-];
-
 const allergenSteps: ProcedureMethodStep[] = [
   step('al-s1', 'Verify all nine Big-9 allergens on every prep line, every shift.', 'Verifique los nueve alérgenos del Big-9 en cada línea de preparación, cada turno.'),
   step('al-s2', 'Use dedicated boards (purple) for allergen tickets; do not cross stations.', 'Use tablas dedicadas (moradas) para las comandas con alérgenos; no cruce estaciones.'),
@@ -193,39 +162,6 @@ const allergenBody: ProcedureBody = {
     blockMethod('al-method', allergenSteps),
   ],
 };
-
-const allergenQuizQuestions: ProcedureQuizQuestion[] = [
-  {
-    id: 'al-q1',
-    prompt: {
-      en: 'How many of the Big-9 allergens must you verify on every prep line?',
-      es: '¿Cuántos de los nueve alérgenos principales debe verificar en cada línea de preparación?',
-    },
-    choices: [
-      { id: 'al-q1-a', label: { en: 'Five', es: 'Cinco' } },
-      { id: 'al-q1-b', label: { en: 'All of them — nine', es: 'Todos — nueve' } },
-      { id: 'al-q1-c', label: { en: 'Only the ones on the current ticket', es: 'Solo los de la comanda actual' } },
-    ],
-    correctChoiceId: 'al-q1-b',
-  },
-  {
-    id: 'al-q2',
-    prompt: {
-      en: 'An allergen ticket and a regular ticket for the same table arrive together. What runs first?',
-      es: 'Una comanda con alérgenos y una regular del mismo cliente llegan juntas. ¿Cuál va primero?',
-    },
-    choices: [
-      { id: 'al-q2-a', label: { en: 'The regular ticket — speed matters.', es: 'La regular — la velocidad importa.' } },
-      { id: 'al-q2-b', label: { en: 'The allergen ticket — always.', es: 'La de alérgenos — siempre.' } },
-      { id: 'al-q2-c', label: { en: 'Whichever the manager picks.', es: 'La que el gerente elija.' } },
-    ],
-    correctChoiceId: 'al-q2-b',
-  },
-];
-
-const handwashingQuiz: ProcedureQuiz = { questions: [], attached: false };
-const knifeQuiz: ProcedureQuiz = { questions: knifeQuizQuestions, attached: true };
-const allergenQuiz: ProcedureQuiz = { questions: allergenQuizQuestions, attached: true };
 
 // ---------------------------------------------------------------------------
 // Acknowledgement statements — the `I have read and understood` checkbox at
@@ -423,7 +359,9 @@ export const mockTrainingCourses: Procedure[] = [
     createdBy: 'admin-001',
     createdAt: '2026-08-12T08:00:00Z',
     updatedAt: '2026-09-01T08:00:00Z',
-    quiz: handwashingQuiz,
+    quizId: 'quiz-handwashing',
+    linkedTrainingId: null,
+    quizMode: 'training',
     attachedToTraining: true,
     linkedSops: ['sop-001', 'sop-004'],
     acknowledgement: handwashingAck,
@@ -444,7 +382,9 @@ export const mockTrainingCourses: Procedure[] = [
     createdBy: 'admin-001',
     createdAt: '2026-07-22T08:00:00Z',
     updatedAt: '2026-08-15T08:00:00Z',
-    quiz: knifeQuiz,
+    quizId: 'quiz-knife-safety',
+    linkedTrainingId: null,
+    quizMode: 'training',
     attachedToTraining: true,
     linkedSops: ['sop-004'],
     acknowledgement: knifeAck,
@@ -465,7 +405,9 @@ export const mockTrainingCourses: Procedure[] = [
     createdBy: 'admin-001',
     createdAt: '2026-06-04T08:00:00Z',
     updatedAt: '2026-09-12T08:00:00Z',
-    quiz: allergenQuiz,
+    quizId: 'quiz-allergen-awareness',
+    linkedTrainingId: null,
+    quizMode: 'training',
     attachedToTraining: true,
     linkedSops: [],
     acknowledgement: allergenAck,

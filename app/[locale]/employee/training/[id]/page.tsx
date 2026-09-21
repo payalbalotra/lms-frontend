@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { redirect, notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { LuArrowLeft, LuBookOpen, LuChevronRight, LuGraduationCap, LuSignature } from 'react-icons/lu';
-import { ApiException, fetchMe } from '@/lib/api';
+import { ApiException, fetchMe, getQuizById } from '@/lib/api';
 import {
   effectiveStatus,
   getCourseById,
@@ -142,7 +142,9 @@ export default async function EmployeeTrainingCoursePage({
         <div className="space-y-8">
           <BlockRenderer blocks={blocks} locale={localeForBlocks} />
 
-          {course.quiz?.attached && course.quiz.questions.length > 0 ? (
+          {(() => {
+            const quiz = course.quizId ? getQuizById(course.quizId) : null;
+            return quiz && quiz.attached && quiz.questions.length > 0 ? (
             <section className="space-y-4">
               <header className="flex items-center gap-2">
                 <Icon icon={LuGraduationCap} className="text-xl text-[var(--color-brand-700)]" aria-hidden="true" />
@@ -150,9 +152,10 @@ export default async function EmployeeTrainingCoursePage({
                   {t('quizHeading')}
                 </h2>
               </header>
-              <QuizReader quiz={course.quiz} locale={localeForBlocks} />
+              <QuizReader quiz={quiz} locale={localeForBlocks} />
             </section>
-          ) : null}
+            ) : null;
+          })()}
 
           {linkedSops.length > 0 ? (
             <section className="space-y-3">

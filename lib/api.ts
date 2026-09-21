@@ -14,12 +14,14 @@ import type {
   InviteResult,
   Location,
   Procedure,
+  ProcedureQuizMode,
   Role,
   Station,
   UpdateLocationInput,
   UpdateRoleInput,
   UpdateStationInput,
 } from './types';
+import { SEED_QUIZZES, type Quiz } from './quizzes';
 
 export const API_BASE = '';
 
@@ -140,44 +142,9 @@ const SEED_PROCEDURES: Procedure[] = [
     updatedAt: '2026-09-04T00:00:00Z',
     version: 1,
     isArchived: false,
-    quiz: {
-      questions: [
-        {
-          id: 'seed-q1',
-          prompt: { en: 'What is the minimum sanitiser concentration for food-contact surfaces?', es: '¿Cuál es la concentración mínima de sanitizante para superficies en contacto con alimentos?' },
-          choices: [
-            { id: 'c1', label: { en: '100 ppm for 10 seconds', es: '100 ppm por 10 segundos' } },
-            { id: 'c2', label: { en: '200 ppm for at least 30 seconds', es: '200 ppm por al menos 30 segundos' } },
-            { id: 'c3', label: { en: '400 ppm for 1 minute', es: '400 ppm por 1 minuto' } },
-            { id: 'c4', label: { en: 'No test needed if the bottle is new', es: 'No se necesita prueba si el frasco es nuevo' } },
-          ],
-          correctChoiceId: 'c2',
-        },
-        {
-          id: 'seed-q2',
-          prompt: { en: 'How often must the Sanitise bucket be tested?', es: '¿Con qué frecuencia se debe probar la cubeta de desinfección?' },
-          choices: [
-            { id: 'c1', label: { en: 'Once per shift', es: 'Una vez por turno' } },
-            { id: 'c2', label: { en: 'Every 4 hours and whenever remade', es: 'Cada 4 horas y cada vez que se rehace' } },
-            { id: 'c3', label: { en: 'Once per week', es: 'Una vez por semana' } },
-            { id: 'c4', label: { en: 'Only when the water looks dirty', es: 'Solo cuando el agua se ve sucia' } },
-          ],
-          correctChoiceId: 'c2',
-        },
-        {
-          id: 'seed-q3',
-          prompt: { en: 'After sanitising, how should the surface be dried?', es: 'Después de desinfectar, ¿cómo se debe secar la superficie?' },
-          choices: [
-            { id: 'c1', label: { en: 'Wipe with a clean towel', es: 'Secar con un paño limpio' } },
-            { id: 'c2', label: { en: 'Use paper towel and discard it', es: 'Usar papel absorbente y desecharlo' } },
-            { id: 'c3', label: { en: 'Let it air dry — do not towel it', es: 'Dejar secar al aire — no usar paño' } },
-            { id: 'c4', label: { en: 'Blow on it until dry', es: 'Soplar hasta que se seque' } },
-          ],
-          correctChoiceId: 'c3',
-        },
-      ],
-      attached: true,
-    },
+    quizId: 'quiz-cleaning',
+    linkedTrainingId: 'course-food-safety',
+    quizMode: 'training',
     bodyEn: {
       blocks: [
         { id: 'cl-img', kind: 'image', src: '/img/cover-sanitising.jpg', hint: 'photo',
@@ -259,6 +226,9 @@ const SEED_PROCEDURES: Procedure[] = [
     updatedAt: '2026-09-01T00:00:00Z',
     version: 1,
     isArchived: false,
+    quizId: null,
+    linkedTrainingId: 'course-food-safety',
+    quizMode: 'training',
     bodyEn: {
       blocks: [
         { id: 'h1', kind: 'heading', level: 1, text: { en: 'Proper Handwashing Procedure', es: 'Procedimiento Correcto de Lavado de Manos' } },
@@ -290,6 +260,9 @@ const SEED_PROCEDURES: Procedure[] = [
     updatedAt: '2026-09-02T00:00:00Z',
     version: 1,
     isArchived: false,
+    quizId: null,
+    linkedTrainingId: 'course-kitchen-ops',
+    quizMode: 'training',
     bodyEn: {
       blocks: [
         { id: 'op-img', kind: 'image', src: '/img/equipment.jpg', hint: 'photo',
@@ -327,6 +300,9 @@ const SEED_PROCEDURES: Procedure[] = [
     updatedAt: '2026-09-03T00:00:00Z',
     version: 1,
     isArchived: false,
+    quizId: null,
+    linkedTrainingId: 'course-recipes',
+    quizMode: 'training',
     bodyEn: {
       blocks: [
         { id: 'sv-img', kind: 'image', src: '/img/video-cover.jpg', hint: 'photo',
@@ -364,6 +340,9 @@ const SEED_PROCEDURES: Procedure[] = [
     updatedAt: '2026-09-05T00:00:00Z',
     version: 1,
     isArchived: false,
+    quizId: null,
+    linkedTrainingId: 'course-kitchen-ops',
+    quizMode: 'training',
     bodyEn: {
       blocks: [
         { id: 'gr-img', kind: 'image', src: '/img/cover-fryer-oil.jpg', hint: 'photo',
@@ -416,6 +395,11 @@ let mockStations: Station[] = getStored('stations', SEED_STATIONS);
 let mockCategories: Category[] = getStored('categories', SEED_CATEGORIES);
 let mockEmployees: AdminEmployee[] = getStored('employees', SEED_EMPLOYEES);
 let mockProcedures: Procedure[] = getStored('procedures', SEED_PROCEDURES);
+// Centralised quizzes table. The wizard authors quizzes locally in form
+// state and on save calls `createQuiz()` to materialise a row here and
+// stamp its id onto the procedure. Stage 3 (course creation) writes to
+// the same store — that is the whole point of having one table.
+let mockQuizzes: Quiz[] = getStored('quizzes', SEED_QUIZZES);
 
 function getLocationsStore(): Location[] {
   if (typeof window !== 'undefined') mockLocations = getStored('locations', SEED_LOCATIONS);
@@ -440,6 +424,10 @@ function getEmployeesStore(): AdminEmployee[] {
 function getProceduresStore(): Procedure[] {
   if (typeof window !== 'undefined') mockProcedures = getStored('procedures', SEED_PROCEDURES);
   return mockProcedures;
+}
+function getQuizzesStore(): Quiz[] {
+  if (typeof window !== 'undefined') mockQuizzes = getStored('quizzes', SEED_QUIZZES);
+  return mockQuizzes;
 }
 
 // ----------------------------------------------------------------------------
@@ -761,7 +749,18 @@ export async function createProcedure(input: CreateProcedureInput): Promise<{ pr
     // unarchived; archive is a separate admin action (⋯ kebab → Archive
     // → modal confirm).
     isArchived: input.isArchived ?? false,
-    quiz: input.quiz ?? null,
+    // FK to the centralised quizzes table. The wizard authors a quiz
+    // locally in form state, calls createQuiz() first to materialise a
+    // row, then passes that id here. `null` means the SOP has no quiz.
+    quizId: input.quizId ?? null,
+    // FK to a training course this SOP feeds into. `null` means the SOP
+    // is standalone — not part of any training plan. The Training &
+    // Quiz step captures this in the wizard.
+    linkedTrainingId: input.linkedTrainingId ?? null,
+    // Quiz visibility on the employee side. Defaults to 'training' so
+    // standalone reads of the SOP hide the quiz; 'always' surfaces it on
+    // every read. Ignored when quizId is null.
+    quizMode: (input.quizMode ?? 'training') as ProcedureQuizMode,
   };
 
   mockProcedures = [newProc, ...getProceduresStore()];
@@ -776,6 +775,48 @@ export async function listProcedures(
   const procs = getProceduresStore();
   const filtered = filter.status ? procs.filter((p) => p.status === filter.status) : procs;
   return { procedures: [...filtered] };
+}
+
+// ----------------------------------------------------------------------------
+// Library — quizzes (centralised table)
+// ----------------------------------------------------------------------------
+
+/** Look up every quiz in the centralised store. The reader-side
+ *  component joins `procedure.quizId` against this list to render the
+ *  quiz block. The wizard reads this list when it needs to copy an
+ *  existing quiz onto a new procedure. */
+export async function listQuizzes(): Promise<{ quizzes: Quiz[] }> {
+  return { quizzes: [...getQuizzesStore()] };
+}
+
+/** Sync lookup for a single quiz by id. Read-side components
+ *  (`procedure-view-client`, training pages) read this on each render
+ *  to resolve `procedure.quizId` to its quiz data. The backend will
+ *  swap this for a server-side join in the procedure / course response. */
+export function getQuizById(id: string | null): Quiz | null {
+  if (!id) return null;
+  return getQuizzesStore().find((q) => q.id === id) ?? null;
+}
+
+/** Materialise a quiz row from the wizard's authored form state. Returns
+ *  the id the wizard then stamps onto `procedure.quizId` via
+ *  `createProcedure({ quizId })`. The backend will replace this with a
+ *  POST to `/api/admin/quizzes`. */
+export async function createQuiz(input: {
+  questions: Quiz['questions'];
+  attached: boolean;
+}): Promise<{ quiz: Quiz }> {
+  const now = new Date().toISOString();
+  const newQuiz: Quiz = {
+    id: `quiz-${Date.now()}`,
+    questions: input.questions,
+    attached: input.attached,
+    createdAt: now,
+    updatedAt: now,
+  };
+  mockQuizzes = [newQuiz, ...getQuizzesStore()];
+  setStored('quizzes', mockQuizzes);
+  return { quiz: newQuiz };
 }
 
 export async function getProcedureBySlug(

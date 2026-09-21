@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RowActions } from '@/components/ui/row-actions';
 import { StatusPill } from '@/components/ui/status-pill';
+import { getQuizById } from '@/lib/api';
 import { LuArrowRight, LuCircleCheck, LuClock, LuFilePen, LuFilter, LuRefreshCw, LuSearch, LuUserPlus, LuX } from 'react-icons/lu';
 
 interface TrainingCourseExplorerProps {
@@ -122,7 +123,7 @@ export function TrainingCourseExplorer({
             const purpose = isEs
               ? row.course.purposeEs || row.course.purposeEn
               : row.course.purposeEn || row.course.purposeEs;
-            const hasQuiz = row.course.quiz?.questions?.length ? row.course.quiz.questions.length > 0 : false;
+            const hasQuiz = (row.course.quizId && getQuizById(row.course.quizId)?.questions?.length ? true : false);
             const status = row.course.status;
             const overdueRow = row.overdueCount > 0;
             const lastUpdatedLabel = new Date(row.course.updatedAt).toLocaleDateString(

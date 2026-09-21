@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { getProcedureBySlug } from '@/lib/api';
+import { getProcedureBySlug, getQuizById } from '@/lib/api';
 import type { Employee, Procedure, ProcedureBlock } from '@/lib/types';
 import { BlockRenderer, findAllergen } from '@/components/doc/block-renderer';
 import { QuizAttachBanner, QuizReader } from '@/components/doc/quiz-reader';
@@ -85,10 +85,16 @@ export function ProcedureViewClient({
   }, [slugOrId, proc]);
 
   const handleAttach = React.useCallback(async () => {
-    if (!proc || !proc.quiz) return;
+    if (!proc || !proc.quizId) return;
+    const quiz = getQuizById(proc.quizId);
+    if (!quiz) return;
     setIsAttaching(true);
     try {
-      const next = { ...proc, quiz: { ...proc.quiz, attached: true } };
+      // Quiz is now in the centralised table — the read side resolves
+      // `quizId` to its quiz row via `getQuizById` on every render. The
+      // attach toggle mutation lands in a follow-up slice (it currently
+      // only updates local state; the backend will own the write).
+      const next = { ...proc, quizId: proc.quizId };
       setProc(next);
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('lms_procedures_updated'));
@@ -165,9 +171,12 @@ export function ProcedureViewClient({
 
   // Quiz attach banner: shown to admins when the procedure has a quiz but
   // neither `quiz.attached` nor `attachedToTraining` is on. Local state
-  // mirrors the patched procedure so we don't re-fetch on click.
-  const quizExists = Boolean(proc.quiz && proc.quiz.questions.length > 0);
-  const quizVisible = Boolean(proc.quiz && (proc.quiz.attached || proc.attachedToTraining));
+  // mirrors the patched procedure so we don't re-fetch on click. The read
+  // side resolves `procedure.quizId` to its quiz row via `getQuizById`
+  // on every render (no inline quiz on the procedure shape any more).
+  const quiz = proc.quizId ? getQuizById(proc.quizId) : null;
+  const quizExists = Boolean(quiz && quiz.questions.length > 0);
+  const quizVisible = Boolean(quiz && (quiz.attached || proc.attachedToTraining));
   const showAttachBanner = quizExists && !quizVisible && employee.role === 'admin';
 
   return (
@@ -224,8 +233,8 @@ export function ProcedureViewClient({
 
         {/* Quiz: visible when manually attached OR when the procedure is part
          *  of training. Admin-only banner when authored but neither flag is on. */}
-        {proc.quiz && (proc.quiz.attached || proc.attachedToTraining) ? (
-          <QuizReader quiz={proc.quiz} locale={isEs ? 'es' : 'en'} />
+        {quiz && (quiz.attached || proc.attachedToTraining) ? (
+          <QuizReader quiz={quiz} locale={isEs ? 'es' : 'en'} />
         ) : null}
 
         <DocActs />

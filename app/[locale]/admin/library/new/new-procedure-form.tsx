@@ -13,7 +13,7 @@ import { Modal } from '@/components/ui/modal';
 import { Drawer } from '@/components/ui/drawer';
 import { QuizEditor } from '@/components/admin/quiz-editor';
 import { cn } from '@/lib/utils';
-import { createProcedure, createCategory, listCategories, ApiException } from '@/lib/api';
+import { createProcedure, createCategory, createQuiz, listCategories, ApiException } from '@/lib/api';
 import { getCategoryIcon } from '@/lib/category-icons';
 import type {
   Category,
@@ -23,6 +23,7 @@ import type {
   ProcedureIngredient,
   ProcedureMethodStep,
   ProcedureQuiz,
+  ProcedureQuizMode,
   ProcedureYieldItem,
   Localised,
   LocalisedOptional,
@@ -525,8 +526,16 @@ export function NewProcedureForm({
   const [blocks, setBlocksRaw] = useState<ProcedureBlock[]>([]);
   // Quiz authored in the wizard's Quiz step. `null` means the step was
   // skipped (no questions authored yet); an object with `attached: false`
-  // means the manager authored but chose not to attach.
+  // means the manager authored but chose not to attach. On save, a
+  // non-null quiz with at least one question is materialised via
+  // `createQuiz()` and its id stamped onto `procedure.quizId`.
   const [quiz, setQuiz] = useState<ProcedureQuiz | null>(null);
+  // Training & Quiz step fields. `linkedTrainingId` is the FK to the
+  // training course this SOP feeds into (null = standalone SOP). The
+  // wizard's UI for these is the next slice (F2.5b); defaults hold
+  // the type contract working in the meantime.
+  const [linkedTrainingId, setLinkedTrainingId] = useState<string | null>(null);
+  const [quizMode, setQuizMode] = useState<ProcedureQuizMode>('training');
 
   // Access selections (Step 3 / 4). Lives in the wizard so the Review step
   // can render them — `AccessScreen` only owns ephemeral interaction state
@@ -870,6 +879,19 @@ export function NewProcedureForm({
 
     startTransition(async () => {
       try {
+        // Materialise the wizard's authored quiz into the centralised
+        // `quizzes` table first, then stamp its id onto the procedure.
+        // A quiz with no questions is treated as "manager chose not to
+        // attach" — we drop it rather than save an empty row.
+        let quizId: string | null = null;
+        if (quiz && quiz.questions.length > 0) {
+          const { quiz: createdQuiz } = await createQuiz({
+            questions: quiz.questions,
+            attached: quiz.attached,
+          });
+          quizId = createdQuiz.id;
+        }
+
         await createProcedure({
           titleEn: titleEn.trim() || titleEs.trim(),
           titleEs: titleEs.trim() || titleEn.trim(),
@@ -879,7 +901,9 @@ export function NewProcedureForm({
           status,
           bodyEn: body,
           bodyEs: body,
-          quiz,
+          quizId,
+          linkedTrainingId,
+          quizMode,
         });
         setLastSavedAt(new Date());
         setIsDirty(false);
