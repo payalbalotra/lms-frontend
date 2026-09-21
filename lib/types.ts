@@ -6,6 +6,14 @@ export type ClearanceLevel = 'general' | 'station' | 'confidential' | 'master';
 export type LanguagePref = 'en' | 'es';
 export type EmployeeStatus = 'pending' | 'active' | 'deactivated';
 
+/** Coarse product-role gate — the only thing the frontend uses for routing,
+ *  chrome visibility, and back-link target. Backend will return this from
+ *  `fetchMe` once the session shape is redesigned; in mock data the seed
+ *  marks one employee `admin` and the rest `employee`. `clearanceLevel`
+ *  remains the fine-grained tier (general / station / confidential / master)
+ *  and is still surfaced in admin tables, but is not used for navigation. */
+export type EmployeeRole = 'admin' | 'employee';
+
 export interface Employee {
   id: string;
   name: string;
@@ -13,6 +21,7 @@ export interface Employee {
   roleId: string;
   stationId: string | null;
   clearanceLevel: ClearanceLevel;
+  role: EmployeeRole;
   languagePref: LanguagePref;
 }
 
@@ -229,6 +238,23 @@ export interface ProcedureBody {
   blocks: ProcedureBlock[];
 }
 
+/** One quiz question. Bilingual prompt and choices. `correctChoiceId`
+ *  references the choice the admin marked as right. */
+export interface ProcedureQuizQuestion {
+  id: string;
+  prompt: Localised;
+  choices: { id: string; label: Localised }[];
+  correctChoiceId: string;
+}
+
+/** Quiz attached to a procedure. `attached` is the manual toggle set by
+ *  the admin in the wizard; visibility on the reader side is the OR of
+ *  `attached` and `procedure.attachedToTraining` (either path renders it). */
+export interface ProcedureQuiz {
+  questions: ProcedureQuizQuestion[];
+  attached: boolean;
+}
+
 export interface Procedure {
   id: string;
   slug: string;
@@ -243,6 +269,11 @@ export interface Procedure {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+  /** Quiz attached to this procedure. Absent means no quiz authored yet. */
+  quiz?: ProcedureQuiz | null;
+  /** Whether this procedure is part of a training plan. When true, the
+   *  quiz (if any) renders automatically. Independent of `quiz.attached`. */
+  attachedToTraining?: boolean;
 }
 
 export interface CreateProcedureInput {
@@ -254,6 +285,9 @@ export interface CreateProcedureInput {
   status?: ProcedureStatus;
   bodyEn: ProcedureBody;
   bodyEs: ProcedureBody;
+  /** Quiz to attach on save. `null` / omitted means no quiz yet. The
+   *  backend will mirror this onto the read side as `procedure.quiz`. */
+  quiz?: ProcedureQuiz | null;
 }
 
 // ============================================================================

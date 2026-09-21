@@ -18,8 +18,12 @@ export default async function LocaleRootPage({
     .join('; ');
 
   try {
-    await fetchMe(cookieHeader);
-    redirect(`/${locale}/employee/assigned`);
+    const me = await fetchMe(cookieHeader);
+    if (me.employee.role === 'admin') {
+      redirect(`/${locale}/admin/library`);
+    } else {
+      redirect(`/${locale}/employee/assigned`);
+    }
   } catch (err) {
     if (err instanceof ApiException) {
       redirect(`/${locale}/login`);

@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { CustomSelect } from '@/components/ui/custom-select';
 import { Modal } from '@/components/ui/modal';
 import { Drawer } from '@/components/ui/drawer';
+import { QuizEditor } from '@/components/admin/quiz-editor';
 import { cn } from '@/lib/utils';
 import { createProcedure, createCategory, listCategories, ApiException } from '@/lib/api';
 import { getCategoryIcon } from '@/lib/category-icons';
@@ -21,6 +22,7 @@ import type {
   ProcedureBody,
   ProcedureIngredient,
   ProcedureMethodStep,
+  ProcedureQuiz,
   ProcedureYieldItem,
   Localised,
   LocalisedOptional,
@@ -140,6 +142,9 @@ interface FormSnapshot {
   procedureType: ProcedureTypeId;
   clearanceLevel: ClearanceTier | null;
   blocks: ProcedureBlock[];
+  /** Authored quiz (questions + manual attach toggle). May be null when the
+   *  manager skipped the Quiz step entirely. */
+  quiz: ProcedureQuiz | null;
 }
 
 function toBackendIngredient(item: RecipeIngredientItem): ProcedureIngredient | null {
@@ -500,6 +505,10 @@ export function NewProcedureForm({
   const [purposeLang, setPurposeLang] = useState<'en' | 'es'>('en');
   const [clearanceLevel, setClearanceLevel] = useState<ClearanceTier | null>(null);
   const [blocks, setBlocksRaw] = useState<ProcedureBlock[]>([]);
+  // Quiz authored in the wizard's Quiz step. `null` means the step was
+  // skipped (no questions authored yet); an object with `attached: false`
+  // means the manager authored but chose not to attach.
+  const [quiz, setQuiz] = useState<ProcedureQuiz | null>(null);
 
   // Access selections (Step 3 / 4). Lives in the wizard so the Review step
   // can render them — `AccessScreen` only owns ephemeral interaction state
@@ -646,6 +655,11 @@ export function NewProcedureForm({
     }
 
     if (wizardStep === 'method' || wizardStep === 'content') {
+      setWizardStep('quiz');
+      return;
+    }
+
+    if (wizardStep === 'quiz') {
       setWizardStep('access');
       return;
     }
@@ -708,6 +722,7 @@ export function NewProcedureForm({
     procedureType: initialType,
     clearanceLevel: null,
     blocks: [],
+    quiz: null,
   });
 
   const setBlocks = React.useCallback((next: ProcedureBlock[]) => {
@@ -846,6 +861,7 @@ export function NewProcedureForm({
           status,
           bodyEn: body,
           bodyEs: body,
+          quiz,
         });
         setLastSavedAt(new Date());
         setIsDirty(false);
@@ -1412,6 +1428,11 @@ export function NewProcedureForm({
           </Section>
         )}
 
+        {/* Step: Quiz — hardcoded questions preview + Attach toggle. */}
+        {wizardStep === 'quiz' && (
+          <QuizEditor value={quiz} onChange={setQuiz} />
+        )}
+
         {/* Step: Access — radio choice + four compact rows. */}
         {wizardStep === 'access' && (
           <AccessScreen
@@ -1680,7 +1701,8 @@ export function NewProcedureForm({
                   if (wizardStep === 'ingredients') setWizardStep('details');
                   else if (wizardStep === 'method') setWizardStep(isRecipeMode ? 'ingredients' : 'details');
                   else if (wizardStep === 'content') setWizardStep('details');
-                  else if (wizardStep === 'access') setWizardStep(isRecipeMode ? 'method' : 'content');
+                  else if (wizardStep === 'quiz') setWizardStep(isRecipeMode ? 'method' : 'content');
+                  else if (wizardStep === 'access') setWizardStep('quiz');
                   else if (wizardStep === 'review') setWizardStep('access');
                 }}
                 className="gap-2"

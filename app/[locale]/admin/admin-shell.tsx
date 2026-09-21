@@ -83,7 +83,7 @@ function LocaleSwitch({ locale, label }: { locale: string; label: string }): Rea
 interface AdminShellProps {
   children: React.ReactNode;
   locale: string;
-  employee: Pick<Employee, 'id' | 'name' | 'clearanceLevel'>;
+  employee: Pick<Employee, 'id' | 'name' | 'role'>;
   /** The restaurant this admin area belongs to. The sidebar is the chrome, so
    *  the workspace name lives there rather than being repeated on every page. */
   workspace: string;
@@ -334,7 +334,7 @@ export function AdminShell({
 
 interface SidebarProps {
   locale: string;
-  employee: Pick<Employee, 'id' | 'name' | 'clearanceLevel'>;
+  employee: Pick<Employee, 'id' | 'name' | 'role'>;
   workspace: string;
   groups: NavGroup[];
   labelFor: (key: string) => string;

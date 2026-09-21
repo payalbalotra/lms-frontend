@@ -82,6 +82,7 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     roleId: 'role-exec',
     stationId: null,
     clearanceLevel: 'master',
+    role: 'admin',
     languagePref: 'en',
     employeeCode: 'EMP-001',
     status: 'active',
@@ -97,6 +98,7 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     roleId: 'role-cook',
     stationId: 'stn-grill',
     clearanceLevel: 'station',
+    role: 'employee',
     languagePref: 'es',
     employeeCode: 'EMP-002',
     status: 'active',
@@ -112,6 +114,7 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     roleId: 'role-prep',
     stationId: 'stn-prep',
     clearanceLevel: 'general',
+    role: 'employee',
     languagePref: 'es',
     employeeCode: 'EMP-003',
     status: 'active',
@@ -135,6 +138,44 @@ const SEED_PROCEDURES: Procedure[] = [
     createdBy: 'emp-admin',
     createdAt: '2026-09-04T00:00:00Z',
     updatedAt: '2026-09-04T00:00:00Z',
+    quiz: {
+      questions: [
+        {
+          id: 'seed-q1',
+          prompt: { en: 'What is the minimum sanitiser concentration for food-contact surfaces?', es: '¿Cuál es la concentración mínima de sanitizante para superficies en contacto con alimentos?' },
+          choices: [
+            { id: 'c1', label: { en: '100 ppm for 10 seconds', es: '100 ppm por 10 segundos' } },
+            { id: 'c2', label: { en: '200 ppm for at least 30 seconds', es: '200 ppm por al menos 30 segundos' } },
+            { id: 'c3', label: { en: '400 ppm for 1 minute', es: '400 ppm por 1 minuto' } },
+            { id: 'c4', label: { en: 'No test needed if the bottle is new', es: 'No se necesita prueba si el frasco es nuevo' } },
+          ],
+          correctChoiceId: 'c2',
+        },
+        {
+          id: 'seed-q2',
+          prompt: { en: 'How often must the Sanitise bucket be tested?', es: '¿Con qué frecuencia se debe probar la cubeta de desinfección?' },
+          choices: [
+            { id: 'c1', label: { en: 'Once per shift', es: 'Una vez por turno' } },
+            { id: 'c2', label: { en: 'Every 4 hours and whenever remade', es: 'Cada 4 horas y cada vez que se rehace' } },
+            { id: 'c3', label: { en: 'Once per week', es: 'Una vez por semana' } },
+            { id: 'c4', label: { en: 'Only when the water looks dirty', es: 'Solo cuando el agua se ve sucia' } },
+          ],
+          correctChoiceId: 'c2',
+        },
+        {
+          id: 'seed-q3',
+          prompt: { en: 'After sanitising, how should the surface be dried?', es: 'Después de desinfectar, ¿cómo se debe secar la superficie?' },
+          choices: [
+            { id: 'c1', label: { en: 'Wipe with a clean towel', es: 'Secar con un paño limpio' } },
+            { id: 'c2', label: { en: 'Use paper towel and discard it', es: 'Usar papel absorbente y desecharlo' } },
+            { id: 'c3', label: { en: 'Let it air dry — do not towel it', es: 'Dejar secar al aire — no usar paño' } },
+            { id: 'c4', label: { en: 'Blow on it until dry', es: 'Soplar hasta que se seque' } },
+          ],
+          correctChoiceId: 'c3',
+        },
+      ],
+      attached: true,
+    },
     bodyEn: {
       blocks: [
         { id: 'cl-img', kind: 'image', src: '/img/cover-sanitising.jpg', hint: 'photo',
@@ -402,18 +443,85 @@ export interface LoginInput {
   deviceMode?: 'personal' | 'shared';
 }
 
-export async function login(_input: LoginInput): Promise<{ employee: Employee }> {
-  const emp = getEmployeesStore()[0];
+export async function login(input: LoginInput): Promise<{ employee: Employee }> {
+  const emps = getEmployeesStore();
+  const needle = (input.name || '').toLowerCase().trim();
+  let emp: AdminEmployee | undefined;
+
+  if (needle) {
+    emp = emps.find((e) => e.name.toLowerCase().includes(needle) || e.employeeCode?.toLowerCase() === needle);
+  }
+
+  if (!emp) {
+    if (
+      needle.includes('cook') ||
+      needle.includes('employee') ||
+      needle.includes('prep') ||
+      needle.includes('carlos') ||
+      needle.includes('maria')
+    ) {
+      emp = emps.find((e) => e.role === 'employee');
+    } else if (needle.includes('admin') || needle.includes('chef') || needle.includes('raul')) {
+      emp = emps.find((e) => e.role === 'admin');
+    }
+  }
+
+  if (!emp) {
+    emp = emps[0];
+  }
+
+  if (typeof window !== 'undefined') {
+    setStored('current_user', emp);
+    document.cookie = `lms_role=${emp.role}; path=/; max-age=864000`;
+    document.cookie = `lms_emp_id=${emp.id}; path=/; max-age=864000`;
+  }
+
   return { employee: emp };
 }
 
 export async function logout(): Promise<{ ok: true }> {
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.removeItem('lms_demo_current_user');
+      document.cookie = 'lms_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      document.cookie = 'lms_emp_id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    } catch {
+      // Ignore
+    }
+  }
   return { ok: true };
 }
 
-export async function fetchMe(_cookieHeader?: string, _signal?: AbortSignal): Promise<{ employee: Employee }> {
-  const emp = getEmployeesStore()[0];
-  return { employee: emp };
+export async function fetchMe(cookieHeader?: string, _signal?: AbortSignal): Promise<{ employee: Employee }> {
+  const emps = getEmployeesStore();
+
+  if (cookieHeader) {
+    const idMatch = cookieHeader.match(/lms_emp_id=([^;]+)/);
+    const roleMatch = cookieHeader.match(/lms_role=([^;]+)/);
+    if (idMatch && idMatch[1]) {
+      const found = emps.find((e) => e.id === idMatch[1].trim());
+      if (found) return { employee: found };
+    }
+    if (roleMatch && roleMatch[1]) {
+      const found = emps.find((e) => e.role === roleMatch[1].trim());
+      if (found) return { employee: found };
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    const stored = getStored<Employee | null>('current_user', null);
+    if (stored) {
+      const found = emps.find((e) => e.id === stored.id) || stored;
+      return { employee: found };
+    }
+    const roleMatch = document.cookie.match(/lms_role=([^;]+)/);
+    if (roleMatch && roleMatch[1]) {
+      const found = emps.find((e) => e.role === roleMatch[1].trim());
+      if (found) return { employee: found };
+    }
+  }
+
+  return { employee: emps[0] };
 }
 
 // ----------------------------------------------------------------------------
@@ -464,6 +572,7 @@ export async function createEmployee(input: CreateEmployeeInput): Promise<{ empl
     roleId: input.roleId,
     stationId: input.stationId ?? null,
     clearanceLevel: input.clearanceLevel,
+    role: role?.clearanceLevel === 'master' ? 'admin' : 'employee',
     languagePref: input.languagePref ?? 'en',
     employeeCode: input.employeeCode ?? null,
     status: 'pending',
@@ -632,6 +741,7 @@ export async function createProcedure(input: CreateProcedureInput): Promise<{ pr
     createdBy: 'emp-admin',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
+    quiz: input.quiz ?? null,
   };
 
   mockProcedures = [newProc, ...getProceduresStore()];

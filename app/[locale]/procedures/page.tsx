@@ -45,12 +45,13 @@ export default async function ProceduresPage({ params, searchParams }: PageProps
   ]);
 
   const readsSpanish = employee.languagePref === 'es';
+  const backHref = employee.role === 'admin' ? `/${locale}/admin/library` : `/${locale}/employee/assigned`;
 
   return (
     <>
       <main className="mx-auto w-full max-w-doc px-4 pb-20 pt-6 sm:px-6 sm:pt-8">
         <Link
-          href={`/${locale}/employee/assigned`}
+          href={backHref}
           className="inline-flex min-h-tap items-center gap-2 text-base font-semibold text-[var(--color-ink-2)]"
         >
           <LuArrowLeft aria-hidden="true" />
@@ -72,17 +73,19 @@ export default async function ProceduresPage({ params, searchParams }: PageProps
         />
       </main>
 
-      <TabBar
-        locale={locale}
-        active="procedures"
-        labels={{
-          ask: t('tabAsk'),
-          procedures: t('tabProcedures'),
-          training: t('tabTraining'),
-          soon: t('tabSoon'),
-          nav: t('tabsNav'),
-        }}
-      />
+      {employee.role === 'admin' ? null : (
+        <TabBar
+          locale={locale}
+          active="procedures"
+          labels={{
+            ask: t('tabAsk'),
+            procedures: t('tabProcedures'),
+            training: t('tabTraining'),
+            soon: t('tabSoon'),
+            nav: t('tabsNav'),
+          }}
+        />
+      )}
     </>
   );
 }

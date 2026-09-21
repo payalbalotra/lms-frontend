@@ -38,8 +38,12 @@ export function LoginForm({ locale }: LoginFormProps): React.ReactElement {
 
     startTransition(async () => {
       try {
-        await login({ name: name.trim(), password, locationId: locationId.trim() });
-        router.replace(`/${locale}/employee/assigned`);
+        const res = await login({ name: name.trim(), password, locationId: locationId.trim() });
+        if (res.employee.role === 'admin') {
+          router.replace(`/${locale}/admin/library`);
+        } else {
+          router.replace(`/${locale}/employee/assigned`);
+        }
         router.refresh();
       } catch (err) {
         if (err instanceof ApiException) {
