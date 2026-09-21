@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { LuCheck } from 'react-icons/lu';
 
-export type WizardStepId = 'details' | 'ingredients' | 'method' | 'content' | 'access' | 'review';
+export type WizardStepId = 'details' | 'ingredients' | 'method' | 'content' | 'quiz' | 'access' | 'review';
 
 export interface WizardStep {
   id: WizardStepId;
@@ -16,16 +16,18 @@ export interface WizardStep {
 export const GENERAL_WIZARD_STEPS: WizardStep[] = [
   { id: 'details', labelKey: 'stepDetails', num: 1 },
   { id: 'content', labelKey: 'stepContent', num: 2 },
-  { id: 'access', labelKey: 'stepAccess', num: 3 },
-  { id: 'review', labelKey: 'stepReview', num: 4 },
+  { id: 'quiz', labelKey: 'stepQuiz', num: 3 },
+  { id: 'access', labelKey: 'stepAccess', num: 4 },
+  { id: 'review', labelKey: 'stepReview', num: 5 },
 ];
 
 export const RECIPE_WIZARD_STEPS: WizardStep[] = [
   { id: 'details', labelKey: 'stepDetails', num: 1 },
   { id: 'ingredients', labelKey: 'stepIngredients', num: 2 },
   { id: 'method', labelKey: 'stepMethod', num: 3 },
-  { id: 'access', labelKey: 'stepAccess', num: 4 },
-  { id: 'review', labelKey: 'stepReview', num: 5 },
+  { id: 'quiz', labelKey: 'stepQuiz', num: 4 },
+  { id: 'access', labelKey: 'stepAccess', num: 5 },
+  { id: 'review', labelKey: 'stepReview', num: 6 },
 ];
 
 interface ProcedureWizardStepperProps {

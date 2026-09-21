@@ -56,7 +56,7 @@ export default async function EmployeeLayout({ children, params }: EmployeeLayou
           {t('signedInAs', { name: employee.name })}
         </p>
         <div className="flex items-center gap-3">
-          {employee.clearanceLevel === 'master' ? (
+          {employee.role === 'admin' ? (
             <Link
               href={`/${locale}/admin`}
               className="inline-flex items-center gap-1 text-sm font-medium text-[var(--color-ink-2)] hover:text-[var(--color-brand-600)]"

@@ -59,7 +59,7 @@ export default async function AdminLayout({ children, params }: AdminLayoutProps
     workspace = '';
   }
 
-  if (employee.clearanceLevel !== 'master') {
+  if (employee.role !== 'admin') {
     redirect(`/${locale}/employee/assigned`);
   }
 
@@ -72,7 +72,7 @@ export default async function AdminLayout({ children, params }: AdminLayoutProps
   return (
     <AdminShell
       locale={locale}
-      employee={{ id: employee.id, name: employee.name, clearanceLevel: employee.clearanceLevel }}
+      employee={{ id: employee.id, name: employee.name, role: employee.role }}
       workspace={workspace}
       signOutAction={signOut}
     >

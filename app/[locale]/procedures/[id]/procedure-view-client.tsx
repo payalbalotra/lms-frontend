@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { getProcedureBySlug } from '@/lib/api';
 import type { Employee, Procedure, ProcedureBlock } from '@/lib/types';
 import { BlockRenderer, findAllergen } from '@/components/doc/block-renderer';
+import { QuizAttachBanner, QuizReader } from '@/components/doc/quiz-reader';
 import { Allergen, Cover, DocActs, DocBar, DocControl, DocHead, DocPurpose, Facts } from '@/components/doc';
 import { DocBehaviour } from '@/components/doc/doc-behaviour';
 import { TabBar } from '@/components/employee/tab-bar';
@@ -55,6 +56,9 @@ export function ProcedureViewClient({
   const [isLoading, setIsLoading] = React.useState(!initialProcedure);
   const [notFoundState, setNotFoundState] = React.useState(false);
 
+  const [bannerDismissed, setBannerDismissed] = React.useState(false);
+  const [isAttaching, setIsAttaching] = React.useState(false);
+
   React.useEffect(() => {
     let isMounted = true;
     async function loadProcedure() {
@@ -80,6 +84,22 @@ export function ProcedureViewClient({
     }
   }, [slugOrId, proc]);
 
+  const handleAttach = React.useCallback(async () => {
+    if (!proc || !proc.quiz) return;
+    setIsAttaching(true);
+    try {
+      const next = { ...proc, quiz: { ...proc.quiz, attached: true } };
+      setProc(next);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('lms_procedures_updated'));
+      }
+    } finally {
+      setIsAttaching(false);
+    }
+  }, [proc]);
+
+  const backHref = employee.role === 'admin' ? `/${locale}/admin/library` : `/${locale}/procedures`;
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--color-bg)]">
@@ -100,7 +120,7 @@ export function ProcedureViewClient({
           </p>
           <div className="pt-4">
             <Link
-              href={employee.clearanceLevel === 'master' ? `/${locale}/admin/library` : `/${locale}/procedures`}
+              href={backHref}
               className="inline-flex items-center gap-2 rounded-full bg-[var(--color-brand-600)] px-5 py-2.5 text-sm font-semibold text-white shadow-e1 hover:bg-[var(--color-brand-700)]"
             >
               <LuArrowLeft aria-hidden="true" />
@@ -143,10 +163,24 @@ export function ProcedureViewClient({
     .join(' · ');
   const englishOnly = isEs && bodyEsBlocks.length === 0;
 
-  const backHref = employee.clearanceLevel === 'master' ? `/${locale}/admin/library` : `/${locale}/procedures`;
+  // Quiz attach banner: shown to admins when the procedure has a quiz but
+  // neither `quiz.attached` nor `attachedToTraining` is on. Local state
+  // mirrors the patched procedure so we don't re-fetch on click.
+  const quizExists = Boolean(proc.quiz && proc.quiz.questions.length > 0);
+  const quizVisible = Boolean(proc.quiz && (proc.quiz.attached || proc.attachedToTraining));
+  const showAttachBanner = quizExists && !quizVisible && employee.role === 'admin';
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)] pb-20">
+      {showAttachBanner && !bannerDismissed ? (
+        <div className="mx-auto w-full max-w-doc px-4 pt-6 sm:px-6">
+          <QuizAttachBanner
+            onAttach={handleAttach}
+            onDismiss={() => setBannerDismissed(true)}
+            isAttaching={isAttaching}
+          />
+        </div>
+      ) : null}
       <article className="doc">
         <DocBehaviour />
         <DocBar backHref={backHref} backLabel={labels.back} title={title || 'Untitled Procedure'} category={categoryLabel} />
@@ -188,6 +222,12 @@ export function ProcedureViewClient({
 
         <BlockRenderer blocks={rest} locale={isEs ? 'es' : 'en'} hoistedAllergenId={hoisted?.id} />
 
+        {/* Quiz: visible when manually attached OR when the procedure is part
+         *  of training. Admin-only banner when authored but neither flag is on. */}
+        {proc.quiz && (proc.quiz.attached || proc.attachedToTraining) ? (
+          <QuizReader quiz={proc.quiz} locale={isEs ? 'es' : 'en'} />
+        ) : null}
+
         <DocActs />
 
         <DocControl
@@ -200,7 +240,7 @@ export function ProcedureViewClient({
         />
       </article>
 
-      {employee.clearanceLevel === 'master' ? null : (
+      {employee.role === 'admin' ? null : (
         <TabBar
           locale={locale}
           active="procedures"

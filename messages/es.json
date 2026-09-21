@@ -123,7 +123,18 @@
       "tabProcedures": "Procedimientos",
       "tabTraining": "Capacitación",
       "tabSoon": "Próximamente",
-      "tabsNav": "Secciones"
+      "tabsNav": "Secciones",
+      "quiz": {
+        "heading": "Verificación rápida",
+        "count": "{count, plural, =0 {sin preguntas} =1 {1 pregunta} other {# preguntas}}",
+        "intro": "Antes de empezar, confirma que tienes los números clave en la cabeza. Toca tu respuesta para ver si es correcta.",
+        "correct": "Correcta",
+        "bannerTitle": "Este procedimiento tiene un cuestionario sin publicar",
+        "bannerBody": "Adjúntalo ahora para que los lectores lo vean la próxima vez que abran este procedimiento. Si el procedimiento pasa a formar parte de una capacitación, el cuestionario aparecerá automáticamente.",
+        "bannerAttach": "Adjuntar cuestionario",
+        "bannerAttaching": "Adjuntando…",
+        "bannerDismiss": "Descartar"
+      }
     }
   },
   "admin": {
@@ -187,8 +198,25 @@
           "stepIngredients": "Ingredientes",
           "stepMethod": "Método",
           "stepContent": "Contenido",
+          "stepQuiz": "Cuestionario",
           "stepAccess": "Acceso",
           "stepReview": "Revisión"
+        },
+        "quiz": {
+          "title": "Cuestionario",
+          "description": "Añade una breve verificación para confirmar que el lector entendió el procedimiento. Escribe cada pregunta, sus opciones y marca la opción correcta.",
+          "attachedLabel": "Adjuntar cuestionario a este procedimiento",
+          "attachedHelp": "Cuando está adjunto, el cuestionario se muestra en la página del procedimiento. Si el procedimiento forma parte de una capacitación, el cuestionario aparece automáticamente aunque este interruptor esté apagado.",
+          "promptPlaceholder": "Escribe la pregunta",
+          "choicePlaceholder": "Opción {n}",
+          "correctBadge": "Correcta",
+          "yourAnswerBadge": "Tu respuesta",
+          "addQuestion": "Añadir pregunta",
+          "deleteQuestion": "Eliminar pregunta",
+          "addOption": "Añadir opción",
+          "deleteOption": "Eliminar opción",
+          "markCorrect": "Marcar esta opción como correcta",
+          "noCorrect": "Marca una opción como respuesta correcta."
         },
         "import": {
           "title": "Importar documento con IA",
@@ -623,13 +651,14 @@
     "selectNone": "— ninguno —",
     "selectRolePrompt": "Elige un rol",
     "nameLabel": "Nombre del empleado",
+    "emailLabel": "Correo electrónico",
+    "emailPlaceholder": "nombre@restaurante.com",
     "employeeCodeLabel": "Código de empleado (opcional)",
     "employeeCodePlaceholder": "p. ej. 00123",
     "languageLabel": "Idioma preferido",
     "locationLabel": "Ubicación",
     "roleLabel": "Rol",
     "stationLabel": "Estación (opcional)",
-    "clearanceLabel": "Nivel de autorización",
     "submit": "Generar invitación",
     "submitting": "Generando...",
     "inviteCreatedHeading": "Invitación creada",

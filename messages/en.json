@@ -123,7 +123,18 @@
       "tabProcedures": "Procedures",
       "tabTraining": "Training",
       "tabSoon": "Coming soon",
-      "tabsNav": "Sections"
+      "tabsNav": "Sections",
+      "quiz": {
+        "heading": "Quick check",
+        "count": "{count, plural, =0 {no questions} =1 {1 question} other {# questions}}",
+        "intro": "Before you start, make sure you've got the key numbers in your head. Tap your answer to see if you're right.",
+        "correct": "Correct",
+        "bannerTitle": "This procedure has an unpublished quiz",
+        "bannerBody": "Attach it now so readers see it next time they open this procedure. If the procedure becomes part of training, the quiz will show automatically.",
+        "bannerAttach": "Attach quiz",
+        "bannerAttaching": "Attaching…",
+        "bannerDismiss": "Dismiss"
+      }
     }
   },
   "admin": {
@@ -187,8 +198,25 @@
           "stepIngredients": "Ingredients",
           "stepMethod": "Method",
           "stepContent": "Content",
+          "stepQuiz": "Quiz",
           "stepAccess": "Access",
           "stepReview": "Review"
+        },
+        "quiz": {
+          "title": "Quiz",
+          "description": "Add a short knowledge check that confirms the reader understood this procedure. Author each question, its options, and which option is correct.",
+          "attachedLabel": "Attach quiz to this procedure",
+          "attachedHelp": "When attached, the quiz is visible on the procedure page. If the procedure is part of training, the quiz shows automatically even without this toggle.",
+          "promptPlaceholder": "Type the question",
+          "choicePlaceholder": "Option {n}",
+          "correctBadge": "Correct",
+          "yourAnswerBadge": "Your answer",
+          "addQuestion": "Add question",
+          "deleteQuestion": "Delete question",
+          "addOption": "Add option",
+          "deleteOption": "Delete option",
+          "markCorrect": "Mark this option as correct",
+          "noCorrect": "Mark one option as the correct answer."
         },
         "import": {
           "title": "Import document with AI",
@@ -623,13 +651,14 @@
     "selectNone": "— none —",
     "selectRolePrompt": "Pick a role",
     "nameLabel": "Employee name",
+    "emailLabel": "Email",
+    "emailPlaceholder": "name@restaurant.com",
     "employeeCodeLabel": "Employee code (optional)",
     "employeeCodePlaceholder": "e.g. 00123",
     "languageLabel": "Preferred language",
     "locationLabel": "Location",
     "roleLabel": "Role",
     "stationLabel": "Station (optional)",
-    "clearanceLabel": "Clearance level",
     "submit": "Generate invite",
     "submitting": "Generating...",
     "inviteCreatedHeading": "Invite created",
