@@ -247,6 +247,16 @@ function isBlockEmpty(block: ProcedureBlock): boolean {
     case 'table':
       return block.headers.every((h) => locEmpty(h)) &&
         block.rows.every((r) => r.every((c) => locEmpty(c)));
+    case 'checklist':
+      // Drop the block only when every item is empty on both locales — a
+      // partially authored list is still meaningful, so keep it.
+      return (
+        (block.title?.en ?? '').trim() === '' &&
+        (block.title?.es ?? '').trim() === '' &&
+        block.items.every((it) => locEmpty(it.text))
+      );
+    default:
+      return false;
   }
 }
 
@@ -304,6 +314,14 @@ function backfillBlock(block: ProcedureBlock): ProcedureBlock {
         headers: block.headers.map((h) => backfillLocalised(h) as Localised),
         rows: block.rows.map((row) => row.map((c) => backfillLocalised(c) as Localised)),
       };
+    case 'checklist':
+      return {
+        ...block,
+        title: backfillLocalised(block.title) as LocalisedOptional,
+        items: block.items.map((it) => ({ ...it, text: backfillLocalised(it.text) as Localised })),
+      };
+    default:
+      return block;
   }
 }
 
@@ -2132,6 +2150,41 @@ export function NewProcedureForm({
                         <LuPaperclip aria-hidden="true" className="text-lg text-[var(--color-ink-2)]" />
                         <span className="font-semibold text-xs text-[var(--color-ink)] flex-1">{title || 'Download attachment'}</span>
                         <LuDownload aria-hidden="true" className="text-xs text-[var(--color-ink-2)]" />
+                      </div>
+                    );
+                  }
+                  if (b.kind === 'checklist') {
+                    const rawTitle = previewLang === 'en'
+                      ? (b.title?.en || b.title?.es)
+                      : (b.title?.es || b.title?.en);
+                    const checklistTitle = rawTitle?.trim() || (previewLang === 'es' ? 'Lista de verificación' : 'Checklist');
+                    return (
+                      <div key={b.id || idx} className="space-y-3 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] p-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-bold text-[var(--color-ink)]">{checklistTitle}</p>
+                          <span className="text-[10px] font-semibold text-[var(--color-ink-3)] px-1.5 py-0.5 rounded bg-[var(--color-wash)]">
+                            0/{b.items.length}
+                          </span>
+                        </div>
+                        <ul className="space-y-1.5">
+                          {b.items.map((it, iIdx) => {
+                            const itemText = previewLang === 'en'
+                              ? (it.text?.en || it.text?.es)
+                              : (it.text?.es || it.text?.en);
+                            return (
+                              <li key={it.id || iIdx} className="flex items-center gap-2.5 text-sm text-[var(--color-ink)]">
+                                <span
+                                  aria-hidden="true"
+                                  className="flex size-4 shrink-0 items-center justify-center rounded border border-[var(--color-line-2)] bg-[var(--color-surface)]"
+                                />
+                                <span className="flex-1 text-sm font-medium">{itemText || `Item ${iIdx + 1}`}</span>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                        <p className="pt-0.5 text-xs font-medium text-[var(--color-ink-3)]">
+                          {tForm('composer.checklist.previewHint')}
+                        </p>
                       </div>
                     );
                   }

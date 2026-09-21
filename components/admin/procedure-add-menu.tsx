@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverGroup, PopoverItem } from '@/components/ui/popover';
 import type { ProcedureBlockKind } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { LuChevronDown, LuHeading1, LuImage, LuListOrdered, LuPaperclip, LuPlus, LuSearch, LuTable, LuTriangleAlert, LuType, LuUtensils, LuVideo } from 'react-icons/lu';
+import { LuChevronDown, LuHeading1, LuImage, LuListOrdered, LuListChecks, LuPaperclip, LuPlus, LuSearch, LuTable, LuTriangleAlert, LuType, LuUtensils, LuVideo } from 'react-icons/lu';
 import { Icon } from '@/components/ui/icon';
 import type { IconType } from 'react-icons';
 
@@ -110,6 +110,13 @@ export function ProcedureAddMenu({
         description: 'Highlight important safety information',
         icon: LuTriangleAlert,
         group: 'safety',
+      },
+      {
+        kind: 'checklist',
+        label: 'Checklist',
+        description: 'Add a list employees can tick off while working',
+        icon: LuListChecks,
+        group: 'basic',
       },
     ],
     [],

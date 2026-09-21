@@ -186,10 +186,10 @@ function BlockRow({
       onMouseEnter={() => setIsHover(true)}
       onMouseLeave={() => setIsHover(false)}
       className={cn(
-        'group rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] py-2 pl-3 pr-3 transition-all duration-[var(--dur)]',
-        'hover:border-[var(--color-brand-600)]',
-        isHover && 'bg-[var(--color-wash)]',
-        isDragging && 'opacity-60 z-dropdown',
+        'group rounded-lg border border-transparent py-2 pl-3 pr-3 transition-all duration-150',
+        'hover:border-[var(--color-line-2)] hover:bg-[var(--color-wash)]/60',
+        isHover && 'bg-[var(--color-wash)]/60 border-[var(--color-line-2)]',
+        isDragging && 'opacity-60 z-dropdown bg-[var(--color-wash)] border-[var(--color-line-2)]',
       )}
     >
       {/* Unified hover toolbar: drag · EN|ES · options menu — hidden at rest */}
@@ -340,6 +340,10 @@ function BlockBody({
       return <AttachmentBody block={block} onPatch={onPatch} lang={lang} />;
     case 'table':
       return <TableBody block={block} onPatch={onPatch} lang={lang} />;
+    case 'checklist':
+      return <ChecklistBody block={block} onPatch={onPatch} lang={lang} />;
+    default:
+      return <></>;
   }
 }
 
@@ -1104,6 +1108,138 @@ function TableBody({
   );
 }
 
+// ---- Checklist ----
+
+function ChecklistBody({
+  block,
+  onPatch,
+  lang,
+}: BodyProps<Extract<ProcedureBlock, { kind: 'checklist' }>>): React.ReactElement {
+  const items = block.items;
+  const titleValue = asOpt(block.title, lang);
+
+  function setItem(i: number, value: string): void {
+    onPatch({
+      ...block,
+      items: items.map((it, j) =>
+        j === i ? { ...it, text: setLoc(it.text, lang, value) } : it,
+      ),
+    });
+  }
+
+  function setTitle(value: string): void {
+    onPatch({
+      ...block,
+      title: setOpt(block.title, lang, value),
+    });
+  }
+
+  function addItem(): void {
+    onPatch({
+      ...block,
+      items: [...items, { id: `ci-${Math.random().toString(36).slice(2, 8)}`, text: { en: '', es: '' } }],
+    });
+  }
+
+  function removeItem(i: number): void {
+    if (items.length <= 1) return;
+    onPatch({ ...block, items: items.filter((_, j) => j !== i) });
+  }
+
+  function moveItem(i: number, dir: 'up' | 'down'): void {
+    const j = dir === 'up' ? i - 1 : i + 1;
+    if (j < 0 || j >= items.length) return;
+    const next = items.slice();
+    [next[i], next[j]] = [next[j], next[i]];
+    onPatch({ ...block, items: next });
+  }
+
+  return (
+    <div className="space-y-2 py-1">
+      <input
+        type="text"
+        value={titleValue}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder={lang === 'en' ? 'Checklist title' : 'Título de la lista'}
+        className="w-full bg-transparent px-1 py-1 text-base font-semibold text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] placeholder:font-normal border-none outline-none focus:outline-none focus:ring-0 shadow-none"
+      />
+      <ol className="space-y-1">
+        {items.map((it, i) => (
+          <li
+            key={it.id}
+            className="group/item relative flex items-center gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-[var(--color-wash)]"
+          >
+            {/* Reorder arrows — visible on item hover */}
+            <div className="flex items-center opacity-0 transition-opacity group-hover/item:opacity-100">
+              <button
+                type="button"
+                disabled={i === 0}
+                onClick={() => moveItem(i, 'up')}
+                className="p-0.5 text-[var(--color-ink-3)] hover:text-[var(--color-ink)] disabled:opacity-30"
+                aria-label="Move up"
+                title="Move up"
+              >
+                <Icon icon="ri-arrow-up-line" className="text-xs" />
+              </button>
+              <button
+                type="button"
+                disabled={i === items.length - 1}
+                onClick={() => moveItem(i, 'down')}
+                className="p-0.5 text-[var(--color-ink-3)] hover:text-[var(--color-ink)] disabled:opacity-30"
+                aria-label="Move down"
+                title="Move down"
+              >
+                <Icon icon="ri-arrow-down-line" className="text-xs" />
+              </button>
+            </div>
+
+            {/* Checkbox tile */}
+            <span
+              aria-hidden="true"
+              className="flex size-4 shrink-0 items-center justify-center rounded-[3px] border border-[var(--color-line-2)] bg-[var(--color-surface)]"
+            />
+
+            {/* Item number badge */}
+            <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-ok-tint)] font-mono text-[10px] font-bold text-[var(--color-ok)]">
+              {i + 1}
+            </span>
+
+            {/* Item label input */}
+            <input
+              type="text"
+              value={asLoc(it.text, lang)}
+              onChange={(e) => setItem(i, e.target.value)}
+              placeholder={lang === 'en' ? `Item ${i + 1}` : `Elemento ${i + 1}`}
+              className="flex-1 bg-transparent px-1 py-0.5 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] border-none outline-none focus:outline-none focus:ring-0 shadow-none"
+            />
+
+            {/* Remove item button — visible on item hover */}
+            {items.length > 1 ? (
+              <button
+                type="button"
+                onClick={() => removeItem(i)}
+                aria-label="Remove item"
+                title="Remove item"
+                className="flex size-6 shrink-0 items-center justify-center rounded text-[var(--color-ink-3)] opacity-0 transition-opacity hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)] group-hover/item:opacity-100 focus:opacity-100"
+              >
+                <Icon icon="ri-close-line" className="text-base" />
+              </button>
+            ) : null}
+          </li>
+        ))}
+      </ol>
+      <button
+        type="button"
+        onClick={addItem}
+        className="inline-flex items-center gap-1.5 rounded px-2 py-1 text-xs font-semibold text-[var(--color-brand-600)] hover:bg-[var(--color-brand-tint)] hover:text-[var(--color-brand-700)] transition-colors mt-1"
+      >
+        <Icon icon="ri-add-line" className="text-sm" />
+        <span>{lang === 'en' ? 'Add checklist item' : 'Agregar elemento'}</span>
+      </button>
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Bilingual primitives — single visible language, EN/ES pill to switch.
 //
@@ -1284,6 +1420,7 @@ function EmptyState({ onAdd }: { onAdd: (kind: ProcedureBlockKind) => void }): R
           { kind: 'text', label: 'Text', icon: 'ri-text', hint: 'Paragraph' },
           { kind: 'heading', label: 'Heading', icon: 'ri-h-1', hint: 'Section title' },
           { kind: 'method', label: 'Steps', icon: 'ri-list-ordered', hint: 'Numbered list' },
+          { kind: 'checklist', label: 'Checklist', icon: 'ri-list-check', hint: 'Tick-off items' },
           { kind: 'table', label: 'Table', icon: 'ri-table-line', hint: 'Rows + columns' },
           { kind: 'warning', label: 'Callout', icon: 'ri-alert-line', hint: 'Warn / tip / alt' },
           { kind: 'image', label: 'Image', icon: 'ri-image-line', hint: 'Photo + caption' },

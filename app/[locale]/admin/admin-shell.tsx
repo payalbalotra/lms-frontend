@@ -102,6 +102,7 @@ type NavGroup = {
   headingKey:
     | 'groupWorkspace'
     | 'groupLibrary'
+    | 'groupTraining'
     | 'groupPeople'
     | 'groupSettings'
     | 'groupSoon';
@@ -122,6 +123,12 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    headingKey: 'groupTraining',
+    items: [
+      { href: '/training', icon: LuGraduationCap, labelKey: 'navTraining' },
+    ],
+  },
+  {
     headingKey: 'groupPeople',
     items: [
       { href: '/employees', icon: LuUsers, labelKey: 'navEmployees' },
@@ -139,7 +146,6 @@ const NAV_GROUPS: NavGroup[] = [
   {
     headingKey: 'groupSoon',
     items: [
-      { href: '/training', icon: LuGraduationCap, labelKey: 'navTraining', soon: true },
       { href: '/reports', icon: LuChartColumn, labelKey: 'navReports', soon: true },
     ],
   },

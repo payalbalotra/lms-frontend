@@ -231,7 +231,13 @@ export type ProcedureBlock =
   | { id: string; kind: 'video'; src: string; caption?: LocalisedOptional }
   | { id: string; kind: 'warning'; severity: ProcedureNoteKind; body: Localised }
   | { id: string; kind: 'attachment'; title: Localised; href: string; meta?: string }
-  | { id: string; kind: 'table'; headers: Localised[]; rows: Localised[][] };
+  | { id: string; kind: 'table'; headers: Localised[]; rows: Localised[][] }
+  | {
+      id: string;
+      kind: 'checklist';
+      title?: LocalisedOptional;
+      items: { id: string; text: Localised }[];
+    };
 
 export type ProcedureBlockKind = ProcedureBlock['kind'];
 
@@ -275,6 +281,24 @@ export interface Procedure {
   /** Whether this procedure is part of a training plan. When true, the
    *  quiz (if any) renders automatically. Independent of `quiz.attached`. */
   attachedToTraining?: boolean;
+  /** Other procedures (SOPs / recipes / chapters) this one references.
+   *  Rendered as a `.chapter` "Related procedure" list per DESIGN.md §3.4.
+   *  Only meaningful when `attachedToTraining` is true — a training course
+   *  that lists the SOPs a cook must read alongside the lesson. */
+  linkedSops?: string[];
+  /** Acknowledgement gate at the end of a training course. When present,
+   *  the employee cannot mark the assignment complete without ticking the
+   *  checkbox and pressing Sign. Version label flows into the receipt. */
+  acknowledgement?: ProcedureAcknowledgement | null;
+}
+
+/** Course acknowledgement — the `I have read and understood` checkbox at
+ *  the end of a regulated training chapter (DESIGN.md §3.4 `.ack` block). */
+export interface ProcedureAcknowledgement {
+  /** Human-readable version label, surfaced on the receipt (e.g. "v2026.09"). */
+  versionLabel: string;
+  /** Bilingual statement the employee is signing. */
+  statement: Localised;
 }
 
 export interface CreateProcedureInput {
@@ -289,6 +313,69 @@ export interface CreateProcedureInput {
   /** Quiz to attach on save. `null` / omitted means no quiz yet. The
    *  backend will mirror this onto the read side as `procedure.quiz`. */
   quiz?: ProcedureQuiz | null;
+  /** Marks this procedure as a training course (vs an SOP / recipe).
+   *  Surfaces it in the admin Training list, makes the employee Training
+   *  tab its home, and gates the optional quiz block on read. */
+  attachedToTraining?: boolean;
+  /** Procedure ids of SOPs / recipes referenced from this course. */
+  linkedSops?: string[];
+  /** Acknowledgement statement shown on read; null/undefined disables. */
+  acknowledgement?: ProcedureAcknowledgement | null;
+}
+
+// ============================================================================
+// Training — admin-authored courses (procedures with attachedToTraining)
+// and the assignment surface that connects a course to an employee.
+// ============================================================================
+
+/** Per-employee progress on a single training course. `overdue` is a
+ *  derived status (dueAt < now && !complete) so it does not need to be
+ *  persisted — the admin UI computes it from `dueAt` and `status`. */
+export type TrainingAssignmentStatus = 'due' | 'in_progress' | 'complete' | 'overdue';
+
+export interface TrainingAssignment {
+  id: string;
+  /** `procedure.id` of the course (a Procedure where attachedToTraining is true). */
+  courseId: string;
+  employeeId: string;
+  /** ISO timestamp — when the admin assigned the course. */
+  assignedAt: string;
+  /** ISO timestamp — soft deadline; the employee sees a `pill-due` until it,
+   *  `pill-overdue` once passed without `complete`. */
+  dueAt: string;
+  /** Last non-terminal status from the employee side. The admin list
+   *  re-derives `overdue` from `dueAt` — see TrainingAssignmentRow below. */
+  status: Exclude<TrainingAssignmentStatus, 'overdue'>;
+  /** Procedure step ids the employee marked done. Empty array until they
+   *  start; the per-step list lets the receipt show "X of Y steps done"
+   *  without leaking an overall % (forbidden by DESIGN.md §8). */
+  completedStepIds: string[];
+  quizPassedAt: string | null;
+  acknowledgedAt: string | null;
+}
+
+export interface CreateTrainingAssignmentInput {
+  courseId: string;
+  employeeId: string;
+  dueAt: string;
+}
+
+/** Aggregated row used by `/admin/training`. Avoids recomputing counts on
+ *  every render and pins the date math to server load. */
+export interface TrainingCourseRow {
+  course: Procedure;
+  assignmentCount: number;
+  completeCount: number;
+  inProgressCount: number;
+  overdueCount: number;
+}
+
+/** Aggregated row used by `/employee/training`. `effectiveStatus` lifts
+ *  the `dueAt < now && status !== 'complete'` check out of every pill. */
+export interface TrainingAssignmentRow {
+  assignment: TrainingAssignment;
+  course: Procedure;
+  effectiveStatus: TrainingAssignmentStatus;
 }
 
 // ============================================================================

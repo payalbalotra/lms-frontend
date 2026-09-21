@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import type { ProcedureBlock, ProcedureBlockKind } from '@/lib/types';
 import { ProcedureBlockEditor } from './procedure-block-editor';
-import { LuArrowDown, LuArrowUp, LuCopy, LuGripVertical, LuHeading1, LuImage, LuListOrdered, LuPaperclip, LuTable, LuTriangleAlert, LuType, LuUtensils, LuVideo, LuX } from 'react-icons/lu';
+import { LuArrowDown, LuArrowUp, LuCopy, LuGripVertical, LuHeading1, LuImage, LuListChecks, LuListOrdered, LuPaperclip, LuTable, LuTriangleAlert, LuType, LuUtensils, LuVideo, LuX } from 'react-icons/lu';
 import { Icon } from '@/components/ui/icon';
 import type { IconType } from 'react-icons';
 
@@ -22,6 +22,7 @@ const KIND_ICON: Record<ProcedureBlockKind, IconType> = {
   warning: LuTriangleAlert,
   attachment: LuPaperclip,
   table: LuTable,
+  checklist: LuListChecks,
 };
 
 interface BlockTheme {
@@ -115,6 +116,15 @@ const BLOCK_THEMES: Record<ProcedureBlockKind, BlockTheme> = {
     badgeBorder: 'border-[var(--color-line)]',
     iconColor: 'text-[var(--color-ink-2)]',
     label: 'Recipe',
+  },
+  checklist: {
+    border: 'border-l-[var(--color-ok)]',
+    bgHeader: 'bg-[var(--color-bg-admin)]',
+    badgeBg: 'bg-[var(--color-ok-tint)]',
+    badgeText: 'text-[var(--color-ok)]',
+    badgeBorder: 'border-[var(--color-ok)]/30',
+    iconColor: 'text-[var(--color-ok)]',
+    label: 'Checklist',
   },
 };
 

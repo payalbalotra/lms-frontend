@@ -98,6 +98,22 @@ export function newTableBlock(): ProcedureBlock {
   };
 }
 
+const nextChecklistItemId = (): string => `ci-${Math.random().toString(36).slice(2, 8)}`;
+
+const emptyChecklistItem = (): { id: string; text: Localised } => ({
+  id: nextChecklistItemId(),
+  text: empty(),
+});
+
+export function newChecklistBlock(): ProcedureBlock {
+  return {
+    id: nextBlockId(),
+    kind: 'checklist',
+    title: emptyOpt(),
+    items: [emptyChecklistItem(), emptyChecklistItem(), emptyChecklistItem()],
+  };
+}
+
 export const BLOCK_FACTORIES: Record<ProcedureBlockKind, () => ProcedureBlock> = {
   text: newTextBlock,
   heading: newHeadingBlock,
@@ -108,6 +124,7 @@ export const BLOCK_FACTORIES: Record<ProcedureBlockKind, () => ProcedureBlock> =
   warning: newWarningBlock,
   attachment: newAttachmentBlock,
   table: newTableBlock,
+  checklist: newChecklistBlock,
 };
 
 export const BLOCK_KIND_LABELS: ProcedureBlockKind[] = [
@@ -120,6 +137,7 @@ export const BLOCK_KIND_LABELS: ProcedureBlockKind[] = [
   'warning',
   'attachment',
   'table',
+  'checklist',
 ];
 
 /** Resize every ingredient's amounts row so its length matches the current
@@ -220,6 +238,13 @@ export function duplicateBlock(block: ProcedureBlock): ProcedureBlock {
         kind: 'table',
         headers: block.headers.map(cloneRequiredLocalised),
         rows: block.rows.map((row) => row.map(cloneRequiredLocalised)),
+      };
+    case 'checklist':
+      return {
+        id,
+        kind: 'checklist',
+        title: block.title ? cloneLocalised(block.title) : undefined,
+        items: block.items.map((it) => ({ id: nextChecklistItemId(), text: cloneLocalised(it.text) })),
       };
   }
 }
