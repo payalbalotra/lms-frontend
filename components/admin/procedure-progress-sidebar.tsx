@@ -48,7 +48,7 @@ export function ProcedureProgressSidebar({
       {/* 1. Progress Card */}
       <div className="rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-5 space-y-4">
         <div>
-          <h3 className="text-xs font-semibold text-[var(--color-ink-3)]">
+          <h3 className="text-sm font-semibold text-[var(--color-ink-3)]">
             {t('progressTitle')}
           </h3>
           <p className="mt-1 text-sm font-semibold text-[var(--color-ink)]">
@@ -68,7 +68,7 @@ export function ProcedureProgressSidebar({
           {sections.map((sec) => (
             <li key={sec.key} className="flex items-center gap-3">
               {sec.completed ? (
-                <span className="flex size-4 items-center justify-center rounded-full bg-[var(--color-ok)] text-white text-xs font-bold">
+                <span className="flex size-4 items-center justify-center rounded-full bg-[var(--color-ok)] text-white text-sm font-bold">
                   ✓
                 </span>
               ) : (
@@ -90,10 +90,10 @@ export function ProcedureProgressSidebar({
 
       {/* 2. Quick info Card */}
       <div className="rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-5 space-y-3">
-        <h3 className="text-xs font-semibold text-[var(--color-ink-3)]">
+        <h3 className="text-sm font-semibold text-[var(--color-ink-3)]">
           {t('quickInfoTitle')}
         </h3>
-        <dl className="space-y-3 text-xs">
+        <dl className="space-y-3 text-sm">
           <div className="flex items-center justify-between">
             <dt className="text-[var(--color-ink-3)]">{t('quickType')}</dt>
             <dd className="font-semibold text-[var(--color-ink)]">{typeLabel}</dd>

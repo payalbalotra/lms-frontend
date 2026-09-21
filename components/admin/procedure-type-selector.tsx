@@ -70,12 +70,12 @@ export function ProcedureTypeSelector({
               className={cn(
                 'group relative flex flex-col items-center justify-center rounded-[var(--radius-lg)] border p-3 text-center transition-all',
                 isSelected
-                  ? 'border-[var(--color-ink)] bg-[var(--color-surface)] ring-1 ring-[var(--color-ink)]'
+                  ? 'border-[var(--color-brand-600)] bg-[var(--color-surface)] ring-1 ring-[var(--color-brand-600)]'
                   : 'border-[var(--color-line-2)] bg-[var(--color-surface)] hover:border-[var(--color-brand-tint-2)] hover:bg-[var(--color-wash)]',
               )}
             >
               {isSelected && (
-                <span className="absolute top-2 right-2 flex size-4 items-center justify-center rounded-full bg-[var(--color-ink)] text-xs text-white">
+                <span className="absolute top-2 right-2 flex size-4 items-center justify-center rounded-full bg-[var(--color-brand-600)] text-sm text-white">
                   ✓
                 </span>
               )}
@@ -91,13 +91,13 @@ export function ProcedureTypeSelector({
               </div>
               <span
                 className={cn(
-                  'text-xs font-semibold',
+                  'text-sm font-semibold',
                   'text-[var(--color-ink)]',
                 )}
               >
                 {t(type.labelKey)}
               </span>
-              <span className="mt-0.5 line-clamp-1 text-xs text-[var(--color-ink-2)]">
+              <span className="mt-0.5 line-clamp-1 text-sm text-[var(--color-ink-2)]">
                 {t(type.descKey)}
               </span>
             </button>

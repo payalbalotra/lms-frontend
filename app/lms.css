@@ -15,20 +15,25 @@
   /* Neutrals. White ground, warm-grey chrome. */
   --ink:      #222222;  /* body text. 15.9:1 on white */
   --ink-2:    #515252;  /* secondary. 7.8:1 */
-  --ink-3:    #676767;  /* placeholder, tertiary. 5.7:1 on white, 5.0:1 on panel */
+  --ink-3:    #666666;  /* the faintest ink that still carries a sentence. One step darker than it was: on the new ground #676767 measured 4.49:1, just under the floor, and the ground is where this colour is most often used. 4.56:1 now. */  /* placeholder, tertiary. 5.7:1 on white, 5.0:1 on panel */
   --bg:       #ffffff;  /* the reading plane: a document sheet, a form, a card */
   /* The ground: the plane every card sits on, admin and employee alike. Warm
      bone, a clear step below white, so a card reads as a card without needing a
      border. A document page keeps --bg, because there the sheet is the content. */
-  --ground:   #f0efeb;
+  --ground:   #f0efeb;  /* the page under the cards. Tried lighter (#f5f4ef, #f9f9f6) and darker (#e8e5dd); this is the one that reads right — pale warm bone, with the card's edge doing the separating and the lift kept to a breath. */
   --bg-admin: var(--ground);  /* the old name, kept so existing markup resolves */
   --surface:  #ffffff;
   --panel:    #f2f1ec;  /* sidebar and toolbars only. The brand bone as chrome, never as ground */
   --panel-2:  #e6e3db;  /* the same bone one step down: hover and pressed on a panel */
   --wash:     #f7f6f3;  /* the bone at its faintest: marks a region without boxing it */
-  --line:     #e5e4e0;
-  --line-2:   #d0cec8;  /* dividers, card edges. Decorative: 1.6:1, below the non-text minimum on purpose */
-  --line-3:   #8c8a85;  /* control boundaries: input, option, key, pin. 3.5:1 on white, 3.1:1 on panel */
+  --line:     #e9e8e5;  /* dividers inside a surface. 1.35:1 on white. It started at #e5e4e0 (1.27:1, invisible) and went to 1.60 (a rule, not a divider); this is the step between. */
+  --line-2:   #dcdbd6;  /* card edges, table borders. 1.62:1 on white, 1.47:1 on the ground. This is the card's whole separation now that the page is pale and the lift is faint — it is at its floor, and lighter than this the card has no outline at all. */
+  --line-3:   #dcdbd6;  /* control boundaries: input, option, key, pin, segment seat.
+                            The same line as a card edge, on purpose: one border colour on the screen.
+                            It used to be 3.79:1 — a control read as a different design language from
+                            everything around it. A control is now identified by its white fill on the
+                            pale ground, its icon and its placeholder, and it announces itself properly
+                            the moment it matters: focus keeps the full brand border and tint ring. */
 
   /* Brand. One colour, for action and selection. */
   --brand:        #eb5940;  /* the site's own terracotta. Progress fill on dark surfaces, hover rules. Not for text on white: 3.5:1 */
@@ -69,14 +74,32 @@
   /* Line height by role, not one number for the page. Body sits at 1.55, which
      clears WCAG 1.4.12's 1.5 floor; headings tighten because a two-line heading
      set at body leading reads as two separate sentences. */
-  --lh-display: 1.15;
-  --lh-heading: 1.3;
-  --lh-body:    1.55;
-  --lh-meta:    1.45;
+  /* Leading falls as the size rises: a 48px line needs almost none of it, and a
+     16px paragraph needs half again its height to stay readable across a column.
+     Set as a unitless ratio so it scales with whatever size it lands on. */
+  --lh-display: 1.05;  /* 40 and 48: the line is already tall */
+  --lh-heading: 1.2;   /* 24 and 32 */
+  --lh-body:    1.45;  /* 16 and 20: paragraphs, steps, anything read in a row */
+  --lh-meta:    1.4;   /* 14: labels and metadata, usually one line anyway */
 
   /* Type: fixed rem, hand-tuned. Steps tighten at body sizes and open up at display sizes. */
-  --t-xs: 0.75rem; --t-sm: 0.875rem; --t-base: 1rem; --t-md: 1.125rem;
-  --t-lg: 1.375rem; --t-xl: 1.75rem; --t-2xl: 2.25rem; --t-3xl: 3rem;
+  /* The scale is a formula, not a list: base 16px, ratio 1.25, every step landing
+     on a whole rem or a half — which is also the 4px grid, so type and space line
+     up without either being nudged.
+
+       14  meta     16 ÷ 1.125   the one step below the base: labels, table meta
+       16  base     1rem         body. Everything a cook or a manager reads
+       20  md       × 1.25       a lead paragraph, a card title
+       24  lg       × 1.25²      a section heading
+       32  xl       × 1.25³      a page heading
+       40  2xl      × 1.25⁴      display
+       48  3xl      × 1.25⁵      display, the largest thing on any screen
+
+     The old scale was eight numbers whose ratios drifted from 1.125 to 1.33, so
+     16 and 18 sat a twelfth apart and read as the same size in the same weight.
+     12px is gone: it was below the floor on every surface this product has. */
+  --t-sm: 0.875rem; --t-base: 1rem; --t-md: 1.25rem;
+  --t-lg: 1.5rem; --t-xl: 2rem; --t-2xl: 2.5rem; --t-3xl: 3rem;
 
   /* Two faces on a real contrast axis: DM Sans is geometric, Inter is grotesque.
      DM Sans is display only, 28px and up. Below that the difference disappears
@@ -90,8 +113,8 @@
 
   --r-sm: 6px; --r-md: 8px; --r-lg: 12px; --r-pill: 999px;
 
-  --e-1: 0 1px 2px rgb(34 34 34 / 0.06);
-  --e-2: 0 2px 6px rgb(34 34 34 / 0.08);
+  --e-1: 0 1px 2px rgb(34 34 34 / 0.03);  /* a breath under a card, not a shadow. The edge separates it; this only stops it looking printed on. */
+  --e-2: 0 2px 6px rgb(34 34 34 / 0.05);
   --e-3: 0 6px 14px rgb(34 34 34 / 0.10);
 
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
@@ -119,8 +142,14 @@
   --media-max-h:  24rem;  /* an image or video inside a document or its editor */
   --list-max-h:   24rem;  /* a scrolling option list */
   --rail-w:       20rem;  /* a side column beside the main one on a wide screen */
+  --page-w:       72rem;  /* the admin work surface: every admin page is this wide and no
+                             other. It was three Tailwind defaults (7xl, 6xl, 5xl) picked
+                             per page, which is why moving between them felt like moving
+                             between products. */
   --doc-w:        680px;  /* the reading column: document, employee app, tab bar */
   --narrow-w:     560px;  /* a quiz, a sign-off, a chapter list */
+  --card-w:       24rem;  /* a card standing on its own: sign in, activate, a short modal */
+  --note-w:       32rem;  /* an empty state's sentence, a message under a heading */
   --player-w:     640px;
 
   /* The restaurant's own ornament, from alimentariamexicana.com: a stepped
@@ -252,7 +281,7 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85em;
 .input:hover { border-color: var(--ink-3); }
 /* The border change (line-2 to brand-600, 4.9:1) is the accessible focus indicator.
    The halo is 1.3:1 against white and is a glow, not a signal. */
-.input:focus { border-color: var(--brand-600); outline: 3px solid var(--brand-tint-2); outline-offset: 0; }
+.input:focus { border-color: var(--brand); outline: none; }
 .input:disabled { background: var(--panel); color: var(--ink-3); cursor: not-allowed; }
 .input[aria-invalid="true"] { border-color: var(--bad); }
 .err { font-size: var(--t-sm); color: var(--bad); font-weight: 500; display: flex; gap: var(--s-1); align-items: center; }
@@ -473,15 +502,15 @@ a.chapter { text-decoration: none; color: inherit; }
    NAVIGATION
    ============================================================ */
 .tabbar { display: flex; background: var(--surface); border: 1px solid var(--line); max-width: 400px; border-radius: var(--r-lg); overflow: hidden; }
-.tabbar a { flex: 1; min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--s-1); text-decoration: none; color: var(--ink-2); font-size: var(--t-xs); font-weight: 600; border-top: 3px solid transparent; }
+.tabbar a { flex: 1; min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--s-1); text-decoration: none; color: var(--ink-2); font-size: var(--t-sm); font-weight: 600; border-top: 3px solid transparent; }
 .tabbar a[aria-current="page"] { color: var(--ink); border-top-color: var(--brand-600); }
 .sidebar { width: var(--sidebar-w); background: var(--panel); border-right: 1px solid var(--line); padding: var(--s-4) var(--s-3); border-radius: var(--r-lg); }
 .sidebar .brandmark { font-size: var(--t-lg); font-weight: 700; letter-spacing: var(--heading-track); padding: var(--s-2) var(--s-3) var(--s-5); }
-.sidebar .grp { font-size: var(--t-xs); font-weight: 600; color: var(--ink-2); padding: var(--s-4) var(--s-3) var(--s-2); }
+.sidebar .grp { font-size: var(--t-sm); font-weight: 600; color: var(--ink-2); padding: var(--s-4) var(--s-3) var(--s-2); }
 .sidebar a { display: flex; align-items: center; gap: var(--s-3); min-height: var(--tap-admin); padding: 0 var(--s-3); border-radius: var(--r-md); text-decoration: none; color: var(--ink-2); font-size: var(--t-sm); font-weight: 500; }
 .sidebar a:hover { background: var(--surface); color: var(--ink); }
 .sidebar a[aria-current="page"] { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: var(--e-1); }
-.sidebar .count { margin-left: auto; font-size: var(--t-xs); font-weight: 700; background: var(--bad); color: var(--on-fill); border-radius: var(--r-pill); padding: 1px var(--s-2); }
+.sidebar .count { margin-left: auto; font-size: var(--t-sm); font-weight: 700; background: var(--bad); color: var(--on-fill); border-radius: var(--r-pill); padding: 1px var(--s-2); }
 /* ============================================================
    IMPORT AND MEDIA
    ============================================================ */
@@ -580,7 +609,7 @@ a.chapter { text-decoration: none; color: inherit; }
 .doc-bar.can-reveal.is-scrolled .where { opacity: 1; transform: none; }
 /* Both lines truncate. Only the title did, so a long category wrapped, grew the
    bar past --bar-h, and pushed the sticky scaler underneath it. */
-.doc-bar .where b, .doc-bar .where span { display: block; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.doc-bar .where b, .doc-bar .where span { display: block; line-height: var(--lh-meta); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .doc-bar .where b { font-size: var(--t-base); font-weight: 600; }
 .doc-bar .where span { font-size: var(--t-sm); color: var(--ink-2); }
 
@@ -639,7 +668,7 @@ a.chapter { text-decoration: none; color: inherit; }
 
 /* One sentence. EPA's own example is eight words. It is the lede, so it is set
    above body size, below a heading: the one line that says why the document exists. */
-.doc-purpose { padding: 0 var(--s-5); font-size: var(--t-md); line-height: 1.5; }
+.doc-purpose { padding: 0 var(--s-5); font-size: var(--t-md); line-height: var(--lh-body); }
 
 /* READOUT
    A bordered grid of labelled cells: two on a phone, four in a row once there is
@@ -735,7 +764,7 @@ dl.yield { margin: 0 0 var(--s-5); }
 .crit { border: 1px solid var(--line-3); border-radius: var(--r-lg); overflow: hidden; margin: var(--s-4) 0; background: var(--surface); }
 .crit-h { display: flex; align-items: center; gap: var(--s-2); margin: 0; padding: var(--s-3) var(--s-4); background: var(--panel); color: var(--ink-2); border-bottom: 1px solid var(--line); font-size: var(--t-sm); font-weight: 600; letter-spacing: var(--caps-track); text-transform: uppercase; }
 .crit-b { padding: var(--s-4); }
-.crit-num { font-size: var(--t-xl); font-weight: 700; line-height: 1.15; letter-spacing: var(--heading-track); font-variant-numeric: tabular-nums; }
+.crit-num { font-size: var(--t-xl); font-weight: 700; line-height: var(--lh-heading); letter-spacing: var(--heading-track); font-variant-numeric: tabular-nums; }
 /* 16px, not 14: this is the sentence that says the number above it may not apply
    to the bottle in the cook's hand. It is not a caption. */
 .crit-sub { margin: 2px 0 0; font-size: var(--t-base); color: var(--ink-2); }
@@ -818,6 +847,30 @@ dl.yield { margin: 0 0 var(--s-5); }
 .dtable th { text-align: left; padding: var(--s-3); font-size: var(--t-sm); font-weight: 600; color: var(--ink-2); background: var(--panel); border-bottom: 1px solid var(--line); }
 .dtable td { padding: var(--s-3); font-size: var(--t-base); border-bottom: 1px solid var(--line); vertical-align: top; }
 .dtable tr:last-child td { border-bottom: 0; }
+
+/* An admin list table: employees, locations, roles, stations. The head is a
+   rule and a quieter ink over the faintest bone -- one step off white -- rather
+   than the toolbar bone, which at table width becomes a grey slab that outweighs
+   the names under it. The card around the table draws the outer edge, so the
+   table itself has none. */
+.atable { width: 100%; border-collapse: separate; border-spacing: 0; }
+.atable th {
+  text-align: left; padding: var(--s-3) var(--s-4);
+  background: var(--wash); border-bottom: 1px solid var(--line-2);
+  font-size: var(--t-sm); font-weight: 600; color: var(--ink-3);
+}
+.atable td {
+  padding: var(--s-3) var(--s-4);
+  font-size: var(--t-sm); color: var(--ink);
+  border-bottom: 1px solid var(--line); vertical-align: middle;
+}
+.atable tr:last-child td { border-bottom: 0; }
+/* The head is the first thing in its card: its end cells take the card's radius,
+   less the 1px border the card draws around them. */
+.atable thead tr:first-child th:first-child { border-top-left-radius: calc(var(--r-lg) - 1px); }
+.atable thead tr:first-child th:last-child { border-top-right-radius: calc(var(--r-lg) - 1px); }
+/* The actions column: as wide as its button, hard right. */
+.atable th:last-child, .atable td:last-child { width: 1%; text-align: right; white-space: nowrap; }
 
 /* The templates put one thing under each heading; a document assembled from
    blocks can put several, so consecutive blocks inside a section need the
@@ -1053,7 +1106,7 @@ dl.yield { margin: 0 0 var(--s-5); }
   box-shadow: var(--e-3); animation: popover-in var(--dur) var(--ease); }
 .popover-group { padding: var(--s-2) 0; }
 .popover-group + .popover-group { border-top: 1px solid var(--line); }
-.popover-group-label { padding: var(--s-2) var(--s-3) var(--s-1); font-size: var(--t-xs);
+.popover-group-label { padding: var(--s-2) var(--s-3) var(--s-1); font-size: var(--t-sm);
   font-weight: 600; text-transform: uppercase; letter-spacing: var(--caps-track); color: var(--ink-2); }
 .popover-item { display: flex; align-items: center; gap: var(--s-2); width: 100%;
   padding: var(--s-2) var(--s-3); font-size: var(--t-sm); color: var(--ink);
@@ -1186,7 +1239,7 @@ dl.yield { margin: 0 0 var(--s-5); }
   background: var(--surface); border: 1px solid var(--line-3); border-radius: var(--r-md);
   transition: border-color var(--dur) var(--ease);
 }
-.find:focus-within { border-color: var(--brand-600); outline: 3px solid var(--brand-tint-2); }
+.find:focus-within { border-color: var(--brand); }
 .find > .i { color: var(--ink-2); flex-shrink: 0; }
 .find input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--ink); font: inherit; font-size: var(--t-base); min-height: var(--tap-admin); }
 .find input:focus { outline: none; }
@@ -1236,15 +1289,60 @@ dl.yield { margin: 0 0 var(--s-5); }
    surface, lifted: the same "I am the thing on top" the cards on this ground use. */
 /* Two rings, one line colour: the tray says "these belong together", each seat
    says "this is a seat". Different colours would read as two controls. */
-.segbar { display: inline-flex; gap: var(--s-1); padding: var(--s-1); border-radius: var(--r-pill); background: var(--panel); box-shadow: inset 0 0 0 1px var(--line); }
+/* The tray is white, like every other control in the admin bar. It was the panel
+   bone, borrowed from the recipe scaler where the tray sits on a white document;
+   on the pale ground the two are 1.03:1 apart, so it read as a smudge behind the
+   seats rather than as a control. */
+.segbar { display: inline-flex; gap: var(--s-1); padding: var(--s-1);
+  border-radius: var(--r-pill); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line-3); }
 .segbar > * {
-  display: inline-flex; align-items: center; min-height: var(--tap-admin); padding: 0 var(--s-3);
-  border-radius: var(--r-pill); box-shadow: inset 0 0 0 1px var(--line);
+  display: inline-flex; align-items: center; gap: var(--s-2);
+  min-height: var(--tap-admin); padding: 0 var(--s-3);
+  /* A seat keeps its label on one line and its width: the flexbox default is to
+     shrink every seat until the words wrap inside it. */
+  flex-shrink: 0; white-space: nowrap;
+  border-radius: var(--r-pill); box-shadow: inset 0 0 0 1px var(--line-3);
   font-size: var(--t-sm); font-weight: 600; color: var(--ink-2); text-decoration: none;
   transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 .segbar > *:hover { color: var(--ink); }
-/* Filled, exactly like the scaler: on a control with two seats the filled one is
-   the answer to "which language am I reading", and a white seat on a light tray
+/* Filled, exactly like the scaler: on a control with two or three seats the
+   filled one is the answer to "which am I on", and a white seat on a white tray
    makes you look twice to find out. */
 .segbar > [aria-current="true"] { background: var(--ink); color: var(--surface); box-shadow: none; }
+
+/* A filter row/* Sections of /* A filter row: one question, one chosen answer, an open-ended set -- the
+   library's categories. Its own row, above whatever bar carries the rest of the
+   filters, because the set can be as long as the operation is.
+   Not .segbar: that is a fixed, small set of views sharing one tray -- two
+   languages, three batch sizes -- and at seven seats the tray becomes a white
+   bar across the page and the filled seat a black slab. Here each seat is its
+   own white pill on the page ground, the way every other control on this ground
+   is white, and the chosen one is terracotta -- what this system uses for
+   current position. */
+.chipbar { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.chipbar > * {
+  /* 12px between the name and the count, not 8: at 8 the number reads as a
+     trailing word of the label. The gap is what separates them — a circle
+     around the number would do the same job while adding a shape inside a
+     shape, 20px of width to every pill, and the most ink on the emptiest
+     category. */
+  display: inline-flex; align-items: center; gap: var(--s-3);
+  min-height: var(--tap-admin); padding: 0 var(--s-4);
+  flex-shrink: 0; white-space: nowrap;
+  border-radius: var(--r-pill);
+  background: var(--surface); box-shadow: inset 0 0 0 1px var(--line-2);
+  font-size: var(--t-sm); font-weight: 600; color: var(--ink-2);
+  text-decoration: none; cursor: pointer;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease),
+              box-shadow var(--dur) var(--ease);
+}
+.chipbar > *:hover { color: var(--ink); box-shadow: inset 0 0 0 1px var(--line-3); }
+.chipbar > [aria-current="true"] {
+  background: var(--brand-tint); color: var(--brand-700);
+  box-shadow: inset 0 0 0 1px var(--brand-600);
+}
+/* The count is part of the label, not a badge beside it: one step back, so the
+   name is read first and the number answers "anything in there?". */
+.chipbar .n { font-variant-numeric: tabular-nums; color: var(--ink-3); }
+.chipbar > [aria-current="true"] .n { color: var(--brand-700); }

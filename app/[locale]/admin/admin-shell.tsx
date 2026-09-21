@@ -532,7 +532,7 @@ function NavLink({
       />
       <span className="flex-1 truncate">{label}</span>
       {soon ? (
-        <span className="rounded-[var(--radius-sm)] bg-[var(--color-panel)] px-2 py-0.5 text-xs font-semibold text-[var(--color-ink-2)]">
+        <span className="rounded-[var(--radius-sm)] bg-[var(--color-panel)] px-2 py-0.5 text-sm font-semibold text-[var(--color-ink-2)]">
           {soon}
         </span>
       ) : null}

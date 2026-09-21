@@ -51,15 +51,17 @@ export default async function EmployeeLayout({ children, params }: EmployeeLayou
 
   return (
     <div className="flex min-h-screen flex-col bg-[var(--color-bg)]">
-      <header className="flex items-center justify-between border-b border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3 sm:px-6">
-        <p className="text-sm text-[var(--color-muted-foreground)]">
+      {/* At 390px the name wrapped onto two lines and pushed "Sign out" into two
+          of its own. The name gives way; the two controls keep their shape. */}
+      <header className="flex items-center justify-between gap-3 border-b border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3 sm:px-6">
+        <p className="min-w-0 truncate text-sm text-[var(--color-ink-2)]">
           {t('signedInAs', { name: employee.name })}
         </p>
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-3">
           {employee.role === 'admin' ? (
             <Link
               href={`/${locale}/admin`}
-              className="inline-flex items-center gap-1 text-sm font-medium text-[var(--color-ink-2)] hover:text-[var(--color-brand-600)]"
+              className="inline-flex items-center gap-1 whitespace-nowrap text-sm font-medium text-[var(--color-ink-2)] hover:text-[var(--color-brand-600)]"
             >
               {tCommon('admin')}
               {/* The same mark the admin bar uses on the link back here. */}
@@ -73,7 +75,7 @@ export default async function EmployeeLayout({ children, params }: EmployeeLayou
                 already there. */}
             <button
               type="submit"
-              className="inline-flex min-h-tap-admin items-center gap-2 rounded-full px-4 text-sm font-medium text-[var(--color-ink-2)] transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)] focus-visible:bg-[var(--color-bad-tint)] focus-visible:text-[var(--color-bad)]"
+              className="inline-flex min-h-tap-admin items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium text-[var(--color-ink-2)] transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)] focus-visible:bg-[var(--color-bad-tint)] focus-visible:text-[var(--color-bad)]"
             >
               <LuLogOut aria-hidden="true" className="text-md" />
               {t('signOut')}

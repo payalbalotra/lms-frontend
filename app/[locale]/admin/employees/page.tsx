@@ -13,6 +13,9 @@ import {
 } from '@/components/ui/card';
 import { EmployeesClientTable } from './employees-client-table';
 import type { AdminEmployee, EmployeeStatus } from '@/lib/types';
+import { PageHeader } from '@/components/admin/page-header';
+import { FilterChips } from '@/components/ui/filter-chips';
+import { LuPlus } from 'react-icons/lu';
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -59,7 +62,7 @@ export default async function AdminEmployeesPage({
   } catch (err) {
     if (err instanceof ApiException) {
       return (
-        <Card className="mx-auto max-w-2xl">
+        <Card className="mx-auto max-w-narrow">
           <CardHeader>
             <CardTitle>—</CardTitle>
           </CardHeader>
@@ -96,15 +99,16 @@ export default async function AdminEmployeesPage({
   };
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight text-[var(--color-ink)]">
-          {t('listHeading')}
-        </h1>
-        <Link href={`/${locale}/admin/employees/new`}>
-          <Button>{t('inviteEmployee')}</Button>
-        </Link>
-      </div>
+    <div className="mx-auto max-w-page space-y-6">
+      <PageHeader
+        title={t('listHeading')}
+        subtitle={t('peopleSubtitle')}
+        actions={
+          <Link href={`/${locale}/admin/employees/new`}>
+            <Button icon={LuPlus}>{t('inviteEmployee')}</Button>
+          </Link>
+        }
+      />
 
       {q ? (
         <p className="flex flex-wrap items-center gap-2 text-base text-[var(--color-ink-2)]">
@@ -118,24 +122,15 @@ export default async function AdminEmployeesPage({
         </p>
       ) : null}
 
-      <div className="flex flex-wrap gap-2 text-sm">
-        {STATUS_VALUES.map((s) => {
-          const active = s === status;
-          return (
-            <Link
-              key={s}
-              href={`/${locale}/admin/employees?status=${s}`}
-              className={
-                active
-                  ? 'inline-flex items-center rounded-full bg-[var(--color-ink)] px-3 py-1 text-xs font-medium text-white'
-                  : 'inline-flex items-center rounded-full border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-1 text-xs font-medium text-[var(--color-ink-2)] hover:bg-[var(--color-panel)]'
-              }
-            >
-              {s === 'all' ? t('filterAll') : statusBadge(s)}
-            </Link>
-          );
-        })}
-      </div>
+      <FilterChips
+        label={locale === 'es' ? 'Estado' : 'Status'}
+        value={status}
+        chips={STATUS_VALUES.map((s) => ({
+          value: s,
+          label: s === 'all' ? t('filterAll') : statusBadge(s),
+          href: `/${locale}/admin/employees?status=${s}`,
+        }))}
+      />
 
       <EmployeesClientTable
         initialEmployees={employees}

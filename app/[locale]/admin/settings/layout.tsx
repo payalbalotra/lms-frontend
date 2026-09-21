@@ -4,6 +4,8 @@ import * as React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { PageHeader } from '@/components/admin/page-header';
+import { FilterChips } from '@/components/ui/filter-chips';
 
 interface SettingsLayoutProps {
   children: React.ReactNode;
@@ -17,7 +19,9 @@ export default function SettingsLayout({
   // /<locale>/admin/settings/<tab>
   const segments = pathname.split('/').filter(Boolean);
   const locale = segments[0] ?? 'en';
-  const activeTab = segments[2] ?? '';
+  // /<locale>/admin/settings/<tab> — segments[2] is the word "settings" itself,
+  // so the current tab was never marked.
+  const activeTab = segments[3] ?? '';
 
   const tabs: ReadonlyArray<{ key: string; href: string; label: string }> = [
     { key: 'stations', href: `/${locale}/admin/settings/stations`, label: t('settingsTabStations') },
@@ -26,29 +30,14 @@ export default function SettingsLayout({
   ];
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight text-[var(--color-ink)]">
-        {t('settingsHeading')}
-      </h1>
+    <div className="mx-auto max-w-page space-y-6">
+      <PageHeader title={t('settingsHeading')} subtitle={t('settingsSubtitle')} />
 
-      <nav className="flex flex-wrap gap-2 text-sm" aria-label="Settings tabs">
-        {tabs.map((tab) => {
-          const active = activeTab === tab.key;
-          return (
-            <Link
-              key={tab.key}
-              href={tab.href}
-              className={
-                active
-                  ? 'inline-flex items-center rounded-full bg-[var(--color-brand-600)] px-3 py-1 text-xs font-medium text-white'
-                  : 'inline-flex items-center rounded-full border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-1 text-xs font-medium text-[var(--color-ink-2)] hover:bg-[var(--color-panel)]'
-              }
-            >
-              {tab.label}
-            </Link>
-          );
-        })}
-      </nav>
+      <FilterChips
+        label={t('settingsHeading')}
+        value={activeTab}
+        chips={tabs.map((tab) => ({ value: tab.key, label: tab.label, href: tab.href }))}
+      />
 
       {children}
     </div>

@@ -219,6 +219,7 @@
       "new": {
         "crumbBack": "Volver a la biblioteca",
         "importDoc": "Importar documento",
+        "livePreview": "Vista previa",
         "cancel": "Cancelar",
         "pageEyebrow": "NUEVO PROCEDIMIENTO",
         "pageTitle": "Empezar un nuevo procedimiento",
@@ -251,7 +252,7 @@
         },
         "import": {
           "title": "Importar documento con IA",
-          "body": "Sube un SOP existente — PDF, archivo de Word, foto de receta o texto plano. La IA lo leerá y propondrá un borrador que puedes revisar antes de guardar.",
+          "body": "La IA lee el documento y propone un borrador que puedes revisar antes de guardar.",
           "dropHint": "Arrastra y suelta un archivo aquí",
           "or": "o",
           "browse": "Examinar archivo",
@@ -580,6 +581,7 @@
               "diagram": "Diagrama"
             },
             "image": {
+              "sourceLabel": "Origen de la imagen",
               "uploadMode": "Subir archivo",
               "urlMode": "URL de la imagen",
               "uploadClick": "Haz clic para subir o arrastra y suelta una imagen",
@@ -596,6 +598,7 @@
             "videoSrc": "URL del video",
             "videoCaption": "Pie (opcional)",
             "video": {
+              "sourceLabel": "Origen del video",
               "uploadMode": "Subir archivo",
               "urlMode": "URL del video",
               "uploadClick": "Haz clic para subir o arrastra y suelta un video",
@@ -682,6 +685,7 @@
     "backToApp": "Empleado",
     "signOut": "Cerrar sesión",
     "listHeading": "Empleados",
+    "cancel": "Cancelar",
     "inviteEmployee": "Invitar empleado",
     "filterAll": "Todos",
     "thName": "Nombre",

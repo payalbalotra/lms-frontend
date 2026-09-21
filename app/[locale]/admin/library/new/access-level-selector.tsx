@@ -61,7 +61,7 @@ export function AccessLevelSelector({
   return (
     <section className="space-y-3">
       <header>
-        <p className="text-xs font-bold uppercase text-[var(--color-ink-3)]">
+        <p className="text-sm font-semibold uppercase text-[var(--color-ink-3)]">
           {tAccess('accessLevelEyebrow')}
         </p>
       </header>
@@ -100,7 +100,7 @@ export function AccessLevelSelector({
               <span className="min-w-0 flex-1">
                 <span
                   className={cn(
-                    'flex items-center gap-2 text-md font-bold tracking-snug',
+                    'flex items-center gap-2 text-md font-semibold tracking-snug',
                     isSelected ? 'text-[var(--color-brand-700)]' : 'text-[var(--color-ink)]',
                   )}
                 >

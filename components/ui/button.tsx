@@ -1,5 +1,7 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
+import { Icon } from '@/components/ui/icon';
+import type { IconType } from 'react-icons';
 
 /**
  * Buttons follow DESIGN.md §3.1.
@@ -28,8 +30,15 @@ import { cn } from '@/lib/utils';
  * add/create trigger, default to `secondary`. Reserve `neutral` for true
  * cancel / dismiss / no-confirm.
  */
-type ButtonVariant = 'primary' | 'secondary' | 'destructive' | 'ghost' | 'neutral';
+type ButtonVariant = 'primary' | 'secondary' | 'destructive' | 'ghost' | 'neutral' | 'surface';
 type ButtonSize = 'default' | 'sm' | 'lg' | 'icon';
+
+const BASE =
+  'inline-flex items-center justify-center gap-2 rounded-full font-medium whitespace-nowrap ' +
+  // Transition follows the --ease curve + 180ms duration from §2.4.
+  'transition-colors duration-[var(--dur)] ease-[var(--ease)] ' +
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2 ' +
+  'disabled:pointer-events-none disabled:opacity-50';
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
@@ -45,6 +54,12 @@ const variantClasses: Record<ButtonVariant, string> = {
     'bg-[var(--color-panel)] text-[var(--color-ink)] hover:bg-[var(--color-panel-2)] active:translate-y-px',
   ghost:
     'bg-transparent text-[var(--color-ink)] hover:bg-[var(--color-panel)]',
+  // A secondary action standing on the page ground rather than inside a card.
+  // `neutral` cannot do this job: panel on the ground is 1.02:1, so the control
+  // disappears. White with the card's own edge and lift reads as a control on a
+  // surface that is nearly the same colour.
+  surface:
+    'bg-[var(--color-surface)] text-[var(--color-ink)] border border-[var(--color-line-2)] shadow-e1 hover:bg-[var(--color-panel)] active:translate-y-px',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -61,10 +76,30 @@ const sizeClasses: Record<ButtonSize, string> = {
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: ButtonSize;
+  /**
+   * The button's mark, drawn after the label. It is a prop rather than a child so
+   * the side is the component's decision and not each call site's: the label is
+   * what the reader is scanning for, and a mark in front of it makes the eye step
+   * over the mark to reach the word. Pass a component or a registry name.
+   */
+  icon?: IconType | string;
+}
+
+/**
+ * The button's classes, without the button. For a `<Link>` that acts as a button
+ * and for the decorative pill inside a card-wide link, where a nested <button>
+ * would be invalid HTML. Same source, so they cannot drift.
+ */
+export function buttonClassName({
+  variant = 'primary',
+  size = 'default',
+  className,
+}: { variant?: ButtonVariant; size?: ButtonSize; className?: string } = {}): string {
+  return cn(BASE, variantClasses[variant], sizeClasses[size], className);
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { className, variant = 'primary', size = 'default', type = 'button', ...props },
+  { className, variant = 'primary', size = 'default', type = 'button', icon, children, ...props },
   ref,
 ) {
   return (
@@ -72,17 +107,11 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
       ref={ref}
       type={type}
       data-slot="button"
-      className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-full font-medium whitespace-nowrap',
-        // Transition follows the --ease curve + 180ms duration from §2.4.
-        'transition-colors duration-[var(--dur)] ease-[var(--ease)]',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2',
-        'disabled:pointer-events-none disabled:opacity-50',
-        variantClasses[variant],
-        sizeClasses[size],
-        className,
-      )}
+      className={buttonClassName({ variant, size, className })}
       {...props}
-    />
+    >
+      {children}
+      {icon ? <Icon icon={icon} className="text-base" /> : null}
+    </button>
   );
 });

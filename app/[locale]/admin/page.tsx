@@ -160,7 +160,7 @@ export default async function AdminHomePage({ params }: PageProps): Promise<Reac
   ];
 
   return (
-    <div className="mx-auto max-w-7xl space-y-10 pb-12">
+    <div className="mx-auto max-w-page space-y-10 pb-12">
       <div className="space-y-8">
         <HomeHeader
           place={dateLabel}
@@ -209,7 +209,7 @@ export default async function AdminHomePage({ params }: PageProps): Promise<Reac
 
 function HomeError({ message }: { message: string }): React.ReactElement {
   return (
-    <div role="alert" className="mx-auto max-w-2xl rounded-[var(--radius-lg)] bg-[var(--color-bad-tint)] p-6">
+    <div role="alert" className="mx-auto max-w-narrow rounded-[var(--radius-lg)] bg-[var(--color-bad-tint)] p-6">
       <p className="font-semibold text-[var(--color-bad)]">{message}</p>
     </div>
   );

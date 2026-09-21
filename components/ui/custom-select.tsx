@@ -16,6 +16,10 @@ export interface SelectOption {
 }
 
 export interface CustomSelectProps {
+  /** On the trigger, so a <label> can point at it. */
+  id?: string;
+  /** The id of the element naming this control, where a form supplies one. */
+  ariaLabelledBy?: string;
   value: string;
   onChange: (value: string) => void;
   options: SelectOption[];
@@ -27,6 +31,8 @@ export interface CustomSelectProps {
 }
 
 export function CustomSelect({
+  id,
+  ariaLabelledBy,
   value,
   onChange,
   options,
@@ -134,15 +140,17 @@ export function CustomSelect({
     <div className="relative w-full">
       <button
         ref={triggerRef}
+        id={id}
+        aria-labelledby={ariaLabelledBy}
         type="button"
         disabled={disabled}
         onClick={() => setOpen((prev) => !prev)}
         className={cn(
           'flex w-full items-center justify-between gap-2 rounded-[var(--radius-md)] border border-[var(--color-line-3)] bg-[var(--color-surface)] text-[var(--color-ink)] transition-all duration-[var(--dur)]',
           size === 'sm'
-            ? 'min-h-8 px-3 py-1 text-xs'
+            ? 'min-h-8 px-3 py-1 text-sm'
             : 'min-h-10 px-4 py-2 text-sm',
-          open && 'border-[var(--color-brand-600)] ring-2 ring-[var(--color-brand-tint)]',
+          open && 'border-[var(--color-brand)]',
           'hover:border-[var(--color-line-3)]',
           'disabled:cursor-not-allowed disabled:opacity-60',
           className,
@@ -201,7 +209,7 @@ export function CustomSelect({
                   }}
                   className={cn(
                     'flex w-full items-center justify-between gap-3 rounded-[var(--radius-md)] text-left transition-colors',
-                    size === 'sm' ? 'px-3 py-2 text-xs' : 'px-3 py-2 text-sm',
+                    size === 'sm' ? 'px-3 py-2 text-sm' : 'px-3 py-2 text-sm',
                     isSelected
                       ? 'bg-[var(--color-panel)] font-semibold text-[var(--color-ink)]'
                       : isHighlighted
@@ -216,7 +224,7 @@ export function CustomSelect({
                     <div className="flex flex-col min-w-0">
                       <span className="truncate">{opt.label}</span>
                       {opt.description && (
-                        <span className="text-xs font-normal text-[var(--color-ink-2)] truncate">
+                        <span className="text-sm font-normal text-[var(--color-ink-2)] truncate">
                           {opt.description}
                         </span>
                       )}

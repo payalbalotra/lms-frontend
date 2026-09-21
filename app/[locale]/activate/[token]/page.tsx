@@ -44,7 +44,7 @@ export default async function ActivateTokenPage({ params }: PageProps): Promise<
   if (info && info.employeeStatus === 'active') {
     return (
       <main className="flex min-h-screen items-center justify-center px-4 py-12">
-        <Card className="w-full max-w-sm">
+        <Card className="w-full max-w-card">
           <CardHeader>
             <CardTitle>{t('alreadyActiveHeading')}</CardTitle>
             <CardDescription>{t('errorAlreadyActive')}</CardDescription>
@@ -70,7 +70,7 @@ export default async function ActivateTokenPage({ params }: PageProps): Promise<
             : t('errorNotFound');
     return (
       <main className="flex min-h-screen items-center justify-center px-4 py-12">
-        <Card className="w-full max-w-sm">
+        <Card className="w-full max-w-card">
           <CardHeader>
             <CardTitle>{t('invalidHeading')}</CardTitle>
             <CardDescription>{message}</CardDescription>

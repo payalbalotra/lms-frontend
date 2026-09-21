@@ -184,7 +184,7 @@
     "library": {
       "pageEyebrow": "Library",
       "pageTitle": "All procedures",
-      "pageSubtitle": "Recipes, station procedures, cleaning schedules, and one-off notes — every published document, organised by category.",
+      "pageSubtitle": "Recipes, station procedures, cleaning schedules, and one-off notes every published document, organised by category.",
       "searchPlaceholder": "Search procedures…",
       "filterAllCategories": "All categories",
       "emptyHeading": "The library starts with the first procedure",
@@ -219,6 +219,7 @@
       "new": {
         "crumbBack": "Back to library",
         "importDoc": "Import document",
+        "livePreview": "Live preview",
         "cancel": "Cancel",
         "pageEyebrow": "NEW PROCEDURE",
         "pageTitle": "Start a new procedure",
@@ -251,7 +252,7 @@
         },
         "import": {
           "title": "Import document with AI",
-          "body": "Upload an existing SOP — PDF, Word file, recipe photo, or plain text. AI will read it and propose a draft you can review before saving.",
+          "body": "AI reads the document and proposes a draft you can review before saving.",
           "dropHint": "Drag & drop a file here",
           "or": "or",
           "browse": "Browse file",
@@ -580,6 +581,7 @@
               "diagram": "Diagram"
             },
             "image": {
+              "sourceLabel": "Image source",
               "uploadMode": "Upload file",
               "urlMode": "Image URL",
               "uploadClick": "Click to upload or drag & drop image",
@@ -596,6 +598,7 @@
             "videoSrc": "Video URL",
             "videoCaption": "Caption (optional)",
             "video": {
+              "sourceLabel": "Video source",
               "uploadMode": "Upload file",
               "urlMode": "Video URL",
               "uploadClick": "Click to upload or drag & drop video",
@@ -682,6 +685,7 @@
     "backToApp": "Employee",
     "signOut": "Sign out",
     "listHeading": "Employees",
+    "cancel": "Cancel",
     "inviteEmployee": "Invite employee",
     "filterAll": "All",
     "thName": "Name",

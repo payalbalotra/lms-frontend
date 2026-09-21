@@ -58,7 +58,7 @@ export function LoginForm({ locale }: LoginFormProps): React.ReactElement {
   }
 
   return (
-    <Card className="w-full max-w-sm">
+    <Card className="w-full max-w-card">
       <CardHeader>
         <CardTitle>{tApp('title')}</CardTitle>
         <CardDescription>{t('heading')}</CardDescription>

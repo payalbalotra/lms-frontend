@@ -137,7 +137,7 @@ export function QuizEditor({ value, onChange, isSaving }: QuizEditorProps): Reac
           <span className="block text-sm font-semibold text-[var(--color-ink)]">
             {t('attachedLabel')}
           </span>
-          <span className="block text-xs text-[var(--color-ink-2)]">{t('attachedHelp')}</span>
+          <span className="block text-sm text-[var(--color-ink-2)]">{t('attachedHelp')}</span>
         </label>
       </div>
 
@@ -148,14 +148,14 @@ export function QuizEditor({ value, onChange, isSaving }: QuizEditorProps): Reac
             key={q.id}
             className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)]"
           >
-            <header className="flex items-start gap-3 border-b border-[var(--color-line)] bg-[var(--color-wash)]/30 px-4 py-3">
-              <span className="mt-1.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand-tint)] text-xs font-bold text-[var(--color-brand-700)]">
+            <header className="flex items-start gap-3 border-b border-[var(--color-line)] bg-[var(--color-wash)] px-4 py-3">
+              <span className="mt-2 flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand-tint)] text-sm font-bold text-[var(--color-brand-700)]">
                 {qi + 1}
               </span>
               <div className="flex-1 space-y-1">
                 <label
                   htmlFor={`q-${q.id}-prompt`}
-                  className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--color-ink-3)]"
+                  className="block text-sm font-semibold uppercase text-[var(--color-ink-3)]"
                 >
                   Question
                 </label>
@@ -169,7 +169,7 @@ export function QuizEditor({ value, onChange, isSaving }: QuizEditorProps): Reac
                   className="w-full rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold text-[var(--color-ink)] placeholder:font-normal placeholder:text-[var(--color-ink-3)] focus:border-[var(--color-brand-600)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-tint)]"
                 />
                 {q.choices.every((c) => !c.label.en.trim()) ? null : !q.correctChoiceId ? (
-                  <p className="pt-1 text-[11px] font-medium text-[var(--color-warn-ink)]">
+                  <p className="pt-1 text-sm font-medium text-[var(--color-warn-ink)]">
                     {t('noCorrect')}
                   </p>
                 ) : null}
@@ -185,7 +185,7 @@ export function QuizEditor({ value, onChange, isSaving }: QuizEditorProps): Reac
               </button>
             </header>
 
-            <ul className="space-y-1.5 p-3">
+            <ul className="space-y-2 p-3">
               {q.choices.map((c, ci) => {
                 const isCorrect = q.correctChoiceId === c.id;
                 return (
@@ -197,13 +197,13 @@ export function QuizEditor({ value, onChange, isSaving }: QuizEditorProps): Reac
                       aria-pressed={isCorrect}
                       aria-label={t('markCorrect')}
                       className={cn(
-                        'flex size-7 shrink-0 items-center justify-center rounded-full border transition-colors',
+                        'flex size-8 shrink-0 items-center justify-center rounded-full border transition-colors',
                         isCorrect
                           ? 'border-[var(--color-ok)] bg-[var(--color-ok-tint)] text-[var(--color-ok)]'
                           : 'border-[var(--color-line-2)] bg-[var(--color-surface)] text-transparent hover:border-[var(--color-ink-3)]',
                       )}
                     >
-                      {isCorrect ? <LuCheck className="size-3.5" aria-hidden="true" /> : <LuCircle className="size-3.5" aria-hidden="true" />}
+                      {isCorrect ? <LuCheck className="size-4" aria-hidden="true" /> : <LuCircle className="size-4" aria-hidden="true" />}
                     </button>
                     <input
                       type="text"
@@ -214,7 +214,7 @@ export function QuizEditor({ value, onChange, isSaving }: QuizEditorProps): Reac
                       className={cn(
                         'flex-1 rounded-[var(--radius-md)] border bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] focus:outline-none focus:ring-2',
                         isCorrect
-                          ? 'border-[var(--color-ok)]/40 focus:border-[var(--color-ok)] focus:ring-[var(--color-ok-tint)]'
+                          ? 'border-[var(--color-ok)] focus:border-[var(--color-ok)] focus:ring-[var(--color-ok-tint)]'
                           : 'border-[var(--color-line-2)] focus:border-[var(--color-brand-600)] focus:ring-[var(--color-brand-tint)]',
                       )}
                     />
@@ -238,9 +238,9 @@ export function QuizEditor({ value, onChange, isSaving }: QuizEditorProps): Reac
                     type="button"
                     onClick={() => addChoice(qi)}
                     disabled={isSaving}
-                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-[var(--color-brand-700)] hover:bg-[var(--color-brand-tint)] disabled:opacity-50"
+                    className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-[var(--color-brand-700)] hover:bg-[var(--color-brand-tint)] disabled:opacity-50"
                   >
-                    <LuPlus className="size-3.5" aria-hidden="true" />
+                    <LuPlus className="size-4" aria-hidden="true" />
                     {t('addOption')}
                   </button>
                 </li>
@@ -254,7 +254,7 @@ export function QuizEditor({ value, onChange, isSaving }: QuizEditorProps): Reac
         type="button"
         onClick={addQuestion}
         disabled={isSaving}
-        className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-lg)] border-2 border-dashed border-[var(--color-line-2)] bg-[var(--color-surface)] py-3 text-sm font-semibold text-[var(--color-ink-2)] transition-colors hover:border-[var(--color-brand-600)] hover:bg-[var(--color-brand-tint)]/30 hover:text-[var(--color-brand-700)] disabled:opacity-50"
+        className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-lg)] border-2 border-dashed border-[var(--color-line-2)] bg-[var(--color-surface)] py-3 text-sm font-semibold text-[var(--color-ink-2)] transition-colors hover:border-[var(--color-brand-600)] hover:bg-[var(--color-brand-tint)] hover:text-[var(--color-brand-700)] disabled:opacity-50"
       >
         <LuPlus className="size-4" aria-hidden="true" />
         {t('addQuestion')}

@@ -154,14 +154,19 @@ export function DocumentImportPanel({
     );
 
   return (
-    <div className="rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-bg-admin)] p-6 space-y-4">
-      <header className="flex items-center gap-2 text-[var(--color-ink)]">
-        <LuWandSparkles aria-hidden="true" className="text-xl" />
-        <h3 className="font-[family-name:var(--font-ui)] text-md font-semibold">
-          {t('title')}
-        </h3>
+    <section className="space-y-4 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-6">
+      <header className="flex items-start gap-3 border-b border-[var(--color-line)] pb-3">
+        <span
+          aria-hidden="true"
+          className="flex size-tap-admin shrink-0 items-center justify-center rounded-lg bg-[var(--color-panel)] text-lg text-[var(--color-ink-2)]"
+        >
+          <LuWandSparkles />
+        </span>
+        <div className="min-w-0">
+          <h3 className="text-md font-semibold tracking-snug text-[var(--color-ink)]">{t('title')}</h3>
+          <p className="mt-0.5 text-sm text-[var(--color-ink-2)]">{t('body')}</p>
+        </div>
       </header>
-      <p className="text-sm text-[var(--color-ink-2)]">{t('body')}</p>
 
       {/* Idle / failed — show drop zone */}
       {(state.kind === 'idle' || state.kind === 'failed') && (
@@ -179,13 +184,14 @@ export function DocumentImportPanel({
               if (file) void handleFile(file);
             }}
             className={cn(
-              'flex flex-col items-center justify-center rounded-[var(--radius-lg)] border-2 border-dashed bg-[var(--color-surface)] p-8 text-center transition-colors',
+              'flex flex-col items-center justify-center rounded-[var(--radius-lg)] border border-dashed bg-[var(--color-wash)] p-6 text-center',
+              'transition-colors duration-[var(--dur)] ease-[var(--ease)]',
               dragOver
-                ? 'border-[var(--color-brand-600)] bg-[var(--color-surface)]'
-                : 'border-[var(--color-line-3)] hover:bg-[var(--color-surface)]',
+                ? 'border-[var(--color-brand-600)] bg-[var(--color-brand-tint)]'
+                : 'border-[var(--color-line-3)] hover:bg-[var(--color-panel)]',
             )}
           >
-            <LuCloudUpload aria-hidden="true" className="text-2xl text-[var(--color-ink-2)] mb-2" />
+            <LuCloudUpload aria-hidden="true" className="mb-2 text-lg text-[var(--color-ink-2)]" />
             <p className="text-sm font-semibold text-[var(--color-ink)]">
               {t('dropHint')} <span className="text-[var(--color-ink-2)] font-normal">{t('or')}</span>
             </p>
@@ -199,7 +205,7 @@ export function DocumentImportPanel({
                 {t('browse')}
               </Button>
             </div>
-            <span className="mt-2 text-xs text-[var(--color-ink-3)]">{t('formatsHint')}</span>
+            <span className="mt-2 text-sm text-[var(--color-ink-3)]">{t('formatsHint')}</span>
             <input
               ref={inputRef}
               type="file"
@@ -217,13 +223,13 @@ export function DocumentImportPanel({
               className="rounded-[var(--radius-md)] border border-[var(--color-bad-tint)] bg-[var(--color-bad-tint)] px-3 py-2 text-sm text-[var(--color-bad)]"
             >
               <p className="font-semibold">{state.error}</p>
-              <p className="mt-1 text-xs opacity-80">
+              <p className="mt-1 text-sm opacity-80">
                 {state.filename}
               </p>
               <button
                 type="button"
                 onClick={reset}
-                className="mt-2 text-xs font-semibold underline-offset-4 hover:underline"
+                className="mt-2 text-sm font-semibold underline-offset-4 hover:underline"
               >
                 {t('tryAgain')}
               </button>
@@ -262,7 +268,7 @@ export function DocumentImportPanel({
           t={t}
         />
       )}
-    </div>
+    </section>
   );
 }
 
@@ -368,7 +374,7 @@ function ReadyPreview({
       ))}
 
       {extraction.notes && (
-        <p className="text-xs italic text-[var(--color-ink-3)]">
+        <p className="text-sm italic text-[var(--color-ink-3)]">
           {t('sectionsNotes')}: {extraction.notes}
         </p>
       )}
@@ -387,7 +393,7 @@ function ReadyPreview({
           {t('useThis')}
         </Button>
       </div>
-    </div>
+      </div>
   );
 }
 
@@ -418,7 +424,7 @@ function AcceptRow({
         className="mt-1 size-4 accent-[var(--color-brand-600)]"
       />
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-semibold text-[var(--color-ink-3)]">
+        <p className="text-sm font-semibold text-[var(--color-ink-3)]">
           {label}
         </p>
         <p className="text-sm text-[var(--color-ink)]">{value}</p>
@@ -456,12 +462,12 @@ function BlockRow({
         className="mt-1 size-4 accent-[var(--color-brand-600)]"
       />
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-semibold text-[var(--color-ink-3)]">
+        <p className="text-sm font-semibold text-[var(--color-ink-3)]">
           {blockLabel}
         </p>
         <BlockBody block={block} />
       </div>
-      <span className="text-xs text-[var(--color-ink-3)]">#{index + 1}</span>
+      <span className="text-sm text-[var(--color-ink-3)]">#{index + 1}</span>
     </label>
   );
 }
@@ -494,7 +500,7 @@ function BlockBody({ block }: { block: ExtractedBlock }): React.ReactElement {
     case 'warning':
       return (
         <p className="text-sm text-[var(--color-warn)]">
-          <span className="mr-1 inline-block rounded-sm bg-[var(--color-warn-tint)] px-2 py-0.5 text-xs font-semibold">
+          <span className="mr-1 inline-block rounded-sm bg-[var(--color-warn-tint)] px-2 py-0.5 text-sm font-semibold">
             {block.severity}
           </span>
           {localisedPreview(block.body)}
@@ -503,7 +509,7 @@ function BlockBody({ block }: { block: ExtractedBlock }): React.ReactElement {
     case 'table':
       return (
         <div className="overflow-x-auto rounded-sm border border-[var(--color-line-2)]">
-          <table className="w-full text-xs">
+          <table className="w-full text-sm">
             <thead className="bg-[var(--color-panel)]">
               <tr>
                 {block.headers.map((h, i) => (

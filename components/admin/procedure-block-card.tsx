@@ -183,7 +183,7 @@ export function ProcedureBlockCard({
           {/* Color Badge Indicator for Block Type */}
           <div
             className={cn(
-              'inline-flex items-center gap-2 rounded-lg border px-3 py-1 text-xs font-semibold',
+              'inline-flex items-center gap-2 rounded-lg border px-3 py-1 text-sm font-semibold',
               theme.badgeBg,
               theme.badgeText,
               theme.badgeBorder,

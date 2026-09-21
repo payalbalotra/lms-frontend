@@ -3,17 +3,13 @@
 import * as React from 'react';
 import { useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { CustomSelect } from '@/components/ui/custom-select';
+import { PageHeader } from '@/components/admin/page-header';
+import { LuUserPlus } from 'react-icons/lu';
 import { createEmployee, listStations, ApiException } from '@/lib/api';
 import type {
   Employee,
@@ -132,134 +128,142 @@ export function NewEmployeeForm({
     );
   }
 
+  const field = 'grid gap-2';
+
   return (
-    <Card className="mx-auto max-w-3xl">
-      <CardHeader>
-        <CardTitle>{t('newHeading')}</CardTitle>
-        <CardDescription>{t('newDescription')}</CardDescription>
-      </CardHeader>
+    <div className="mx-auto max-w-page space-y-6">
+      <PageHeader
+        title={t('newHeading')}
+        subtitle={t('newDescription')}
+        actions={
+          <Link href={`/${locale}/admin/employees`}>
+            <Button type="button" variant="ghost">
+              {t('cancel')}
+            </Button>
+          </Link>
+        }
+      />
 
       <form onSubmit={onSubmit} noValidate>
-        <CardContent className="grid gap-4 md:grid-cols-2">
-          {/* Row 1 — Name + Email */}
-          <div className="grid gap-2">
-            <Label htmlFor="name">{t('nameLabel')}</Label>
-            <Input
-              id="name"
-              required
-              maxLength={120}
-              value={form.name}
-              onChange={(e) => update('name', e.target.value)}
-              disabled={isPending}
-            />
-          </div>
+        <div className="space-y-6 rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-6">
+          {/* Three to a row at the page width: the six fields are short, and a
+              two-column grid in a 560px card truncated the location name. */}
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div className={field}>
+              <Label htmlFor="name">{t('nameLabel')}</Label>
+              <Input
+                id="name"
+                required
+                maxLength={120}
+                value={form.name}
+                onChange={(e) => update('name', e.target.value)}
+                disabled={isPending}
+              />
+            </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="email">{t('emailLabel')}</Label>
-            <Input
-              id="email"
-              type="email"
-              maxLength={200}
-              placeholder={t('emailPlaceholder')}
-              value={form.email}
-              onChange={(e) => update('email', e.target.value)}
-              disabled={isPending}
-            />
-          </div>
+            <div className={field}>
+              <Label htmlFor="email">{t('emailLabel')}</Label>
+              <Input
+                id="email"
+                type="email"
+                maxLength={200}
+                placeholder={t('emailPlaceholder')}
+                value={form.email}
+                onChange={(e) => update('email', e.target.value)}
+                disabled={isPending}
+              />
+            </div>
 
-          {/* Row 2 — Location + Role */}
-          <div className="grid gap-2">
-            <Label htmlFor="locationId">{t('locationLabel')}</Label>
-            <Select
-              id="locationId"
-              required
-              value={form.locationId}
-              onChange={(e) => onLocationChange(e.target.value)}
-              disabled={isPending || locations.length === 1}
-            >
-              {locations.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.name}
-                </option>
-              ))}
-            </Select>
-          </div>
+            <div className={field}>
+              <Label id="locationId-label" htmlFor="locationId">
+                {t('locationLabel')}
+              </Label>
+              <CustomSelect
+                id="locationId"
+                ariaLabelledBy="locationId-label"
+                value={form.locationId}
+                onChange={onLocationChange}
+                disabled={isPending || locations.length === 1}
+                options={locations.map((l) => ({ value: l.id, label: l.name }))}
+              />
+            </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="roleId">{t('roleLabel')}</Label>
-            <Select
-              id="roleId"
-              required
-              value={form.roleId}
-              onChange={(e) => update('roleId', e.target.value)}
-              disabled={isPending}
-            >
-              <option value="">{t('selectRolePrompt')}</option>
-              {roles.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.name} ({r.clearanceLevel})
-                </option>
-              ))}
-            </Select>
-          </div>
+            <div className={field}>
+              <Label id="roleId-label" htmlFor="roleId">
+                {t('roleLabel')}
+              </Label>
+              <CustomSelect
+                id="roleId"
+                ariaLabelledBy="roleId-label"
+                value={form.roleId}
+                onChange={(val) => update('roleId', val)}
+                disabled={isPending}
+                placeholder={t('selectRolePrompt')}
+                options={roles.map((r) => ({ value: r.id, label: `${r.name} (${r.clearanceLevel})` }))}
+              />
+            </div>
 
-          {/* Row 3 — Station + Employee code */}
-          <div className="grid gap-2">
-            <Label htmlFor="stationId">{t('stationLabel')}</Label>
-            <Select
-              id="stationId"
-              value={form.stationId}
-              onChange={(e) => update('stationId', e.target.value)}
-              disabled={isPending}
-            >
-              <option value="">{t('selectNone')}</option>
-              {stations.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name || t('selectPlaceholder')}
-                </option>
-              ))}
-            </Select>
-          </div>
+            <div className={field}>
+              <Label id="stationId-label" htmlFor="stationId">
+                {t('stationLabel')}
+              </Label>
+              <CustomSelect
+                id="stationId"
+                ariaLabelledBy="stationId-label"
+                value={form.stationId}
+                onChange={(val) => update('stationId', val)}
+                disabled={isPending}
+                placeholder={t('selectNone')}
+                options={[
+                  { value: '', label: t('selectNone') },
+                  ...stations.map((st) => ({ value: st.id, label: st.name || t('selectPlaceholder') })),
+                ]}
+              />
+            </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="employeeCode">{t('employeeCodeLabel')}</Label>
-            <Input
-              id="employeeCode"
-              maxLength={32}
-              placeholder={t('employeeCodePlaceholder')}
-              value={form.employeeCode}
-              onChange={(e) => update('employeeCode', e.target.value)}
-              disabled={isPending}
-            />
-          </div>
+            <div className={field}>
+              <Label htmlFor="employeeCode">{t('employeeCodeLabel')}</Label>
+              <Input
+                id="employeeCode"
+                maxLength={32}
+                placeholder={t('employeeCodePlaceholder')}
+                value={form.employeeCode}
+                onChange={(e) => update('employeeCode', e.target.value)}
+                disabled={isPending}
+              />
+            </div>
 
-          {/* Row 4 — Language (single, full-width) */}
-          <div className="grid gap-2 md:col-span-2 md:max-w-xs">
-            <Label htmlFor="languagePref">{t('languageLabel')}</Label>
-            <Select
-              id="languagePref"
-              value={form.languagePref}
-              onChange={(e) => update('languagePref', e.target.value as LanguagePref)}
-              disabled={isPending}
-            >
-              <option value="en">English (en)</option>
-              <option value="es">Español (es)</option>
-            </Select>
+            <div className={field}>
+              <Label id="languagePref-label" htmlFor="languagePref">
+                {t('languageLabel')}
+              </Label>
+              <CustomSelect
+                id="languagePref"
+                ariaLabelledBy="languagePref-label"
+                value={form.languagePref}
+                onChange={(val) => update('languagePref', val as LanguagePref)}
+                disabled={isPending}
+                options={[
+                  { value: 'en', label: 'English (EN)' },
+                  { value: 'es', label: 'Español (ES)' },
+                ]}
+              />
+            </div>
           </div>
 
           {error ? (
-            <p role="alert" className="text-sm text-[var(--color-bad)] md:col-span-2">
+            <p role="alert" className="text-sm text-[var(--color-bad)]">
               {error}
             </p>
           ) : null}
-        </CardContent>
 
-        <div className="flex justify-end gap-2 p-6 pt-0">
-          <Button type="submit" disabled={isPending || !form.name || !form.roleId}>
-            {isPending ? t('submitting') : t('submit')}
-          </Button>
+          <div className="flex justify-end border-t border-[var(--color-line)] pt-4">
+            <Button type="submit" disabled={isPending || !form.name || !form.roleId} icon={LuUserPlus}>
+              {isPending ? t('submitting') : t('submit')}
+            </Button>
+          </div>
         </div>
       </form>
-    </Card>
+    </div>
   );
 }

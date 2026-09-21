@@ -89,7 +89,7 @@ export function AccessBlock({
             >
               <span
                 className={cn(
-                  'flex size-6 shrink-0 items-center justify-center rounded-md text-xs shadow-e1 transition-colors',
+                  'flex size-6 shrink-0 items-center justify-center rounded-md text-sm shadow-e1 transition-colors',
                   isSelected
                     ? 'bg-[var(--color-brand-600)] text-white'
                     : 'bg-[var(--color-panel)] text-[var(--color-ink-2)]',
@@ -101,7 +101,7 @@ export function AccessBlock({
               <span className="min-w-0 flex-1">
                 <span
                   className={cn(
-                    'block text-xs font-bold truncate',
+                    'block text-sm font-semibold truncate',
                     isSelected ? 'text-[var(--color-brand-700)]' : 'text-[var(--color-ink)]',
                   )}
                 >
@@ -113,7 +113,7 @@ export function AccessBlock({
                   aria-hidden="true"
                   className="flex size-4 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand-600)] text-white text-sm shadow-e1"
                 >
-                  <Icon icon="ri-check-line" className="font-bold" />
+                  <Icon icon="ri-check-line" />
                 </span>
               )}
             </button>
@@ -122,7 +122,7 @@ export function AccessBlock({
       </div>
 
       {disabled && (
-        <p className="pl-10 text-xs text-[var(--color-ink-3)] italic">
+        <p className="pl-10 text-sm text-[var(--color-ink-3)] italic">
           {tAccess('publicDisabledHint')}
         </p>
       )}

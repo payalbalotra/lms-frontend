@@ -64,10 +64,10 @@ export function AccessScreen({
           <Icon icon="ri-shield-user-line" />
         </div>
         <div>
-          <p className="text-xs font-bold uppercase text-[var(--color-ink-3)]">
+          <p className="text-sm font-semibold uppercase text-[var(--color-ink-3)]">
             {tAccess('accessEyebrow')}
           </p>
-          <h2 className="mt-0.5 font-[family-name:var(--font-ui)] text-md font-bold tracking-snug text-[var(--color-ink)]">
+          <h2 className="mt-0.5 font-[family-name:var(--font-ui)] text-md font-semibold tracking-snug text-[var(--color-ink)]">
             {tAccess('accessTitle')}
           </h2>
           <p className="mt-0.5 text-sm text-[var(--color-ink-2)]">
@@ -85,10 +85,10 @@ export function AccessScreen({
         className="rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-6 shadow-e1 transition-opacity"
       >
         <header className="mb-4">
-          <p className="text-xs font-bold uppercase text-[var(--color-ink-3)]">
+          <p className="text-sm font-semibold uppercase text-[var(--color-ink-3)]">
             {tAccess('restrictedEyebrow')}
           </p>
-          <h3 className="mt-1 text-md font-bold tracking-snug text-[var(--color-ink)]">
+          <h3 className="mt-1 text-md font-semibold tracking-snug text-[var(--color-ink)]">
             {tAccess('restrictedSectionTitle')}
           </h3>
           <p className="mt-1 text-sm text-[var(--color-ink-2)]">
@@ -140,7 +140,7 @@ export function AccessScreen({
         </div>
 
         {!isRestricted && (
-          <p className="mt-4 text-xs text-[var(--color-ink-3)] italic">
+          <p className="mt-4 text-sm text-[var(--color-ink-3)] italic">
             {tAccess('publicDisabledHint')}
           </p>
         )}

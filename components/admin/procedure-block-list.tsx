@@ -84,7 +84,7 @@ export function ProcedureBlockList({
             <h3 className="font-[family-name:var(--font-ui)] text-md font-semibold text-[var(--color-ink)]">
               Choose a content block to add
             </h3>
-            <p className="mt-0.5 text-xs text-[var(--color-ink-2)]">
+            <p className="mt-0.5 text-sm text-[var(--color-ink-2)]">
               Click any block below to start adding instructions, tables, warnings, or media.
             </p>
           </div>
@@ -109,7 +109,7 @@ export function ProcedureBlockList({
                 <div className={cn('mb-2 flex size-tap-admin items-center justify-center rounded-lg border text-lg transition-transform', item.color)}>
                   <Icon icon={item.icon} />
                 </div>
-                <span className="font-semibold text-xs text-[var(--color-ink)] group-hover:text-[var(--color-brand-700)]">
+                <span className="font-semibold text-sm text-[var(--color-ink)] group-hover:text-[var(--color-brand-700)]">
                   {item.label}
                 </span>
               </button>

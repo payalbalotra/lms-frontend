@@ -112,6 +112,15 @@
   /* The reading column: the document sheet, the employee app and the tab bar are
      one width, and it is the width the HTML templates use. */
   --max-width-doc: var(--doc-w);
+  --max-width-page: var(--page-w);
+  --max-width-narrow: var(--narrow-w);
+  --max-width-field-md: var(--field-md);
+  --max-width-card: var(--card-w);
+  --max-width-note: var(--note-w);
+  --max-width-prose: var(--doc-w);
+  /* Tailwind's container scale (max-w-5xl, 6xl, 7xl…) is switched off with the
+     rest of its defaults. A page width is a decision this system makes once. */
+  --container-*: initial;
   --max-width-field-xl: var(--field-xl);
   --width-drawer-sm: var(--drawer-sm);
   --width-drawer-md: var(--drawer-md);
@@ -135,8 +144,8 @@
      14px text appeared at three different leadings on one page: Tailwind's own
      1.43 from `text-sm`, our 1.45 from `leading-meta`, and the inherited body
      1.55 wherever the size came through an arbitrary value. */
-  --text-xs: var(--t-xs);
-  --text-xs--line-height: var(--lh-meta);
+  /* No --text-xs: 12px left the scale, so `text-xs` now compiles to nothing and
+     the audit reports it rather than the page quietly shrinking. */
   --text-sm: var(--t-sm);
   --text-sm--line-height: var(--lh-meta);
   --text-base: var(--t-base);
@@ -152,6 +161,10 @@
   --text-3xl: var(--t-3xl);
   --text-3xl--line-height: var(--lh-display);
 
+  /* Tailwind's own leadings (snug, relaxed, tight, loose) are switched off: they
+     are numbers picked per element, which is how a page ends up with six of them.
+     The four below are roles — the size decides which one it takes. */
+  --leading-*: initial;
   --leading-display: var(--lh-display);
   --leading-heading: var(--lh-heading);
   --leading-body: var(--lh-body);
@@ -211,7 +224,9 @@
     box-shadow: none !important;
     --tw-ring-shadow: none !important;
     --tw-shadow: none !important;
-    border-color: var(--color-brand-600) !important;
+    /* The lighter terracotta: 3.48:1 on white, above the 3:1 a focus
+       indicator must clear, and half the weight of brand-600 at this size. */
+    border-color: var(--color-brand) !important;
   }
   /* The outline follows each element's own radius. Exclude form controls which handle focus via custom borders. */
   :focus-visible:not(input):not(textarea):not(select) { outline: 3px solid var(--color-brand-600); outline-offset: 2px; }

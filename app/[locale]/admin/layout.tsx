@@ -89,7 +89,7 @@ export default async function AdminLayout({ children, params }: AdminLayoutProps
 function AuthGateError(): React.ReactElement {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[var(--color-bg-admin)] px-4 py-12">
-      <article className="w-full max-w-md rounded-[var(--radius-lg)] border border-[var(--color-bad-tint)] bg-[var(--color-bad-tint)] p-6">
+      <article className="w-full max-w-card rounded-[var(--radius-lg)] border border-[var(--color-bad-tint)] bg-[var(--color-bad-tint)] p-6">
         <p className="text-sm font-semibold text-[var(--color-bad)]">
           Auth check failed
         </p>

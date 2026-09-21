@@ -33,7 +33,7 @@ export function InviteResultCard({ locale, invite, employeeName, onCreateAnother
   }
 
   return (
-    <Card className="mx-auto max-w-2xl">
+    <Card className="mx-auto max-w-narrow">
       <CardHeader>
         <CardTitle>{t('inviteCreatedHeading')}</CardTitle>
         <p className="text-sm text-[var(--color-muted-foreground)]">
@@ -44,7 +44,7 @@ export function InviteResultCard({ locale, invite, employeeName, onCreateAnother
         <div>
           <p className="mb-1 text-sm font-medium">{t('inviteUrlLabel')}</p>
           <div className="flex items-center gap-2">
-            <code className="flex-1 break-all rounded-md border border-[var(--color-line)] bg-[var(--color-panel)] px-2 py-1 text-xs text-[var(--color-ink)]">
+            <code className="flex-1 break-all rounded-md border border-[var(--color-line)] bg-[var(--color-panel)] px-2 py-1 text-sm text-[var(--color-ink)]">
               {invite.url}
             </code>
             <Button size="sm" variant="neutral" onClick={() => void copy(invite.url, 'url')}>
@@ -63,16 +63,15 @@ export function InviteResultCard({ locale, invite, employeeName, onCreateAnother
               {copied === 'code' ? t('copied') : t('copyCode')}
             </Button>
           </div>
-          <p className="mt-2 text-xs text-[var(--color-bad)]">{t('codeWarning')}</p>
+          <p className="mt-2 text-sm text-[var(--color-bad)]">{t('codeWarning')}</p>
         </div>
 
-        <p className="text-xs text-[var(--color-muted-foreground)]">
+        <p className="text-sm text-[var(--color-muted-foreground)]">
           {t('expiresAt', { time: new Date(invite.expiresAt).toLocaleString() })}
         </p>
 
         <div className="flex flex-wrap gap-2 pt-2">
-          <Button variant="secondary" onClick={onCreateAnother}>
-            <LuPlus aria-hidden="true" className="text-lg" />
+          <Button variant="secondary" onClick={onCreateAnother} icon={LuPlus}>
             {t('createAnother')}
           </Button>
           <Link href={`/${locale}/admin/employees`}>

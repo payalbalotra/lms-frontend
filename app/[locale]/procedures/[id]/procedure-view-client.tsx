@@ -117,7 +117,7 @@ export function ProcedureViewClient({
   if (notFoundState || !proc) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--color-bg)] p-6 text-center">
-        <div className="mx-auto max-w-md space-y-4">
+        <div className="mx-auto max-w-card space-y-4">
           <h1 className="font-[family-name:var(--font-display)] text-3xl font-bold text-[var(--color-ink)]">
             404 — Procedure Not Found
           </h1>
@@ -127,7 +127,7 @@ export function ProcedureViewClient({
           <div className="pt-4">
             <Link
               href={backHref}
-              className="inline-flex items-center gap-2 rounded-full bg-[var(--color-brand-600)] px-5 py-2.5 text-sm font-semibold text-white shadow-e1 hover:bg-[var(--color-brand-700)]"
+              className="inline-flex items-center gap-2 rounded-full bg-[var(--color-brand-600)] px-5 py-3 text-sm font-semibold text-white shadow-e1 hover:bg-[var(--color-brand-700)]"
             >
               <LuArrowLeft aria-hidden="true" />
               {labels.back}
@@ -192,11 +192,21 @@ export function ProcedureViewClient({
       ) : null}
       <article className="doc">
         <DocBehaviour />
-        <DocBar backHref={backHref} backLabel={labels.back} title={title || 'Untitled Procedure'} category={categoryLabel} />
+        <DocBar
+          backHref={backHref}
+          backLabel={labels.back}
+          title={title || 'Untitled Procedure'}
+          category={categoryLabel}
+        />
 
         {cover ? <Cover src={cover.src} alt={cover.alt} /> : null}
 
-        <DocHead icon={iconName} category={categoryLabel} title={title || 'Untitled Procedure'} withCover={Boolean(cover)} />
+        <DocHead
+          icon={iconName}
+          category={categoryLabel}
+          title={title || 'Untitled Procedure'}
+          withCover={Boolean(cover)}
+        />
 
         {allergen ? (
           <Allergen
@@ -249,19 +259,17 @@ export function ProcedureViewClient({
         />
       </article>
 
-      {employee.role === 'admin' ? null : (
-        <TabBar
-          locale={locale}
-          active="procedures"
-          labels={{
-            ask: labels.tabAsk,
-            procedures: labels.tabProcedures,
-            training: labels.tabTraining,
-            soon: labels.tabSoon,
-            nav: labels.tabsNav,
-          }}
-        />
-      )}
+      <TabBar
+        locale={locale}
+        active="procedures"
+        labels={{
+          ask: labels.tabAsk,
+          procedures: labels.tabProcedures,
+          training: labels.tabTraining,
+          soon: labels.tabSoon,
+          nav: labels.tabsNav,
+        }}
+      />
     </div>
   );
 }

@@ -64,7 +64,7 @@ export function Meter({
   return (
     <span className="relative inline-flex shrink-0 items-center justify-center" style={{ width: size, height: size }}>
       {ring}
-      <span className="absolute text-md font-semibold leading-none tracking-tight text-[var(--color-ink)]">{label}</span>
+      <span className="absolute text-md font-semibold leading-display tracking-tight text-[var(--color-ink)]">{label}</span>
     </span>
   );
 }

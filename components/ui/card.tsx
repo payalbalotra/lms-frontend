@@ -4,9 +4,11 @@ import { cn } from '@/lib/utils';
 /**
  * Cards follow DESIGN.md §3, radii §2.3:
  *   - 12px radius (rounded-xl). Cards are rectangles, not pills.
- *   - Border or shadow, never both (§2.3). We use a hairline --color-line.
- *   - Surface is --color-card (white); admin cards lift on the near-neutral
- *     ground --color-bg-admin via the parent layout, not via the card itself.
+ *   - The ground is light, so the card is told apart by its edge: --color-line-2
+ *     at 2.1:1 on white. The old hairline was --color-line at 1.27:1, which on a
+ *     page this pale is a boundary you infer rather than see.
+ *   - Surface is --color-card (white); the soft --e-1 lift stays, but it is the
+ *     edge that does the work now.
  */
 export const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   function Card({ className, ...props }, ref) {
@@ -15,7 +17,7 @@ export const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDi
         ref={ref}
         data-slot="card"
         className={cn(
-          'rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-card)] text-[var(--color-card-foreground)]',
+          'rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-card)] text-[var(--color-card-foreground)]',
           className,
         )}
         {...props}

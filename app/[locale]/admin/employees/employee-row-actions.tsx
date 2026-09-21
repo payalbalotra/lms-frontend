@@ -110,12 +110,12 @@ export function EmployeeRowActions({ locale, employee }: EmployeeRowActionsProps
         triggerLabel={`${t('rowActionsLabel')} — ${employee.name}`}
       />
       {resendError ? (
-        <p role="alert" className="text-xs text-[var(--color-bad)]">
+        <p role="alert" className="text-sm text-[var(--color-bad)]">
           {resendError}
         </p>
       ) : null}
       {lastInvite ? (
-        <div className="rounded-md border border-[var(--color-line)] bg-[var(--color-panel)] p-2 text-xs text-[var(--color-ink)]">
+        <div className="rounded-md border border-[var(--color-line)] bg-[var(--color-panel)] p-2 text-sm text-[var(--color-ink)]">
           <p className="mb-1 font-medium">{t('inviteCreatedHeading')}</p>
           <p className="mb-1 break-all">
             <span className="text-[var(--color-muted-foreground)]">{t('inviteUrlLabel')}</span>{' '}

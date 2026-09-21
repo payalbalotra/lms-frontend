@@ -7,6 +7,7 @@ import { listProcedures, listCategories, listLocations, fetchMe, ApiException } 
 import type { Procedure, Category } from '@/lib/types';
 import { LibraryProcedureExplorer } from '@/components/admin/library-procedure-explorer';
 import { LuBook, LuFolders, LuPlus } from 'react-icons/lu';
+import { PageHeader } from '@/components/admin/page-header';
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -89,34 +90,20 @@ export default async function AdminLibraryPage({
   const finalCategories = categories.length > 0 ? categories : DEFAULT_CATEGORIES;
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 pb-12">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div className="space-y-1">
-          <p className="text-xs font-semibold text-[var(--color-ink-2)]">
-            {t('pageEyebrow')}
-          </p>
-          <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight text-[var(--color-ink)]">
-            {t('pageTitle')}
-          </h1>
-          <p className="max-w-2xl text-sm text-[var(--color-ink-2)]">
-            {t('pageSubtitle')}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <Link href={`/${locale}/admin/library/categories`}>
-            <Button variant="secondary" size="sm">
-              <LuFolders aria-hidden="true" className="mr-2 text-md" />
-              {t('manageCategories')}
-            </Button>
-          </Link>
+    <div className="mx-auto max-w-page space-y-6 pb-12">
+      {/* No eyebrow: the sidebar already says Library, and this page is inside it.
+          No "Categories" button either — Categories is a row in that same sidebar,
+          two taps away by its own name. A page header carries what the page does
+          that nothing else offers, which here is one thing: start a procedure. */}
+      <PageHeader
+        title={t('pageTitle')}
+        subtitle={t('pageSubtitle')}
+        actions={
           <Link href={`/${locale}/admin/library/new`}>
-            <Button size="sm">
-              <LuPlus aria-hidden="true" className="mr-2 text-md" />
-              {t('newProcedure')}
-            </Button>
+            <Button icon={LuPlus}>{t('newProcedure')}</Button>
           </Link>
-        </div>
-      </header>
+        }
+      />
 
       {loadError ? (
         <p role="alert" className="text-sm text-[var(--color-bad)]">
@@ -154,7 +141,7 @@ function EmptyLibrary({
         <h2 className="font-[family-name:var(--font-ui)] text-lg font-semibold tracking-tight text-[var(--color-ink)]">
           {heading}
         </h2>
-        <p className="max-w-md text-sm text-[var(--color-ink-2)]">
+        <p className="max-w-note text-sm text-[var(--color-ink-2)]">
           {body}
         </p>
       </div>

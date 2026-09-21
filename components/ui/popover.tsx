@@ -154,7 +154,7 @@ export function PopoverGroup({
 }): React.ReactElement {
   return (
     <div className="space-y-1 py-2" role="group" aria-label={label}>
-      <div className="px-3 text-xs font-semibold text-[var(--color-ink-3)]">
+      <div className="px-3 text-sm font-semibold text-[var(--color-ink-3)]">
         {label}
       </div>
       <div className="space-y-0.5">{children}</div>
@@ -194,7 +194,7 @@ export function PopoverItem({
             {label}
           </div>
           {description && (
-            <div className="truncate text-xs text-[var(--color-ink-2)]">
+            <div className="truncate text-sm text-[var(--color-ink-2)]">
               {description}
             </div>
           )}

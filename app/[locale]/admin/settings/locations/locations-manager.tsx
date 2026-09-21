@@ -144,13 +144,12 @@ export function LocationsManager({
     <div className="space-y-4">
       <div className="flex justify-end">
         <Button
-          variant="secondary"
+          icon={LuPlus}
           onClick={() => {
             resetCreate();
             setCreateOpen(true);
           }}
         >
-          <LuPlus aria-hidden="true" className="text-lg" />
           {t('locationsCreateHeading')}
         </Button>
       </div>
@@ -169,11 +168,11 @@ export function LocationsManager({
             </p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="border-b border-[var(--color-line)] bg-[var(--color-panel)] text-left">
+              <table className="atable">
+                <thead>
                   <tr>
-                    <th className="px-4 py-2 font-semibold text-[var(--color-ink-2)]">{t('thLocationsName')}</th>
-                    <th className="w-12 px-4 py-2 text-right font-semibold text-[var(--color-ink-2)]">
+                    <th>{t('thLocationsName')}</th>
+                    <th>
                       <span className="sr-only">{t('thActions')}</span>
                     </th>
                   </tr>
@@ -184,9 +183,8 @@ export function LocationsManager({
                     return (
                       <tr
                         key={l.id}
-                        className="border-b border-[var(--color-line)] last:border-b-0"
                       >
-                        <td className="px-4 py-2">
+                        <td>
                           {isEditing ? (
                             <Input
                               value={editingName}
@@ -198,7 +196,7 @@ export function LocationsManager({
                             l.name
                           )}
                         </td>
-                        <td className="px-4 py-2 text-right">
+                        <td>
                           {isEditing ? (
                             <div className="flex justify-end gap-2">
                               <Button

@@ -147,8 +147,7 @@ export function CreateCategoryButton({ locationId }: CreateButtonProps): React.R
 
   return (
     <>
-      <Button size="sm" variant="secondary" onClick={() => setOpen(true)} disabled={pending}>
-        <LuPlus aria-hidden="true" className="mr-2 text-md" />
+      <Button variant="primary" onClick={() => setOpen(true)} disabled={pending} icon={LuPlus}>
         {t('addButton')}
       </Button>
 
@@ -290,7 +289,7 @@ function CategoryForm({
                   ? 'Renombrar categoría'
                   : 'Rename category'}
             </h2>
-            <p className="text-xs text-[var(--color-ink-2)] font-medium">
+            <p className="text-sm text-[var(--color-ink-2)] font-medium">
               {isEs
                 ? 'Añade una categoría para organizar tus procedimientos en la biblioteca.'
                 : 'Add a category to organize your procedures in the library.'}
@@ -316,7 +315,7 @@ function CategoryForm({
             <h3 className="text-sm font-semibold text-[var(--color-ink)]">
               {isEs ? 'Detalles de la categoría' : 'Category details'}
             </h3>
-            <p className="text-xs text-[var(--color-ink-2)] font-medium mt-0.5">
+            <p className="text-sm text-[var(--color-ink-2)] font-medium mt-0.5">
               {isEs
                 ? 'Introduce el nombre en inglés. El nombre en español es opcional.'
                 : 'Enter the name in English. The Spanish name is optional and can be added later.'}
@@ -327,7 +326,7 @@ function CategoryForm({
           <div className="space-y-1">
             <Label
               htmlFor="category-name-en"
-              className="text-xs font-semibold text-[var(--color-ink)]"
+              className="text-sm font-semibold text-[var(--color-ink)]"
             >
               {isEs ? 'Nombre de la categoría (Inglés)' : 'Category name (English)'}{' '}
               <span aria-hidden="true" className="text-[var(--color-bad)]">
@@ -345,7 +344,7 @@ function CategoryForm({
               autoFocus
               autoComplete="off"
             />
-            <div className="text-xs text-[var(--color-ink-3)] text-right font-mono font-semibold pt-0.5">
+            <div className="text-sm text-[var(--color-ink-3)] text-right font-mono font-semibold pt-0.5">
               {nameEn.length} / 100
             </div>
           </div>
@@ -354,7 +353,7 @@ function CategoryForm({
           <div className="space-y-1">
             <Label
               htmlFor="category-name-es"
-              className="text-xs font-semibold text-[var(--color-ink)]"
+              className="text-sm font-semibold text-[var(--color-ink)]"
             >
               {isEs ? 'Nombre en español' : 'Spanish name'}{' '}
               <span className="text-[var(--color-ink-3)] font-normal">(optional)</span>
@@ -367,7 +366,7 @@ function CategoryForm({
               placeholder={isEs ? 'Procedimientos de estación' : 'Procedimientos de estación'}
               autoComplete="off"
             />
-            <p className="flex items-center gap-2 text-xs text-[var(--color-ink-2)] pt-1 font-medium">
+            <p className="flex items-center gap-2 text-sm text-[var(--color-ink-2)] pt-1 font-medium">
               <LuGlobe aria-hidden="true" className="text-sm text-[var(--color-ink-3)]" />
               {isEs
                 ? 'Se usa cuando la biblioteca se ve en español.'
@@ -384,10 +383,10 @@ function CategoryForm({
                 <LuLink aria-hidden="true" />
               </span>
               <div className="space-y-0.5">
-                <h4 className="text-xs font-semibold text-[var(--color-ink)]">
+                <h4 className="text-sm font-semibold text-[var(--color-ink)]">
                   {isEs ? 'Identificador URL' : 'URL identifier'}
                 </h4>
-                <p className="text-xs text-[var(--color-ink-2)] font-medium">
+                <p className="text-sm text-[var(--color-ink-2)] font-medium">
                   {isEs
                     ? 'Generado automáticamente a partir del nombre en inglés.'
                     : 'Automatically generated from the English name.'}
@@ -407,14 +406,14 @@ function CategoryForm({
                 required
                 autoComplete="off"
                 spellCheck={false}
-                className="pr-10 font-mono text-xs"
+                className="pr-10 font-mono text-sm"
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-3)] pointer-events-none">
                 <LuHistory aria-hidden="true" className="text-sm" />
               </span>
             </div>
 
-            <p className="text-xs text-[var(--color-ink-3)] font-medium">
+            <p className="text-sm text-[var(--color-ink-3)] font-medium">
               {isEs ? 'Puedes editarlo más tarde si es necesario.' : 'You can edit it later if needed.'}
             </p>
           </div>
@@ -423,7 +422,7 @@ function CategoryForm({
         {error && (
           <p
             role="alert"
-            className="rounded-[var(--radius-md)] bg-[var(--color-bad-tint)] px-4 py-2 text-xs font-medium text-[var(--color-bad)]"
+            className="rounded-[var(--radius-md)] bg-[var(--color-bad-tint)] px-4 py-2 text-sm font-medium text-[var(--color-bad)]"
           >
             {error}
           </p>
@@ -437,7 +436,7 @@ function CategoryForm({
           variant="neutral"
           onClick={onCancel}
           disabled={pending}
-          className="rounded-full px-5 text-xs font-semibold"
+          className="rounded-full px-5 text-sm font-semibold"
         >
           {cancelLabel}
         </Button>
@@ -445,7 +444,7 @@ function CategoryForm({
           type="submit"
           variant="primary"
           disabled={!canSubmit}
-          className="rounded-full bg-[var(--color-brand-600)] hover:bg-[var(--color-brand-700)] text-white px-5 text-xs font-semibold shadow-e1"
+          className="rounded-full bg-[var(--color-brand-600)] hover:bg-[var(--color-brand-700)] text-white px-5 text-sm font-semibold shadow-e1"
         >
           {mode === 'create' ? (isEs ? 'Crear categoría' : 'Create category') : saveLabel}
         </Button>

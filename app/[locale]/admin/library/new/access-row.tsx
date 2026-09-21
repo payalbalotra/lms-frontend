@@ -70,15 +70,15 @@ export function AccessRow({
           >
             <Icon icon={icon} className="text-base" />
           </span>
-          <h3 className="text-sm font-bold text-[var(--color-ink)]">
+          <h3 className="text-sm font-semibold text-[var(--color-ink)]">
             {title}
           </h3>
           {showCount ? (
-            <span className="text-xs font-semibold text-[var(--color-ink-2)]">
+            <span className="text-sm font-semibold text-[var(--color-ink-2)]">
               {countLabel(count)}
             </span>
           ) : (
-            <span className="text-xs text-[var(--color-ink-3)]">
+            <span className="text-sm text-[var(--color-ink-3)]">
               {emptyLabel}
             </span>
           )}
@@ -115,7 +115,7 @@ export function AccessChip({
   disabled = false,
 }: AccessChipProps): React.ReactElement {
   return (
-    <span className="inline-flex items-center gap-2 rounded-full border border-[var(--color-brand-tint-2)] bg-[var(--color-brand-tint)] py-1 pl-3 pr-2 text-xs font-semibold text-[var(--color-brand-700)]">
+    <span className="inline-flex items-center gap-2 rounded-full border border-[var(--color-brand-tint-2)] bg-[var(--color-brand-tint)] py-1 pl-3 pr-2 text-sm font-semibold text-[var(--color-brand-700)]">
       <span className="max-w-field-sm truncate">{label}</span>
       <button
         type="button"
@@ -124,7 +124,7 @@ export function AccessChip({
         aria-label={label}
         className="flex size-4 shrink-0 items-center justify-center rounded-full text-[var(--color-brand-tint-2)] transition-colors hover:bg-[var(--color-brand-600)] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-tint-2)] disabled:cursor-not-allowed"
       >
-        <Icon icon="ri-close-line" className="text-xs" />
+        <Icon icon="ri-close-line" className="text-sm" />
       </button>
     </span>
   );
