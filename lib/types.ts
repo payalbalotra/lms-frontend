@@ -276,19 +276,35 @@ export interface Procedure {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
-  /** Quiz attached to this procedure. Absent means no quiz authored yet. */
+  /** Monotonic publish version. Bumped server-side on every publish
+   *  inside a SELECT FOR UPDATE transaction so two concurrent publishes
+   *  don't both write N+1. Per PROJECT_OVERVIEW §02 SOP Library: "Every
+   *  SOP prints cleanly for station posting, carrying a QR code that
+   *  links back to the current version." Starts at 1. */
+  version: number;
+  /** Soft-archive flag. Per PROJECT_OVERVIEW §02 Content Creation:
+   *  "Content moves through draft, published and archived states."
+   *  Archived procedures stay visible in the admin library under an
+   *  opt-in filter for audit; the cook-side reader hides them. */
+  isArchived: boolean;
+  /** Quiz attached to this procedure. Absent means no quiz authored yet.
+   *  Note: per PROJECT_OVERVIEW §02 Training Module, quizzes live on
+   *  training chapters — when a procedure is attached to a course via
+   *  `course_procedures`, the quiz lives on the chapter, not the SOP.
+   *  This inline field is the legacy / mock shape and will be removed
+   *  once the training slice lands. */
   quiz?: ProcedureQuiz | null;
-  /** Whether this procedure is part of a training plan. When true, the
-   *  quiz (if any) renders automatically. Independent of `quiz.attached`. */
+  /** Whether this procedure is part of a training plan. Legacy field —
+   *  kept until the training-course UI is reworked (employee phase). */
   attachedToTraining?: boolean;
-  /** Other procedures (SOPs / recipes / chapters) this one references.
-   *  Rendered as a `.chapter` "Related procedure" list per DESIGN.md §3.4.
-   *  Only meaningful when `attachedToTraining` is true — a training course
-   *  that lists the SOPs a cook must read alongside the lesson. */
+  /** Procedure ids of SOPs / recipes this one references. Legacy
+   *  training-course shape — kept until the Compliance / access model
+   *  is finalised. Will become `linkedProcedureIds` for the SOP-only
+   *  case once we decide whether SOPs link to other SOPs. */
   linkedSops?: string[];
-  /** Acknowledgement gate at the end of a training course. When present,
-   *  the employee cannot mark the assignment complete without ticking the
-   *  checkbox and pressing Sign. Version label flows into the receipt. */
+  /** Acknowledgement gate at the end of a training course. Legacy —
+   *  kept until training chapters own their own acknowledgement
+   *  columns in the training-module slice (stage 3). */
   acknowledgement?: ProcedureAcknowledgement | null;
 }
 
@@ -310,16 +326,28 @@ export interface CreateProcedureInput {
   status?: ProcedureStatus;
   bodyEn: ProcedureBody;
   bodyEs: ProcedureBody;
+  /** Publish version to stamp on creation. Defaults to 1 on the server
+   *  when omitted; the backend bumps it inside SELECT FOR UPDATE on every
+   *  subsequent publish. The wizard never sets this explicitly — the
+   *  server-side default is the contract. */
+  version?: number;
+  /** Soft-archive flag. Defaults to false on creation. The wizard never
+   *  sets this explicitly — archive is a separate admin action (⋯ kebab
+   *  → Archive → modal confirm). */
+  isArchived?: boolean;
   /** Quiz to attach on save. `null` / omitted means no quiz yet. The
-   *  backend will mirror this onto the read side as `procedure.quiz`. */
+   *  backend will mirror this onto the read side as `procedure.quiz`
+   *  until the training-chapter quiz model replaces it (stage 3). */
   quiz?: ProcedureQuiz | null;
   /** Marks this procedure as a training course (vs an SOP / recipe).
    *  Surfaces it in the admin Training list, makes the employee Training
    *  tab its home, and gates the optional quiz block on read. */
   attachedToTraining?: boolean;
-  /** Procedure ids of SOPs / recipes referenced from this course. */
+  /** Procedure ids of SOPs / recipes referenced from this course.
+   *  Legacy training-course shape. */
   linkedSops?: string[];
-  /** Acknowledgement statement shown on read; null/undefined disables. */
+  /** Acknowledgement statement shown on read; null/undefined disables.
+   *  Legacy training-course shape. */
   acknowledgement?: ProcedureAcknowledgement | null;
 }
 

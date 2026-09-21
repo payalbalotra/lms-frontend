@@ -138,6 +138,8 @@ const SEED_PROCEDURES: Procedure[] = [
     createdBy: 'emp-admin',
     createdAt: '2026-09-04T00:00:00Z',
     updatedAt: '2026-09-04T00:00:00Z',
+    version: 1,
+    isArchived: false,
     quiz: {
       questions: [
         {
@@ -255,6 +257,8 @@ const SEED_PROCEDURES: Procedure[] = [
     createdBy: 'emp-admin',
     createdAt: '2026-09-01T00:00:00Z',
     updatedAt: '2026-09-01T00:00:00Z',
+    version: 1,
+    isArchived: false,
     bodyEn: {
       blocks: [
         { id: 'h1', kind: 'heading', level: 1, text: { en: 'Proper Handwashing Procedure', es: 'Procedimiento Correcto de Lavado de Manos' } },
@@ -284,6 +288,8 @@ const SEED_PROCEDURES: Procedure[] = [
     createdBy: 'emp-admin',
     createdAt: '2026-09-02T00:00:00Z',
     updatedAt: '2026-09-02T00:00:00Z',
+    version: 1,
+    isArchived: false,
     bodyEn: {
       blocks: [
         { id: 'op-img', kind: 'image', src: '/img/equipment.jpg', hint: 'photo',
@@ -319,6 +325,8 @@ const SEED_PROCEDURES: Procedure[] = [
     createdBy: 'emp-admin',
     createdAt: '2026-09-03T00:00:00Z',
     updatedAt: '2026-09-03T00:00:00Z',
+    version: 1,
+    isArchived: false,
     bodyEn: {
       blocks: [
         { id: 'sv-img', kind: 'image', src: '/img/video-cover.jpg', hint: 'photo',
@@ -354,6 +362,8 @@ const SEED_PROCEDURES: Procedure[] = [
     createdBy: 'emp-admin',
     createdAt: '2026-09-05T00:00:00Z',
     updatedAt: '2026-09-05T00:00:00Z',
+    version: 1,
+    isArchived: false,
     bodyEn: {
       blocks: [
         { id: 'gr-img', kind: 'image', src: '/img/cover-fryer-oil.jpg', hint: 'photo',
@@ -741,6 +751,16 @@ export async function createProcedure(input: CreateProcedureInput): Promise<{ pr
     createdBy: 'emp-admin',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
+    // Per PROJECT_OVERVIEW §02 SOP Library: every print carries a QR
+    // pointing at the current version. New procedures start at v1; the
+    // backend bumps the version inside a SELECT FOR UPDATE on every
+    // publish. The wizard never sets this explicitly.
+    version: input.version ?? 1,
+    // Per PROJECT_OVERVIEW §02 Content Creation: "Content moves through
+    // draft, published and archived states." New procedures start
+    // unarchived; archive is a separate admin action (⋯ kebab → Archive
+    // → modal confirm).
+    isArchived: input.isArchived ?? false,
     quiz: input.quiz ?? null,
   };
 
