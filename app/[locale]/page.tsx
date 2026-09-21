@@ -1,8 +1,8 @@
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { cookies, headers } from 'next/headers';
 import { fetchMe, ApiException } from '@/lib/api';
 
-// Root locale page: if signed in, send to /employee/assigned; otherwise to /login.
+// Root locale page: if signed in, send to /employee/assigned or /admin/library; otherwise to /login.
 export default async function LocaleRootPage({
   params,
 }: {
@@ -10,11 +10,10 @@ export default async function LocaleRootPage({
 }): Promise<never> {
   const { locale } = await params;
 
-  // Forward the browser's cookies to the backend so /api/auth/me sees the session.
   const cookieStore = await cookies();
   const cookieHeader = cookieStore
     .getAll()
-    .map((c) => `${c.name}=${c.value}`)
+    .map((c: { name: string; value: string }) => `${c.name}=${c.value}`)
     .join('; ');
 
   try {
@@ -31,8 +30,4 @@ export default async function LocaleRootPage({
     // Network or unexpected error: fall back to login (safe default).
     redirect(`/${locale}/login`);
   }
-
-  // Unreachable — both paths above redirect.
-  // Make TS happy by referencing headers() so the import isn't dropped.
-  void headers;
 }
