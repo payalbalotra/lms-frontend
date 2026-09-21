@@ -62,6 +62,7 @@ export interface AdminEmployee extends Employee {
 
 export interface CreateEmployeeInput {
   name: string;
+  email?: string | null;
   locationId: string;
   roleId: string;
   stationId?: string | null;

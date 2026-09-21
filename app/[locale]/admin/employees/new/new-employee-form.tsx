@@ -16,7 +16,6 @@ import {
 } from '@/components/ui/card';
 import { createEmployee, listStations, ApiException } from '@/lib/api';
 import type {
-  ClearanceLevel,
   Employee,
   InviteResult,
   LanguagePref,
@@ -34,20 +33,20 @@ interface NewEmployeeFormProps {
 
 interface FormState {
   name: string;
+  email: string;
   locationId: string;
   roleId: string;
   stationId: string;
-  clearanceLevel: ClearanceLevel;
   employeeCode: string;
   languagePref: LanguagePref;
 }
 
 const initialState = (defaultLocationId: string): FormState => ({
   name: '',
+  email: '',
   locationId: defaultLocationId,
   roleId: '',
   stationId: '',
-  clearanceLevel: 'general',
   employeeCode: '',
   languagePref: 'en',
 });
@@ -98,10 +97,11 @@ export function NewEmployeeForm({
       try {
         const res = await createEmployee({
           name: form.name.trim(),
+          email: form.email.trim() || null,
           locationId: form.locationId,
           roleId: form.roleId,
           stationId: form.stationId || null,
-          clearanceLevel: form.clearanceLevel,
+          clearanceLevel: 'general',
           employeeCode: form.employeeCode.trim() || null,
           languagePref: form.languagePref,
         });
@@ -133,14 +133,15 @@ export function NewEmployeeForm({
   }
 
   return (
-    <Card className="mx-auto max-w-2xl">
+    <Card className="mx-auto max-w-3xl">
       <CardHeader>
         <CardTitle>{t('newHeading')}</CardTitle>
         <CardDescription>{t('newDescription')}</CardDescription>
       </CardHeader>
 
       <form onSubmit={onSubmit} noValidate>
-        <CardContent className="grid gap-4">
+        <CardContent className="grid gap-4 md:grid-cols-2">
+          {/* Row 1 — Name + Email */}
           <div className="grid gap-2">
             <Label htmlFor="name">{t('nameLabel')}</Label>
             <Input
@@ -153,6 +154,20 @@ export function NewEmployeeForm({
             />
           </div>
 
+          <div className="grid gap-2">
+            <Label htmlFor="email">{t('emailLabel')}</Label>
+            <Input
+              id="email"
+              type="email"
+              maxLength={200}
+              placeholder={t('emailPlaceholder')}
+              value={form.email}
+              onChange={(e) => update('email', e.target.value)}
+              disabled={isPending}
+            />
+          </div>
+
+          {/* Row 2 — Location + Role */}
           <div className="grid gap-2">
             <Label htmlFor="locationId">{t('locationLabel')}</Label>
             <Select
@@ -188,6 +203,7 @@ export function NewEmployeeForm({
             </Select>
           </div>
 
+          {/* Row 3 — Station + Employee code */}
           <div className="grid gap-2">
             <Label htmlFor="stationId">{t('stationLabel')}</Label>
             <Select
@@ -206,22 +222,6 @@ export function NewEmployeeForm({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="clearanceLevel">{t('clearanceLabel')}</Label>
-            <Select
-              id="clearanceLevel"
-              required
-              value={form.clearanceLevel}
-              onChange={(e) => update('clearanceLevel', e.target.value as ClearanceLevel)}
-              disabled={isPending}
-            >
-              <option value="general">general</option>
-              <option value="station">station</option>
-              <option value="confidential">confidential</option>
-              <option value="master">master</option>
-            </Select>
-          </div>
-
-          <div className="grid gap-2">
             <Label htmlFor="employeeCode">{t('employeeCodeLabel')}</Label>
             <Input
               id="employeeCode"
@@ -233,7 +233,8 @@ export function NewEmployeeForm({
             />
           </div>
 
-          <div className="grid gap-2">
+          {/* Row 4 — Language (single, full-width) */}
+          <div className="grid gap-2 md:col-span-2 md:max-w-xs">
             <Label htmlFor="languagePref">{t('languageLabel')}</Label>
             <Select
               id="languagePref"
@@ -247,7 +248,7 @@ export function NewEmployeeForm({
           </div>
 
           {error ? (
-            <p role="alert" className="text-sm text-[var(--color-bad)]">
+            <p role="alert" className="text-sm text-[var(--color-bad)] md:col-span-2">
               {error}
             </p>
           ) : null}
