@@ -9,6 +9,7 @@ import {
 } from '@/lib/api';
 import type { Location, Station } from '@/lib/types';
 import { StationsManager } from './stations-manager';
+import { FilterChips } from '@/components/ui/filter-chips';
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -78,39 +79,22 @@ export default async function StationsSettingsPage({
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold text-[var(--color-ink-2)]">
+      {locations.length > 1 ? (
+        <div className="space-y-2">
+          <span className="block text-sm font-semibold text-[var(--color-ink-3)]">
             {t('settingsLocationEyebrow')}
-          </p>
-          <h2 className="font-[family-name:var(--font-display)] text-xl font-bold tracking-tight text-[var(--color-ink)]">
-            {activeLocation.name}
-          </h2>
-          <p className="text-sm text-[var(--color-ink-2)]">
-            {t('settingsLocationSub')}
-          </p>
+          </span>
+          <FilterChips
+            label={t('settingsLocationSub')}
+            value={activeLocation.id}
+            chips={locations.map((l) => ({
+              value: l.id,
+              label: l.name,
+              href: `/${locale}/admin/settings/stations?locationId=${encodeURIComponent(l.id)}`,
+            }))}
+          />
         </div>
-        {locations.length > 1 ? (
-          <div className="flex flex-wrap gap-2 text-sm">
-            {locations.map((l) => {
-              const active = l.id === activeLocation.id;
-              return (
-                <Link
-                  key={l.id}
-                  href={`/${locale}/admin/settings/stations?locationId=${encodeURIComponent(l.id)}`}
-                  className={
-                    active
-                      ? 'inline-flex items-center rounded-full bg-[var(--color-ink)] px-3 py-1 text-xs font-medium text-white'
-                      : 'inline-flex items-center rounded-full border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-1 text-xs font-medium text-[var(--color-ink-2)] hover:bg-[var(--color-panel)]'
-                  }
-                >
-                  {l.name}
-                </Link>
-              );
-            })}
-          </div>
-        ) : null}
-      </header>
+      ) : null}
 
       <StationsManager
         locale={locale}

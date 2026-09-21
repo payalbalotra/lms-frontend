@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { LuChevronRight, LuCircleAlert, LuFocus, LuLanguages } from 'react-icons/lu';
 import { Icon } from '@/components/ui/icon';
 import { getCategoryIcon } from '@/lib/category-icons';
+import { StatusPill } from '@/components/ui/status-pill';
 import type { Category } from '@/lib/types';
 
 /**
@@ -70,46 +71,30 @@ export function ProcedureRow({
       )}
 
       <span className="min-w-0 flex-1 py-3">
-        <span className="block text-md font-semibold leading-heading text-[var(--color-ink)]">{title}</span>
-        <span className="mt-1 block text-base leading-meta text-[var(--color-ink-2)]">{meta}</span>
+        <span className="block text-base font-semibold leading-heading text-[var(--color-ink)]">{title}</span>
+        <span className="mt-1 block text-sm leading-meta text-[var(--color-ink-2)]">{meta}</span>
         {marks ? (
           <span className="mt-2 flex flex-wrap gap-2">
             {flags.allergens.length > 0 ? (
-              <Flag tone="warn" icon={LuCircleAlert} text={flagLabels.allergen(flags.allergens.join(', '))} />
+              <StatusPill tone="warn" icon={LuCircleAlert} className="font-semibold">
+                {flagLabels.allergen(flags.allergens.join(', '))}
+              </StatusPill>
             ) : null}
-            {flags.hasCriticalStep ? <Flag tone="bad" icon={LuFocus} text={flagLabels.critical} /> : null}
-            {flags.notInYourLanguage ? <Flag tone="ink" icon={LuLanguages} text={flagLabels.english} /> : null}
+            {flags.hasCriticalStep ? (
+              <StatusPill tone="bad" icon={LuFocus} className="font-semibold">
+                {flagLabels.critical}
+              </StatusPill>
+            ) : null}
+            {flags.notInYourLanguage ? (
+              <StatusPill tone="info" icon={LuLanguages} className="font-semibold">
+                {flagLabels.english}
+              </StatusPill>
+            ) : null}
           </span>
         ) : null}
       </span>
 
       <LuChevronRight aria-hidden="true" className="shrink-0 self-center text-xl text-[var(--color-ink-3)]" />
     </Link>
-  );
-}
-
-/** A badge, not a button: rectangle, no tap target of its own. Colour carries the
- *  meaning — amber for an allergen, red for a step where safety is controlled. */
-function Flag({
-  tone,
-  icon: Glyph,
-  text,
-}: {
-  tone: 'warn' | 'bad' | 'ink';
-  icon: typeof LuCircleAlert;
-  text: string;
-}): React.ReactElement {
-  const tones = {
-    warn: 'bg-[var(--color-warn-tint)] text-[var(--color-warn-ink)]',
-    bad: 'bg-[var(--color-bad-tint)] text-[var(--color-bad)]',
-    ink: 'bg-[var(--color-panel)] text-[var(--color-ink-2)]',
-  };
-  return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-[var(--radius-sm)] px-2 py-0.5 text-sm font-semibold leading-meta ${tones[tone]}`}
-    >
-      <Glyph aria-hidden="true" />
-      {text}
-    </span>
   );
 }

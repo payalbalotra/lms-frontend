@@ -106,7 +106,7 @@ export function RecipeIngredientsEditor({
           variant="secondary"
           size="sm"
           onClick={addItem}
-          className="gap-1 text-xs"
+          className="gap-1 text-sm"
         >
           <LuPlus aria-hidden="true" />
           {t('addIngredient')}
@@ -117,7 +117,7 @@ export function RecipeIngredientsEditor({
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-[var(--color-line-2)] text-xs font-semibold text-[var(--color-ink-3)]">
+            <tr className="border-b border-[var(--color-line-2)] text-sm font-semibold text-[var(--color-ink-3)]">
               <th scope="col" className="w-8 py-2 text-center"></th>
               <th scope="col" className="py-2 pl-2">
                 {t('colIngredient')}
@@ -198,7 +198,7 @@ export function RecipeIngredientsEditor({
             {t('yieldTitle')}
           </h3>
         </div>
-        <p className="text-xs text-[var(--color-ink-2)]">
+        <p className="text-sm text-[var(--color-ink-2)]">
           {t('yieldSubtitle')}
         </p>
 
@@ -208,7 +208,7 @@ export function RecipeIngredientsEditor({
               key={row.label}
               className="grid grid-cols-[minmax(0,1fr)_var(--field-xs)_var(--field-xs)] items-center gap-3"
             >
-              <label className="text-xs font-semibold text-[var(--color-ink-2)]">
+              <label className="text-sm font-semibold text-[var(--color-ink-2)]">
                 {row.label}
               </label>
               <Input
@@ -237,7 +237,7 @@ export function RecipeIngredientsEditor({
             {t('batchSizeTitle')}
           </h3>
         </div>
-        <p className="text-xs text-[var(--color-ink-2)]">
+        <p className="text-sm text-[var(--color-ink-2)]">
           {t('batchSizeSubtitle')}
         </p>
 
@@ -254,9 +254,9 @@ export function RecipeIngredientsEditor({
                 aria-pressed={isSelected}
                 aria-label={`${factor} ${batchWord}`}
                 className={cn(
-                  'flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold transition-all',
+                  'flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-all',
                   isSelected
-                    ? 'border-[var(--color-ink)] bg-[var(--color-ink)] text-white'
+                    ? 'border-[var(--color-brand-600)] bg-[var(--color-brand-600)] text-white'
                     : 'border-[var(--color-line-3)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:border-[var(--color-brand-tint-2)]',
                 )}
               >

@@ -54,9 +54,9 @@ export function QuizReader({ quiz, locale }: QuizReaderProps): React.ReactElemen
                 type="button"
                 onClick={() => setOpenId(isOpen ? null : q.id)}
                 aria-expanded={isOpen}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-[var(--color-wash)]/60"
+                className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-[var(--color-wash)]"
               >
-                <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand-tint)] text-xs font-bold text-[var(--color-brand-700)]">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand-tint)] text-sm font-semibold text-[var(--color-brand-700)]">
                   {i + 1}
                 </span>
                 <span className="flex-1 text-sm font-semibold text-[var(--color-ink)]">
@@ -73,16 +73,16 @@ export function QuizReader({ quiz, locale }: QuizReaderProps): React.ReactElemen
                 </span>
               </button>
               {isOpen && (
-                <ul className="space-y-1.5 border-t border-[var(--color-line)] bg-[var(--color-wash)]/30 p-3">
+                <ul className="space-y-2 border-t border-[var(--color-line)] bg-[var(--color-wash)] p-3">
                   {q.choices.map((c) => {
                     const isCorrect = c.id === q.correctChoiceId;
                     return (
                       <li
                         key={c.id}
                         className={cn(
-                          'flex items-start gap-2.5 rounded-md border px-3 py-2 text-sm',
+                          'flex items-start gap-3 rounded-md border px-3 py-2 text-sm',
                           isCorrect
-                            ? 'border-[var(--color-ok)]/30 bg-[var(--color-ok-tint)]/40 text-[var(--color-ink)]'
+                            ? 'border-[var(--color-ok)] bg-[var(--color-ok-tint)] text-[var(--color-ink)]'
                             : 'border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)]',
                         )}
                       >
@@ -97,7 +97,7 @@ export function QuizReader({ quiz, locale }: QuizReaderProps): React.ReactElemen
                         </span>
                         <span className="flex-1">{pickText(c.label, locale)}</span>
                         {isCorrect && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-ok-tint)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[var(--color-ok)]">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-ok-tint)] px-2 py-0.5 text-sm font-semibold uppercase text-[var(--color-ok)]">
                             <LuCheck className="size-3" aria-hidden="true" />
                             {t('correct')}
                           </span>
@@ -133,21 +133,21 @@ export function QuizAttachBanner({
   return (
     <div
       role="status"
-      className="mb-6 flex items-start gap-3 rounded-[var(--radius-lg)] border border-[var(--color-warn)]/40 bg-[var(--color-warn-tint)] p-4 shadow-2xs"
+      className="mb-6 flex items-start gap-3 rounded-[var(--radius-lg)] border border-[var(--color-warn)] bg-[var(--color-warn-tint)] p-4 shadow-e1"
     >
-      <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-[var(--color-warn-tint)] text-[var(--color-warn-ink)]">
+      <span className="mt-0.5 flex size-tap-admin shrink-0 items-center justify-center rounded-full bg-[var(--color-warn-tint)] text-[var(--color-warn-ink)]">
         <LuMessageCircleQuestion className="size-5" aria-hidden="true" />
       </span>
       <div className="flex-1 space-y-0.5">
         <p className="text-sm font-semibold text-[var(--color-warn-ink)]">{t('bannerTitle')}</p>
-        <p className="text-xs text-[var(--color-warn-ink)]/80">{t('bannerBody')}</p>
+        <p className="text-sm text-[var(--color-warn-ink)]">{t('bannerBody')}</p>
       </div>
       <div className="flex shrink-0 items-center gap-2">
         <button
           type="button"
           onClick={onDismiss}
           disabled={isAttaching}
-          className="rounded-full px-3 py-1.5 text-xs font-semibold text-[var(--color-warn-ink)] hover:bg-[var(--color-warn-tint)]/70 disabled:opacity-50"
+          className="rounded-full px-3 py-2 text-sm font-semibold text-[var(--color-warn-ink)] hover:bg-[var(--color-warn-tint)] disabled:opacity-50"
         >
           {t('bannerDismiss')}
         </button>
@@ -155,7 +155,7 @@ export function QuizAttachBanner({
           type="button"
           onClick={onAttach}
           disabled={isAttaching}
-          className="rounded-full bg-[var(--color-warn-ink)] px-3 py-1.5 text-xs font-bold text-white shadow-e1 hover:opacity-90 disabled:opacity-50"
+          className="rounded-full bg-[var(--color-warn-ink)] px-3 py-2 text-sm font-semibold text-white shadow-e1 hover:opacity-90 disabled:opacity-50"
         >
           {isAttaching ? t('bannerAttaching') : t('bannerAttach')}
         </button>

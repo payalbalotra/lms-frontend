@@ -3,9 +3,11 @@ import Link from 'next/link';
 import { getCategoryIcon } from '@/lib/category-icons';
 import type { Procedure } from '@/lib/types';
 import { categoryName, coverOf, titleOf, type AttentionGroup, type AttentionItem } from './home-data';
-import { LuArrowRight, LuArrowUp, LuCalendar, LuCheck, LuChevronRight, LuFileText, LuPencil } from 'react-icons/lu';
+import { LuArrowRight, LuArrowUp, LuCalendar, LuCheck, LuChevronRight, LuFileText, LuPencil, LuPlus } from 'react-icons/lu';
 import { Icon } from '@/components/ui/icon';
 import { Meter } from '@/components/ui/meter';
+import { CountBadge, StatusPill } from '@/components/ui/status-pill';
+import { Button, buttonClassName } from '@/components/ui/button';
 import type { IconType } from 'react-icons';
 
 /*
@@ -14,14 +16,6 @@ import type { IconType } from 'react-icons';
  * the controls themselves.
  */
 
-const linkBtn =
-  'inline-flex min-h-tap-admin shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-semibold transition-colors duration-[var(--dur)] ease-[var(--ease)]';
-const linkBtnPrimary = `${linkBtn} bg-[var(--color-brand-600)] text-white hover:bg-[var(--color-brand-700)]`;
-const linkBtnNeutral = `${linkBtn} bg-[var(--color-panel)] text-[var(--color-ink)] hover:bg-[var(--color-panel-2)]`;
-/* The same button, but standing on the admin ground rather than inside a white
-   card. Bone on bone is 1.05:1 — it reads as a smudge — so out here the quiet
-   button is a white surface lifted by e1, the way the cards around it are. */
-const linkBtnOnGround = `${linkBtn} bg-[var(--color-surface)] text-[var(--color-ink)] shadow-e1 hover:bg-[var(--color-panel)]`;
 
 /* ---------------------------------------------------------------- header -- */
 
@@ -47,9 +41,13 @@ export function HomeHeader({
       </div>
       <div className="flex flex-wrap gap-2">
         {actions.map((a) => (
-          <Link key={a.label} href={a.href} className={`${a.primary ? linkBtnPrimary : linkBtnOnGround} min-h-12 px-5`}>
-            <Icon icon={a.icon} className="text-lg" />
+          <Link
+            key={a.label}
+            href={a.href}
+            className={buttonClassName({ variant: a.primary ? 'primary' : 'surface' })}
+          >
             {a.label}
+            <Icon icon={a.icon} className="text-base" />
           </Link>
         ))}
       </div>
@@ -79,7 +77,7 @@ export function StatStrip({ stats }: { stats: Stat[] }): React.ReactElement {
       {stats.map((s) => (
         <li
           key={s.label}
-          className="flex min-w-0 flex-col rounded-[var(--radius-lg)] bg-[var(--color-surface)] p-4 shadow-e1 sm:p-5"
+          className="flex min-w-0 flex-col rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-4 shadow-e1 sm:p-5"
         >
           {/* The icon sits on the label, not in a grey tile of its own: four cards
               each carrying an identical rounded tile is the shape that makes a
@@ -95,10 +93,14 @@ export function StatStrip({ stats }: { stats: Stat[] }): React.ReactElement {
           {/* A share reads as a ring with the figure inside it; a count reads as the
               figure with its note beside it. Two shapes, because they are two
               different kinds of number. */}
+          {/* Ring over note on a phone, side by side from sm up. In a two-column
+              grid at 390px the card is 168px wide: a 72px ring, a 16px gap and a
+              line that must not break left the row 53px wider than its column,
+              and the page scrolled sideways. */}
           {s.meter ? (
-            <div className="mt-4 flex items-center gap-4">
-              <Meter value={s.meter.value} total={s.meter.total} tone={s.meter.tone} size={72} stroke={8} label={s.value} />
-              <span className="min-w-0 whitespace-nowrap text-sm leading-meta text-[var(--color-ink-2)]">{s.note}</span>
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <Meter value={s.meter.value} total={s.meter.total} tone={s.meter.tone} size={64} stroke={7} label={s.value} />
+              <span className="min-w-0 text-sm leading-meta text-[var(--color-ink-2)]">{s.note}</span>
             </div>
           ) : (
           <div className="mt-4 flex items-center gap-4">
@@ -160,7 +162,7 @@ export function ResumeLine({
   return (
     <Link
       href={`/${locale}/procedures/${procedure.slug}`}
-      className="group flex items-center gap-4 rounded-[var(--radius-lg)] bg-[var(--color-surface)] p-4 shadow-e1 sm:px-6"
+      className="group flex items-center gap-4 rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-4 shadow-e1 sm:px-6"
     >
       <Thumb src={cover?.src} icon={procedure.category ? getCategoryIcon(procedure.category) : LuPencil} tint />
       <span className="min-w-0 flex-1">
@@ -176,7 +178,7 @@ export function ResumeLine({
           Written out rather than built from the shared button class: that class
           sets inline-flex, this control is hidden below sm, and which of the two
           wins would depend on CSS order. */}
-      <span className="hidden min-h-tap-admin shrink-0 items-center gap-2 rounded-full bg-[var(--color-brand-tint)] px-4 text-sm font-semibold text-[var(--color-brand-700)] transition-colors duration-[var(--dur)] ease-[var(--ease)] group-hover:bg-[var(--color-brand-tint-2)] sm:inline-flex">
+      <span className={`${buttonClassName({ variant: 'secondary' })} hidden shrink-0 font-semibold sm:inline-flex`}>
         {cta}
         <LuArrowRight aria-hidden="true" />
       </span>
@@ -241,9 +243,16 @@ function AttentionRow({ item, action }: { item: AttentionItem; action: string })
         <p className="text-md font-semibold leading-heading text-[var(--color-ink)]">{item.title}</p>
         <p className="mt-1 text-sm leading-meta text-[var(--color-ink-2)]">{item.meta.join(' · ')}</p>
       </div>
-      <Link href={item.href} className={`${linkBtnNeutral} ml-16 sm:ml-0`}>
-        {action}
-        <span className="sr-only">: {item.title}</span>
+      <Link href={item.href} className="ml-16 sm:ml-0">
+        <Button
+          type="button"
+          variant="neutral"
+          size="sm"
+          icon={item.kind === 'emptyCategory' ? LuPlus : undefined}
+        >
+          {action}
+          <span className="sr-only">: {item.title}</span>
+        </Button>
       </Link>
     </li>
   );
@@ -264,16 +273,14 @@ export function AttentionList({
   return (
     <section
       aria-labelledby="attn-h"
-      className="rounded-[var(--radius-lg)] bg-[var(--color-surface)] px-4 py-5 shadow-e1 sm:px-6 sm:py-6"
+      className="rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-4 py-5 shadow-e1 sm:px-6 sm:py-6"
     >
       <div className="flex items-center gap-3">
         <h2 id="attn-h" className="text-lg font-semibold leading-heading tracking-snug text-[var(--color-ink)]">
           {heading}
         </h2>
         {total > 0 ? (
-          <span className="rounded-[var(--radius-sm)] bg-[var(--color-panel)] px-2 py-0.5 text-sm font-semibold text-[var(--color-ink)]">
-            {total}
-          </span>
+          <CountBadge tone="warn">{total}</CountBadge>
         ) : null}
       </div>
 
@@ -295,7 +302,9 @@ export function AttentionList({
               <h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--color-ink-2)]">
                 <span aria-hidden="true" className={`size-2 rounded-full ${TONE_DOT[c.tone]}`} />
                 {c.title}
-                <span className="text-[var(--color-ink-3)]">{g.items.length}</span>
+                <CountBadge tone={c.tone === 'bad' ? 'bad' : c.tone === 'warn' ? 'warn' : 'info'}>
+                  {g.items.length}
+                </CountBadge>
               </h3>
               <ul className="mt-1">
                 {g.items.map((it) => (
@@ -349,7 +358,7 @@ export function RecentProcedures({
             <li key={p.id}>
               <Link
                 href={`/${locale}/procedures/${p.slug}`}
-                className="flex h-full flex-col overflow-hidden rounded-[var(--radius-lg)] bg-[var(--color-surface)] shadow-e1"
+                className="flex h-full flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] shadow-e1"
               >
                 <span className="relative flex aspect-video items-center justify-center overflow-hidden bg-[var(--color-panel)]">
                   {cover ? (
@@ -361,22 +370,26 @@ export function RecentProcedures({
                   ) : (
                     <Icon icon={p.category ? getCategoryIcon(p.category) : LuFileText} className="text-3xl text-[var(--color-ink-3)]" />
                   )}
-                  <span
-                    className={`absolute left-3 top-3 rounded-[var(--radius-sm)] px-2 py-0.5 text-sm font-semibold ${
-                      p.status === 'published' ? 'bg-[var(--color-ok-tint)] text-[var(--color-ok)]' : 'bg-[var(--color-surface)] text-[var(--color-ink-2)]'
-                    }`}
+                  <StatusPill
+                    tone={p.status === 'published' ? 'ok' : 'neutral'}
+                    withDot
+                    className="absolute left-3 top-3 font-semibold shadow-e1"
                   >
                     {statusLabel(p)}
-                  </span>
+                  </StatusPill>
                 </span>
                 <span className="flex flex-1 flex-col p-4">
+                  {/* On a card the category stands alone above the title, so it is
+                      a badge and wears the badge shape. In a list row it sits in a
+                      meta sentence — "Station Procedures · EN/ES · Updated Sep 4" —
+                      where a badge would be a box around one word of a line. */}
                   {p.category ? (
-                    <span className="flex items-center gap-1 text-sm text-[var(--color-ink-2)]">
-                      <Icon icon={getCategoryIcon(p.category)} />
+                    <StatusPill tone="info" className="self-start gap-2">
+                      <Icon icon={getCategoryIcon(p.category)} className="text-base" />
                       {categoryName(p.category, locale)}
-                    </span>
+                    </StatusPill>
                   ) : null}
-                  <span className="mt-1 block text-md font-semibold leading-heading text-[var(--color-ink)]">{titleOf(p, locale)}</span>
+                  <span className="mt-3 block text-md font-semibold leading-heading text-[var(--color-ink)]">{titleOf(p, locale)}</span>
                   <span className="mt-auto block pt-2 text-sm text-[var(--color-ink-2)]">{metaFor(p)}</span>
                 </span>
               </Link>

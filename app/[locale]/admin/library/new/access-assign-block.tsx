@@ -68,7 +68,7 @@ export function AccessAssignBlock({
             onChange={(e) => setSearch(e.target.value)}
             disabled={disabled}
             placeholder={tAccess('rowSearchPlaceholder')}
-            className="h-8 pl-8 pr-8 text-xs bg-[var(--color-surface)] border-[var(--color-line-2)] focus:border-[var(--color-brand-600)] disabled:cursor-not-allowed"
+            className="h-8 pl-8 pr-8 text-sm bg-[var(--color-surface)] border-[var(--color-line-2)] focus:border-[var(--color-brand-600)] disabled:cursor-not-allowed"
           />
           {search && (
             <button
@@ -90,7 +90,7 @@ export function AccessAssignBlock({
         )}
       >
         {filtered.length === 0 ? (
-          <p className="col-span-full rounded-[var(--radius-md)] border border-dashed border-[var(--color-line-2)] bg-[var(--color-wash)] px-3 py-3 text-center text-xs text-[var(--color-ink-3)] italic">
+          <p className="col-span-full rounded-[var(--radius-md)] border border-dashed border-[var(--color-line-2)] bg-[var(--color-wash)] px-3 py-3 text-center text-sm text-[var(--color-ink-3)] italic">
             {tAccess('rowNoMatch', { query: search })}
           </p>
         ) : (
@@ -113,7 +113,7 @@ export function AccessAssignBlock({
               >
                 <span
                   className={cn(
-                    'flex size-6 shrink-0 items-center justify-center rounded-full text-sm font-bold uppercase shadow-e1',
+                    'flex size-6 shrink-0 items-center justify-center rounded-full text-sm font-semibold uppercase shadow-e1',
                     isAssigned
                       ? 'bg-[var(--color-brand-600)] text-white'
                       : 'bg-[var(--color-panel)] text-[var(--color-ink-2)] border border-[var(--color-line-2)]',
@@ -125,7 +125,7 @@ export function AccessAssignBlock({
                 <span className="min-w-0 flex-1">
                   <span
                     className={cn(
-                      'block text-xs font-bold truncate',
+                      'block text-sm font-semibold truncate',
                       isAssigned ? 'text-[var(--color-brand-700)]' : 'text-[var(--color-ink)]',
                     )}
                   >
@@ -139,7 +139,7 @@ export function AccessAssignBlock({
       </div>
 
       {disabled && (
-        <p className="pl-10 text-xs text-[var(--color-ink-3)] italic">
+        <p className="pl-10 text-sm text-[var(--color-ink-3)] italic">
           {tAccess('publicDisabledHint')}
         </p>
       )}

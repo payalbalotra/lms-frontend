@@ -71,7 +71,7 @@ export function ProcedureWizardStepper({
                   >
                     <span
                       className={cn(
-                        'flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all shadow-e1',
+                        'flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-bold transition-all shadow-e1',
                         isActive
                           ? 'bg-[var(--color-brand-600)] text-white ring-4 ring-[var(--color-brand-tint)] scale-105'
                           : isCompleted

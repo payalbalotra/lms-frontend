@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { getCategoryIcon } from '@/lib/category-icons';
 import { Icon } from '@/components/ui/icon';
 import type { Category, Procedure } from '@/lib/types';
-import { LuChevronRight, LuSearch } from 'react-icons/lu';
+import { LuArrowRight, LuChevronRight, LuSearch } from 'react-icons/lu';
 import { ProcedureRow, type FlagLabels, type ProcedureFlags } from '@/components/employee/procedure-row';
 
 /*
@@ -27,12 +27,12 @@ export function WhoBar({ name, line }: { name: string; line: string }): React.Re
     <div className="flex items-center gap-3">
       <span
         aria-hidden="true"
-        className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[var(--color-panel)] text-md font-semibold text-[var(--color-ink)]"
+        className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-panel)] text-base font-semibold text-[var(--color-ink-2)]"
       >
         {initials}
       </span>
       <span className="min-w-0">
-        <span className="block truncate text-md font-semibold leading-heading text-[var(--color-ink)]">
+        <span className="block truncate text-base font-semibold leading-heading text-[var(--color-ink)]">
           {name}
         </span>
         <span className="block truncate text-base leading-meta text-[var(--color-ink-2)]">{line}</span>
@@ -57,10 +57,10 @@ export function Ask({
   hint: string;
 }): React.ReactElement {
   return (
-    <section aria-labelledby="ask-h" className="mt-8">
+    <section aria-labelledby="ask-h" className="mt-10">
       <h1
         id="ask-h"
-        className="font-[family-name:var(--font-display)] text-xl font-bold leading-display tracking-tight text-[var(--color-ink)] sm:text-2xl"
+        className="font-[family-name:var(--font-display)] text-xl font-bold leading-display tracking-tight text-[var(--color-ink)]"
       >
         {heading}
       </h1>
@@ -68,7 +68,7 @@ export function Ask({
         <label htmlFor="q" className="sr-only">
           {label}
         </label>
-        <div className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--color-line-3)] bg-[var(--color-surface)] px-4 py-2 transition-colors duration-[var(--dur)] ease-[var(--ease)] focus-within:border-[var(--color-brand-600)] focus-within:outline focus-within:outline-2 focus-within:outline-[var(--color-brand-tint-2)]">
+        <div className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--color-line-3)] bg-[var(--color-surface)] px-4 py-1 transition-colors duration-[var(--dur)] ease-[var(--ease)] focus-within:border-[var(--color-brand)]">
           <LuSearch aria-hidden="true" className="text-xl text-[var(--color-ink-2)]" />
           <input
             id="q"
@@ -82,7 +82,7 @@ export function Ask({
             aria-label={label}
             className="inline-flex size-12 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand-600)] text-white transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:bg-[var(--color-brand-700)]"
           >
-            <LuSearch aria-hidden="true" className="text-lg" />
+            <LuArrowRight aria-hidden="true" className="text-lg" />
           </button>
         </div>
       </form>
@@ -94,11 +94,11 @@ export function Ask({
 function SectionHead({ title, all }: { title: string; all?: { href: string; label: string } }): React.ReactElement {
   return (
     <div className="flex items-baseline justify-between gap-3">
-      <h2 className="min-w-0 text-lg font-semibold leading-heading text-[var(--color-ink)]">{title}</h2>
+      <h2 className="min-w-0 text-md font-semibold leading-heading text-[var(--color-ink)]">{title}</h2>
       {all ? (
         <Link
           href={all.href}
-          className="inline-flex min-h-tap shrink-0 items-center gap-1 whitespace-nowrap text-base font-semibold text-[var(--color-brand-700)]"
+          className="inline-flex min-h-tap shrink-0 items-center gap-1 whitespace-nowrap text-sm font-semibold text-[var(--color-brand-700)]"
         >
           {all.label}
           <LuChevronRight aria-hidden="true" />
@@ -131,7 +131,7 @@ export function ProcedureRows({
   empty: string;
 }): React.ReactElement {
   return (
-    <section className="mt-10">
+    <section className="mt-12">
       <SectionHead title={heading} all={all} />
       {rows.length === 0 ? (
         <p className="mt-3 text-base text-[var(--color-ink-2)]">{empty}</p>
@@ -174,7 +174,7 @@ export function CategoryGrid({
   empty: string;
 }): React.ReactElement {
   return (
-    <section className="mt-10">
+    <section className="mt-12">
       <SectionHead title={heading} all={all} />
       {categories.length === 0 ? (
         <p className="mt-3 text-base text-[var(--color-ink-2)]">{empty}</p>
@@ -182,29 +182,32 @@ export function CategoryGrid({
         /* Chips, not cards. Six cards each the size of a postcard push everything
            else below the fold and say nothing more than their own name; a row of
            chips puts the whole library one tap away and still clears 48px. */
-        <ul className="mt-4 flex flex-wrap gap-2">
+        <ul className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
           {categories.map((c) => {
             const n = countOf(c);
             return (
               <li key={c.id}>
                 <Link
                   href={`/${locale}/procedures?category=${encodeURIComponent(c.slug)}`}
-                  className={`inline-flex min-h-tap items-center gap-2 rounded-full px-4 text-base font-semibold transition-colors duration-[var(--dur)] ease-[var(--ease)] ${
+                  className={`flex min-h-tap w-full items-center gap-2 rounded-full px-4 text-base font-semibold transition-colors duration-[var(--dur)] ease-[var(--ease)] ${
                     n === 0
                       ? 'bg-[var(--color-panel)] text-[var(--color-ink-3)]'
                       : 'bg-[var(--color-panel)] text-[var(--color-ink)] hover:bg-[var(--color-panel-2)]'
                   }`}
                 >
                   {/* The chip the design system already specifies (.step-time): bone
-                      ground, ink label, and the action colour on the mark only —
-                      six chips in a full brand tint would out-shout the page, and a
-                      grey label reads as a disabled button. */}
+                      ground, ink label, and the brand colour on the mark. Tried
+                      neutral marks to quieten the row; the colour is what makes a
+                      category scannable at a glance, so it stays. An empty category
+                      keeps a grey mark, because there is nothing behind it to open. */}
                   <Icon
                     icon={getCategoryIcon(c)}
                     className={`text-lg ${n === 0 ? 'text-[var(--color-ink-3)]' : 'text-[var(--color-brand-600)]'}`}
                   />
-                  {locale === 'es' ? c.nameEs || c.nameEn : c.nameEn || c.nameEs}
-                  {n > 0 ? <span className="font-normal text-[var(--color-ink-2)]">{n}</span> : null}
+                  <span className="min-w-0 flex-1 truncate">
+                    {locale === 'es' ? c.nameEs || c.nameEn : c.nameEn || c.nameEs}
+                  </span>
+                  {n > 0 ? <span className="shrink-0 font-normal text-[var(--color-ink-2)]">{n}</span> : null}
                   <span className="sr-only">{countLabel(n)}</span>
                 </Link>
               </li>

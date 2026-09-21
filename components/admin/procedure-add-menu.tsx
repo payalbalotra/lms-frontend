@@ -132,13 +132,13 @@ export function ProcedureAddMenu({
     <div className={cn('flex flex-wrap items-center gap-2', variant === 'inline' ? 'justify-between w-full' : 'justify-start')}>
       {/* Visible Block Type Quick Buttons */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-semibold text-[var(--color-ink-3)] mr-1">
+        <span className="text-sm font-semibold text-[var(--color-ink-3)] mr-1">
           Add block:
         </span>
         <button
           type="button"
           onClick={() => onAdd('text')}
-          className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2 text-xs font-semibold text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-brand-600)] transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-brand-600)] transition-colors"
         >
           <LuType aria-hidden="true" className="text-sm text-[var(--color-ink-2)]" />
           <span>Text</span>
@@ -146,7 +146,7 @@ export function ProcedureAddMenu({
         <button
           type="button"
           onClick={() => onAdd('table')}
-          className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2 text-xs font-semibold text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-brand-600)] transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-brand-600)] transition-colors"
         >
           <LuTable aria-hidden="true" className="text-sm text-[var(--color-ink-2)]" />
           <span>Table</span>
@@ -154,7 +154,7 @@ export function ProcedureAddMenu({
         <button
           type="button"
           onClick={() => onAdd('method')}
-          className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2 text-xs font-semibold text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-brand-600)] transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-brand-600)] transition-colors"
         >
           <LuListOrdered aria-hidden="true" className="text-sm text-[var(--color-ink-2)]" />
           <span>Steps</span>
@@ -162,7 +162,7 @@ export function ProcedureAddMenu({
         <button
           type="button"
           onClick={() => onAdd('warning')}
-          className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2 text-xs font-semibold text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-brand-600)] transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-brand-600)] transition-colors"
         >
           <LuTriangleAlert aria-hidden="true" className="text-sm text-[var(--color-ink-2)]" />
           <span>Warning</span>
@@ -170,7 +170,7 @@ export function ProcedureAddMenu({
         <button
           type="button"
           onClick={() => onAdd('heading')}
-          className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2 text-xs font-semibold text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-brand-600)] transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-brand-600)] transition-colors"
         >
           <LuHeading1 aria-hidden="true" className="text-sm text-[var(--color-ink-2)]" />
           <span>Heading</span>
@@ -178,7 +178,7 @@ export function ProcedureAddMenu({
         <button
           type="button"
           onClick={() => onAdd('image')}
-          className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2 text-xs font-semibold text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-brand-600)] transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-brand-600)] transition-colors"
         >
           <LuImage aria-hidden="true" className="text-sm text-[var(--color-ink-2)]" />
           <span>Image</span>
@@ -195,7 +195,7 @@ export function ProcedureAddMenu({
           aria-haspopup="menu"
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
-          className="gap-2 px-3 shadow-e1 text-xs"
+          className="gap-2 px-3 shadow-e1 text-sm"
         >
           <LuPlus aria-hidden="true" className="text-sm" />
           <span>More blocks</span>

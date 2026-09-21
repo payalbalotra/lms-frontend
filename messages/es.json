@@ -188,6 +188,7 @@
       "new": {
         "crumbBack": "Volver a la biblioteca",
         "importDoc": "Importar documento",
+        "livePreview": "Vista previa",
         "cancel": "Cancelar",
         "pageEyebrow": "NUEVO PROCEDIMIENTO",
         "pageTitle": "Empezar un nuevo procedimiento",
@@ -220,7 +221,7 @@
         },
         "import": {
           "title": "Importar documento con IA",
-          "body": "Sube un SOP existente — PDF, archivo de Word, foto de receta o texto plano. La IA lo leerá y propondrá un borrador que puedes revisar antes de guardar.",
+          "body": "La IA lee el documento y propone un borrador que puedes revisar antes de guardar.",
           "dropHint": "Arrastra y suelta un archivo aquí",
           "or": "o",
           "browse": "Examinar archivo",
@@ -547,6 +548,7 @@
               "diagram": "Diagrama"
             },
             "image": {
+              "sourceLabel": "Origen de la imagen",
               "uploadMode": "Subir archivo",
               "urlMode": "URL de la imagen",
               "uploadClick": "Haz clic para subir o arrastra y suelta una imagen",
@@ -563,6 +565,7 @@
             "videoSrc": "URL del video",
             "videoCaption": "Pie (opcional)",
             "video": {
+              "sourceLabel": "Origen del video",
               "uploadMode": "Subir archivo",
               "urlMode": "URL del video",
               "uploadClick": "Haz clic para subir o arrastra y suelta un video",
@@ -637,6 +640,7 @@
     "backToApp": "Empleado",
     "signOut": "Cerrar sesión",
     "listHeading": "Empleados",
+    "cancel": "Cancelar",
     "inviteEmployee": "Invitar empleado",
     "filterAll": "Todos",
     "thName": "Nombre",
@@ -854,7 +858,11 @@
       }
     },
     "filteredBy": "Mostrando personas que coinciden con \"{q}\".",
-    "clearFilter": "Mostrar a todos"
+    "clearFilter": "Mostrar a todos",
+    "peopleSubtitle": "Todos los que tienen acceso, qué pueden abrir y quién falta por unirse.",
+    "settingsSubtitle": "Estaciones, puestos y ubicaciones: las palabras con las que se arma el resto de la app.",
+    "groupPeople": "Personas",
+    "groupSettings": "Configuración"
   },
   "activate": {
     "intro": "Bienvenido — establece tu contraseña para terminar de activar tu cuenta.",

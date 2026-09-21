@@ -5,9 +5,10 @@ import { listCategories } from '@/lib/api';
 import { getCategoryIcon } from '@/lib/category-icons';
 import type { Category } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { CategoryActions, CreateCategoryButton } from './category-actions';
+import { CategoryActions } from './category-actions';
 import { LuFolders } from 'react-icons/lu';
 import { Icon } from '@/components/ui/icon';
+import { StatusPill } from '@/components/ui/status-pill';
 
 interface CategoriesClientListProps {
   initialCategories: Category[];
@@ -58,10 +59,6 @@ export function CategoriesClientList({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-end">
-        {locationId ? <CreateCategoryButton locationId={locationId} /> : null}
-      </div>
-
       {active.length === 0 && archived.length === 0 ? (
         <EmptyCategories heading={isEs ? 'Sin categorías' : 'No categories found'} />
       ) : (
@@ -110,8 +107,8 @@ function CategoryCard({
     <article
       className={cn(
         'flex items-center gap-3 rounded-[var(--radius-lg)]',
-        'border border-[var(--color-line)] bg-[var(--color-surface)] p-4',
-        archivedChipLabel ? 'opacity-75' : undefined,
+        'border border-[var(--color-line-2)] bg-[var(--color-surface)] p-4',
+        archivedChipLabel ? 'bg-[var(--color-wash)]' : undefined,
       )}
     >
       <span
@@ -121,16 +118,12 @@ function CategoryCard({
         <Icon icon={getCategoryIcon(category)} className="text-lg" />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-[var(--color-ink)]">
+        <p className="truncate text-base font-semibold text-[var(--color-ink)]">
           {isEs ? category.nameEs : category.nameEn}
         </p>
-        <p className="truncate text-xs text-[var(--color-ink-3)]">{category.slug}</p>
+        <p className="truncate text-sm text-[var(--color-ink-3)]">{category.slug}</p>
       </div>
-      {archivedChipLabel ? (
-        <span className="inline-flex items-center rounded-[var(--radius-sm)] bg-[var(--color-panel)] px-2 py-0.5 text-xs font-semibold text-[var(--color-ink-2)]">
-          {archivedChipLabel}
-        </span>
-      ) : null}
+      {archivedChipLabel ? <StatusPill tone="neutral">{archivedChipLabel}</StatusPill> : null}
       <CategoryActions category={category} />
     </article>
   );
@@ -151,9 +144,7 @@ function EmptyCategories({ heading }: { heading: string }): React.ReactElement {
       >
         <LuFolders className="text-2xl" />
       </span>
-      <h2 className="font-[family-name:var(--font-ui)] text-lg font-semibold tracking-tight text-[var(--color-ink)]">
-        {heading}
-      </h2>
+      <h2 className="text-md font-semibold leading-heading text-[var(--color-ink)]">{heading}</h2>
     </article>
   );
 }

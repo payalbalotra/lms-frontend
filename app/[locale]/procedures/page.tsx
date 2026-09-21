@@ -40,8 +40,16 @@ export default async function ProceduresPage({ params, searchParams }: PageProps
   let categories: Category[] = [];
   let procedures: Procedure[] = [];
   await Promise.all([
-    listCategories(employee.locationId, {}, cookieHeader).then((r) => { categories = r.categories; }).catch(() => {}),
-    listProcedures({}, cookieHeader).then((r) => { procedures = r.procedures; }).catch(() => {}),
+    listCategories(employee.locationId, {}, cookieHeader)
+      .then((r) => {
+        categories = r.categories;
+      })
+      .catch(() => {}),
+    listProcedures({}, cookieHeader)
+      .then((r) => {
+        procedures = r.procedures;
+      })
+      .catch(() => {}),
   ]);
 
   const readsSpanish = employee.languagePref === 'es';
@@ -73,19 +81,17 @@ export default async function ProceduresPage({ params, searchParams }: PageProps
         />
       </main>
 
-      {employee.role === 'admin' ? null : (
-        <TabBar
-          locale={locale}
-          active="procedures"
-          labels={{
-            ask: t('tabAsk'),
-            procedures: t('tabProcedures'),
-            training: t('tabTraining'),
-            soon: t('tabSoon'),
-            nav: t('tabsNav'),
-          }}
-        />
-      )}
+      <TabBar
+        locale={locale}
+        active="procedures"
+        labels={{
+          ask: t('tabAsk'),
+          procedures: t('tabProcedures'),
+          training: t('tabTraining'),
+          soon: t('tabSoon'),
+          nav: t('tabsNav'),
+        }}
+      />
     </>
   );
 }

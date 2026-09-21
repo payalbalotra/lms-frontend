@@ -1,5 +1,7 @@
 import * as React from 'react';
+import type { IconType } from 'react-icons';
 import { cn } from '@/lib/utils';
+import { Icon } from '@/components/ui/icon';
 
 /**
  * Status pill — DESIGN.md §3.3.
@@ -23,11 +25,14 @@ export interface StatusPillProps extends React.HTMLAttributes<HTMLSpanElement> {
   tone?: StatusTone;
   /** Optional dot icon to the left. */
   withDot?: boolean;
+  /** A mark before the label, where the badge warns rather than states. */
+  icon?: IconType | string;
 }
 
 export function StatusPill({
   tone = 'neutral',
   withDot,
+  icon,
   className,
   children,
   ...rest
@@ -36,8 +41,8 @@ export function StatusPill({
     <span
       data-slot="status-pill"
       className={cn(
-        'inline-flex items-center gap-2 whitespace-nowrap rounded-md',
-        'px-2 py-0.5 text-xs font-medium',
+        'inline-flex items-center gap-1 whitespace-nowrap rounded-md',
+        'px-2 py-0.5 text-sm font-medium',
         toneClasses[tone],
         className,
       )}
@@ -49,6 +54,39 @@ export function StatusPill({
           className="inline-block size-2 rounded-full bg-current"
         />
       ) : null}
+      {icon ? <Icon icon={icon} /> : null}
+      {children}
+    </span>
+  );
+}
+
+/**
+ * A count beside a heading: "Needs attention 3".
+ *
+ * Round, where a status badge is a rectangle. The rectangle rule exists so a
+ * badge that reads as a word — Published, Draft — is never mistaken for a pill
+ * button. A count has no word in it and never exceeds its own height, so a circle
+ * reads as a tally rather than as something to press.
+ */
+export function CountBadge({
+  tone = 'warn',
+  className,
+  children,
+}: {
+  tone?: StatusTone;
+  className?: string;
+  children: React.ReactNode;
+}): React.ReactElement {
+  return (
+    <span
+      data-slot="count-badge"
+      className={cn(
+        'inline-flex size-6 shrink-0 items-center justify-center rounded-full',
+        'text-sm font-semibold tabular-nums',
+        toneClasses[tone],
+        className,
+      )}
+    >
       {children}
     </span>
   );

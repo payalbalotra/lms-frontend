@@ -20,6 +20,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
+import { SegmentedControl } from '@/components/ui/segmented-control';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -91,36 +92,15 @@ function BilingualTabs({
   esLabel: string;
 }): React.ReactElement {
   return (
-    <div className="inline-flex rounded-md border border-[var(--color-line-3)] bg-[var(--color-surface)] p-0.5 text-xs font-semibold">
-      <button
-        type="button"
-        aria-checked={active === 'en'}
-        role="tab"
-        onClick={() => onChange('en')}
-        className={cn(
-          'rounded-[var(--radius-sm)] px-3 py-1 transition-colors',
-          active === 'en'
-            ? 'bg-[var(--color-ink)] text-white font-semibold'
-            : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
-        )}
-      >
-        {enLabel}
-      </button>
-      <button
-        type="button"
-        aria-checked={active === 'es'}
-        role="tab"
-        onClick={() => onChange('es')}
-        className={cn(
-          'rounded-[var(--radius-sm)] px-3 py-1 transition-colors',
-          active === 'es'
-            ? 'bg-[var(--color-ink)] text-white font-semibold'
-            : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
-        )}
-      >
-        {esLabel}
-      </button>
-    </div>
+    <SegmentedControl
+      label="Language"
+      value={active}
+      onChange={(lang) => onChange(lang as 'en' | 'es')}
+      segments={[
+        { value: 'en', label: enLabel },
+        { value: 'es', label: esLabel },
+      ]}
+    />
   );
 }
 
@@ -146,7 +126,7 @@ function Field({
         )}
       </Label>
       {children}
-      {hint && <p className="text-xs text-[var(--color-ink-2)]">{hint}</p>}
+      {hint && <p className="text-sm text-[var(--color-ink-2)]">{hint}</p>}
     </div>
   );
 }
@@ -355,10 +335,10 @@ function StepRow({
       {/* Header: drag handle · step number · kebab menu */}
       <div className="flex items-center gap-2">
         {dragHandle}
-        <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-panel)] font-mono text-xs font-semibold text-[var(--color-ink)]">
+        <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-panel)] font-mono text-sm font-semibold text-[var(--color-ink)]">
           {String(index + 1).padStart(2, '0')}
         </span>
-        <span className="text-xs font-semibold text-[var(--color-ink-3)]">
+        <span className="text-sm font-semibold text-[var(--color-ink-3)]">
           Step
         </span>
         <div className="ml-auto">
@@ -430,7 +410,7 @@ function StepRow({
               aria-expanded={critOpen}
               aria-controls={`crit-${step.id ?? index}`}
             >
-              <span className="text-xs font-semibold uppercase tracking-caps text-[var(--color-ink-2)]">
+              <span className="text-sm font-semibold uppercase tracking-caps text-[var(--color-ink-2)]">
                 <LuFocus aria-hidden="true" className="mr-1" />
                 {t('criticalLimit')}
               </span>
@@ -552,7 +532,7 @@ function StepRow({
                   size="sm"
                   disabled={upload.state === 'uploading'}
                   onClick={() => videoFileRef.current?.click()}
-                  className="gap-1 text-xs"
+                  className="gap-1 text-sm"
                 >
                   <LuCloudUpload aria-hidden="true" />
                   {upload.state === 'uploading'
@@ -562,7 +542,7 @@ function StepRow({
               </div>
             </Field>
             {upload.state === 'uploading' && (
-              <p className="flex items-center gap-2 text-xs text-[var(--color-ink-2)]">
+              <p className="flex items-center gap-2 text-sm text-[var(--color-ink-2)]">
                 <span className="spinner" aria-hidden="true" />
                 {tComp('video.uploading')}
                 {upload.fileName ? ` — ${upload.fileName}` : ''}
@@ -571,7 +551,7 @@ function StepRow({
             {upload.state === 'failed' && upload.error && (
               <p
                 role="alert"
-                className="flex items-center gap-2 text-xs text-[var(--color-bad)]"
+                className="flex items-center gap-2 text-sm text-[var(--color-bad)]"
               >
                 <LuCircleAlert aria-hidden="true" />
                 {upload.error}
@@ -579,7 +559,7 @@ function StepRow({
             )}
             {seg?.src && (
               <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-2 rounded-[var(--radius-sm)] bg-[var(--color-panel)] px-3 py-0.5 text-xs font-semibold text-[var(--color-ink-2)]">
+                <span className="inline-flex items-center gap-2 rounded-[var(--radius-sm)] bg-[var(--color-panel)] px-3 py-0.5 text-sm font-semibold text-[var(--color-ink-2)]">
                   <Icon icon={isR2Upload ? LuVideo : LuLink} />
                   {isR2Upload ? tComp('video.uploadDone') : tComp('video.uploadLinked')}
                 </span>
@@ -762,7 +742,7 @@ function RecipeEditor({
         <Label className="text-sm">{tForm('allergenTitle')}</Label>
 
         <fieldset className="space-y-2">
-          <legend className="text-xs text-[var(--color-ink-3)]">
+          <legend className="text-sm text-[var(--color-ink-3)]">
             {tForm('allergenPickerLabel')}
           </legend>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -842,7 +822,7 @@ function RecipeEditor({
 
             return (
               <div className="pt-2 space-y-2">
-                <span className="text-xs font-semibold text-[var(--color-ink-2)] block">
+                <span className="text-sm font-semibold text-[var(--color-ink-2)] block">
                   Custom Allergens:
                 </span>
                 <div className="flex flex-wrap items-center gap-2">
@@ -875,7 +855,7 @@ function RecipeEditor({
                           e.currentTarget.value = '';
                         }
                       }}
-                      className="h-8 text-xs w-field-md"
+                      className="h-8 text-sm w-field-md"
                     />
                     <Button
                       type="button"
@@ -888,7 +868,7 @@ function RecipeEditor({
                           input.value = '';
                         }
                       }}
-                      className="h-8 px-3 text-xs font-semibold"
+                      className="h-8 px-3 text-sm font-semibold"
                     >
                       + Add Allergen
                     </Button>
@@ -1153,7 +1133,7 @@ function RecipeEditor({
               {tForm('ingredientAllergen')}
             </label>
             <div className="space-y-1">
-              <Label className="text-xs font-semibold text-[var(--color-ink-3)]">
+              <Label className="text-sm font-semibold text-[var(--color-ink-3)]">
                 {tForm('ingredientQuantity')}
               </Label>
               <div
@@ -1162,7 +1142,7 @@ function RecipeEditor({
               >
                 {factors.map((f, j) => (
                   <div key={j} className="space-y-1">
-                    <Label className="font-mono text-xs text-[var(--color-ink-3)]">
+                    <Label className="font-mono text-sm text-[var(--color-ink-3)]">
                       {f}×
                     </Label>
                     <Input
@@ -1287,40 +1267,21 @@ function ImageEditor({
         <Label className="text-sm font-semibold text-[var(--color-ink)]">
           Procedure Image <span aria-hidden="true" className="text-[var(--color-bad)]">*</span>
         </Label>
-        <div className="inline-flex rounded-md border border-[var(--color-line-3)] bg-[var(--color-surface)] p-0.5 text-xs font-semibold">
-          <button
-            type="button"
-            onClick={() => setSourceMode('upload')}
-            className={cn(
-              'rounded-[var(--radius-sm)] px-3 py-1 transition-colors flex items-center gap-2',
-              sourceMode === 'upload'
-                ? 'bg-[var(--color-ink)] text-white font-semibold'
-                : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
-            )}
-          >
-            <LuCloudUpload aria-hidden="true" />
-            {t('image.uploadMode')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setSourceMode('url')}
-            className={cn(
-              'rounded-[var(--radius-sm)] px-3 py-1 transition-colors flex items-center gap-2',
-              sourceMode === 'url'
-                ? 'bg-[var(--color-ink)] text-white font-semibold'
-                : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
-            )}
-          >
-            <LuLink aria-hidden="true" />
-            {t('image.urlMode')}
-          </button>
-        </div>
+        <SegmentedControl
+          label={t('image.sourceLabel')}
+          value={sourceMode}
+          onChange={(mode) => setSourceMode(mode as 'upload' | 'url')}
+          segments={[
+            { value: 'upload', label: t('image.uploadMode'), icon: LuCloudUpload },
+            { value: 'url', label: t('image.urlMode'), icon: LuLink },
+          ]}
+        />
       </div>
 
       {block.src ? (
         <div className="space-y-3 rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-3">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--color-line)] pb-3">
-            <div className="inline-flex items-center gap-2 rounded-[var(--radius-sm)] bg-[var(--color-ok-tint)] px-3 py-1 text-xs font-semibold text-[var(--color-ok)]">
+            <div className="inline-flex items-center gap-2 rounded-[var(--radius-sm)] bg-[var(--color-ok-tint)] px-3 py-1 text-sm font-semibold text-[var(--color-ok)]">
               <LuImage aria-hidden="true" />
               <span>{t('image.uploadDone')}</span>
             </div>
@@ -1330,7 +1291,7 @@ function ImageEditor({
                 variant="ghost"
                 size="sm"
                 onClick={() => fileInputRef.current?.click()}
-                className="gap-2 text-xs font-semibold text-[var(--color-ink-2)]"
+                className="gap-2 text-sm font-semibold text-[var(--color-ink-2)]"
               >
                 <LuUpload aria-hidden="true" className="text-sm" />
                 {t('image.uploadChange')}
@@ -1351,7 +1312,7 @@ function ImageEditor({
                   }
                   onChange({ ...block, src: '' });
                 }}
-                className="gap-2 text-xs font-semibold text-[var(--color-bad)] hover:bg-[var(--color-bad-tint)]"
+                className="gap-2 text-sm font-semibold text-[var(--color-bad)] hover:bg-[var(--color-bad-tint)]"
               >
                 <LuTrash2 aria-hidden="true" className="text-sm" />
                 {t('image.uploadRemove')}
@@ -1385,7 +1346,7 @@ function ImageEditor({
             variant="secondary"
             size="sm"
             onClick={() => fileInputRef.current?.click()}
-            className="gap-1 text-xs"
+            className="gap-1 text-sm"
           >
             <LuRefreshCw aria-hidden="true" />
             {t('image.uploadChange')}
@@ -1536,40 +1497,21 @@ function VideoEditor({
         <Label className="text-sm font-semibold text-[var(--color-ink)]">
           Procedure Video <span aria-hidden="true" className="text-[var(--color-bad)]">*</span>
         </Label>
-        <div className="inline-flex rounded-md border border-[var(--color-line-3)] bg-[var(--color-surface)] p-0.5 text-xs font-semibold">
-          <button
-            type="button"
-            onClick={() => setSourceMode('upload')}
-            className={cn(
-              'rounded-[var(--radius-sm)] px-3 py-1 transition-colors flex items-center gap-2',
-              sourceMode === 'upload'
-                ? 'bg-[var(--color-ink)] text-white font-semibold'
-                : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
-            )}
-          >
-            <LuCloudUpload aria-hidden="true" />
-            {t('video.uploadMode')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setSourceMode('url')}
-            className={cn(
-              'rounded-[var(--radius-sm)] px-3 py-1 transition-colors flex items-center gap-2',
-              sourceMode === 'url'
-                ? 'bg-[var(--color-ink)] text-white font-semibold'
-                : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
-            )}
-          >
-            <LuLink aria-hidden="true" />
-            {t('video.urlMode')}
-          </button>
-        </div>
+        <SegmentedControl
+          label={t('video.sourceLabel')}
+          value={sourceMode}
+          onChange={(mode) => setSourceMode(mode as 'upload' | 'url')}
+          segments={[
+            { value: 'upload', label: t('video.uploadMode'), icon: LuCloudUpload },
+            { value: 'url', label: t('video.urlMode'), icon: LuLink },
+          ]}
+        />
       </div>
 
       {block.src ? (
         <div className="space-y-3 rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-3">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--color-line)] pb-3">
-            <div className="inline-flex items-center gap-2 rounded-[var(--radius-sm)] bg-[var(--color-ok-tint)] px-3 py-1 text-xs font-semibold text-[var(--color-ok)]">
+            <div className="inline-flex items-center gap-2 rounded-[var(--radius-sm)] bg-[var(--color-ok-tint)] px-3 py-1 text-sm font-semibold text-[var(--color-ok)]">
               <Icon icon={source === 'upload' ? LuVideo : LuLink} />
               <span>{source === 'upload' ? t('video.uploadDone') : t('video.uploadLinked')}</span>
             </div>
@@ -1579,7 +1521,7 @@ function VideoEditor({
                 variant="ghost"
                 size="sm"
                 onClick={() => fileInputRef.current?.click()}
-                className="gap-2 text-xs font-semibold text-[var(--color-ink-2)]"
+                className="gap-2 text-sm font-semibold text-[var(--color-ink-2)]"
               >
                 <LuUpload aria-hidden="true" className="text-sm" />
                 {t('video.uploadChange')}
@@ -1600,7 +1542,7 @@ function VideoEditor({
                   }
                   onChange({ ...block, src: '' });
                 }}
-                className="gap-2 text-xs font-semibold text-[var(--color-bad)] hover:bg-[var(--color-bad-tint)]"
+                className="gap-2 text-sm font-semibold text-[var(--color-bad)] hover:bg-[var(--color-bad-tint)]"
               >
                 <LuTrash2 aria-hidden="true" className="text-sm" />
                 {t('video.uploadRemove')}
@@ -1645,7 +1587,7 @@ function VideoEditor({
             variant="secondary"
             size="sm"
             onClick={() => fileInputRef.current?.click()}
-            className="gap-1 text-xs"
+            className="gap-1 text-sm"
           >
             <LuRefreshCw aria-hidden="true" />
             {t('video.uploadChange')}
@@ -1940,7 +1882,7 @@ export function ProcedureBlockEditor({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2 text-xs font-semibold text-[var(--color-ink-2)]">
+      <div className="flex items-center gap-2 text-sm font-semibold text-[var(--color-ink-2)]">
         <Icon icon={KIND_ICON[block.kind]} />
         {kindLabel}
       </div>

@@ -16,7 +16,7 @@ export default async function ActivateLandingPage({ params }: PageProps): Promis
 
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-12">
-      <Card className="w-full max-w-sm">
+      <Card className="w-full max-w-card">
         <CardHeader>
           <CardTitle>{t('noTokenHeading')}</CardTitle>
           <CardDescription>{t('noTokenBody')}</CardDescription>

@@ -78,15 +78,21 @@ export function EmployeesClientTable({
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="border-b border-[var(--color-line)] bg-[var(--color-panel)] text-left">
+            <table className="atable">
+              {/* A rule and a quieter ink: the head names the columns, it does
+                  not compete with the names under it. The last column's label is
+                  read aloud but not drawn — a heading over a menu button is a
+                  word doing no work. */}
+              <thead>
                 <tr>
-                  <th className="px-4 py-2 font-semibold text-[var(--color-ink-2)]">{labels.thName}</th>
-                  <th className="px-4 py-2 font-semibold text-[var(--color-ink-2)]">{labels.thCode}</th>
-                  <th className="px-4 py-2 font-semibold text-[var(--color-ink-2)]">{labels.thLocation}</th>
-                  <th className="px-4 py-2 font-semibold text-[var(--color-ink-2)]">{labels.thClearance}</th>
-                  <th className="px-4 py-2 font-semibold text-[var(--color-ink-2)]">{labels.thStatus}</th>
-                  <th className="px-4 py-2 font-semibold text-[var(--color-ink-2)]">{labels.thActions}</th>
+                  <th>{labels.thName}</th>
+                  <th>{labels.thCode}</th>
+                  <th>{labels.thLocation}</th>
+                  <th>{labels.thClearance}</th>
+                  <th>{labels.thStatus}</th>
+                  <th>
+                    <span className="sr-only">{labels.thActions}</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -98,24 +104,24 @@ export function EmployeesClientTable({
                         ? 'warn'
                         : 'bad';
                   return (
-                    <tr key={e.id} className="border-b border-[var(--color-line)] last:border-b-0">
-                      <td className="px-4 py-2">
+                    <tr key={e.id}>
+                      <td>
                         <div className="font-medium text-[var(--color-ink)]">{e.name}</div>
-                        <div className="text-xs text-[var(--color-ink-3)]">
+                        <div className="text-sm text-[var(--color-ink-3)]">
                           {e.languagePref.toUpperCase()}
                         </div>
                       </td>
-                      <td className="px-4 py-2 font-mono text-[var(--color-ink-2)]">
+                      <td className="font-mono text-[var(--color-ink-2)]">
                         {e.employeeCode ?? '—'}
                       </td>
-                      <td className="px-4 py-2 text-[var(--color-ink-2)]">
+                      <td className="text-[var(--color-ink-2)]">
                         {e.locationName ?? '—'}
                       </td>
-                      <td className="px-4 py-2 text-[var(--color-ink-2)]">{e.clearanceLevel}</td>
-                      <td className="px-4 py-2">
+                      <td className="text-[var(--color-ink-2)]">{e.clearanceLevel}</td>
+                      <td>
                         <StatusPill tone={tone}>{statusBadge(e.status)}</StatusPill>
                       </td>
-                      <td className="px-4 py-2">
+                      <td>
                         <EmployeeRowActions locale={locale} employee={e} />
                       </td>
                     </tr>

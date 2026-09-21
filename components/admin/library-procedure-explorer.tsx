@@ -8,9 +8,37 @@ import type { Procedure, Category, ProcedureStatus } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CustomSelect } from '@/components/ui/custom-select';
-import { LuArrowDownAZ, LuArrowRight, LuArrowUpAZ, LuBrush, LuBuilding2, LuCircleCheck, LuClock, LuFilePen, LuFileSearch, LuFileText, LuFilter, LuFolder, LuGlobe, LuHistory, LuLayers, LuLayoutGrid, LuListChecks, LuRefreshCw, LuSearch, LuShieldAlert, LuStore, LuTruck, LuUtensils, LuWrench, LuX } from 'react-icons/lu';
+import {
+  LuArrowDownAZ,
+  LuArrowRight,
+  LuArrowUpAZ,
+  LuBrush,
+  LuBuilding2,
+  LuCircleCheck,
+  LuClock,
+  LuFilePen,
+  LuFileSearch,
+  LuFileText,
+  LuFilter,
+  LuFolder,
+  LuGlobe,
+  LuHistory,
+  LuLayers,
+  LuLayoutGrid,
+  LuListChecks,
+  LuRefreshCw,
+  LuSearch,
+  LuShieldAlert,
+  LuStore,
+  LuTruck,
+  LuUtensils,
+  LuWrench,
+  LuX,
+} from 'react-icons/lu';
 import { Icon } from '@/components/ui/icon';
 import type { IconType } from 'react-icons';
+import { StatusPill } from '@/components/ui/status-pill';
+import { FilterChips } from '@/components/ui/filter-chips';
 
 interface LibraryProcedureExplorerProps {
   procedures: Procedure[];
@@ -104,7 +132,10 @@ export function getCategoryTheme(slug: string): {
 }
 
 // 28 Procedure demo suite with realistic titles, purpose, metadata, subcategories and language tags
-const FULL_DEMO_SUITE: (Procedure & { subCategory?: string; languages?: string })[] = [
+const FULL_DEMO_SUITE: (Procedure & {
+  subCategory?: string;
+  languages?: string;
+})[] = [
   {
     id: 'proc-1',
     slug: 'chicken-tinga',
@@ -112,7 +143,13 @@ const FULL_DEMO_SUITE: (Procedure & { subCategory?: string; languages?: string }
     titleEs: 'Tinga de Pollo',
     purposeEn: 'Shredded chicken in a chipotle tomato sauce. Perfect for tacos, tostadas and more.',
     purposeEs: 'Pollo deshebrado en salsa de tomate y chipotle. Perfecto para tacos, tostadas y más.',
-    category: { id: 'cat-recipes', slug: 'recipes', nameEn: 'Recipe', nameEs: 'Receta', isArchived: false },
+    category: {
+      id: 'cat-recipes',
+      slug: 'recipes',
+      nameEn: 'Recipe',
+      nameEs: 'Receta',
+      isArchived: false,
+    },
     status: 'published',
     bodyEn: { blocks: [] },
     bodyEs: { blocks: [] },
@@ -129,7 +166,13 @@ const FULL_DEMO_SUITE: (Procedure & { subCategory?: string; languages?: string }
     titleEs: 'Configuración de Estación de Parrilla',
     purposeEn: 'Step-by-step instructions for preparing the grill station.',
     purposeEs: 'Instrucciones paso a paso para preparar la estación de parrilla.',
-    category: { id: 'cat-station', slug: 'station', nameEn: 'Station Procedure', nameEs: 'Procedimiento de Estación', isArchived: false },
+    category: {
+      id: 'cat-station',
+      slug: 'station',
+      nameEn: 'Station Procedure',
+      nameEs: 'Procedimiento de Estación',
+      isArchived: false,
+    },
     status: 'draft',
     bodyEn: { blocks: [] },
     bodyEs: { blocks: [] },
@@ -146,7 +189,13 @@ const FULL_DEMO_SUITE: (Procedure & { subCategory?: string; languages?: string }
     titleEs: 'Limpieza Profunda - Enfriador de Entrada',
     purposeEn: 'Complete cleaning and sanitization procedure for the walk-in cooler.',
     purposeEs: 'Procedimiento completo de limpieza y desinfección del enfriador.',
-    category: { id: 'cat-cleaning', slug: 'cleaning', nameEn: 'Cleaning Schedules', nameEs: 'Horarios de Limpieza', isArchived: false },
+    category: {
+      id: 'cat-cleaning',
+      slug: 'cleaning',
+      nameEn: 'Cleaning Schedules',
+      nameEs: 'Horarios de Limpieza',
+      isArchived: false,
+    },
     status: 'draft',
     bodyEn: { blocks: [] },
     bodyEs: { blocks: [] },
@@ -163,7 +212,13 @@ const FULL_DEMO_SUITE: (Procedure & { subCategory?: string; languages?: string }
     titleEs: 'Fundamentos de Seguridad Alimentaria',
     purposeEn: 'Key food safety principles for all team members.',
     purposeEs: 'Principios clave de seguridad alimentaria para todos los miembros.',
-    category: { id: 'cat-admin', slug: 'general', nameEn: 'General Procedures', nameEs: 'Procedimientos Generales', isArchived: false },
+    category: {
+      id: 'cat-admin',
+      slug: 'general',
+      nameEn: 'General Procedures',
+      nameEs: 'Procedimientos Generales',
+      isArchived: false,
+    },
     status: 'published',
     bodyEn: { blocks: [] },
     bodyEs: { blocks: [] },
@@ -180,7 +235,13 @@ const FULL_DEMO_SUITE: (Procedure & { subCategory?: string; languages?: string }
     titleEs: 'Salsa Roja Tradicional',
     purposeEn: 'Traditional red salsa with fresh tomatoes and mild chili.',
     purposeEs: 'Salsa roja tradicional con tomates frescos y chile suave.',
-    category: { id: 'cat-recipes', slug: 'recipes', nameEn: 'Recipe', nameEs: 'Receta', isArchived: false },
+    category: {
+      id: 'cat-recipes',
+      slug: 'recipes',
+      nameEn: 'Recipe',
+      nameEs: 'Receta',
+      isArchived: false,
+    },
     status: 'published',
     bodyEn: { blocks: [] },
     bodyEs: { blocks: [] },
@@ -197,7 +258,13 @@ const FULL_DEMO_SUITE: (Procedure & { subCategory?: string; languages?: string }
     titleEs: 'Estación de Lavado de Platos',
     purposeEn: 'Proper setup and operation of the dishwashing station.',
     purposeEs: 'Configuración y operación adecuada de la estación de lavavajillas.',
-    category: { id: 'cat-station', slug: 'station', nameEn: 'Station Procedure', nameEs: 'Procedimiento de Estación', isArchived: false },
+    category: {
+      id: 'cat-station',
+      slug: 'station',
+      nameEn: 'Station Procedure',
+      nameEs: 'Procedimiento de Estación',
+      isArchived: false,
+    },
     status: 'draft',
     bodyEn: { blocks: [] },
     bodyEs: { blocks: [] },
@@ -214,7 +281,13 @@ const FULL_DEMO_SUITE: (Procedure & { subCategory?: string; languages?: string }
     titleEs: 'Preparación de Guacamole Fresco',
     purposeEn: 'Authentic guacamole with ripe Hass avocados, lime, onion, and cilantro.',
     purposeEs: 'Guacamole auténtico con aguacates Hass maduros, limón, cebolla y cilantro.',
-    category: { id: 'cat-recipes', slug: 'recipes', nameEn: 'Recipe', nameEs: 'Receta', isArchived: false },
+    category: {
+      id: 'cat-recipes',
+      slug: 'recipes',
+      nameEn: 'Recipe',
+      nameEs: 'Receta',
+      isArchived: false,
+    },
     status: 'published',
     bodyEn: { blocks: [] },
     bodyEs: { blocks: [] },
@@ -231,7 +304,13 @@ const FULL_DEMO_SUITE: (Procedure & { subCategory?: string; languages?: string }
     titleEs: 'Lista de Verificación de Apertura',
     purposeEn: 'Essential morning prep steps before restaurant doors open to customers.',
     purposeEs: 'Pasos esenciales de preparación matutina antes de abrir el restaurante.',
-    category: { id: 'cat-admin', slug: 'general', nameEn: 'General Procedures', nameEs: 'Procedimientos Generales', isArchived: false },
+    category: {
+      id: 'cat-admin',
+      slug: 'general',
+      nameEn: 'General Procedures',
+      nameEs: 'Procedimientos Generales',
+      isArchived: false,
+    },
     status: 'published',
     bodyEn: { blocks: [] },
     bodyEs: { blocks: [] },
@@ -248,7 +327,13 @@ const FULL_DEMO_SUITE: (Procedure & { subCategory?: string; languages?: string }
     titleEs: 'Limpieza de Freidora y Filtrado de Aceite',
     purposeEn: 'Daily oil filtering and weekly boil-out procedure for deep fryers.',
     purposeEs: 'Filtrado diario de aceite y procedimiento semanal para freidoras.',
-    category: { id: 'cat-cleaning', slug: 'cleaning', nameEn: 'Cleaning Schedules', nameEs: 'Horarios de Limpieza', isArchived: false },
+    category: {
+      id: 'cat-cleaning',
+      slug: 'cleaning',
+      nameEn: 'Cleaning Schedules',
+      nameEs: 'Horarios de Limpieza',
+      isArchived: false,
+    },
     status: 'published',
     bodyEn: { blocks: [] },
     bodyEs: { blocks: [] },
@@ -265,7 +350,13 @@ const FULL_DEMO_SUITE: (Procedure & { subCategory?: string; languages?: string }
     titleEs: 'Carnitas de Cerdo Tradicionales',
     purposeEn: 'Traditional citrus and spice braised pork carnitas recipe.',
     purposeEs: 'Receta tradicional de carnitas de cerdo con cítricos y especias.',
-    category: { id: 'cat-recipes', slug: 'recipes', nameEn: 'Recipe', nameEs: 'Receta', isArchived: false },
+    category: {
+      id: 'cat-recipes',
+      slug: 'recipes',
+      nameEn: 'Recipe',
+      nameEs: 'Receta',
+      isArchived: false,
+    },
     status: 'published',
     bodyEn: { blocks: [] },
     bodyEs: { blocks: [] },
@@ -282,7 +373,13 @@ const FULL_DEMO_SUITE: (Procedure & { subCategory?: string; languages?: string }
     titleEs: 'Barra de Bebidas y Aguas Frescas',
     purposeEn: 'Setup, dispensing, and sanitization instructions for drinks station.',
     purposeEs: 'Instrucciones de configuración y limpieza de estación de bebidas.',
-    category: { id: 'cat-station', slug: 'station', nameEn: 'Station Procedure', nameEs: 'Procedimiento de Estación', isArchived: false },
+    category: {
+      id: 'cat-station',
+      slug: 'station',
+      nameEn: 'Station Procedure',
+      nameEs: 'Procedimiento de Estación',
+      isArchived: false,
+    },
     status: 'draft',
     bodyEn: { blocks: [] },
     bodyEs: { blocks: [] },
@@ -299,7 +396,13 @@ const FULL_DEMO_SUITE: (Procedure & { subCategory?: string; languages?: string }
     titleEs: 'Protocolo de Lavado de Manos e Higiene',
     purposeEn: 'Mandatory 20-second handwashing protocol for food handlers.',
     purposeEs: 'Protocolo obligatorio de lavado de manos de 20 segundos.',
-    category: { id: 'cat-admin', slug: 'general', nameEn: 'General Procedures', nameEs: 'Procedimientos Generales', isArchived: false },
+    category: {
+      id: 'cat-admin',
+      slug: 'general',
+      nameEn: 'General Procedures',
+      nameEs: 'Procedimientos Generales',
+      isArchived: false,
+    },
     status: 'published',
     bodyEn: { blocks: [] },
     bodyEs: { blocks: [] },
@@ -316,7 +419,13 @@ const FULL_DEMO_SUITE: (Procedure & { subCategory?: string; languages?: string }
     titleEs: 'Pico de Gallo Fresco',
     purposeEn: 'Diced tomatoes, white onions, jalapenos, and lime juice.',
     purposeEs: 'Tomates picados, cebollas blancas, jalapeños y jugo de limón.',
-    category: { id: 'cat-recipes', slug: 'recipes', nameEn: 'Recipe', nameEs: 'Receta', isArchived: false },
+    category: {
+      id: 'cat-recipes',
+      slug: 'recipes',
+      nameEn: 'Recipe',
+      nameEs: 'Receta',
+      isArchived: false,
+    },
     status: 'published',
     bodyEn: { blocks: [] },
     bodyEs: { blocks: [] },
@@ -333,7 +442,13 @@ const FULL_DEMO_SUITE: (Procedure & { subCategory?: string; languages?: string }
     titleEs: 'Rutina de Registro de Desinfección',
     purposeEn: 'High-touch surface sanitization checklist and hourly log.',
     purposeEs: 'Lista de verificación de desinfección de superficies.',
-    category: { id: 'cat-cleaning', slug: 'cleaning', nameEn: 'Cleaning Schedules', nameEs: 'Horarios de Limpieza', isArchived: false },
+    category: {
+      id: 'cat-cleaning',
+      slug: 'cleaning',
+      nameEn: 'Cleaning Schedules',
+      nameEs: 'Horarios de Limpieza',
+      isArchived: false,
+    },
     status: 'published',
     bodyEn: { blocks: [] },
     bodyEs: { blocks: [] },
@@ -350,7 +465,13 @@ const FULL_DEMO_SUITE: (Procedure & { subCategory?: string; languages?: string }
     titleEs: 'Estación de Linea de Tacos',
     purposeEn: 'Standard operating procedure for the fast-casual taco assembly line.',
     purposeEs: 'Procedimiento estándar para la línea de ensamblaje de tacos.',
-    category: { id: 'cat-station', slug: 'station', nameEn: 'Station Procedure', nameEs: 'Procedimiento de Estación', isArchived: false },
+    category: {
+      id: 'cat-station',
+      slug: 'station',
+      nameEn: 'Station Procedure',
+      nameEs: 'Procedimiento de Estación',
+      isArchived: false,
+    },
     status: 'published',
     bodyEn: { blocks: [] },
     bodyEs: { blocks: [] },
@@ -367,7 +488,13 @@ const FULL_DEMO_SUITE: (Procedure & { subCategory?: string; languages?: string }
     titleEs: 'Churros y Azúcar con Canela',
     purposeEn: 'Crispy fried churro dough tossed in cinnamon sugar.',
     purposeEs: 'Masa de churro frita y crujiente cubierta con azúcar y canela.',
-    category: { id: 'cat-recipes', slug: 'recipes', nameEn: 'Recipe', nameEs: 'Receta', isArchived: false },
+    category: {
+      id: 'cat-recipes',
+      slug: 'recipes',
+      nameEn: 'Recipe',
+      nameEs: 'Receta',
+      isArchived: false,
+    },
     status: 'draft',
     bodyEn: { blocks: [] },
     bodyEs: { blocks: [] },
@@ -384,7 +511,13 @@ const FULL_DEMO_SUITE: (Procedure & { subCategory?: string; languages?: string }
     titleEs: 'Manejo de Residuos y Reciclaje',
     purposeEn: 'Proper bagging, sorting, and dumpster area sanitization.',
     purposeEs: 'Embolsado, clasificación y limpieza del área de contenedores.',
-    category: { id: 'cat-cleaning', slug: 'cleaning', nameEn: 'Cleaning Schedules', nameEs: 'Horarios de Limpieza', isArchived: false },
+    category: {
+      id: 'cat-cleaning',
+      slug: 'cleaning',
+      nameEn: 'Cleaning Schedules',
+      nameEs: 'Horarios de Limpieza',
+      isArchived: false,
+    },
     status: 'published',
     bodyEn: { blocks: [] },
     bodyEs: { blocks: [] },
@@ -401,7 +534,13 @@ const FULL_DEMO_SUITE: (Procedure & { subCategory?: string; languages?: string }
     titleEs: 'Cierre de Emergencia de Gas y Agua',
     purposeEn: 'Location and operation of emergency utility shutoff valves.',
     purposeEs: 'Ubicación y operación de válvulas de cierre de emergencia.',
-    category: { id: 'cat-admin', slug: 'general', nameEn: 'General Procedures', nameEs: 'Procedimientos Generales', isArchived: false },
+    category: {
+      id: 'cat-admin',
+      slug: 'general',
+      nameEn: 'General Procedures',
+      nameEs: 'Procedimientos Generales',
+      isArchived: false,
+    },
     status: 'published',
     bodyEn: { blocks: [] },
     bodyEs: { blocks: [] },
@@ -418,7 +557,13 @@ const FULL_DEMO_SUITE: (Procedure & { subCategory?: string; languages?: string }
     titleEs: 'Agua de Horchata por Lote',
     purposeEn: 'Rice milk, cinnamon, vanilla, and condensed milk beverage recipe.',
     purposeEs: 'Receta de bebida de leche de arroz, canela, vainilla y leche condensada.',
-    category: { id: 'cat-recipes', slug: 'recipes', nameEn: 'Recipe', nameEs: 'Receta', isArchived: false },
+    category: {
+      id: 'cat-recipes',
+      slug: 'recipes',
+      nameEn: 'Recipe',
+      nameEs: 'Receta',
+      isArchived: false,
+    },
     status: 'published',
     bodyEn: { blocks: [] },
     bodyEs: { blocks: [] },
@@ -435,7 +580,13 @@ const FULL_DEMO_SUITE: (Procedure & { subCategory?: string; languages?: string }
     titleEs: 'Terminal POS y Caja Registradora',
     purposeEn: 'Opening cash count, system login, and receipt printer check.',
     purposeEs: 'Conteo de efectivo de apertura, inicio de sesión y comprobación de impresora.',
-    category: { id: 'cat-station', slug: 'station', nameEn: 'Station Procedure', nameEs: 'Procedimiento de Estación', isArchived: false },
+    category: {
+      id: 'cat-station',
+      slug: 'station',
+      nameEn: 'Station Procedure',
+      nameEs: 'Procedimiento de Estación',
+      isArchived: false,
+    },
     status: 'published',
     bodyEn: { blocks: [] },
     bodyEs: { blocks: [] },
@@ -452,7 +603,13 @@ const FULL_DEMO_SUITE: (Procedure & { subCategory?: string; languages?: string }
     titleEs: 'Lista de Limpieza de Baños',
     purposeEn: 'Step-by-step cleaning, restocking, and inspection for restrooms.',
     purposeEs: 'Limpieza paso a paso, reabastecimiento e inspección de baños.',
-    category: { id: 'cat-cleaning', slug: 'cleaning', nameEn: 'Cleaning Schedules', nameEs: 'Horarios de Limpieza', isArchived: false },
+    category: {
+      id: 'cat-cleaning',
+      slug: 'cleaning',
+      nameEn: 'Cleaning Schedules',
+      nameEs: 'Horarios de Limpieza',
+      isArchived: false,
+    },
     status: 'published',
     bodyEn: { blocks: [] },
     bodyEs: { blocks: [] },
@@ -469,7 +626,13 @@ const FULL_DEMO_SUITE: (Procedure & { subCategory?: string; languages?: string }
     titleEs: 'Prevención de Contacto Cruzado de Alérgenos',
     purposeEn: 'Rules for handling gluten, dairy, nut, and shellfish food prep.',
     purposeEs: 'Reglas para el manejo de alimentos con alérgenos.',
-    category: { id: 'cat-admin', slug: 'general', nameEn: 'General Procedures', nameEs: 'Procedimientos Generales', isArchived: false },
+    category: {
+      id: 'cat-admin',
+      slug: 'general',
+      nameEn: 'General Procedures',
+      nameEs: 'Procedimientos Generales',
+      isArchived: false,
+    },
     status: 'published',
     bodyEn: { blocks: [] },
     bodyEs: { blocks: [] },
@@ -486,7 +649,13 @@ const FULL_DEMO_SUITE: (Procedure & { subCategory?: string; languages?: string }
     titleEs: 'Queso Fundido con Chorizo',
     purposeEn: 'Melted Oaxaca cheese topped with spicy crumbled chorizo.',
     purposeEs: 'Queso Oaxaca fundido con chorizo desmenuzado picante.',
-    category: { id: 'cat-recipes', slug: 'recipes', nameEn: 'Recipe', nameEs: 'Receta', isArchived: false },
+    category: {
+      id: 'cat-recipes',
+      slug: 'recipes',
+      nameEn: 'Recipe',
+      nameEs: 'Receta',
+      isArchived: false,
+    },
     status: 'published',
     bodyEn: { blocks: [] },
     bodyEs: { blocks: [] },
@@ -503,7 +672,13 @@ const FULL_DEMO_SUITE: (Procedure & { subCategory?: string; languages?: string }
     titleEs: 'Desinfección de Máquina de Hielo',
     purposeEn: 'Monthly de-scaling and bin sanitization for commercial ice maker.',
     purposeEs: 'Descalcificación mensual y desinfección de máquina de hielo.',
-    category: { id: 'cat-cleaning', slug: 'cleaning', nameEn: 'Cleaning Schedules', nameEs: 'Horarios de Limpieza', isArchived: false },
+    category: {
+      id: 'cat-cleaning',
+      slug: 'cleaning',
+      nameEn: 'Cleaning Schedules',
+      nameEs: 'Horarios de Limpieza',
+      isArchived: false,
+    },
     status: 'draft',
     bodyEn: { blocks: [] },
     bodyEs: { blocks: [] },
@@ -520,7 +695,13 @@ const FULL_DEMO_SUITE: (Procedure & { subCategory?: string; languages?: string }
     titleEs: 'Flujo de Trabajo en Ventanilla',
     purposeEn: 'Speed-of-service guidelines and window station operation.',
     purposeEs: 'Pautas de velocidad de servicio y operación de ventanilla.',
-    category: { id: 'cat-station', slug: 'station', nameEn: 'Station Procedure', nameEs: 'Procedimiento de Estación', isArchived: false },
+    category: {
+      id: 'cat-station',
+      slug: 'station',
+      nameEn: 'Station Procedure',
+      nameEs: 'Procedimiento de Estación',
+      isArchived: false,
+    },
     status: 'published',
     bodyEn: { blocks: [] },
     bodyEs: { blocks: [] },
@@ -537,7 +718,13 @@ const FULL_DEMO_SUITE: (Procedure & { subCategory?: string; languages?: string }
     titleEs: 'Crema de Chipotle y Limón',
     purposeEn: 'Smoky chipotle crema sauce for tacos, bowls, and salads.',
     purposeEs: 'Salsa crema de chipotle ahumado para tacos, bowls y ensaladas.',
-    category: { id: 'cat-recipes', slug: 'recipes', nameEn: 'Recipe', nameEs: 'Receta', isArchived: false },
+    category: {
+      id: 'cat-recipes',
+      slug: 'recipes',
+      nameEn: 'Recipe',
+      nameEs: 'Receta',
+      isArchived: false,
+    },
     status: 'published',
     bodyEn: { blocks: [] },
     bodyEs: { blocks: [] },
@@ -554,7 +741,13 @@ const FULL_DEMO_SUITE: (Procedure & { subCategory?: string; languages?: string }
     titleEs: 'Lista de Cierre de Turno Nocturno',
     purposeEn: 'Kitchen shutdown, refrigeration checks, and security lockup.',
     purposeEs: 'Cierre de cocina, verificación de refrigeración y seguridad.',
-    category: { id: 'cat-admin', slug: 'general', nameEn: 'General Procedures', nameEs: 'Procedimientos Generales', isArchived: false },
+    category: {
+      id: 'cat-admin',
+      slug: 'general',
+      nameEn: 'General Procedures',
+      nameEs: 'Procedimientos Generales',
+      isArchived: false,
+    },
     status: 'published',
     bodyEn: { blocks: [] },
     bodyEs: { blocks: [] },
@@ -571,7 +764,13 @@ const FULL_DEMO_SUITE: (Procedure & { subCategory?: string; languages?: string }
     titleEs: 'Monitoreo de Temperatura de Enfriador',
     purposeEn: 'HACCP temperature monitoring twice daily for coolers and freezers.',
     purposeEs: 'Monitoreo de temperatura HACCP dos veces al día para congeladores.',
-    category: { id: 'cat-admin', slug: 'general', nameEn: 'General Procedures', nameEs: 'Procedimientos Generales', isArchived: false },
+    category: {
+      id: 'cat-admin',
+      slug: 'general',
+      nameEn: 'General Procedures',
+      nameEs: 'Procedimientos Generales',
+      isArchived: false,
+    },
     status: 'published',
     bodyEn: { blocks: [] },
     bodyEs: { blocks: [] },
@@ -597,7 +796,9 @@ export function LibraryProcedureExplorer({
     let isMounted = true;
     async function syncData() {
       try {
-        const catRes = await listCategories('loc-main', { includeArchived: true });
+        const catRes = await listCategories('loc-main', {
+          includeArchived: true,
+        });
         const procRes = await listProcedures({});
         if (isMounted) {
           if (catRes.categories && catRes.categories.length > 0) {
@@ -626,7 +827,9 @@ export function LibraryProcedureExplorer({
   const [selectedCategorySlug, setSelectedCategorySlug] = React.useState<string>('all');
   const [searchQuery, setSearchQuery] = React.useState<string>('');
   const [statusFilter, setStatusFilter] = React.useState<'all' | ProcedureStatus>('all');
-  const [sortBy, setSortBy] = React.useState<'updated_desc' | 'updated_asc' | 'title_asc' | 'title_desc'>('updated_desc');
+  const [sortBy, setSortBy] = React.useState<'updated_desc' | 'updated_asc' | 'title_asc' | 'title_desc'>(
+    'updated_desc',
+  );
   const [viewMode, setViewMode] = React.useState<'list' | 'grid'>('list');
   const [currentPage, setCurrentPage] = React.useState<number>(1);
   const pageSize = 6;
@@ -646,15 +849,36 @@ export function LibraryProcedureExplorer({
     // that has none yet. Both orders matter: the real ones win, and the fallback
     // only fills gaps.
     const fallback: Category[] = [
-      { id: 'cat-recipes', slug: 'recipes', nameEn: 'Recipe', nameEs: 'Recetas', isArchived: false },
-      { id: 'cat-station', slug: 'station', nameEn: 'Station Procedures', nameEs: 'Procedimientos de Estación', isArchived: false },
-      { id: 'cat-cleaning', slug: 'cleaning', nameEn: 'Cleaning Schedules', nameEs: 'Horarios de Limpieza', isArchived: false },
-      { id: 'cat-admin', slug: 'general', nameEn: 'General Procedures', nameEs: 'Procedimientos Generales', isArchived: false },
+      {
+        id: 'cat-recipes',
+        slug: 'recipes',
+        nameEn: 'Recipe',
+        nameEs: 'Recetas',
+        isArchived: false,
+      },
+      {
+        id: 'cat-station',
+        slug: 'station',
+        nameEn: 'Station Procedures',
+        nameEs: 'Procedimientos de Estación',
+        isArchived: false,
+      },
+      {
+        id: 'cat-cleaning',
+        slug: 'cleaning',
+        nameEn: 'Cleaning Schedules',
+        nameEs: 'Horarios de Limpieza',
+        isArchived: false,
+      },
+      {
+        id: 'cat-admin',
+        slug: 'general',
+        nameEn: 'General Procedures',
+        nameEs: 'Procedimientos Generales',
+        isArchived: false,
+      },
     ];
-    const rawCategories: Category[] = [
-      ...(liveCategories ?? []).filter((c) => !c.isArchived),
-      ...fallback,
-    ];
+    const rawCategories: Category[] = [...(liveCategories ?? []).filter((c) => !c.isArchived), ...fallback];
 
     const canonicalByName = new Map<string, Category>();
     const slugToCanonicalSlug = new Map<string, string>();
@@ -719,18 +943,46 @@ export function LibraryProcedureExplorer({
 
   const statusOptions = React.useMemo(() => {
     return [
-      { value: 'all', label: isEs ? 'Todos los estados' : 'All Status', icon: LuLayers },
-      { value: 'published', label: isEs ? 'Publicados' : 'Published', icon: LuCircleCheck },
-      { value: 'draft', label: isEs ? 'Borradores' : 'Drafts', icon: LuFilePen },
+      {
+        value: 'all',
+        label: isEs ? 'Todos los estados' : 'All Status',
+        icon: LuLayers,
+      },
+      {
+        value: 'published',
+        label: isEs ? 'Publicados' : 'Published',
+        icon: LuCircleCheck,
+      },
+      {
+        value: 'draft',
+        label: isEs ? 'Borradores' : 'Drafts',
+        icon: LuFilePen,
+      },
     ];
   }, [isEs]);
 
   const sortOptions = React.useMemo(() => {
     return [
-      { value: 'updated_desc', label: isEs ? 'Recientes primero' : 'Recently updated', icon: LuClock },
-      { value: 'updated_asc', label: isEs ? 'Antiguos primero' : 'Oldest updated', icon: LuHistory },
-      { value: 'title_asc', label: isEs ? 'Título A-Z' : 'Title A-Z', icon: LuArrowDownAZ },
-      { value: 'title_desc', label: isEs ? 'Título Z-A' : 'Title Z-A', icon: LuArrowUpAZ },
+      {
+        value: 'updated_desc',
+        label: isEs ? 'Recientes primero' : 'Recently updated',
+        icon: LuClock,
+      },
+      {
+        value: 'updated_asc',
+        label: isEs ? 'Antiguos primero' : 'Oldest updated',
+        icon: LuHistory,
+      },
+      {
+        value: 'title_asc',
+        label: isEs ? 'Título A-Z' : 'Title A-Z',
+        icon: LuArrowDownAZ,
+      },
+      {
+        value: 'title_desc',
+        label: isEs ? 'Título Z-A' : 'Title Z-A',
+        icon: LuArrowUpAZ,
+      },
     ];
   }, [isEs]);
 
@@ -795,8 +1047,7 @@ export function LibraryProcedureExplorer({
       });
   }, [allProcedures, selectedCategorySlug, statusFilter, searchQuery, sortBy, isEs, categorySlugMap]);
 
-  const hasActiveFilters =
-    selectedCategorySlug !== 'all' || statusFilter !== 'all' || searchQuery.trim().length > 0;
+  const hasActiveFilters = selectedCategorySlug !== 'all' || statusFilter !== 'all' || searchQuery.trim().length > 0;
 
   const resetFilters = (): void => {
     setSelectedCategorySlug('all');
@@ -813,180 +1064,104 @@ export function LibraryProcedureExplorer({
   const paginatedProcedures = filteredProcedures.slice(startIndex, startIndex + pageSize);
   return (
     <div className="space-y-6">
-      {/* The categories, as filters, with what each one holds. A count on the
-          chip answers "is there anything in there?" before the click. */}
+      {/* The categories, as filters, on their own row. The count in each pill
+          answers "is there anything in there?" before the click. */}
       <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold text-[var(--color-ink-3)]">
-            {isEs ? 'Categorías' : 'Categories'}
-          </span>
-          <span className="text-xs font-medium text-[var(--color-ink-2)]">
-            {procedures.length} {isEs ? 'procedimientos en total' : 'total procedures'}
-          </span>
-        </div>
+        <span className="block text-sm font-semibold text-[var(--color-ink-3)]">
+          {isEs ? 'Categorías' : 'Categories'}
+        </span>
 
-        <div className="flex items-center gap-2 overflow-x-auto pb-2">
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedCategorySlug('all');
+        <FilterChips
+          label={isEs ? 'Categoría' : 'Category'}
+          value={selectedCategorySlug}
+          onChange={(slug) => {
+            setSelectedCategorySlug(slug);
+            setCurrentPage(1);
+          }}
+          chips={[
+            { value: 'all', label: isEs ? 'Todas' : 'All', count: categoryCounts.all || 0 },
+            ...categoryList.map((cat) => ({
+              value: cat.slug,
+              label: isEs ? cat.nameEs : cat.nameEn,
+              count: categoryCounts[cat.slug] || 0,
+            })),
+          ]}
+        />
+      </div>
+
+      {/* One control per question. The search field was a hand-built copy of the
+          one in the admin bar — same job, same shape, two implementations. The
+          view switch is the segmented control the language switch and the batch
+          scaler use. */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-3">
+        <div className="find" role="search">
+          <LuSearch aria-hidden="true" className="i" />
+          <label className="sr-only" htmlFor="library-search">
+            {isEs ? 'Buscar en la biblioteca' : 'Search the library'}
+          </label>
+          <input
+            id="library-search"
+            type="search"
+            value={searchQuery}
+            placeholder={isEs ? 'Buscar por título, slug o descripción…' : 'Search by title, slug or description…'}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
               setCurrentPage(1);
             }}
-            className={cn(
-              'group inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold transition-colors duration-[var(--dur)] ease-[var(--ease)]',
-              selectedCategorySlug === 'all'
-                ? 'border-[var(--color-ink)] bg-[var(--color-panel)] text-[var(--color-ink)]'
-                : 'border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:border-[var(--color-line-3)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)]',
-            )}
-          >
-            <LuLayoutGrid aria-hidden="true" className="text-sm" />
-            <span>{isEs ? 'Todas' : 'All'}</span>
-            <span
-              className={cn(
-                'ml-0.5 rounded-[var(--radius-sm)] px-2 py-0.5 text-xs font-semibold',
-                selectedCategorySlug === 'all'
-                  ? 'bg-[var(--color-surface)] text-[var(--color-ink)]'
-                  : 'bg-[var(--color-wash)] text-[var(--color-ink-2)] group-hover:bg-[var(--color-line-2)]',
-              )}
+          />
+          {searchQuery ? (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              aria-label={isEs ? 'Borrar búsqueda' : 'Clear search'}
+              className="shrink-0 text-[var(--color-ink-3)] hover:text-[var(--color-ink)]"
             >
-              {categoryCounts.all || 0}
-            </span>
-          </button>
-
-          {categoryList.map((cat) => {
-            const count = categoryCounts[cat.slug] || 0;
-            const isSelected = selectedCategorySlug === cat.slug;
-            const theme = getCategoryTheme(cat.slug);
-            const name = isEs ? cat.nameEs : cat.nameEn;
-
-            return (
-              <button
-                key={cat.id || cat.slug}
-                type="button"
-                onClick={() => {
-                  setSelectedCategorySlug(cat.slug);
-                  setCurrentPage(1);
-                }}
-                className={cn(
-                  'group inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold transition-colors duration-[var(--dur)] ease-[var(--ease)]',
-                  isSelected
-                    ? 'border-[var(--color-ink)] bg-[var(--color-panel)] text-[var(--color-ink)]'
-                    : 'border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:border-[var(--color-line-3)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)]',
-                )}
-              >
-                <Icon icon={theme.icon} className={cn('text-sm', theme.badgeText)} />
-                <span>{name}</span>
-                <span
-                  className={cn(
-                    'ml-0.5 rounded-[var(--radius-sm)] px-2 py-0.5 text-xs font-semibold',
-                    isSelected
-                      ? 'bg-[var(--color-surface)] text-[var(--color-ink)]'
-                      : 'bg-[var(--color-wash)] text-[var(--color-ink-2)] group-hover:bg-[var(--color-line-2)]',
-                  )}
-                >
-                  {count}
-                </span>
-              </button>
-            );
-          })}
+              <LuX aria-hidden="true" />
+            </button>
+          ) : null}
         </div>
-      </div>
-      {/* Main Search and Multi-Filter Control Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-3">
-        <div className="flex flex-1 flex-wrap items-center gap-3 min-w-field-lg">
-          {/* Search Box */}
-          <div className="relative flex-1 min-w-field-md">
-            <LuSearch aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-ink-3)]" />
-            <Input
-              type="text"
-              placeholder={isEs ? 'Buscar por título, slug o descripción...' : 'Search by title, slug or description...'}
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="pl-10 pr-8 text-xs h-tap-admin bg-[var(--color-surface)] border-[var(--color-line-2)] focus:border-[var(--color-brand-600)]"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--color-ink-3)] hover:text-[var(--color-ink)]"
-              >
-                <LuX aria-hidden="true" />
-              </button>
-            )}
-          </div>
 
-          {/* Custom Category Dropdown Selector */}
-          <div className="w-field-md shrink-0">
-            <CustomSelect
-              value={selectedCategorySlug}
-              onChange={(v) => {
-                setSelectedCategorySlug(v);
-                setCurrentPage(1);
-              }}
-              options={categoryOptions}
-              size="sm"
-              className="h-tap-admin text-xs"
-            />
-          </div>
-
-          {/* Custom Status Filter Select */}
+        <div className="flex flex-wrap items-center gap-3">
           <div className="w-field-sm shrink-0">
             <CustomSelect
               value={statusFilter}
               onChange={(val) => {
-                setStatusFilter(val as any);
+                setStatusFilter(val as ProcedureStatus | 'all');
                 setCurrentPage(1);
               }}
               options={statusOptions}
               size="sm"
-              className="h-tap-admin text-xs"
+              className="h-tap-admin text-sm"
             />
           </div>
-        </div>
-
-        {/* Right side: Sort Dropdown & View Mode Switcher */}
-        <div className="flex items-center gap-2">
-          {/* Custom Sort Dropdown */}
           <div className="w-field-sm shrink-0">
             <CustomSelect
               value={sortBy}
-              onChange={(val) => setSortBy(val as any)}
+              onChange={(val) => setSortBy(val as typeof sortBy)}
               options={sortOptions}
               size="sm"
-              className="h-tap-admin text-xs"
+              className="h-tap-admin text-sm"
             />
           </div>
 
-          {/* View Switcher (List vs Grid) */}
-          <div className="flex items-center rounded-lg border border-[var(--color-line-2)] bg-[var(--color-wash)] p-0.5">
+          <div className="segbar" role="group" aria-label={isEs ? 'Vista' : 'View'}>
             <button
               type="button"
+              aria-current={viewMode === 'list' ? 'true' : undefined}
               onClick={() => setViewMode('list')}
-              className={cn(
-                'flex size-8 items-center justify-center rounded-[var(--radius-sm)] text-sm transition-colors',
-                viewMode === 'list'
-                  ? 'bg-[var(--color-panel-2)] text-[var(--color-ink)] font-semibold'
-                  : 'text-[var(--color-ink-3)] hover:text-[var(--color-ink)]',
-              )}
-              title="List View"
+              title={isEs ? 'Lista' : 'List'}
             >
               <LuListChecks aria-hidden="true" />
+              <span className="sr-only">{isEs ? 'Lista' : 'List'}</span>
             </button>
             <button
               type="button"
+              aria-current={viewMode === 'grid' ? 'true' : undefined}
               onClick={() => setViewMode('grid')}
-              className={cn(
-                'flex size-8 items-center justify-center rounded-[var(--radius-sm)] text-sm transition-colors',
-                viewMode === 'grid'
-                  ? 'bg-[var(--color-panel-2)] text-[var(--color-ink)] font-semibold'
-                  : 'text-[var(--color-ink-3)] hover:text-[var(--color-ink)]',
-              )}
-              title="Grid View"
+              title={isEs ? 'Cuadrícula' : 'Grid'}
             >
               <LuLayoutGrid aria-hidden="true" />
+              <span className="sr-only">{isEs ? 'Cuadrícula' : 'Grid'}</span>
             </button>
           </div>
         </div>
@@ -994,13 +1169,12 @@ export function LibraryProcedureExplorer({
 
       {/* Active Filters Notification Bar */}
       {hasActiveFilters && (
-        <div className="flex items-center justify-between rounded-lg bg-[var(--color-panel)] px-4 py-2 text-xs border border-[var(--color-line)]">
+        <div className="flex items-center justify-between rounded-lg bg-[var(--color-panel)] px-4 py-2 text-sm border border-[var(--color-line)]">
           <div className="flex items-center gap-2 text-[var(--color-ink-2)]">
             <LuFilter aria-hidden="true" className="text-[var(--color-ink-2)]" />
             <span>
               {isEs ? 'Mostrando' : 'Showing'}{' '}
-              <strong className="text-[var(--color-ink)]">{filteredProcedures.length}</strong>{' '}
-              {isEs ? 'de' : 'of'}{' '}
+              <strong className="text-[var(--color-ink)]">{filteredProcedures.length}</strong> {isEs ? 'de' : 'of'}{' '}
               <strong className="text-[var(--color-ink)]">{allProcedures.length}</strong>{' '}
               {isEs ? 'procedimientos' : 'procedures'}
             </span>
@@ -1026,144 +1200,104 @@ export function LibraryProcedureExplorer({
             <h3 className="font-[family-name:var(--font-ui)] text-base font-semibold text-[var(--color-ink)]">
               {isEs ? 'No se encontraron procedimientos' : 'No procedures found'}
             </h3>
-            <p className="text-xs text-[var(--color-ink-2)] max-w-sm">
+            <p className="text-sm text-[var(--color-ink-2)] max-w-note">
               {isEs
                 ? 'Intenta ajustar tus términos de búsqueda o selecciona otra categoría.'
                 : 'Try adjusting your search query or selecting another category filter.'}
             </p>
           </div>
           {hasActiveFilters && (
-            <Button type="button" variant="secondary" size="sm" onClick={resetFilters} className="rounded-[var(--radius-lg)] border-[var(--color-line-2)]">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={resetFilters}
+              className="rounded-[var(--radius-lg)] border-[var(--color-line-2)]"
+            >
               {isEs ? 'Ver todos los procedimientos' : 'View all procedures'}
             </Button>
           )}
         </article>
       ) : viewMode === 'list' ? (
         /* List View - Rich Cards Matching Design Specification */
-        <ul className="divide-y divide-[var(--color-line)] rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)]">
+        <ul className="divide-y divide-[var(--color-line)] rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)]">
           {paginatedProcedures.map((p, index) => {
-            const catName = p.category
-              ? isEs
-                ? p.category.nameEs
-                : p.category.nameEn
-              : 'General';
+            const catName = p.category ? (isEs ? p.category.nameEs : p.category.nameEn) : 'General';
             const catSlug = p.category?.slug ?? 'general';
             const theme = getCategoryTheme(catSlug);
             const title = (isEs ? p.titleEs || p.titleEn : p.titleEn || p.titleEs) || p.slug;
             const purpose = isEs ? p.purposeEs || p.purposeEn : p.purposeEn || p.purposeEs;
             const isRecipe = catSlug === 'recipes' || catSlug === 'recipe' || p.slug.includes('recipe');
-            const languagesText = (p as any).languages || ((p.titleEn && p.titleEs) || (p.purposeEn && p.purposeEs) ? 'EN / ES' : 'EN');
-            const subCategory = (p as any).subCategory || (isRecipe ? 'Main Menu' : catSlug.includes('station') ? 'Kitchen Stations' : catSlug.includes('clean') ? 'Maintenance' : 'Food Safety');
+            const languagesText =
+              (p as any).languages || ((p.titleEn && p.titleEs) || (p.purposeEn && p.purposeEs) ? 'EN / ES' : 'EN');
+            const subCategory =
+              (p as any).subCategory ||
+              (isRecipe
+                ? 'Main Menu'
+                : catSlug.includes('station')
+                  ? 'Kitchen Stations'
+                  : catSlug.includes('clean')
+                    ? 'Maintenance'
+                    : 'Food Safety');
             const isFirstCard = index === 0 && validCurrentPage === 1;
 
             return (
               <li
                 key={p.id}
-                className="group flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:bg-[var(--color-wash)]"
+                className="group flex flex-col md:flex-row md:items-center justify-between gap-4 px-4 py-5 transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:bg-[var(--color-wash)]"
               >
-                {/* Left Section: Category Icon + Title + Tags + Purpose + Meta */}
-                <div className="flex items-start gap-4 min-w-0 flex-1">
-                  {/* Category Icon Square Badge */}
-                  <div
-                    className={cn(
-                      'flex size-12 shrink-0 items-center justify-center rounded-[var(--radius-lg)] border text-xl transition-transform',
-                      theme.badgeBg,
-                    )}
+                {/* The icon is a mark, not a framed object: the bordered tile was
+                    the only one of its kind in the product. */}
+                <div className="flex min-w-0 flex-1 items-start gap-4">
+                  <span
+                    aria-hidden="true"
+                    className="flex size-12 shrink-0 items-center justify-center rounded-[var(--radius-lg)] bg-[var(--color-panel)] text-lg text-[var(--color-ink-2)]"
                   >
                     <Icon icon={theme.icon} />
-                  </div>
+                  </span>
 
-                  {/* Title & Info */}
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h4 className="truncate text-sm font-semibold tracking-snug text-[var(--color-ink)] group-hover:text-[var(--color-brand-700)] transition-colors">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <h4 className="min-w-0 truncate text-base font-semibold leading-heading text-[var(--color-ink)] transition-colors group-hover:text-[var(--color-brand-700)]">
                         {title}
                       </h4>
-
-                      {/* Format Tag Badge */}
-                      {isRecipe ? (
-                        <span className="inline-flex items-center gap-1 rounded-[var(--radius-sm)] bg-[var(--color-panel)] px-2 py-0.5 text-xs font-semibold text-[var(--color-ink-2)]">
-                          <LuUtensils aria-hidden="true" className="text-xs" />
-                          Recipe
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 rounded-[var(--radius-sm)] bg-[var(--color-panel)] px-2 py-0.5 text-xs font-semibold text-[var(--color-ink-2)]">
-                          <LuBuilding2 aria-hidden="true" className="text-xs" />
-                          {catName}
-                        </span>
-                      )}
-
-                      {/* Status Badge */}
-                      {p.status === 'draft' ? (
-                        <span className="inline-flex items-center gap-1 rounded-[var(--radius-sm)] bg-[var(--color-panel)] px-2 py-0.5 text-xs font-semibold text-[var(--color-ink-2)]">
-                          <span className="size-2 rounded-full bg-[var(--color-ink-3)]" />
-                          Draft
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 rounded-[var(--radius-sm)] bg-[var(--color-ok-tint)] px-2 py-0.5 text-xs font-semibold text-[var(--color-ok)]">
-                          <span className="size-2 rounded-full bg-[var(--color-ok)]" />
-                          Published
-                        </span>
-                      )}
+                      <StatusPill tone={p.status === 'published' ? 'ok' : 'neutral'} withDot>
+                        {p.status === 'published' ? (isEs ? 'Publicado' : 'Published') : isEs ? 'Borrador' : 'Draft'}
+                      </StatusPill>
                     </div>
 
-                    {/* Purpose */}
-                    {purpose && (
-                      <p className="line-clamp-2 text-xs text-[var(--color-ink-2)] leading-relaxed">
-                        {purpose}
-                      </p>
-                    )}
+                    {purpose ? (
+                      <p className="mt-1 line-clamp-2 text-sm leading-body text-[var(--color-ink-2)]">{purpose}</p>
+                    ) : null}
 
-                    {/* Metadata Line */}
-                    <div className="flex items-center gap-2 pt-1 text-xs text-[var(--color-ink-3)]">
-                      <LuFileText aria-hidden="true" className="text-sm" />
-                      <span>
-                        Updated {new Date(p.updatedAt).toLocaleDateString()}{' '}
-                        {new Date(p.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                      {p.createdBy && (
-                        <>
-                          <span>·</span>
-                          <span>Created by {p.createdBy}</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right Side Info Column & Action Buttons */}
-                <div className="flex items-center gap-6 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-[var(--color-line)]">
-                  {/* Category & Format Details (Fixed width so all rows align vertically) */}
-                  <div className="hidden lg:flex w-field-md shrink-0 flex-col gap-1 text-xs text-[var(--color-ink-2)] pr-4 border-r border-[var(--color-line)]">
-                    <div className="flex items-center gap-2 font-medium">
-                      <Icon icon={theme.icon} className={cn('text-xs', theme.badgeText)} />
-                      <span>{isRecipe ? 'Recipe' : 'Procedure'}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-[var(--color-ink-3)] truncate">
-                      <LuFolder aria-hidden="true" className="text-xs shrink-0" />
-                      <span className="truncate">{catName}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-[var(--color-ink-3)]">
-                      <LuGlobe aria-hidden="true" className="text-xs shrink-0" />
+                    {/* One meta line: what it is, what languages it exists in, and
+                        when it last moved. The category was also a badge above and
+                        a column to the right; it is said once, here. */}
+                    <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm leading-meta text-[var(--color-ink-3)]">
+                      <span>{catName}</span>
+                      <span aria-hidden="true">·</span>
                       <span>{languagesText}</span>
-                    </div>
-                  </div>
-
-                  {/* Actions (Fixed width so View buttons line up vertically across all rows) */}
-                  <div className="flex items-center justify-end w-20 shrink-0">
-                    <Link href={`/${locale}/procedures/${p.slug}`}>
-                      <Button
-                        variant="neutral"
-                        size="sm"
-                        className="gap-2 font-semibold"
-                      >
-                        <span>View</span>
-                        <LuArrowRight aria-hidden="true" className="text-xs" />
-                      </Button>
-                    </Link>
+                      <span aria-hidden="true">·</span>
+                      <span>
+                        {isEs ? 'Actualizado' : 'Updated'}{' '}
+                        {new Date(p.updatedAt).toLocaleDateString(isEs ? 'es' : 'en', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                      </span>
+                    </p>
                   </div>
                 </div>
 
+                <div className="flex shrink-0 items-center self-start md:self-center">
+                  <Link href={`/${locale}/procedures/${p.slug}`}>
+                    <Button variant="neutral" size="sm" className="gap-2 font-semibold">
+                      <span>{isEs ? 'Ver' : 'View'}</span>
+                      <LuArrowRight aria-hidden="true" className="text-sm" />
+                    </Button>
+                  </Link>
+                </div>
               </li>
             );
           })}
@@ -1172,11 +1306,7 @@ export function LibraryProcedureExplorer({
         /* Grid View */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {paginatedProcedures.map((p) => {
-            const catName = p.category
-              ? isEs
-                ? p.category.nameEs
-                : p.category.nameEn
-              : 'General';
+            const catName = p.category ? (isEs ? p.category.nameEs : p.category.nameEn) : 'General';
             const catSlug = p.category?.slug ?? 'general';
             const theme = getCategoryTheme(catSlug);
             const title = (isEs ? p.titleEs || p.titleEn : p.titleEn || p.titleEs) || p.slug;
@@ -1185,59 +1315,47 @@ export function LibraryProcedureExplorer({
             return (
               <div
                 key={p.id}
-                className="group relative flex flex-col justify-between rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-4 hover:border-[var(--color-brand-tint-2)] transition-all"
+                className="group relative flex flex-col justify-between rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-4 transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:bg-[var(--color-wash)]"
               >
                 <div className="space-y-3">
                   <div className="flex items-start justify-between gap-2">
-                    <div
-                      className={cn(
-                        'flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-lg)] border text-lg transition-transform',
-                        theme.badgeBg,
-                      )}
+                    {/* The same mark as the list row: a tile, not a framed
+                        object, and the same badge from the same component. */}
+                    <span
+                      aria-hidden="true"
+                      className="flex size-12 shrink-0 items-center justify-center rounded-[var(--radius-lg)] bg-[var(--color-panel)] text-lg text-[var(--color-ink-2)]"
                     >
                       <Icon icon={theme.icon} />
-                    </div>
+                    </span>
 
-                    {p.status === 'draft' ? (
-                      <span className="inline-flex items-center gap-1 rounded-[var(--radius-sm)] bg-[var(--color-panel)] px-2 py-0.5 text-xs font-semibold text-[var(--color-ink-2)]">
-                          <span className="size-2 rounded-full bg-[var(--color-ink-3)]" />
-                        Draft
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 rounded-[var(--radius-sm)] bg-[var(--color-ok-tint)] px-2 py-0.5 text-xs font-semibold text-[var(--color-ok)]">
-                          <span className="size-2 rounded-full bg-[var(--color-ok)]" />
-                        Published
-                      </span>
-                    )}
+                    <StatusPill tone={p.status === 'published' ? 'ok' : 'neutral'} withDot>
+                      {p.status === 'published' ? (isEs ? 'Publicado' : 'Published') : isEs ? 'Borrador' : 'Draft'}
+                    </StatusPill>
                   </div>
 
                   <div className="space-y-1">
-                    <span className="text-xs font-semibold text-[var(--color-ink-3)] block">
-                      {catName}
-                    </span>
-                    <h4 className="font-[family-name:var(--font-ui)] text-sm font-semibold tracking-snug text-[var(--color-ink)] line-clamp-2 leading-snug group-hover:text-[var(--color-brand-700)] transition-colors">
+                    <span className="text-sm font-semibold text-[var(--color-ink-3)] block">{catName}</span>
+                    <h4 className="line-clamp-2 text-base font-semibold leading-heading text-[var(--color-ink)] transition-colors group-hover:text-[var(--color-brand-700)]">
                       {title}
                     </h4>
                     {purpose && (
-                      <p className="line-clamp-2 text-xs text-[var(--color-ink-2)] pt-1">
-                        {purpose}
-                      </p>
+                      <p className="line-clamp-2 pt-1 text-sm leading-body text-[var(--color-ink-2)]">{purpose}</p>
                     )}
                   </div>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-[var(--color-line)] flex items-center justify-between text-xs">
+                <div className="mt-4 pt-3 border-t border-[var(--color-line)] flex items-center justify-between text-sm">
                   <span className="text-[var(--color-ink-3)]">
-                    {new Date(p.updatedAt).toLocaleDateString()}
+                    {new Date(p.updatedAt).toLocaleDateString(isEs ? 'es' : 'en', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
                   </span>
                   <Link href={`/${locale}/procedures/${p.slug}`}>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="h-8 px-3 text-xs font-semibold"
-                    >
-                      <span>View</span>
-                      <LuArrowRight aria-hidden="true" className="text-xs" />
+                    <Button variant="neutral" size="sm" className="gap-2 font-semibold">
+                      <span>{isEs ? 'Ver' : 'View'}</span>
+                      <LuArrowRight aria-hidden="true" className="text-sm" />
                     </Button>
                   </Link>
                 </div>
@@ -1249,7 +1367,7 @@ export function LibraryProcedureExplorer({
 
       {/* Pagination Footer */}
       {totalItems > 0 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-[var(--color-line)] text-xs text-[var(--color-ink-3)]">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-[var(--color-line)] text-sm text-[var(--color-ink-3)]">
           <div>
             Showing {startIndex + 1}–{Math.min(startIndex + pageSize, totalItems)} of {totalItems} procedures
           </div>
@@ -1259,7 +1377,7 @@ export function LibraryProcedureExplorer({
               type="button"
               disabled={validCurrentPage === 1}
               onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-              className="flex size-8 items-center justify-center text-[var(--color-ink-3)] hover:text-[var(--color-ink-2)] disabled:opacity-40 disabled:cursor-not-allowed text-xs transition-colors"
+              className="flex size-8 items-center justify-center text-[var(--color-ink-3)] hover:text-[var(--color-ink-2)] disabled:opacity-40 disabled:cursor-not-allowed text-sm transition-colors"
             >
               <Icon icon="ri-arrow-left-s-line" className="text-base" />
             </button>
@@ -1270,7 +1388,7 @@ export function LibraryProcedureExplorer({
                 type="button"
                 onClick={() => setCurrentPage(pageNum)}
                 className={cn(
-                  'flex size-8 items-center justify-center rounded-full text-xs font-bold transition-all',
+                  'flex size-8 items-center justify-center rounded-full text-sm font-bold transition-all',
                   validCurrentPage === pageNum
                     ? 'bg-[var(--color-brand-600)] text-white shadow-e1'
                     : 'text-[var(--color-ink-3)] hover:text-[var(--color-ink)]',
@@ -1284,7 +1402,7 @@ export function LibraryProcedureExplorer({
               type="button"
               disabled={validCurrentPage === totalPages}
               onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-              className="flex size-8 items-center justify-center text-[var(--color-ink-3)] hover:text-[var(--color-ink-2)] disabled:opacity-40 disabled:cursor-not-allowed text-xs transition-colors"
+              className="flex size-8 items-center justify-center text-[var(--color-ink-3)] hover:text-[var(--color-ink-2)] disabled:opacity-40 disabled:cursor-not-allowed text-sm transition-colors"
             >
               <Icon icon="ri-arrow-right-s-line" className="text-base" />
             </button>

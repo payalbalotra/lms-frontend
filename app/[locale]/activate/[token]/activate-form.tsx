@@ -70,7 +70,7 @@ export function ActivateForm({ locale, token, employeeName }: ActivateFormProps)
   }
 
   return (
-    <Card className="w-full max-w-sm">
+    <Card className="w-full max-w-card">
       <CardHeader>
         <CardTitle>{employeeName}</CardTitle>
         <CardDescription>{t('intro')}</CardDescription>

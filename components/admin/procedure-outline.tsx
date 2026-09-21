@@ -58,7 +58,7 @@ export function ProcedureOutline(): React.ReactElement {
   return (
     <nav aria-label={tForm('outlineHeading')} className="hidden lg:block">
       <div className="sticky top-6 space-y-3">
-        <p className="text-xs font-semibold text-[var(--color-ink-3)]">
+        <p className="text-sm font-semibold text-[var(--color-ink-3)]">
           {tForm('outlineHeading')}
         </p>
         <ol className="space-y-1 border-l border-[var(--color-line-2)] pl-3">

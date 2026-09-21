@@ -159,13 +159,12 @@ export function RolesManager({
     <div className="space-y-4">
       <div className="flex justify-end">
         <Button
-          variant="secondary"
+          icon={LuPlus}
           onClick={() => {
             resetCreate();
             setCreateOpen(true);
           }}
         >
-          <LuPlus aria-hidden="true" className="text-lg" />
           {t('rolesCreateHeading')}
         </Button>
       </div>
@@ -184,12 +183,12 @@ export function RolesManager({
             </p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="border-b border-[var(--color-line)] bg-[var(--color-panel)] text-left">
+              <table className="atable">
+                <thead>
                   <tr>
-                    <th className="px-4 py-2 font-semibold text-[var(--color-ink-2)]">{t('thRolesName')}</th>
-                    <th className="px-4 py-2 font-semibold text-[var(--color-ink-2)]">{t('thRolesClearance')}</th>
-                    <th className="w-12 px-4 py-2 text-right font-semibold text-[var(--color-ink-2)]">
+                    <th>{t('thRolesName')}</th>
+                    <th>{t('thRolesClearance')}</th>
+                    <th>
                       <span className="sr-only">{t('thActions')}</span>
                     </th>
                   </tr>
@@ -200,9 +199,8 @@ export function RolesManager({
                     return (
                       <tr
                         key={r.id}
-                        className="border-b border-[var(--color-line)] last:border-b-0"
                       >
-                        <td className="px-4 py-2">
+                        <td>
                           {isEditing ? (
                             <Input
                               value={editingForm.name}
@@ -219,7 +217,7 @@ export function RolesManager({
                             r.name
                           )}
                         </td>
-                        <td className="px-4 py-2">
+                        <td>
                           {isEditing ? (
                             <Select
                               value={editingForm.clearanceLevel}
@@ -241,7 +239,7 @@ export function RolesManager({
                             r.clearanceLevel
                           )}
                         </td>
-                        <td className="px-4 py-2 text-right">
+                        <td>
                           {isEditing ? (
                             <div className="flex justify-end gap-2">
                               <Button

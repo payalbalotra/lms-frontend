@@ -195,7 +195,7 @@ function BlockRow({
       {/* Unified hover toolbar: drag · EN|ES · options menu — hidden at rest */}
       <div
         className={cn(
-          'mb-1 flex items-center gap-1 transition-opacity duration-150',
+          'mb-1 flex items-center gap-1 transition-opacity duration-[var(--dur)]',
           showToolbar ? 'opacity-100' : 'opacity-0 pointer-events-none',
         )}
       >
@@ -204,7 +204,7 @@ function BlockRow({
           type="button"
           aria-label="Drag to reorder"
           title="Drag to reorder"
-          className="flex size-7 cursor-grab items-center justify-center rounded-md text-[var(--color-ink-3)] hover:bg-[var(--color-surface)] hover:text-[var(--color-ink-2)] active:cursor-grabbing transition-colors"
+          className="flex size-8 cursor-grab items-center justify-center rounded-md text-[var(--color-ink-3)] hover:bg-[var(--color-surface)] hover:text-[var(--color-ink-2)] active:cursor-grabbing transition-colors"
           {...attributes}
           {...listeners}
         >
@@ -259,7 +259,7 @@ function InsertAfterButton({
         aria-label="Insert block below"
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          'flex size-7 items-center justify-center rounded-md transition-all',
+          'flex size-8 items-center justify-center rounded-md transition-all',
           ghost
             ? 'text-[var(--color-ink-3)] opacity-30 hover:opacity-100 hover:bg-[var(--color-wash)] hover:text-[var(--color-ink-2)]'
             : 'bg-[var(--color-surface)] text-[var(--color-ink-2)] ring-1 ring-[var(--color-line-2)] shadow-e1 hover:bg-[var(--color-brand-tint)] hover:text-[var(--color-brand-700)] hover:ring-[var(--color-brand-600)]',
@@ -396,7 +396,7 @@ function TextBody({
       />
       {slashOpen && (
         <div
-          className="absolute left-0 top-full z-dropdown mt-1 w-52 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] shadow-[var(--e-3)]"
+          className="absolute left-0 top-full z-dropdown mt-1 w-field-md rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] shadow-[var(--e-3)]"
           onMouseDown={(e) => e.preventDefault()}
         >
           <div className="p-1 space-y-0.5">
@@ -412,11 +412,11 @@ function TextBody({
               </button>
             ))}
           </div>
-          <div className="border-t border-[var(--color-line)] px-3 py-1.5">
+          <div className="border-t border-[var(--color-line)] px-3 py-2">
             <button
               type="button"
               onClick={() => setSlashOpen(false)}
-              className="text-xs text-[var(--color-ink-3)] hover:text-[var(--color-ink-2)]"
+              className="text-sm text-[var(--color-ink-3)] hover:text-[var(--color-ink-2)]"
             >
               Esc to dismiss
             </button>
@@ -466,9 +466,9 @@ function HeadingBody({
 }
 
 function headingCls(level: 1 | 2 | 3): string {
-  if (level === 1) return 'font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight';
-  if (level === 2) return 'font-[family-name:var(--font-display)] text-xl font-bold tracking-tight';
-  return 'font-[family-name:var(--font-display)] text-lg font-bold tracking-tight';
+  if (level === 1) return 'font-[family-name:var(--font-display)] text-2xl font-semibold tracking-tight';
+  if (level === 2) return 'font-[family-name:var(--font-display)] text-xl font-semibold tracking-tight';
+  return 'text-lg font-semibold tracking-tight';
 }
 
 // ---- Method (numbered steps) ----
@@ -499,7 +499,7 @@ function MethodBody({
       <ol className="space-y-2">
         {block.steps.map((step, i) => (
           <li key={step.id ?? i} className="flex gap-3">
-            <span className="mt-2 inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand-tint)] font-mono text-xs font-semibold text-[var(--color-brand-700)]">
+            <span className="mt-2 inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand-tint)] font-mono text-sm font-semibold text-[var(--color-brand-700)]">
               {String(i + 1).padStart(2, '0')}
             </span>
             <div className="flex-1 space-y-2">
@@ -515,7 +515,7 @@ function MethodBody({
                 className={bodyTextareaCls}
               />
               {step.critical && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-warn-tint)] px-2 py-0.5 text-sm font-bold uppercase text-[var(--color-warn-ink)]">
+                <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-warn-tint)] px-2 py-0.5 text-sm font-semibold uppercase text-[var(--color-warn-ink)]">
                   <Icon icon="ri-focus-3-line" />
                   Critical
                 </span>
@@ -589,7 +589,7 @@ function RecipeSummaryBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock,
           options={[{ value: '', label: 'Open', icon: 'ri-arrow-right-line' }]}
         />
       </div>
-      <p className="text-xs italic text-[var(--color-ink-3)]">
+      <p className="text-sm italic text-[var(--color-ink-3)]">
         Detailed recipe fields (audience, allergens, yields, factors) are edited in the full Recipe editor. This card summarises what's been added.
       </p>
     </div>
@@ -646,12 +646,12 @@ function ImageBody({ block, onPatch, lang }: BodyProps<Extract<ProcedureBlock, {
       {block.src ? (
         <div className="overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-wash)]">
           <div className="flex items-center justify-between border-b border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2">
-            <span className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--color-brand-700)]">
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--color-brand-700)]">
               <Icon icon="ri-image-fill" /> Image
             </span>
             <div className="flex items-center gap-1">
-              <Button type="button" variant="ghost" size="sm" onClick={() => fileRef.current?.click()}>
-                <Icon icon="ri-upload-2-line" className="mr-1" /> Replace
+              <Button type="button" variant="ghost" size="sm" icon="ri-upload-2-line" onClick={() => fileRef.current?.click()}>
+                Replace
               </Button>
               <Button
                 type="button"
@@ -683,7 +683,7 @@ function ImageBody({ block, onPatch, lang }: BodyProps<Extract<ProcedureBlock, {
       ) : upload.state === 'failed' ? (
         <div className="flex items-center gap-2 rounded-[var(--radius-md)] border border-[var(--color-bad-tint)] bg-[var(--color-bad-tint)] px-4 py-3 text-sm text-[var(--color-bad)]">
           <Icon icon="ri-error-warning-line" /> {upload.error}
-          <Button type="button" variant="ghost" size="sm" onClick={() => fileRef.current?.click()}>
+          <Button type="button" variant="ghost" size="sm" icon="ri-upload-2-line" onClick={() => fileRef.current?.click()}>
             Try again
           </Button>
         </div>
@@ -703,7 +703,7 @@ function ImageBody({ block, onPatch, lang }: BodyProps<Extract<ProcedureBlock, {
         >
           <Icon icon="ri-image-add-line" className="text-2xl text-[var(--color-ink-3)]" />
           <span className="font-medium">Drop image, or click to browse</span>
-          <span className="text-xs text-[var(--color-ink-3)]">JPG · PNG · WebP · GIF · max 10 MB</span>
+          <span className="text-sm text-[var(--color-ink-3)]">JPG · PNG · WebP · GIF · max 10 MB</span>
         </button>
       )}
       <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleFile} className="hidden" />
@@ -762,13 +762,13 @@ function VideoBody({ block, onPatch, lang }: BodyProps<Extract<ProcedureBlock, {
       {block.src ? (
         <div className="overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-wash)]">
           <div className="flex items-center justify-between border-b border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2">
-            <span className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--color-brand-700)]">
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--color-brand-700)]">
               <Icon icon={videoClass.provider === 'file' ? 'ri-video-fill' : 'ri-link'} />
               Video
             </span>
             <div className="flex items-center gap-1">
-              <Button type="button" variant="ghost" size="sm" onClick={() => fileRef.current?.click()}>
-                <Icon icon="ri-upload-2-line" className="mr-1" /> Replace
+              <Button type="button" variant="ghost" size="sm" icon="ri-upload-2-line" onClick={() => fileRef.current?.click()}>
+                Replace
               </Button>
               <Button
                 type="button"
@@ -829,7 +829,7 @@ function VideoBody({ block, onPatch, lang }: BodyProps<Extract<ProcedureBlock, {
           >
             <Icon icon="ri-video-add-line" className="text-2xl text-[var(--color-ink-3)]" />
             <span className="font-medium">Drop video, or click to upload</span>
-            <span className="text-xs text-[var(--color-ink-3)]">MP4 · WebM · MOV · max 100 MB</span>
+            <span className="text-sm text-[var(--color-ink-3)]">MP4 · WebM · MOV · max 100 MB</span>
           </button>
           <Input
             type="url"
@@ -873,7 +873,7 @@ function WarningBody({
       {/* Severity picker — compact, always accessible */}
       <div className="mb-2 flex items-center gap-2">
         <Icon icon={tone.icon} className={cn(tone.text, 'text-base shrink-0')} />
-        <div className="w-28 shrink-0">
+        <div className="w-field-xs shrink-0">
           <CustomSelect
             size="sm"
             value={block.severity}
@@ -988,14 +988,14 @@ function TableBody({
                         value={asLoc(block.headers[j], lang)}
                         onChange={(e) => setHeader(j, lang, e.target.value)}
                         placeholder={`Header ${j + 1} (${currentLabel})`}
-                        className="w-full rounded px-2 py-1 text-xs font-bold text-[var(--color-ink)] bg-transparent placeholder:text-[var(--color-ink-3)] border border-transparent hover:border-[var(--color-line-2)] focus:border-[var(--color-brand-600)] focus:bg-[var(--color-surface)] focus:outline-none focus:ring-1 focus:ring-[var(--color-brand-tint-2)] transition-colors"
+                        className="w-full rounded px-2 py-1 text-sm font-semibold text-[var(--color-ink)] bg-transparent placeholder:text-[var(--color-ink-3)] border border-transparent hover:border-[var(--color-line-2)] focus:border-[var(--color-brand-600)] focus:bg-[var(--color-surface)] focus:outline-none focus:ring-1 focus:ring-[var(--color-brand-tint-2)] transition-colors"
                       />
                       {isFilledOther && (
                         <span
                           title={`${otherLabel} translation present`}
                           className="inline-flex size-4 shrink-0 items-center justify-center text-[var(--color-ok)]"
                         >
-                          <Icon icon="ri-check-line" className="text-xs font-bold" />
+                          <Icon icon="ri-check-line" className="text-sm font-semibold" />
                         </span>
                       )}
                       {block.headers.length > 1 && (
@@ -1006,7 +1006,7 @@ function TableBody({
                           onClick={() => removeColumn(j)}
                           className="flex size-5 shrink-0 items-center justify-center rounded text-[var(--color-ink-3)] opacity-0 group-hover:opacity-100 hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)] transition-all"
                         >
-                          <Icon icon="ri-close-line" className="text-xs" />
+                          <Icon icon="ri-close-line" className="text-sm" />
                         </button>
                       )}
                     </div>
@@ -1021,7 +1021,7 @@ function TableBody({
                   onClick={addColumn}
                   className="mx-auto flex size-8 items-center justify-center rounded text-[var(--color-ink-2)] hover:bg-[var(--color-brand-tint)] hover:text-[var(--color-brand-700)] transition-colors"
                 >
-                  <Icon icon="ri-add-line" className="text-base font-bold" />
+                  <Icon icon="ri-add-line" className="text-base font-semibold" />
                 </button>
               </th>
             </tr>
@@ -1051,7 +1051,7 @@ function TableBody({
                             title={`${otherLabel} translation present`}
                             className="inline-flex size-4 shrink-0 items-center justify-center text-[var(--color-ok)]"
                           >
-                            <Icon icon="ri-check-line" className="text-xs font-bold" />
+                            <Icon icon="ri-check-line" className="text-sm font-semibold" />
                           </span>
                         )}
                       </div>
@@ -1067,7 +1067,7 @@ function TableBody({
                       onClick={() => removeRow(i)}
                       className="mx-auto flex size-6 items-center justify-center rounded text-[var(--color-ink-3)] opacity-0 group-hover/row:opacity-100 hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)] transition-all"
                     >
-                      <Icon icon="ri-close-line" className="text-xs" />
+                      <Icon icon="ri-close-line" className="text-sm" />
                     </button>
                   )}
                 </td>
@@ -1079,7 +1079,7 @@ function TableBody({
                   type="button"
                   onClick={addRow}
                   title="Add row"
-                  className="inline-flex items-center gap-2 rounded px-2 py-1 text-xs font-semibold text-[var(--color-ink-2)] hover:bg-[var(--color-brand-tint)] hover:text-[var(--color-brand-700)] transition-colors"
+                  className="inline-flex items-center gap-2 rounded px-2 py-1 text-sm font-semibold text-[var(--color-ink-2)] hover:bg-[var(--color-brand-tint)] hover:text-[var(--color-brand-700)] transition-colors"
                 >
                   <Icon icon="ri-add-line" className="text-sm" />
                   <span>Add row</span>
@@ -1093,7 +1093,7 @@ function TableBody({
                   onClick={addRow}
                   className="mx-auto flex size-8 items-center justify-center rounded text-[var(--color-ink-2)] hover:bg-[var(--color-brand-tint)] hover:text-[var(--color-brand-700)] transition-colors"
                 >
-                  <Icon icon="ri-add-line" className="text-base font-bold" />
+                  <Icon icon="ri-add-line" className="text-base font-semibold" />
                 </button>
               </td>
             </tr>
@@ -1130,7 +1130,7 @@ function LangToggle({
     <div
       role="tablist"
       aria-label="Language"
-      className="inline-flex rounded-md border border-[var(--color-line-2)] bg-[var(--color-wash)] p-0.5 text-xs font-bold shadow-e1"
+      className="inline-flex rounded-md border border-[var(--color-line-2)] bg-[var(--color-wash)] p-0.5 text-sm font-semibold shadow-e1"
     >
       <button
         type="button"
@@ -1269,7 +1269,7 @@ function EmptyState({ onAdd }: { onAdd: (kind: ProcedureBlockKind) => void }): R
           <Icon icon="ri-file-text-line" />
         </div>
         <div>
-          <h3 className="font-[family-name:var(--font-ui)] text-md font-bold text-[var(--color-ink)]">
+          <h3 className="font-[family-name:var(--font-ui)] text-md font-semibold text-[var(--color-ink)]">
             Start writing
           </h3>
           <p className="mt-0.5 text-sm text-[var(--color-ink-2)]">
@@ -1299,7 +1299,7 @@ function EmptyState({ onAdd }: { onAdd: (kind: ProcedureBlockKind) => void }): R
             <Icon icon={opt.icon} className="mt-0.5 text-lg text-[var(--color-ink-2)] group-hover:text-[var(--color-brand-700)]" />
             <span className="min-w-0">
               <span className="block text-sm font-semibold text-[var(--color-ink)]">{opt.label}</span>
-              <span className="block text-xs text-[var(--color-ink-2)]">{opt.hint}</span>
+              <span className="block text-sm text-[var(--color-ink-2)]">{opt.hint}</span>
             </span>
           </button>
         ))}

@@ -1,12 +1,12 @@
 import * as React from 'react';
-import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { listCategories, listLocations, ApiException, fetchMe } from '@/lib/api';
 import type { Category } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { CategoriesClientList } from './categories-client-list';
-import { LuArrowLeft } from 'react-icons/lu';
+import { CreateCategoryButton } from './category-actions';
+import { PageHeader } from '@/components/admin/page-header';
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -65,33 +65,12 @@ export default async function AdminLibraryCategoriesPage({
   const isEs = locale === 'es';
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <nav
-        aria-label="Breadcrumb"
-        className="flex items-center gap-2 text-sm text-[var(--color-ink-2)]"
-      >
-        <Link
-          href={`/${locale}/admin/library`}
-          className="inline-flex items-center gap-1 font-medium hover:text-[var(--color-brand-700)]"
-        >
-          <LuArrowLeft aria-hidden="true" />
-          {t('crumbBack')}
-        </Link>
-      </nav>
-
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div className="space-y-1">
-          <p className="text-xs font-semibold text-[var(--color-ink-2)]">
-            {t('pageEyebrow')}
-          </p>
-          <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight text-[var(--color-ink)]">
-            {t('pageTitle')}
-          </h1>
-          <p className="max-w-2xl text-sm text-[var(--color-ink-2)]">
-            {t('pageSubtitle')}
-          </p>
-        </div>
-      </header>
+    <div className="mx-auto max-w-page space-y-6">
+      <PageHeader
+        title={t('pageTitle')}
+        subtitle={t('pageSubtitle')}
+        actions={locationId ? <CreateCategoryButton locationId={locationId} /> : null}
+      />
 
       {loadError ? (
         <p

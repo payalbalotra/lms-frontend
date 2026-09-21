@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -57,6 +58,35 @@ export function RowActions({ items, triggerLabel, className }: RowActionsProps):
   const [confirmIndex, setConfirmIndex] = React.useState<number | null>(null);
   const triggerRef = React.useRef<HTMLButtonElement>(null);
   const menuRef = React.useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = React.useState(false);
+  const [pos, setPos] = React.useState<{ top: number; right: number } | null>(null);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // The menu is fixed to the viewport, so it has to be re-anchored whenever the
+  // trigger moves: a scroll, a resize, a row opening above it.
+  const anchor = React.useCallback((): void => {
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+    const r = trigger.getBoundingClientRect();
+    const height = menuRef.current?.offsetHeight ?? 160;
+    const below = window.innerHeight - r.bottom;
+    const top = below < height + 12 && r.top > height + 12 ? r.top - height - 4 : r.bottom + 4;
+    setPos({ top, right: Math.max(8, window.innerWidth - r.right) });
+  }, []);
+
+  React.useLayoutEffect(() => {
+    if (!open) return;
+    anchor();
+    window.addEventListener('scroll', anchor, true);
+    window.addEventListener('resize', anchor);
+    return () => {
+      window.removeEventListener('scroll', anchor, true);
+      window.removeEventListener('resize', anchor);
+    };
+  }, [open, confirmIndex, anchor]);
 
   // Close on outside click + Escape; reset confirm state when menu closes.
   React.useEffect(() => {
@@ -129,15 +159,17 @@ export function RowActions({ items, triggerLabel, className }: RowActionsProps):
         <LuEllipsisVertical aria-hidden="true" className="text-md" />
       </Button>
 
-      {open ? (
+      {open && mounted
+        ? createPortal(
         <div
           ref={menuRef}
           role="menu"
           aria-label={triggerLabel ?? t('rowActionsLabel')}
+          style={{ top: pos?.top ?? -9999, right: pos?.right ?? 0 }}
           className={cn(
-            'absolute right-0 top-full z-dropdown mt-1 min-w-field-md',
-            'rounded-[var(--radius-md)] border border-[var(--color-line)] bg-[var(--color-surface)]',
-            'shadow-[var(--e-2)]',
+            'fixed z-dropdown min-w-field-md',
+            'rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)]',
+            'shadow-[var(--e-3)]',
           )}
         >
           {confirmIndex !== null ? (
@@ -186,8 +218,10 @@ export function RowActions({ items, triggerLabel, className }: RowActionsProps):
               ))}
             </ul>
           )}
-        </div>
-      ) : null}
+        </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

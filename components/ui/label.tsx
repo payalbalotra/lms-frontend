@@ -15,7 +15,7 @@ export const Label = React.forwardRef<HTMLLabelElement, LabelProps>(function Lab
       ref={ref}
       data-slot="label"
       className={cn(
-        'text-sm font-semibold leading-none text-[var(--color-ink)]',
+        'text-sm font-semibold leading-meta text-[var(--color-ink)]',
         'peer-disabled:cursor-not-allowed peer-disabled:opacity-70',
         className,
       )}

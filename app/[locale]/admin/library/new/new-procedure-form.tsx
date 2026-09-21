@@ -6,6 +6,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/admin/page-header';
+import { FilterChips } from '@/components/ui/filter-chips';
+import { SegmentedControl } from '@/components/ui/segmented-control';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CustomSelect } from '@/components/ui/custom-select';
@@ -13,7 +16,7 @@ import { Modal } from '@/components/ui/modal';
 import { Drawer } from '@/components/ui/drawer';
 import { QuizEditor } from '@/components/admin/quiz-editor';
 import { cn } from '@/lib/utils';
-import { createProcedure, createCategory, listCategories, ApiException } from '@/lib/api';
+import { createProcedure, createCategory, listCategories, listProcedures, ApiException } from '@/lib/api';
 import { getCategoryIcon } from '@/lib/category-icons';
 import type {
   Category,
@@ -41,7 +44,7 @@ import {
   type RecipeIngredientItem,
 } from '@/components/admin/recipe-ingredients-editor';
 import { DocumentImportPanel } from '@/components/admin/document-import-panel';
-import { LuArrowLeft, LuArrowRight, LuBrush, LuPencil, LuCheck, LuChevronLeft, LuChevronRight, LuCircleAlert, LuCircleCheck, LuDownload, LuEllipsis, LuEye, LuFileText, LuFolder, LuLayoutGrid, LuPaperclip, LuSearch, LuShieldAlert, LuSparkles, LuStore, LuTriangleAlert, LuTruck, LuUserCog, LuUtensils, LuWrench, LuX } from 'react-icons/lu';
+import { LuArrowLeft, LuArrowRight, LuBrush, LuCheck, LuChevronRight, LuCircleAlert, LuCircleCheck, LuDownload, LuEllipsis, LuEye, LuFileText, LuFolder, LuLayoutGrid, LuPaperclip, LuSearch, LuShieldAlert, LuStore, LuTriangleAlert, LuTruck, LuUserCog, LuUtensils, LuWrench, LuX } from 'react-icons/lu';
 import { Icon } from '@/components/ui/icon';
 import type { IconType } from 'react-icons';
 import { AccessScreen } from './access-screen';
@@ -490,13 +493,38 @@ export function NewProcedureForm({
   // Once the manager picks how they want to start, the chooser at the top of
   // the page gets out of the way — they don't need to keep seeing it while
   // they're filling in the rest of the form.
-  const [hasChosenMode, setHasChosenMode] = useState(false);
   const [wizardStep, setWizardStep] = useState<WizardStepId>('details');
   const [categoryId, setCategoryId] = useState<string>(() => initialCat?.id ?? DEFAULT_CATEGORIES[0].id);
   const [procedureType, setProcedureType] = useState<ProcedureTypeId>(() => initialType);
   const isRecipeMode = procedureType === 'recipe';
-  const [categorySearch, setCategorySearch] = useState('');
-  const categoryScrollRef = useRef<HTMLDivElement>(null);
+  // How many procedures each category already holds. The tiles used to print
+  // fixed numbers from the demo copy; this reads the library.
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
+  React.useEffect(() => {
+    let alive = true;
+    void listProcedures()
+      .then(({ procedures }) => {
+        if (!alive) return;
+        const counts: Record<string, number> = {};
+        for (const proc of procedures) {
+          const slug = proc.category?.slug;
+          if (slug) counts[slug] = (counts[slug] ?? 0) + 1;
+        }
+        setCategoryCounts(counts);
+      })
+      .catch(() => {
+        /* the tiles simply say "no procedures yet" */
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const categoryCountLabel = (slug: string): string => {
+    const n = categoryCounts[slug] ?? 0;
+    if (n === 0) return locale === 'es' ? 'Sin procedimientos' : 'No procedures yet';
+    if (n === 1) return locale === 'es' ? '1 procedimiento' : '1 procedure';
+    return locale === 'es' ? `${n} procedimientos` : `${n} procedures`;
+  };
   const [titleEn, setTitleEn] = useState('');
   const [titleEs, setTitleEs] = useState('');
   const [titleLang, setTitleLang] = useState<'en' | 'es'>('en');
@@ -684,14 +712,8 @@ export function NewProcedureForm({
 
   const selectedExceedingCategory = !isPrimaryCategorySelected ? selectedCategory : null;
 
-  const displayCategories = React.useMemo(() => {
-    const query = categorySearch.toLowerCase().trim();
-    if (!query) return primaryCategories;
-    return sourceCategories.filter((c) => {
-      const name = (locale === 'es' ? c.nameEs : c.nameEn).toLowerCase();
-      return name.includes(query) || c.slug.toLowerCase().includes(query);
-    });
-  }, [sourceCategories, primaryCategories, categorySearch, locale]);
+  // The tiles show the primary categories; everything else is behind "Other".
+  const displayCategories = primaryCategories;
 
   const [isOtherModalOpen, setIsOtherModalOpen] = useState(false);
   const [modalSearchQuery, setModalSearchQuery] = useState('');
@@ -934,95 +956,45 @@ export function NewProcedureForm({
     'flex w-full rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-4 py-3 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] transition-all duration-[var(--dur)] hover:border-[var(--color-line-3)] focus:outline-none focus-visible:outline-none focus:border-[var(--color-brand-600)] focus-visible:border-[var(--color-brand-600)] focus:ring-2 focus:ring-[var(--color-brand-tint)] focus-visible:ring-2 focus-visible:ring-[var(--color-brand-tint)]';
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
-      {/* Top action header */}
-      <div className="flex items-center justify-between">
-        <Link
-          href={`/${locale}/admin/library`}
-          className="inline-flex items-center gap-1 text-sm font-medium text-[var(--color-ink-2)] hover:text-[var(--color-brand-700)]"
-        >
-          <LuArrowLeft aria-hidden="true" className="text-base" />
-          {tNav('crumbBack')}
-        </Link>
-        <div className="flex items-center gap-3">
-          <Button
-            type="button"
-            variant="neutral"
-            size="sm"
-            onClick={() => setIsPreviewOpen(true)}
-            className="gap-2 font-semibold"
-          >
-            <LuEye aria-hidden="true" />
-            <span>Live Preview</span>
-          </Button>
-          <Link href={`/${locale}/admin/library`}>
-            <Button type="button" variant="ghost" size="sm">
-              {tNav('cancel')}
+    <div className="mx-auto max-w-page space-y-6">
+      {/* The back link and the eyebrow both said "library" above a title that
+          already names what this page makes, and the two page actions floated on
+          the crumb row. One header, like every other admin page, with the
+          actions in it. */}
+      <PageHeader
+        title={tTitles(procedureType as never)}
+        subtitle={tTitles(`${procedureType}Subtitle` as never)}
+        actions={
+          <>
+            <Button type="button" variant="surface" onClick={() => setIsPreviewOpen(true)} icon={LuEye}>
+              {tNav('livePreview')}
             </Button>
-          </Link>
-        </div>
+            <Link href={`/${locale}/admin/library`}>
+              <Button type="button" variant="ghost">
+                {tNav('cancel')}
+              </Button>
+            </Link>
+          </>
+        }
+      />
+
+      {/* The question and its seats, on the page ground: the same shape as the
+          library's category filters. It used to sit in a white card and vanish
+          the moment it was answered, which left no way back to the other view. */}
+      <div className="space-y-2">
+        <span className="block text-sm font-semibold text-[var(--color-ink-3)]">
+          How would you like to start?
+        </span>
+        <FilterChips
+          label="How would you like to start?"
+          value={creationMode}
+          onChange={(mode) => setCreationMode(mode as 'manual' | 'import')}
+          chips={[
+            { value: 'manual', label: 'Create manually' },
+            { value: 'import', label: 'Import a document' },
+          ]}
+        />
       </div>
-
-      {/* Page Title Header */}
-      <header className="space-y-1">
-        <p className="text-xs font-semibold text-[var(--color-ink-2)]">
-          {tNav('pageEyebrow')}
-        </p>
-        <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight text-[var(--color-ink)]">
-          {tTitles(procedureType as never)}
-        </h1>
-        <p className="text-sm text-[var(--color-ink-2)]">
-          {tTitles(`${procedureType}Subtitle` as never)}
-        </p>
-      </header>
-
-      {/* Start Creation Choice Header — hides once the manager has picked a mode,
-          so they are not staring at the chooser while filling the form.
-          The chosen side is marked the way every other selection in the admin is:
-          a panel wash and an ink edge. Terracotta here would make "how to start"
-          look like the page's main action, which is "Next step". */}
-      {!hasChosenMode && (
-        <div className="flex items-center gap-4 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-4 shadow-e1">
-          <span className="text-sm font-semibold text-[var(--color-ink)]">
-            How would you like to start?
-          </span>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => {
-                setCreationMode('manual');
-                setHasChosenMode(true);
-              }}
-              className={cn(
-                'flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold',
-                'transition-colors duration-[var(--dur)] ease-[var(--ease)]',
-                creationMode === 'manual'
-                  ? 'bg-[var(--color-panel)] text-[var(--color-ink)] border border-[var(--color-ink)]'
-                  : 'border border-[var(--color-line-3)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:bg-[var(--color-wash)]',
-              )}
-            >
-              <LuPencil aria-hidden="true" /> Create manually
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setCreationMode('import');
-                setHasChosenMode(true);
-              }}
-              className={cn(
-                'flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold',
-                'transition-colors duration-[var(--dur)] ease-[var(--ease)]',
-                creationMode === 'import'
-                  ? 'bg-[var(--color-panel)] text-[var(--color-ink)] border border-[var(--color-ink)]'
-                  : 'border border-[var(--color-line-3)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:bg-[var(--color-wash)]',
-              )}
-            >
-              <LuSparkles aria-hidden="true" />
-              Import a document (PDF, DOCX, Photo)
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* AI Import Upload Box when Import mode is selected */}
       {creationMode === 'import' && (
@@ -1048,7 +1020,7 @@ export function NewProcedureForm({
           >
             <p className="font-semibold">{error}</p>
             {errorDetails.length > 0 && (
-              <ul className="mt-2 list-inside list-disc space-y-0.5 font-mono text-xs">
+              <ul className="mt-2 list-inside list-disc space-y-0.5 font-mono text-sm">
                 {errorDetails.map((d, i) => (
                   <li key={i}>{d}</li>
                 ))}
@@ -1066,64 +1038,8 @@ export function NewProcedureForm({
               icon={LuFolder}
               title="Library category"
               subtitle="Choose where this procedure will appear in the library."
-              headerAction={
-                <div className="flex items-center gap-2">
-                  {/* Category Search Input */}
-                  <div className="relative w-field-md sm:w-field-lg">
-                    <LuSearch aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-ink-3)]" />
-                    <Input
-                      type="text"
-                      placeholder="Search categories..."
-                      value={categorySearch}
-                      onChange={(e) => setCategorySearch(e.target.value)}
-                      className="pl-10 pr-8 text-xs h-tap-admin bg-[var(--color-surface)] border-[var(--color-line-2)] focus:border-[var(--color-brand-600)]"
-                    />
-                    {categorySearch && (
-                      <button
-                        type="button"
-                        onClick={() => setCategorySearch('')}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--color-ink-3)] hover:text-[var(--color-ink)]"
-                      >
-                        <LuX aria-hidden="true" />
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Scroll Carousel Controls (Prev < and Next >) */}
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (categoryScrollRef.current) {
-                          categoryScrollRef.current.scrollBy({ left: -280, behavior: 'smooth' });
-                        }
-                      }}
-                      className="flex size-tap-admin items-center justify-center rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)] transition-colors active:scale-95"
-                      title="Previous categories"
-                    >
-                      <LuChevronLeft aria-hidden="true" className="text-lg font-semibold" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (categoryScrollRef.current) {
-                          categoryScrollRef.current.scrollBy({ left: 280, behavior: 'smooth' });
-                        }
-                      }}
-                      className="flex size-tap-admin items-center justify-center rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)] transition-colors active:scale-95"
-                      title="Next categories"
-                    >
-                      <LuChevronRight aria-hidden="true" className="text-lg font-semibold" />
-                    </button>
-                  </div>
-                </div>
-              }
             >
-              <div
-                ref={categoryScrollRef}
-                className="overflow-x-auto pb-2 pt-1 scrollbar-none scroll-smooth"
-              >
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+              <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   {displayCategories.map((c) => {
                     const isSelected = categoryId === c.id;
                     const style = getCategoryBadgeStyle(c.slug);
@@ -1138,13 +1054,13 @@ export function NewProcedureForm({
                         className={cn(
                           'group relative flex flex-col justify-between rounded-[var(--radius-lg)] border p-4 text-left transition-all duration-[var(--dur)] min-h-tile h-full',
                           isSelected
-                            ? 'border-[var(--color-ink)] bg-[var(--color-surface)] ring-1 ring-[var(--color-ink)]'
+                            ? 'border-[var(--color-brand-600)] bg-[var(--color-surface)]'
                             : 'border-[var(--color-line-2)] bg-[var(--color-surface)] hover:bg-[var(--color-wash)] hover:border-[var(--color-line-3)]',
                         )}
                       >
                         {/* Selected Checkmark Badge */}
                         {isSelected && (
-                          <div className="absolute top-3 right-3 flex size-5 items-center justify-center rounded-full bg-[var(--color-ink)] text-white text-xs shadow-e1">
+                          <div className="absolute top-3 right-3 flex size-5 items-center justify-center rounded-full bg-[var(--color-brand-600)] text-white text-sm shadow-e1">
                             <LuCheck aria-hidden="true" className="font-semibold" />
                           </div>
                         )}
@@ -1157,13 +1073,13 @@ export function NewProcedureForm({
                         {/* Title and subtitle */}
                         <div className="mt-3">
                           <h4
-                            className="font-[family-name:var(--font-ui)] text-sm font-semibold tracking-snug text-[var(--color-ink)] line-clamp-2 leading-tight"
+                            className="font-[family-name:var(--font-ui)] text-sm font-semibold tracking-snug text-[var(--color-ink)] line-clamp-2 leading-heading"
                             title={name}
                           >
                             {name}
                           </h4>
-                          <p className="mt-1 text-xs text-[var(--color-ink-2)]">
-                            {c.slug === 'recipes' ? '12 procedures' : c.slug === 'station' ? '18 procedures' : c.slug === 'cleaning' ? '8 procedures' : c.slug === 'admin' ? '10 procedures' : c.slug === 'delivery' ? '6 procedures' : 'Active category'}
+                          <p className="mt-1 text-sm text-[var(--color-ink-2)]">
+                            {categoryCountLabel(c.slug)}
                           </p>
                         </div>
                       </button>
@@ -1171,7 +1087,7 @@ export function NewProcedureForm({
                   })}
 
                   {/* 8th Card: Other (triggers modal to view/select from all exceeding categories) */}
-                  {!categorySearch && (() => {
+                  {(() => {
                     const isOtherSelected = !isPrimaryCategorySelected;
                     const style = getCategoryBadgeStyle('other');
                     const selectedName = selectedExceedingCategory
@@ -1187,13 +1103,13 @@ export function NewProcedureForm({
                         className={cn(
                           'group relative flex flex-col justify-between rounded-[var(--radius-lg)] border p-4 text-left transition-all duration-[var(--dur)] min-h-tile h-full',
                           isOtherSelected
-                            ? 'border-[var(--color-ink)] bg-[var(--color-surface)] ring-1 ring-[var(--color-ink)]'
+                            ? 'border-[var(--color-brand-600)] bg-[var(--color-surface)]'
                             : 'border-[var(--color-line-2)] bg-[var(--color-surface)] hover:bg-[var(--color-wash)] hover:border-[var(--color-line-3)]',
                         )}
                       >
                         {/* Selected Checkmark Badge */}
                         {isOtherSelected && (
-                          <div className="absolute top-3 right-3 flex size-5 items-center justify-center rounded-full bg-[var(--color-ink)] text-white text-xs shadow-e1">
+                          <div className="absolute top-3 right-3 flex size-5 items-center justify-center rounded-full bg-[var(--color-brand-600)] text-white text-sm shadow-e1">
                             <LuCheck aria-hidden="true" className="font-semibold" />
                           </div>
                         )}
@@ -1206,24 +1122,23 @@ export function NewProcedureForm({
                         {/* Title and subtitle */}
                         <div className="mt-3">
                           <h4
-                            className="font-[family-name:var(--font-ui)] text-sm font-semibold tracking-snug text-[var(--color-ink)] line-clamp-2 leading-tight"
+                            className="font-[family-name:var(--font-ui)] text-sm font-semibold tracking-snug text-[var(--color-ink)] line-clamp-2 leading-heading"
                             title={selectedName || 'Other'}
                           >
                             {selectedName ? selectedName : (locale === 'es' ? 'Otros' : 'Other')}
                           </h4>
-                          <p className="mt-1 text-xs text-[var(--color-ink-2)] flex items-center gap-1">
+                          <p className="mt-1 text-sm text-[var(--color-ink-2)] flex items-center gap-1">
                             <span>
                               {selectedName
                                 ? (locale === 'es' ? 'Seleccionada' : 'Selected')
                                 : (locale === 'es' ? 'Ver todas' : 'View all')}
                             </span>
-                            <LuChevronRight aria-hidden="true" className="text-xs" />
+                            <LuChevronRight aria-hidden="true" className="text-sm" />
                           </p>
                         </div>
                       </button>
                     );
                   })()}
-                </div>
               </div>
             </Section>
 
@@ -1244,32 +1159,15 @@ export function NewProcedureForm({
                         {tForm('titleLabel')}
                         <span aria-hidden="true" className="ml-1 text-[var(--color-bad)]">*</span>
                       </Label>
-                      <div className="inline-flex rounded-md border border-[var(--color-line-2)] bg-[var(--color-wash)] p-0.5 text-xs font-semibold">
-                        <button
-                          type="button"
-                          onClick={() => setTitleLang('en')}
-                          className={cn(
-                            'rounded-[var(--radius-sm)] px-3 py-0.5 transition-colors',
-                            titleLang === 'en'
-                              ? 'bg-[var(--color-ink)] text-white font-semibold'
-                              : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
-                          )}
-                        >
-                          EN
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setTitleLang('es')}
-                          className={cn(
-                            'rounded-[var(--radius-sm)] px-3 py-0.5 transition-colors',
-                            titleLang === 'es'
-                              ? 'bg-[var(--color-ink)] text-white font-semibold'
-                              : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
-                          )}
-                        >
-                          ES
-                        </button>
-                      </div>
+                      <SegmentedControl
+                        label="Title language"
+                        value={titleLang}
+                        onChange={(lang) => setTitleLang(lang as 'en' | 'es')}
+                        segments={[
+                          { value: 'en', label: 'EN' },
+                          { value: 'es', label: 'ES' },
+                        ]}
+                      />
                     </div>
 
                     <div className="relative flex items-center">
@@ -1300,12 +1198,12 @@ export function NewProcedureForm({
                           required
                         />
                       )}
-                      <span className="pointer-events-none select-none absolute right-3 text-xs font-medium text-[var(--color-ink-3)]">
+                      <span className="pointer-events-none select-none absolute right-3 text-sm font-medium text-[var(--color-ink-3)]">
                         {titleLang === 'en' ? titleEn.length : titleEs.length} / 100
                       </span>
                     </div>
                     {isTitleMissing && (
-                      <p className="text-xs font-semibold text-[var(--color-bad)] mt-1 flex items-center gap-1">
+                      <p className="text-sm font-semibold text-[var(--color-bad)] mt-1 flex items-center gap-1">
                         <LuCircleAlert aria-hidden="true" className="text-sm" />
                         <span>Please enter a procedure title to continue.</span>
                       </p>
@@ -1319,32 +1217,15 @@ export function NewProcedureForm({
                         {tForm('purposeLabel')}
                         <span aria-hidden="true" className="ml-1 text-[var(--color-bad)]">*</span>
                       </Label>
-                      <div className="inline-flex rounded-md border border-[var(--color-line-2)] bg-[var(--color-wash)] p-0.5 text-xs font-semibold">
-                        <button
-                          type="button"
-                          onClick={() => setPurposeLang('en')}
-                          className={cn(
-                            'rounded-[var(--radius-sm)] px-3 py-0.5 transition-colors',
-                            purposeLang === 'en'
-                              ? 'bg-[var(--color-ink)] text-white font-semibold'
-                              : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
-                          )}
-                        >
-                          EN
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setPurposeLang('es')}
-                          className={cn(
-                            'rounded-[var(--radius-sm)] px-3 py-0.5 transition-colors',
-                            purposeLang === 'es'
-                              ? 'bg-[var(--color-ink)] text-white font-semibold'
-                              : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
-                          )}
-                        >
-                          ES
-                        </button>
-                      </div>
+                      <SegmentedControl
+                        label="Purpose language"
+                        value={purposeLang}
+                        onChange={(lang) => setPurposeLang(lang as 'en' | 'es')}
+                        segments={[
+                          { value: 'en', label: 'EN' },
+                          { value: 'es', label: 'ES' },
+                        ]}
+                      />
                     </div>
 
                     <div className="relative">
@@ -1379,12 +1260,12 @@ export function NewProcedureForm({
                           className={cn(textareaCls, 'pb-8', isPurposeMissing && 'border-[var(--color-bad)] ring-2 ring-[var(--color-bad-tint)]')}
                         />
                       )}
-                      <span className="pointer-events-none select-none absolute right-3 bottom-2 text-xs font-medium text-[var(--color-ink-3)]">
+                      <span className="pointer-events-none select-none absolute right-3 bottom-2 text-sm font-medium text-[var(--color-ink-3)]">
                         {purposeLang === 'en' ? purposeEn.length : purposeEs.length} / 500
                       </span>
                     </div>
                     {isPurposeMissing && (
-                      <p className="text-xs font-semibold text-[var(--color-bad)] mt-1 flex items-center gap-1">
+                      <p className="text-sm font-semibold text-[var(--color-bad)] mt-1 flex items-center gap-1">
                         <LuCircleAlert aria-hidden="true" className="text-sm" />
                         <span>Please enter a procedure purpose to continue.</span>
                       </p>
@@ -1464,10 +1345,10 @@ export function NewProcedureForm({
                 title="Procedure"
                 eyebrow={`${categoryLabel} · ${isRecipeMode ? 'Recipe' : 'Procedure'}`}
               >
-                <h3 className="font-[family-name:var(--font-display)] text-lg font-bold tracking-snug text-[var(--color-ink)]">
+                <h3 className="text-lg font-semibold tracking-snug text-[var(--color-ink)]">
                   {activeTitle || '(Untitled procedure)'}
                 </h3>
-                <p className="mt-1 text-sm leading-relaxed text-[var(--color-ink-2)]">
+                <p className="mt-1 text-base leading-body text-[var(--color-ink-2)]">
                   {activePurpose || '(No purpose provided yet — go back to Details to add one.)'}
                 </p>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -1542,7 +1423,7 @@ export function NewProcedureForm({
                 eyebrow={`${accessSelections.employees.size} employee${accessSelections.employees.size === 1 ? '' : 's'}`}
               >
                 {accessSelections.employees.size === 0 ? (
-                  <p className="text-xs italic text-[var(--color-ink-3)]">
+                  <p className="text-sm italic text-[var(--color-ink-3)]">
                     No employees assigned yet. Procedure will still be visible
                     to anyone matching the access ranges above.
                   </p>
@@ -1554,14 +1435,14 @@ export function NewProcedureForm({
                           key={emp.id}
                           className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2"
                         >
-                          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand-tint)] text-sm font-bold text-[var(--color-brand-700)]">
+                          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand-tint)] text-sm font-semibold text-[var(--color-brand-700)]">
                             {emp.initials}
                           </span>
                           <span className="min-w-0 flex-1">
                             <span className="block text-sm font-semibold text-[var(--color-ink)]">
                               {emp.name}
                             </span>
-                            <span className="block text-xs text-[var(--color-ink-2)]">
+                            <span className="block text-sm text-[var(--color-ink-2)]">
                               {emp.role} · {emp.station}
                             </span>
                           </span>
@@ -1576,7 +1457,7 @@ export function NewProcedureForm({
               {isRecipeMode && (
                 <ReviewCard icon="ri-restaurant-line" title="Recipe body">
                   {ingredients.filter((i) => i.name.trim()).length === 0 ? (
-                    <p className="text-xs italic text-[var(--color-ink-3)]">
+                    <p className="text-sm italic text-[var(--color-ink-3)]">
                       No ingredients added yet.
                     </p>
                   ) : (
@@ -1586,7 +1467,7 @@ export function NewProcedureForm({
                         .map((ing, idx) => (
                           <li key={ing.id || idx} className="flex items-center justify-between py-2">
                             <span className="font-medium text-[var(--color-ink)]">{ing.name}</span>
-                            <span className="font-mono text-xs text-[var(--color-ink-2)]">
+                            <span className="font-mono text-sm text-[var(--color-ink-2)]">
                               {ing.quantity} {ing.unit}
                             </span>
                           </li>
@@ -1603,7 +1484,7 @@ export function NewProcedureForm({
                     <Icon icon="ri-rocket-2-line" className="text-lg" />
                   </span>
                   <div className="flex-1">
-                    <h3 className="font-[family-name:var(--font-ui)] text-md font-bold text-[var(--color-ink)]">
+                    <h3 className="font-[family-name:var(--font-ui)] text-md font-semibold text-[var(--color-ink)]">
                       Ready to go live?
                     </h3>
                     <p className="mt-0.5 text-sm text-[var(--color-ink-2)]">
@@ -1648,7 +1529,7 @@ export function NewProcedureForm({
                     Notify assignees
                   </button>
                 </div>
-                <p className="mt-3 text-xs text-[var(--color-ink-2)]">
+                <p className="mt-3 text-sm text-[var(--color-ink-2)]">
                   <Icon icon="ri-information-line" className="mr-1 align-text-bottom" />
                   {accessSelections.employees.size > 0
                     ? `${accessSelections.employees.size} employee${accessSelections.employees.size === 1 ? '' : 's'} will be notified when published.`
@@ -1660,8 +1541,8 @@ export function NewProcedureForm({
         )}
 
         {/* Sticky Bottom Toolbar */}
-        <div className="sticky-bar fixed bottom-0 left-0 right-0 z-sticky flex items-center justify-between border-t border-[var(--color-line)] bg-[var(--color-surface)] px-6 py-3 backdrop-blur supports-[backdrop-filter]:bg-[var(--color-surface)] shadow-e2">
-          <div className="flex items-center gap-2 text-xs font-semibold text-[var(--color-ink-2)]">
+        <div className="sticky-bar fixed bottom-0 left-0 right-0 z-sticky flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3 shadow-e2 backdrop-blur supports-[backdrop-filter]:bg-[var(--color-surface)] sm:px-6">
+          <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-[var(--color-ink-2)]">
             <span
               className={cn(
                 'size-2 rounded-full',
@@ -1682,7 +1563,7 @@ export function NewProcedureForm({
               tForm('draftLabel')
             )}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
             {isDirty && (
               <button
                 type="button"
@@ -1763,7 +1644,7 @@ export function NewProcedureForm({
               <h3 className="font-[family-name:var(--font-ui)] text-lg font-semibold text-[var(--color-ink)]">
                 {locale === 'es' ? 'Seleccionar Categoría' : 'Select Library Category'}
               </h3>
-              <p className="text-xs text-[var(--color-ink-2)] mt-0.5">
+              <p className="text-sm text-[var(--color-ink-2)] mt-0.5">
                 {locale === 'es'
                   ? 'Elige cualquier categoría para este procedimiento'
                   : 'Choose any category where this procedure will appear.'}
@@ -1795,7 +1676,7 @@ export function NewProcedureForm({
               <button
                 type="button"
                 onClick={() => setModalSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--color-ink-3)] hover:text-[var(--color-ink)]"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-ink-3)] hover:text-[var(--color-ink)]"
               >
                 <LuX aria-hidden="true" />
               </button>
@@ -1823,7 +1704,7 @@ export function NewProcedureForm({
                     className={cn(
                       'group relative flex items-center gap-4 rounded-[var(--radius-lg)] border p-4 text-left transition-all duration-[var(--dur)]',
                       isSelected
-                        ? 'border-[var(--color-ink)] bg-[var(--color-surface)] ring-1 ring-[var(--color-ink)]'
+                        ? 'border-[var(--color-brand-600)] bg-[var(--color-surface)]'
                         : 'border-[var(--color-line-2)] bg-[var(--color-surface)] hover:bg-[var(--color-wash)] hover:border-[var(--color-line-3)]',
                     )}
                   >
@@ -1837,25 +1718,15 @@ export function NewProcedureForm({
                       <Icon icon={style.icon} />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h4 className="font-semibold text-sm text-[var(--color-ink)] line-clamp-2 leading-tight" title={name}>
+                      <h4 className="font-semibold text-sm text-[var(--color-ink)] line-clamp-2 leading-heading" title={name}>
                         {name}
                       </h4>
-                      <p className="mt-0.5 text-xs text-[var(--color-ink-2)] truncate">
-                        {c.slug === 'recipes'
-                          ? '12 procedures'
-                          : c.slug === 'station'
-                            ? '18 procedures'
-                            : c.slug === 'cleaning'
-                              ? '8 procedures'
-                              : c.slug === 'admin'
-                                ? '10 procedures'
-                                : c.slug === 'delivery'
-                                  ? '6 procedures'
-                                  : 'Active category'}
+                      <p className="mt-0.5 text-sm text-[var(--color-ink-2)] truncate">
+                        {categoryCountLabel(c.slug)}
                       </p>
                     </div>
                     {isSelected && (
-                      <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-ink)] text-white text-xs">
+                      <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand-600)] text-white text-sm">
                         <LuCheck aria-hidden="true" className="font-semibold" />
                       </div>
                     )}
@@ -1883,25 +1754,25 @@ export function NewProcedureForm({
               </button>
             ) : (
               <div className="space-y-3 rounded-[var(--radius-md)] border border-[var(--color-brand-600)] bg-[var(--color-brand-tint)] p-4">
-                <p className="text-xs font-semibold text-[var(--color-brand-700)]">Create a new category</p>
+                <p className="text-sm font-semibold text-[var(--color-brand-700)]">Create a new category</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <label className="text-xs font-medium text-[var(--color-ink-2)]">Name (EN) <span className="text-[var(--color-bad)]">*</span></label>
+                    <label className="text-sm font-medium text-[var(--color-ink-2)]">Name (EN) <span className="text-[var(--color-bad)]">*</span></label>
                     <Input
                       value={newCatNameEn}
                       onChange={(e) => setNewCatNameEn(e.target.value)}
                       placeholder="e.g. Allergen Control"
-                      className="h-9 text-sm"
+                      className="h-tap-admin text-sm"
                       autoFocus
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-medium text-[var(--color-ink-2)]">Name (ES)</label>
+                    <label className="text-sm font-medium text-[var(--color-ink-2)]">Name (ES)</label>
                     <Input
                       value={newCatNameEs}
                       onChange={(e) => setNewCatNameEs(e.target.value)}
                       placeholder="e.g. Control de Alérgenos"
-                      className="h-9 text-sm"
+                      className="h-tap-admin text-sm"
                     />
                   </div>
                 </div>
@@ -1934,15 +1805,10 @@ export function NewProcedureForm({
         </div>
       </Modal>
 
-      {/* Floating Live Preview Pill Button */}
-      <button
-        type="button"
-        onClick={() => setIsPreviewOpen(true)}
-        className="fixed bottom-20 right-6 z-sticky flex items-center gap-2 rounded-full bg-[var(--color-surface)] text-[var(--color-ink)] px-4 py-3 shadow-e3 hover:bg-[var(--color-panel)] transition-colors duration-[var(--dur)] ease-[var(--ease)] font-semibold text-xs"
-      >
-        <LuEye aria-hidden="true" className="text-base" />
-        <span>Live Preview</span>
-      </button>
+      {/* The floating Live Preview pill was here: the same control, with the same
+          words and the same icon, already sits in the page's own bar at the top.
+          Two of one control on one screen makes a reader check whether they do
+          different things. */}
 
       {/* Live Procedure Preview Drawer */}
       <Drawer
@@ -1954,47 +1820,30 @@ export function NewProcedureForm({
         <div className="space-y-6 p-1">
           {/* Drawer Header Language Switcher */}
           <div className="flex items-center justify-between border-b border-[var(--color-line)] pb-3">
-            <span className="text-xs font-semibold text-[var(--color-ink-2)]">
+            <span className="text-sm font-semibold text-[var(--color-ink-2)]">
               Preview Language
             </span>
-            <div className="inline-flex rounded-lg border border-[var(--color-line-2)] bg-[var(--color-wash)] p-0.5 text-xs font-semibold">
-              <button
-                type="button"
-                onClick={() => setPreviewLang('en')}
-                className={cn(
-                  'rounded-md px-3 py-1 transition-all',
-                  previewLang === 'en'
-                    ? 'bg-[var(--color-ink)] text-white'
-                    : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
-                )}
-              >
-                English
-              </button>
-              <button
-                type="button"
-                onClick={() => setPreviewLang('es')}
-                className={cn(
-                  'rounded-md px-3 py-1 transition-all',
-                  previewLang === 'es'
-                    ? 'bg-[var(--color-ink)] text-white'
-                    : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
-                )}
-              >
-                Español
-              </button>
-            </div>
+            <SegmentedControl
+              label="Preview language"
+              value={previewLang}
+              onChange={(lang) => setPreviewLang(lang as 'en' | 'es')}
+              segments={[
+                { value: 'en', label: 'EN' },
+                { value: 'es', label: 'ES' },
+              ]}
+            />
           </div>
 
           {/* Rendered Employee Procedure View */}
           <div className="rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-6 space-y-6">
             {/* Category & Clearance Tag */}
             <div className="flex items-center justify-between">
-              <span className="inline-flex items-center gap-2 rounded-[var(--radius-sm)] bg-[var(--color-panel)] px-3 py-1 text-xs font-semibold text-[var(--color-ink-2)]">
+              <span className="inline-flex items-center gap-2 rounded-[var(--radius-sm)] bg-[var(--color-panel)] px-3 py-1 text-sm font-semibold text-[var(--color-ink-2)]">
                 <LuFolder aria-hidden="true" className="text-sm" />
                 {categoryLabel}
               </span>
               {clearanceLevel && (
-                <span className="rounded-[var(--radius-sm)] bg-[var(--color-panel)] px-3 py-1 text-xs font-semibold text-[var(--color-ink-2)] border border-[var(--color-line-2)]">
+                <span className="rounded-[var(--radius-sm)] bg-[var(--color-panel)] px-3 py-1 text-sm font-semibold text-[var(--color-ink-2)] border border-[var(--color-line-2)]">
                   {clearanceLabel}
                 </span>
               )}
@@ -2002,10 +1851,10 @@ export function NewProcedureForm({
 
             {/* Title & Purpose */}
             <div className="space-y-2 border-b border-[var(--color-line)] pb-4">
-              <h2 className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight text-[var(--color-ink)]">
+              <h2 className="font-[family-name:var(--font-display)] text-2xl font-semibold tracking-tight text-[var(--color-ink)]">
                 {(previewLang === 'en' ? titleEn : titleEs) || (previewLang === 'en' ? titleEs : titleEn) || '(Untitled procedure)'}
               </h2>
-              <p className="text-sm text-[var(--color-ink-2)] leading-relaxed">
+              <p className="text-base leading-body text-[var(--color-ink-2)]">
                 {(previewLang === 'en' ? purposeEn : purposeEs) || (previewLang === 'en' ? purposeEs : purposeEn) || '(No purpose specified)'}
               </p>
             </div>
@@ -2017,7 +1866,7 @@ export function NewProcedureForm({
                   <LuUtensils aria-hidden="true" className="text-[var(--color-ink-2)]" />
                   <span>Recipe Ingredients</span>
                 </h3>
-                <div className="divide-y divide-[var(--color-line)] text-xs">
+                <div className="divide-y divide-[var(--color-line)] text-sm">
                   {ingredients.filter((i) => i.name.trim()).map((ing) => (
                     <div key={ing.id} className="flex items-center justify-between py-2">
                       <span className="font-semibold text-[var(--color-ink)]">{ing.name}</span>
@@ -2031,7 +1880,7 @@ export function NewProcedureForm({
             {/* Rendered Content Blocks */}
             <div className="space-y-5">
               {blocks.length === 0 ? (
-                <div className="py-8 text-center text-xs text-[var(--color-ink-3)] italic">
+                <div className="py-8 text-center text-sm text-[var(--color-ink-3)] italic">
                   No content blocks added yet. Use the block editor to add text, tables, steps, images, or warnings.
                 </div>
               ) : (
@@ -2039,7 +1888,7 @@ export function NewProcedureForm({
                   if (b.kind === 'text') {
                     const text = previewLang === 'en' ? (b.body?.en || b.body?.es) : (b.body?.es || b.body?.en);
                     return (
-                      <div key={b.id || idx} className="text-sm text-[var(--color-ink)] leading-relaxed whitespace-pre-wrap">
+                      <div key={b.id || idx} className="text-base leading-body text-[var(--color-ink)] whitespace-pre-wrap">
                         {text || '(Empty text block)'}
                       </div>
                     );
@@ -2055,7 +1904,7 @@ export function NewProcedureForm({
                   if (b.kind === 'method') {
                     return (
                       <div key={b.id || idx} className="space-y-2">
-                        <h4 className="font-semibold text-xs text-[var(--color-ink-2)]">
+                        <h4 className="font-semibold text-sm text-[var(--color-ink-2)]">
                           Steps & Procedure
                         </h4>
                         <ol className="list-decimal list-inside space-y-2 text-sm text-[var(--color-ink)]">
@@ -2076,7 +1925,7 @@ export function NewProcedureForm({
                     return (
                       <div key={b.id || idx} className="flex items-start gap-3 rounded-[var(--radius-md)] bg-[var(--color-warn-tint)] p-4 text-[var(--color-warn-ink)]">
                         <LuTriangleAlert aria-hidden="true" className="text-lg text-[var(--color-warn-ink)] shrink-0 mt-0.5" />
-                        <div className="text-xs leading-relaxed font-medium">
+                        <div className="text-base leading-body font-medium">
                           {warningBody || '(Empty warning callout)'}
                         </div>
                       </div>
@@ -2085,7 +1934,7 @@ export function NewProcedureForm({
                   if (b.kind === 'table') {
                     return (
                       <div key={b.id || idx} className="space-y-2 overflow-x-auto">
-                        <table className="w-full text-left text-xs border border-[var(--color-line-2)] rounded-lg overflow-hidden">
+                        <table className="w-full text-left text-sm border border-[var(--color-line-2)] rounded-lg overflow-hidden">
                           <thead className="bg-[var(--color-wash)] font-semibold text-[var(--color-ink)] border-b border-[var(--color-line-2)]">
                             <tr>
                               {b.headers.map((h, hIdx) => (
@@ -2117,11 +1966,11 @@ export function NewProcedureForm({
                         {b.src ? (
                           <img src={b.src} alt={b.alt?.en || 'Procedure image'} className="mx-auto max-h-media rounded-lg object-cover" />
                         ) : (
-                          <div className="h-tile rounded-lg bg-[var(--color-wash)] border border-dashed border-[var(--color-line-2)] flex items-center justify-center text-xs text-[var(--color-ink-3)]">
+                          <div className="h-tile rounded-lg bg-[var(--color-wash)] border border-dashed border-[var(--color-line-2)] flex items-center justify-center text-sm text-[var(--color-ink-3)]">
                             (Image placeholder: {b.src || 'No image URL provided'})
                           </div>
                         )}
-                        {caption && <p className="text-xs text-[var(--color-ink-2)] italic">{caption}</p>}
+                        {caption && <p className="text-sm text-[var(--color-ink-2)] italic">{caption}</p>}
                       </div>
                     );
                   }
@@ -2130,8 +1979,8 @@ export function NewProcedureForm({
                     return (
                       <div key={b.id || idx} className="flex items-center gap-3 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-wash)] p-3">
                         <LuPaperclip aria-hidden="true" className="text-lg text-[var(--color-ink-2)]" />
-                        <span className="font-semibold text-xs text-[var(--color-ink)] flex-1">{title || 'Download attachment'}</span>
-                        <LuDownload aria-hidden="true" className="text-xs text-[var(--color-ink-2)]" />
+                        <span className="font-semibold text-sm text-[var(--color-ink)] flex-1">{title || 'Download attachment'}</span>
+                        <LuDownload aria-hidden="true" className="text-sm text-[var(--color-ink-2)]" />
                       </div>
                     );
                   }
@@ -2167,14 +2016,17 @@ function Section({
       id={id}
       className="scroll-mt-6 space-y-4 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-6"
     >
-      <header className="flex items-start justify-between gap-4 border-b border-[var(--color-line)] pb-3">
-        <div className="flex items-start gap-3">
+      {/* Wraps on a phone. The header's action is a search field and two arrows
+          at their natural width; beside a title at 390px they pushed the section
+          78px past the screen and the whole page scrolled sideways. */}
+      <header className="flex flex-wrap items-start justify-between gap-4 border-b border-[var(--color-line)] pb-3">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
           {icon && (
             <div className="flex size-tap-admin shrink-0 items-center justify-center rounded-lg bg-[var(--color-panel)] text-[var(--color-ink-2)] text-lg">
               <Icon icon={icon} />
             </div>
           )}
-          <div>
+          <div className="min-w-0">
             <h2 className="font-[family-name:var(--font-ui)] text-md font-semibold tracking-snug text-[var(--color-ink)]">
               {title}
             </h2>
@@ -2218,7 +2070,7 @@ function Chip({
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-bold',
+        'inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-semibold',
         tone === 'brand'
           ? 'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)]'
           : tone === 'ok'
@@ -2254,11 +2106,11 @@ function ReviewCard({
         </span>
         <span className="flex-1">
           {eyebrow && (
-            <span className="block text-sm font-bold uppercase text-[var(--color-brand-700)]">
+            <span className="block text-sm font-semibold text-[var(--color-brand-700)]">
               {eyebrow}
             </span>
           )}
-          <span className="block font-[family-name:var(--font-ui)] text-sm font-bold tracking-snug text-[var(--color-ink)]">
+          <span className="block font-[family-name:var(--font-ui)] text-sm font-semibold tracking-snug text-[var(--color-ink)]">
             {title}
           </span>
         </span>
@@ -2284,20 +2136,20 @@ function ReviewChipRow({
 }): React.ReactElement {
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-2 text-sm font-bold uppercase text-[var(--color-ink-3)]">
+      <div className="flex items-center gap-2 text-sm font-semibold text-[var(--color-ink-3)]">
         <Icon icon={icon} className="text-sm" />
         <span>{label}</span>
         <span className="text-[var(--color-ink-3)]">·</span>
         <span className="text-[var(--color-ink-3)]">{items.length}</span>
       </div>
       {items.length === 0 ? (
-        <p className="text-xs italic text-[var(--color-ink-3)]">{emptyText}</p>
+        <p className="text-sm italic text-[var(--color-ink-3)]">{emptyText}</p>
       ) : (
         <div className="flex flex-wrap gap-2">
           {items.map((opt) => (
             <span
               key={opt.id}
-              className="inline-flex items-center gap-1 rounded-full border border-[var(--color-line-2)] bg-[var(--color-wash)] px-3 py-1 text-xs font-medium text-[var(--color-ink)]"
+              className="inline-flex items-center gap-1 rounded-full border border-[var(--color-line-2)] bg-[var(--color-wash)] px-3 py-1 text-sm font-medium text-[var(--color-ink)]"
             >
               {opt.icon && <Icon icon={opt.icon} className="text-sm text-[var(--color-brand-700)]" />}
               <span>{opt.label}</span>

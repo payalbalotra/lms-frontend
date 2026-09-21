@@ -40,7 +40,7 @@ export function RecipeLivePreview({
         <button
           type="button"
           onClick={() => alert('Full Preview: Shows exact employee view full screen.')}
-          className="text-xs font-medium text-[var(--color-brand-700)] hover:underline"
+          className="text-sm font-medium text-[var(--color-brand-700)] hover:underline"
         >
           {t('viewFullPreview')}
         </button>
@@ -58,7 +58,7 @@ export function RecipeLivePreview({
           <h4 className="font-[family-name:var(--font-ui)] text-md font-semibold text-[var(--color-ink)]">
             {title.trim() || t('previewTitlePlaceholder')}
           </h4>
-          <span className="mt-1 inline-block rounded-[var(--radius-sm)] bg-[var(--color-panel)] px-3 py-0.5 text-xs font-semibold text-[var(--color-ink-2)]">
+          <span className="mt-1 inline-block rounded-[var(--radius-sm)] bg-[var(--color-panel)] px-3 py-0.5 text-sm font-semibold text-[var(--color-ink-2)]">
             {categoryLabel}
           </span>
         </div>
@@ -66,10 +66,10 @@ export function RecipeLivePreview({
         {/* Purpose */}
         {purpose.trim() && (
           <div className="space-y-1">
-            <h5 className="text-xs font-semibold text-[var(--color-ink-3)]">
+            <h5 className="text-sm font-semibold text-[var(--color-ink-3)]">
               Purpose
             </h5>
-            <p className="text-xs text-[var(--color-ink-2)] line-clamp-3">
+            <p className="text-sm text-[var(--color-ink-2)] line-clamp-3">
               {purpose}
             </p>
           </div>
@@ -78,10 +78,10 @@ export function RecipeLivePreview({
         {/* Ingredients List */}
         {ingredients.length > 0 && (
           <div className="space-y-2 border-t border-[var(--color-line)] pt-2">
-            <h5 className="text-xs font-semibold text-[var(--color-ink-3)]">
+            <h5 className="text-sm font-semibold text-[var(--color-ink-3)]">
               {t('previewIngredientsHeader', { factor: `${selectedFactor}×` })}
             </h5>
-            <ul className="space-y-1 text-xs">
+            <ul className="space-y-1 text-sm">
               {ingredients.map((ing) => {
                 if (!ing.name.trim()) return null;
                 const qtyNum = parseFloat(ing.quantity);
@@ -102,15 +102,15 @@ export function RecipeLivePreview({
         {/* Method Steps List */}
         {methodSteps.length > 0 && (
           <div className="space-y-2 border-t border-[var(--color-line)] pt-2">
-            <h5 className="text-xs font-semibold text-[var(--color-ink-3)]">
+            <h5 className="text-sm font-semibold text-[var(--color-ink-3)]">
               Method
             </h5>
-            <div className="space-y-2 text-xs">
+            <div className="space-y-2 text-sm">
               {methodSteps.map((step, idx) => {
                 const bodyText = step.body.en || step.body.es || '';
                 return (
                   <div key={step.id || idx} className="flex items-start gap-2">
-                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-panel)] font-mono text-xs font-bold text-[var(--color-ink)]">
+                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-panel)] font-mono text-sm font-bold text-[var(--color-ink)]">
                       {idx + 1}
                     </span>
                     <div>

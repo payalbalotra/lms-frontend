@@ -187,13 +187,12 @@ export function StationsManager({
     <div className="space-y-4">
       <div className="flex justify-end">
         <Button
-          variant="secondary"
+          icon={LuPlus}
           onClick={() => {
             resetCreate();
             setCreateOpen(true);
           }}
         >
-          <LuPlus aria-hidden="true" className="text-lg" />
           {t('stationsCreateHeading')}
         </Button>
       </div>
@@ -212,12 +211,12 @@ export function StationsManager({
             </p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="border-b border-[var(--color-line)] bg-[var(--color-panel)] text-left">
+              <table className="atable">
+                <thead>
                   <tr>
-                    <th className="px-4 py-2 font-semibold text-[var(--color-ink-2)]">{t('thStationsName')}</th>
-                    <th className="px-4 py-2 font-semibold text-[var(--color-ink-2)]">{t('thStationsStatus')}</th>
-                    <th className="w-12 px-4 py-2 text-right font-semibold text-[var(--color-ink-2)]">
+                    <th>{t('thStationsName')}</th>
+                    <th>{t('thStationsStatus')}</th>
+                    <th>
                       <span className="sr-only">{t('thActions')}</span>
                     </th>
                   </tr>
@@ -228,9 +227,8 @@ export function StationsManager({
                     return (
                       <tr
                         key={s.id}
-                        className="border-b border-[var(--color-line)] last:border-b-0"
                       >
-                        <td className="px-4 py-2">
+                        <td>
                           {isEditing ? (
                             <Input
                               value={editingForm.name}
@@ -244,9 +242,9 @@ export function StationsManager({
                             s.name
                           )}
                         </td>
-                        <td className="px-4 py-2">
+                        <td>
                           {isEditing ? (
-                            <label className="flex items-center gap-2 text-xs">
+                            <label className="flex items-center gap-2 text-sm">
                               <input
                                 type="checkbox"
                                 checked={editingForm.isArchived}
@@ -266,7 +264,7 @@ export function StationsManager({
                             </StatusPill>
                           )}
                         </td>
-                        <td className="px-4 py-2 text-right">
+                        <td>
                           {isEditing ? (
                             <div className="flex justify-end gap-2">
                               <Button
