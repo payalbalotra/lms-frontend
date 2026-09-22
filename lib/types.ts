@@ -14,12 +14,25 @@ export type EmployeeStatus = 'pending' | 'active' | 'deactivated';
  *  and is still surfaced in admin tables, but is not used for navigation. */
 export type EmployeeRole = 'admin' | 'employee';
 
+/** LMS access tier assigned at invite time — what this person can do in the
+ *  app, distinct from the kitchen job they do. "Admin" is intentionally
+ *  absent here; system admins are bootstrapped separately, not invited
+ *  through the employee flow. */
+export type AccessLevel = 'employee' | 'manager';
+
 export interface Employee {
   id: string;
   name: string;
   locationId: string;
-  roleId: string;
-  stationId: string | null;
+  /** LMS access tier. Distinct from `roleIds` (what job they do). */
+  accessLevel: AccessLevel;
+  /** One or more job roles (Line Cook, Prep Cook, ...). Sourced from the
+   *  `Role` table; an employee's primary role is the first entry. */
+  roleIds: string[];
+  /** One or more stations the employee is assigned to. Stations are still
+   *  scoped to a single `locationId`; multi-location station assignment is
+   *  out of scope for stage 1. */
+  stationIds: string[];
   clearanceLevel: ClearanceLevel;
   role: EmployeeRole;
   languagePref: LanguagePref;
@@ -57,6 +70,8 @@ export interface AdminEmployee extends Employee {
   createdAt: string;
   deactivatedAt: string | null;
   locationName: string | null;
+  /** Highest clearance level across all assigned job roles, surfaced in
+   *  the admin list. `null` when the employee has no job roles. */
   roleClearance: ClearanceLevel | null;
 }
 
@@ -64,9 +79,14 @@ export interface CreateEmployeeInput {
   name: string;
   email?: string | null;
   locationId: string;
-  roleId: string;
-  stationId?: string | null;
-  clearanceLevel: ClearanceLevel;
+  /** LMS access tier. Required. 'manager' implies elevated permissions;
+   *  'admin' is not assignable through the employee invite flow. */
+  accessLevel: AccessLevel;
+  /** One or more job roles (Line Cook, Prep Cook, ...). The first entry
+   *  is treated as the employee's primary role. */
+  roleIds: string[];
+  /** Zero or more station ids. Stations are scoped to `locationId`. */
+  stationIds?: string[];
   employeeCode?: string | null;
   languagePref?: LanguagePref;
 }
@@ -127,12 +147,24 @@ export type ProcedureStatus = 'draft' | 'published';
  *  Soft archive via `isArchived` — procedures that referenced an archived
  *  category keep working and surface `null` on the read side. Icon lives
  *  in code, not here (see lib/category-icons.ts). */
+export interface Subcategory {
+  id: string;
+  slug: string;
+  nameEn: string;
+  nameEs: string;
+  categoryId?: string;
+  isStationSpecific?: boolean;
+  stations?: string[];
+}
+
 export interface Category {
   id: string;
   slug: string;
   nameEn: string;
   nameEs: string;
+  icon?: string;
   isArchived: boolean;
+  subcategories?: Subcategory[];
 }
 
 /** Text filled in for both languages. */
@@ -288,6 +320,20 @@ export interface Quiz {
  *  Ignored when `quizId` is null. */
 export type ProcedureQuizMode = 'training' | 'always';
 
+/** Which stations this procedure applies to. `mode: 'all'` means the
+ *  procedure is shown to every station regardless of the cook's station
+ *  assignment; `mode: 'specific'` with a non-empty `stationIds` narrows
+ *  the audience to those stations only. The empty-arrays case
+ *  (`mode: 'specific'`, `stationIds: []`) means "specific stations chosen
+ *  later" — the wizard blocks submit when this state is reached for a
+ *  station-specific subcategory. Mirrors the rule in the categories
+ *  editor where a station-specific subcategory enforces at least one
+ *  station when authored. */
+export interface ProcedureStationScope {
+  mode: 'all' | 'specific';
+  stationIds: string[];
+}
+
 export interface Procedure {
   id: string;
   slug: string;
@@ -302,6 +348,17 @@ export interface Procedure {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+  /** FK to the subcategory under the chosen `category`. Two procedures
+   *  in the same category can land in different subcategories (e.g.
+   *  Food Safety → Hygiene vs Allergy). `null` means the procedure has
+   *  no subcategory yet (legacy / draft before the wizard's 2-column
+   *  picker landed). Backend will hold this as `subcategory_id text`
+   *  (nullable). */
+  subcategoryId?: string | null;
+  /** Per-procedure station scope. The subcategory already carries a
+   *  `stations?: string[]` hint — the procedure may narrow or widen it.
+   *  Absent when the procedure is general (no station scope). */
+  stationScope?: ProcedureStationScope | null;
   /** Monotonic publish version. Bumped server-side on every publish
    *  inside a SELECT FOR UPDATE transaction so two concurrent publishes
    *  don't both write N+1. Per PROJECT_OVERVIEW §02 SOP Library: "Every
@@ -359,6 +416,14 @@ export interface CreateProcedureInput {
   purposeEn: string;
   purposeEs: string;
   categoryId: string | null;
+  /** FK to the subcategory under `categoryId`. Required when the chosen
+   *  subcategory belongs to a category that defines subcategories;
+   *  optional otherwise. */
+  subcategoryId?: string | null;
+  /** Per-procedure station scope. The subcategory carries a default
+   *  hint; the procedure may narrow or widen it. Omit when the
+   *  procedure has no station scope (general / subcategory is general). */
+  stationScope?: ProcedureStationScope | null;
   status?: ProcedureStatus;
   bodyEn: ProcedureBody;
   bodyEs: ProcedureBody;

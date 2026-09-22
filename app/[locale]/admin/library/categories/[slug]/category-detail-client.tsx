@@ -41,6 +41,35 @@ const DEFAULT_STATIONS = [
   { id: 'stn-dish', code: 'Dishwasher', description: 'Sanitation & Dish' },
 ];
 
+/** Library-wide catalog of procedures already created in the system. The
+ *  Add Procedure modal surfaces this list so the manager can pick one or
+ *  many existing/draft procedures and link them into the subcategory
+ *  without going through the wizard. Mirrors the wizard's Access-step
+ *  station ids so any pre-fill there lines up. */
+const EXISTING_PROCEDURES: Array<{
+  id: string;
+  slug: string;
+  titleEn: string;
+  titleEs: string;
+  station: string;
+  status: 'draft' | 'published';
+  updatedAgoEn: string;
+  updatedAgoEs: string;
+}> = [
+  { id: 'proc-001', slug: 'cold-section-plating-sop', titleEn: 'Cold Section Plating SOP', titleEs: 'Emplatado - Sección fría', station: 'st-gm', status: 'published', updatedAgoEn: 'Updated 2 days ago', updatedAgoEs: 'Actualizado hace 2 días' },
+  { id: 'proc-002', slug: 'grill-plating-sop', titleEn: 'Grill Plating SOP', titleEs: 'Emplatado - Parrilla', station: 'st-grill', status: 'published', updatedAgoEn: 'Updated 3 days ago', updatedAgoEs: 'Actualizado hace 3 días' },
+  { id: 'proc-003', slug: 'expo-plating-sop', titleEn: 'Expo Plating SOP', titleEs: 'Emplatado - Expo', station: 'st-expo', status: 'draft', updatedAgoEn: 'Draft · 4 hours ago', updatedAgoEs: 'Borrador · hace 4 horas' },
+  { id: 'proc-004', slug: 'prep-kitchen-plating-sop', titleEn: 'Prep Kitchen Plating SOP', titleEs: 'Emplatado - Cocina de preparación', station: 'st-prep', status: 'published', updatedAgoEn: 'Updated 5 days ago', updatedAgoEs: 'Actualizado hace 5 días' },
+  { id: 'proc-005', slug: 'hot-line-cooking-sop', titleEn: 'Hot Line Cooking SOP', titleEs: 'Cocción - Línea caliente', station: 'st-grill', status: 'draft', updatedAgoEn: 'Draft · yesterday', updatedAgoEs: 'Borrador · ayer' },
+  { id: 'proc-006', slug: 'fryer-temperature-guide', titleEn: 'Fryer Temperature & Timing SOP', titleEs: 'Control de Temperatura de Freidora', station: 'st-gm', status: 'published', updatedAgoEn: 'Updated 3 days ago', updatedAgoEs: 'Actualizado hace 3 días' },
+  { id: 'proc-007', slug: 'handwashing-sanitization-sop', titleEn: 'Handwashing & Personal Sanitization', titleEs: 'Lavado de Manos y Sanitización', station: 'General', status: 'published', updatedAgoEn: 'Updated 1 day ago', updatedAgoEs: 'Actualizado hace 1 día' },
+  { id: 'proc-008', slug: 'surface-disinfection-sop', titleEn: 'Surface Disinfection Standard', titleEs: 'Estándar de Desinfección de Superficies', station: 'General', status: 'draft', updatedAgoEn: 'Draft · 2 days ago', updatedAgoEs: 'Borrador · hace 2 días' },
+  { id: 'proc-009', slug: 'knife-safety-sop', titleEn: 'Knife Safety & Sharpening SOP', titleEs: 'Seguridad con Cuchillos y Afilado', station: 'st-prep', status: 'published', updatedAgoEn: 'Updated 6 days ago', updatedAgoEs: 'Actualizado hace 6 días' },
+  { id: 'proc-010', slug: 'walk-in-cooler-temps', titleEn: 'Walk-in Cooler Temperature Log', titleEs: 'Registro de Temperatura del Refrigerador', station: 'st-gm', status: 'published', updatedAgoEn: 'Updated 2 days ago', updatedAgoEs: 'Actualizado hace 2 días' },
+  { id: 'proc-011', slug: 'opening-lineup-sop', titleEn: 'Opening Lineup & Roll Call', titleEs: 'Alineación de Apertura y Pase de Lista', station: 'st-expo', status: 'draft', updatedAgoEn: 'Draft · 6 hours ago', updatedAgoEs: 'Borrador · hace 6 horas' },
+  { id: 'proc-012', slug: 'closing-cleanup-sop', titleEn: 'Closing Cleanup & Equipment Shutdown', titleEs: 'Limpieza de Cierre y Apagado de Equipo', station: 'st-dish', status: 'published', updatedAgoEn: 'Updated 3 days ago', updatedAgoEs: 'Actualizado hace 3 días' },
+];
+
 const PROCEDURES_BY_SUBCATEGORY: Record<
   string,
   Array<{ id: string; slug: string; titleEn: string; titleEs: string; station: string; updatedAgoEn: string; updatedAgoEs: string }>
@@ -157,6 +186,17 @@ export function CategoryDetailClient({
   const updateMutation = useUpdateCategory();
   const subcategories = category.subcategories ?? [];
   const totalProcedures = subcategories.length > 0 ? subcategories.length * 5 + 4 : 0;
+
+  // Procedures the manager has linked into a subcategory via the "Add
+  // procedure" modal. Keyed by subcategory slug. Linked procedures are
+  // appended in front of the per-slug fixtures so they appear at the top of
+  // the expanded panel; deduped by id so re-linking is a no-op.
+  const [linkedProceduresBySubSlug, setLinkedProceduresBySubSlug] = React.useState<
+    Record<string, typeof EXISTING_PROCEDURES>
+  >({});
+
+  // Subcategory the manager is acting on via the Add Procedure modal.
+  const [linkProceduresSub, setLinkProceduresSub] = React.useState<Subcategory | null>(null);
 
   async function handleSaveSubcategory(newSub: {
     nameEn: string;
@@ -303,7 +343,12 @@ export function CategoryDetailClient({
             const panelId = `subcategory-panel-${sub.id || sub.slug}`;
             const headerId = `subcategory-header-${sub.id || sub.slug}`;
 
-            const procedures =
+            // Resolve the visible procedure list: linked procedures (added via
+            // the Add Procedure modal) first, then the per-slug fixtures as
+            // the implicit starter pack. Dedupe by id so re-linking never
+            // duplicates a row.
+            const linked = linkedProceduresBySubSlug[sub.slug] ?? [];
+            const fixtures =
               PROCEDURES_BY_SUBCATEGORY[sub.slug] ?? [
                 {
                   id: `proc-${sub.slug}-1`,
@@ -324,6 +369,11 @@ export function CategoryDetailClient({
                   updatedAgoEs: 'Actualizado hace 4 días',
                 },
               ];
+            const seen = new Set(linked.map((p) => p.id));
+            const procedures = [
+              ...linked,
+              ...fixtures.filter((p) => !seen.has(p.id)),
+            ];
 
             const stationCodes = sub.stations ?? (isGeneral ? [] : ['GM', 'Grill', 'Expo']);
             const visibleStations = stationCodes.slice(0, 3);
@@ -426,8 +476,7 @@ export function CategoryDetailClient({
                       items={[
                         {
                           label: isEs ? 'Añadir procedimiento' : 'Add procedure',
-                          onSelect: () =>
-                            router.push(`/${locale}/admin/library/new?category=${category.slug}&subcategory=${sub.slug}`),
+                          onSelect: () => setLinkProceduresSub(sub),
                         },
                         {
                           label: isEs ? 'Vincular estaciones' : 'Link stations',
@@ -470,9 +519,7 @@ export function CategoryDetailClient({
 
                       <button
                         type="button"
-                        onClick={() =>
-                          router.push(`/${locale}/admin/library/new?category=${category.slug}&subcategory=${sub.slug}`)
-                        }
+                        onClick={() => setLinkProceduresSub(sub)}
                         className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-[var(--color-ink-2)] transition-colors hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)]"
                       >
                         <LuPlus className="text-sm" />
@@ -584,6 +631,345 @@ export function CategoryDetailClient({
           />
         )}
       </Modal>
+
+      {/* Add Procedure Modal — opens from the "Add procedure" toolbar and
+          the row-action menu. Two flows:
+          (1) Pick existing/draft procedures from the catalog and link them
+              into the subcategory (no wizard, instant).
+          (2) Click "Create new" to launch the wizard with category +
+              subcategory + access (location, stations) pre-filled. */}
+      <Modal open={Boolean(linkProceduresSub)} onClose={() => setLinkProceduresSub(null)} size="lg">
+        {linkProceduresSub && (
+          <AddProcedureModal
+            isEs={isEs}
+            category={category}
+            sub={linkProceduresSub}
+            alreadyLinkedIds={new Set(
+              (linkedProceduresBySubSlug[linkProceduresSub.slug] ?? []).map((p) => p.id),
+            )}
+            onAddExisting={(selected) => {
+              const target = linkProceduresSub;
+              setLinkedProceduresBySubSlug((prev) => {
+                const existing = prev[target.slug] ?? [];
+                const seen = new Set(existing.map((p) => p.id));
+                const merged = [...existing, ...selected.filter((p) => !seen.has(p.id))];
+                return { ...prev, [target.slug]: merged };
+              });
+              setLinkProceduresSub(null);
+            }}
+            onCreateNew={() => {
+              const target = linkProceduresSub;
+              // Translate subcategory station ids (e.g. `stn-gm`) into the
+              // wizard's ACCESS_STATIONS ids (e.g. `st-gm`) so the Access
+              // step's pre-fill lands on the right checkboxes. The mapping
+              // strips the trailing `n`; real backend ids will replace both
+              // sides once we wire the fixtures to the database.
+              const accessStations = (target.stations ?? [])
+                .map((id) => id.replace(/^stn-/, 'st-'))
+                .join(',');
+              setLinkProceduresSub(null);
+              router.push(
+                `/${locale}/admin/library/new?category=${category.slug}&subcategory=${target.slug}&accessLocation=loc-main&accessStations=${encodeURIComponent(accessStations)}`,
+              );
+            }}
+            onCancel={() => setLinkProceduresSub(null)}
+          />
+        )}
+      </Modal>
+    </div>
+  );
+}
+
+function AddProcedureModal({
+  isEs,
+  category,
+  sub,
+  alreadyLinkedIds,
+  onAddExisting,
+  onCreateNew,
+  onCancel,
+}: {
+  isEs: boolean;
+  category: Category;
+  sub: Subcategory;
+  alreadyLinkedIds: Set<string>;
+  onAddExisting: (selected: typeof EXISTING_PROCEDURES) => void;
+  onCreateNew: () => void;
+  onCancel: () => void;
+}): React.ReactElement {
+  const [search, setSearch] = React.useState('');
+  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
+  const subName = isEs ? sub.nameEs || sub.nameEn : sub.nameEn;
+  const catName = isEs ? category.nameEs : category.nameEn;
+
+  // Filter the catalog by title or station; case-insensitive; trims
+  // whitespace. Empty search shows the full list.
+  const filtered = React.useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return EXISTING_PROCEDURES;
+    return EXISTING_PROCEDURES.filter(
+      (p) =>
+        p.titleEn.toLowerCase().includes(q) ||
+        p.titleEs.toLowerCase().includes(q) ||
+        p.station.toLowerCase().includes(q),
+    );
+  }, [search]);
+
+  const toggle = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const canAdd = selectedIds.size > 0;
+
+  return (
+    <div className="flex flex-col max-h-[80vh]">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4 border-b border-[var(--color-line)] p-5 pb-4 shrink-0">
+        <div className="flex items-start gap-3 min-w-0">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-panel)] text-[var(--color-ink-2)] text-base">
+            <LuFileText />
+          </span>
+          <div className="min-w-0">
+            <h2 className="font-[family-name:var(--font-display)] text-lg font-bold tracking-tight text-[var(--color-ink)]">
+              {isEs ? 'Añadir procedimiento' : 'Add procedure'}
+            </h2>
+            <p className="text-xs text-[var(--color-ink-3)] mt-0.5">
+              {isEs
+                ? 'Vincula uno o varios procedimientos existentes o crea uno nuevo.'
+                : 'Link one or several existing procedures, or create a new one.'}
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onCancel}
+          aria-label={isEs ? 'Cerrar' : 'Close'}
+          className="flex size-7 items-center justify-center rounded-md text-[var(--color-ink-3)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)]"
+        >
+          <LuX className="text-lg" />
+        </button>
+      </div>
+
+      {/* Body */}
+      <div className="flex-1 overflow-y-auto p-5 space-y-5">
+        {/* EXISTING PROCEDURES — pick to link */}
+        <section className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-ink-3)]">
+              {isEs ? 'Procedimientos existentes' : 'Existing procedures'}
+            </p>
+            <span className="shrink-0 text-xs font-medium text-[var(--color-ink-3)]">
+              {selectedIds.size > 0
+                ? isEs
+                  ? `${selectedIds.size} seleccionado${selectedIds.size === 1 ? '' : 's'}`
+                  : `${selectedIds.size} selected`
+                : isEs
+                  ? `${filtered.length} disponible${filtered.length === 1 ? '' : 's'}`
+                  : `${filtered.length} available`}
+            </span>
+          </div>
+
+          {/* Search */}
+          <div className="relative">
+            <LuFileText className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-ink-3)]" />
+            <Input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={isEs ? 'Buscar procedimientos…' : 'Search procedures…'}
+              className="h-9 pl-9 pr-9 text-xs"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                aria-label={isEs ? 'Limpiar búsqueda' : 'Clear search'}
+                className="absolute right-2 top-1/2 -translate-y-1/2 flex size-6 items-center justify-center rounded-md text-[var(--color-ink-3)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)]"
+              >
+                <LuX className="text-sm" />
+              </button>
+            )}
+          </div>
+
+          {/* List */}
+          {filtered.length === 0 ? (
+            <div className="rounded-[var(--radius-md)] border border-dashed border-[var(--color-line-2)] bg-[var(--color-surface)] px-4 py-6 text-center text-xs text-[var(--color-ink-3)]">
+              {isEs
+                ? 'No hay procedimientos que coincidan con la búsqueda.'
+                : 'No procedures match the search.'}
+            </div>
+          ) : (
+            <div
+              role="listbox"
+              aria-multiselectable="true"
+              aria-label={isEs ? 'Procedimientos existentes' : 'Existing procedures'}
+              className="max-h-[260px] overflow-y-auto rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] divide-y divide-[var(--color-line)]"
+            >
+              {filtered.map((proc) => {
+                const isChecked = selectedIds.has(proc.id);
+                const isAlreadyLinked = alreadyLinkedIds.has(proc.id);
+                return (
+                  <label
+                    key={proc.id}
+                    className={cn(
+                      'flex items-center gap-3 px-4 py-3 min-h-12 cursor-pointer transition-colors',
+                      isChecked
+                        ? 'bg-[var(--color-brand-tint)]'
+                        : 'hover:bg-[var(--color-wash)]',
+                      isAlreadyLinked && 'opacity-60',
+                    )}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      disabled={isAlreadyLinked}
+                      onChange={() => toggle(proc.id)}
+                      aria-label={proc.titleEn}
+                      className="size-4 shrink-0 accent-[var(--color-brand-600)] disabled:cursor-not-allowed"
+                    />
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        'flex size-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border text-sm',
+                        isChecked
+                          ? 'border-[var(--color-brand-600)] bg-[var(--color-brand-600)] text-white'
+                          : 'border-[var(--color-line-2)] bg-[var(--color-panel)] text-[var(--color-ink-2)]',
+                      )}
+                    >
+                      <LuFileText />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="truncate text-sm font-semibold text-[var(--color-ink)]">
+                          {proc.titleEn}
+                        </span>
+                        <span
+                          className={cn(
+                            'inline-flex h-5 items-center px-2 text-[10px] font-semibold uppercase tracking-wider rounded-md border',
+                            proc.status === 'draft'
+                              ? 'bg-[var(--color-warn-tint)] text-[var(--color-warn-ink)] border-[var(--color-warn)]/30'
+                              : 'bg-[var(--color-ok-tint)] text-[var(--color-ok)] border-[var(--color-ok)]/30',
+                          )}
+                        >
+                          {proc.status === 'draft' ? (isEs ? 'Borrador' : 'Draft') : (isEs ? 'Publicado' : 'Published')}
+                        </span>
+                        {isAlreadyLinked && (
+                          <span className="inline-flex h-5 items-center px-2 text-[10px] font-semibold uppercase tracking-wider rounded-md bg-[var(--color-panel)] text-[var(--color-ink-3)] border border-[var(--color-line-2)]">
+                            {isEs ? 'Vinculado' : 'Linked'}
+                          </span>
+                        )}
+                      </div>
+                      <span className="block truncate text-xs text-[var(--color-ink-3)]">
+                        {proc.titleEs}
+                      </span>
+                    </div>
+                    {proc.station !== 'General' && (
+                      <span className="inline-flex h-6 items-center justify-center px-2.5 text-[11px] font-semibold tracking-[0.02em] leading-none rounded-md bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] border border-[var(--color-brand-600)]/20 hidden sm:inline-flex shrink-0">
+                        {proc.station.replace(/^st-/, '').toUpperCase()}
+                      </span>
+                    )}
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* Divider */}
+        <div className="flex items-center gap-3">
+          <div className="h-px flex-1 bg-[var(--color-line)]" />
+          <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-ink-3)]">
+            {isEs ? 'O crea uno nuevo' : 'Or create a new one'}
+          </span>
+          <div className="h-px flex-1 bg-[var(--color-line)]" />
+        </div>
+
+        {/* NEW PROCEDURE — locked target summary */}
+        <section className="space-y-3">
+          <div className="space-y-3">
+            {/* Category row */}
+            <div className="space-y-1.5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-ink-3)]">
+                {isEs ? 'Categoría' : 'Category'}
+              </p>
+              <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 min-h-9">
+                <span
+                  aria-hidden="true"
+                  className="flex size-6 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-panel)] text-[var(--color-ink-2)] text-xs border border-[var(--color-line-2)]"
+                >
+                  <Icon icon={getCategoryIcon(category)} />
+                </span>
+                <span className="text-sm font-semibold text-[var(--color-ink)] truncate">
+                  {catName}
+                </span>
+              </div>
+            </div>
+
+            {/* Subcategory row */}
+            <div className="space-y-1.5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-ink-3)]">
+                {isEs ? 'Subcategoría' : 'Subcategory'}
+              </p>
+              <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 min-h-9">
+                <span
+                  aria-hidden="true"
+                  className="flex size-6 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-panel)] text-[var(--color-ink-2)] text-xs border border-[var(--color-line-2)]"
+                >
+                  <LuLink />
+                </span>
+                <span className="text-sm font-semibold text-[var(--color-ink)] truncate">
+                  {subName}
+                </span>
+              </div>
+            </div>
+          </div>
+          <p className="text-[11px] text-[var(--color-ink-3)]">
+            {isEs
+              ? `La categoría, subcategoría${sub.stations?.length ? ' y las estaciones' : ''} se rellenarán automáticamente.`
+              : `Category, subcategory${sub.stations?.length ? ' and stations' : ''} will be filled in automatically.`}
+          </p>
+        </section>
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-end gap-2 border-t border-[var(--color-line)] bg-[var(--color-wash)] px-5 py-3 shrink-0">
+        <Button
+          type="button"
+          variant="neutral"
+          onClick={onCancel}
+          className="px-4 text-xs font-semibold"
+        >
+          {isEs ? 'Cancelar' : 'Cancel'}
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={onCreateNew}
+          className="px-4 text-xs font-semibold"
+        >
+          <LuPlus className="text-sm" />
+          {isEs ? 'Crear nuevo' : 'Create new'}
+        </Button>
+        <Button
+          type="button"
+          variant="primary"
+          disabled={!canAdd}
+          onClick={() => {
+            const selected = EXISTING_PROCEDURES.filter((p) => selectedIds.has(p.id));
+            onAddExisting(selected);
+          }}
+          className="px-4 text-xs font-semibold shadow-e1"
+        >
+          {isEs
+            ? `Añadir ${selectedIds.size > 0 ? `(${selectedIds.size})` : ''}`
+            : `Add ${selectedIds.size > 0 ? `(${selectedIds.size})` : ''}`}
+        </Button>
+      </div>
     </div>
   );
 }

@@ -6,6 +6,8 @@
  * persisted — the screen is presentational only.
  */
 
+import type { Category, Subcategory } from '@/lib/types';
+
 export interface AccessOption {
   id: string;
   label: string;
@@ -22,23 +24,35 @@ export interface EmployeeOption {
 }
 
 /**
- * Demo data for the Access step on the new-procedure wizard.
- * Presentational only — the lists are not persisted.
+ * Map a Category to the AccessOption shape used by AccessBlock. Keeps the
+ * bilingual label and surfaces the subcategory count in `sub` so the
+ * manager sees how granular the category is.
  */
-
-export interface AccessOption {
-  id: string;
-  label: string;
-  sub: string;
-  icon: string;
+export function categoryToAccessOption(c: Category, isEs: boolean): AccessOption {
+  const count = c.subcategories?.length ?? 0;
+  const label = isEs ? c.nameEs : c.nameEn;
+  return {
+    id: c.id,
+    label,
+    sub: `${count} ${isEs ? (count === 1 ? 'subcategoría' : 'subcategorías') : count === 1 ? 'subcategory' : 'subcategories'}`,
+    icon: c.icon ?? 'ri-folder-line',
+  };
 }
 
-export interface EmployeeOption {
-  id: string;
-  name: string;
-  initials: string;
-  role: string;
-  station: string;
+/**
+ * Map a Subcategory to an AccessOption. The label is bilingual and the
+ * `sub` line names the parent category so a subcategory never floats
+ * without context.
+ */
+export function subcategoryToAccessOption(s: Subcategory, parent: Category, isEs: boolean): AccessOption {
+  const label = isEs ? s.nameEs : s.nameEn;
+  const parentLabel = isEs ? parent.nameEs : parent.nameEn;
+  return {
+    id: s.id,
+    label,
+    sub: parentLabel,
+    icon: 'ri-stack-line',
+  };
 }
 
 /** Single restaurant at launch. Add entries here when a second location

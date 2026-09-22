@@ -15,15 +15,156 @@ interface PageProps {
 
 export const dynamic = 'force-dynamic';
 
+/** Mirror of `SEED_CATEGORIES` in `lib/api.ts`. Used as a fallback when
+ *  localStorage hasn't seeded yet (e.g. SSR or a freshly cleared store).
+ *  Kept in sync with the seed so the explorer renders identically whether
+ *  data comes from the API or this constant. */
 const DEFAULT_CATEGORIES: Category[] = [
-  { id: 'cat-recipes', slug: 'recipes', nameEn: 'Recipes', nameEs: 'Recetas', isArchived: false },
-  { id: 'cat-station', slug: 'station', nameEn: 'Station Procedures', nameEs: 'Procedimientos de Estación', isArchived: false },
-  { id: 'cat-cleaning', slug: 'cleaning', nameEn: 'Cleaning Schedules', nameEs: 'Horarios de Limpieza', isArchived: false },
-  { id: 'cat-admin', slug: 'admin', nameEn: 'General Procedures', nameEs: 'Procedimientos Generales', isArchived: false },
-  { id: 'cat-delivery', slug: 'delivery', nameEn: 'Delivery & Receiving', nameEs: 'Entrega y Recepción', isArchived: false },
-  { id: 'cat-safety', slug: 'food-safety', nameEn: 'Food Safety', nameEs: 'Seguridad Alimentaria', isArchived: false },
-  { id: 'cat-equipment', slug: 'equipment', nameEn: 'Equipment Handling', nameEs: 'Manejo de Equipos', isArchived: false },
-  { id: 'cat-other', slug: 'other', nameEn: 'Other', nameEs: 'Otros', isArchived: false },
+  {
+    id: 'cat-onboarding',
+    slug: 'onboarding',
+    nameEn: 'Onboarding',
+    nameEs: 'Inducción y Capacitación',
+    isArchived: false,
+    subcategories: [
+      { id: 'sub-culture', slug: 'culture', nameEn: 'Culture', nameEs: 'Cultura' },
+      { id: 'sub-uniform', slug: 'uniform', nameEn: 'Uniform', nameEs: 'Uniforme' },
+      { id: 'sub-conduct', slug: 'conduct', nameEn: 'Employee Conduct', nameEs: 'Conducta del Empleado' },
+    ],
+  },
+  {
+    id: 'cat-safety',
+    slug: 'food-safety',
+    nameEn: 'Food Safety',
+    nameEs: 'Seguridad Alimentaria',
+    isArchived: false,
+    subcategories: [
+      { id: 'sub-hygiene', slug: 'hygiene', nameEn: 'Hygiene', nameEs: 'Higiene' },
+      { id: 'sub-cross-contamination', slug: 'cross-contamination', nameEn: 'Cross-Contamination', nameEs: 'Contaminación Cruzada' },
+      { id: 'sub-labeling-dating', slug: 'labeling-dating', nameEn: 'Labeling & Dating', nameEs: 'Etiquetado y Fechado' },
+      { id: 'sub-allergy', slug: 'allergy', nameEn: 'Allergy', nameEs: 'Alergias' },
+    ],
+  },
+  {
+    id: 'cat-kitchen-ops',
+    slug: 'kitchen-operations',
+    nameEn: 'Kitchen Operations',
+    nameEs: 'Operaciones de Cocina',
+    isArchived: false,
+    subcategories: [
+      { id: 'sub-station-setup', slug: 'station-setup', nameEn: 'Station Setup', nameEs: 'Montaje de Estación', isStationSpecific: true },
+      { id: 'sub-kitchen-comm', slug: 'kitchen-communication', nameEn: 'Kitchen Communication', nameEs: 'Comunicación en Cocina' },
+    ],
+  },
+  {
+    id: 'cat-cleaning',
+    slug: 'cleaning',
+    nameEn: 'Cleaning',
+    nameEs: 'Limpieza',
+    isArchived: false,
+    subcategories: [
+      { id: 'sub-dishwashing', slug: 'dishwashing', nameEn: 'Dishwashing', nameEs: 'Lavadiscos' },
+      { id: 'sub-chemical', slug: 'chemical-handling', nameEn: 'Chemical Handling', nameEs: 'Manejo de Químicos' },
+      { id: 'sub-waste', slug: 'waste-disposal', nameEn: 'Waste Disposal', nameEs: 'Disposición de Desechos' },
+    ],
+  },
+  {
+    id: 'cat-opening-closing',
+    slug: 'opening-closing',
+    nameEn: 'Opening and Closing',
+    nameEs: 'Apertura y Cierre',
+    isArchived: false,
+    subcategories: [
+      {
+        id: 'sub-opening',
+        slug: 'opening-procedures',
+        nameEn: 'Opening Procedures',
+        nameEs: 'Procedimientos de Apertura',
+        isStationSpecific: true,
+        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
+      },
+      {
+        id: 'sub-closing',
+        slug: 'closing-procedures',
+        nameEn: 'Closing Procedures',
+        nameEs: 'Procedimientos de Cierre',
+        isStationSpecific: true,
+        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
+      },
+      {
+        id: 'sub-end-day',
+        slug: 'end-of-day-checks',
+        nameEn: 'End of Day Checks',
+        nameEs: 'Verificaciones de Fin de Día',
+        isStationSpecific: true,
+        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
+      },
+    ],
+  },
+  {
+    id: 'cat-equipment',
+    slug: 'equipment',
+    nameEn: 'Equipment',
+    nameEs: 'Equipamiento',
+    isArchived: false,
+    subcategories: [
+      {
+        id: 'sub-operation',
+        slug: 'operation',
+        nameEn: 'Operation',
+        nameEs: 'Operación',
+        isStationSpecific: true,
+        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
+      },
+      {
+        id: 'sub-eq-safety',
+        slug: 'equipment-safety',
+        nameEn: 'Safety',
+        nameEs: 'Seguridad',
+        isStationSpecific: true,
+        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
+      },
+      {
+        id: 'sub-eq-cleaning',
+        slug: 'equipment-cleaning',
+        nameEn: 'Cleaning',
+        nameEs: 'Limpieza',
+        isStationSpecific: true,
+        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
+      },
+    ],
+  },
+  {
+    id: 'cat-recipes',
+    slug: 'recipes',
+    nameEn: 'Recipes',
+    nameEs: 'Recetas',
+    isArchived: false,
+    subcategories: [
+      {
+        id: 'sub-plating',
+        slug: 'plating',
+        nameEn: 'Plating',
+        nameEs: 'Emplatado',
+        isStationSpecific: true,
+        stations: ['stn-gm', 'stn-grill', 'stn-expo'],
+      },
+      {
+        id: 'sub-cooking',
+        slug: 'cooking',
+        nameEn: 'Cooking',
+        nameEs: 'Cocción',
+        isStationSpecific: true,
+        stations: ['stn-gm', 'stn-grill'],
+      },
+      {
+        id: 'sub-portion',
+        slug: 'portion-standards',
+        nameEn: 'Portion Standards',
+        nameEs: 'Estándares de Porción',
+      },
+    ],
+  },
 ];
 
 async function readFirstManagedLocation(

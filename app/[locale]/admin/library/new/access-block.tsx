@@ -35,14 +35,20 @@ export interface AccessBlockProps {
   onToggle: (id: string) => void;
   /** Columns on the `sm` breakpoint and up. Defaults to 2. */
   columns?: 2 | 3 | 4;
-  /** Swaps the picker grid for a single CustomSelect (used by Locations). */
+  /** Swaps the picker grid for a single CustomSelect (used by Locations
+   *  and Stations). */
   variant?: 'grid' | 'dropdown';
+  /** Placeholder text inside the dropdown trigger when nothing is picked. */
+  dropdownPlaceholder?: string;
   /** Appends an "All" shortcut at the end that toggles every option. */
   allOption?: boolean;
   /** Label for the all-option trigger. */
   allOptionLabel?: string;
   /** Cap on rendered options before a "Show N more" toggle appears. */
   maxVisible?: number;
+  /** Italic helper text shown beneath the grid (e.g. explains why a
+   *  dependent list is empty, or nudges the manager to scope it). */
+  footerHint?: string;
   disabled?: boolean;
 }
 
@@ -56,9 +62,11 @@ export function AccessBlock({
   onToggle,
   columns = 2,
   variant = 'grid',
+  dropdownPlaceholder,
   allOption = false,
   allOptionLabel,
   maxVisible,
+  footerHint,
   disabled = false,
 }: AccessBlockProps): React.ReactElement {
   const tAccess = useTranslations('admin.library.new.access');
@@ -91,7 +99,7 @@ export function AccessBlock({
               description: opt.sub,
               icon: opt.icon,
             }))}
-            placeholder={tAccess('locationDropdownPlaceholder')}
+            placeholder={dropdownPlaceholder ?? tAccess('locationDropdownPlaceholder')}
             leadingIcon={LuMapPin}
             disabled={disabled}
           />
@@ -254,6 +262,10 @@ export function AccessBlock({
         <p className="pl-10 text-sm text-[var(--color-ink-3)] italic">
           {tAccess('publicDisabledHint')}
         </p>
+      )}
+
+      {footerHint && !disabled && (
+        <p className="pl-10 text-xs text-[var(--color-ink-3)] italic">{footerHint}</p>
       )}
     </AccessRow>
   );

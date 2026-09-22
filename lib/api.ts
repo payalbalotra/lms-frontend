@@ -62,18 +62,166 @@ const SEED_ROLES: Role[] = [
 ];
 
 const SEED_STATIONS: Station[] = [
-  { id: 'stn-grill', name: 'Hot Line / Grill', locationId: 'loc-main', sortOrder: 1, isArchived: false },
-  { id: 'stn-prep', name: 'Prep & Cold Station', locationId: 'loc-main', sortOrder: 2, isArchived: false },
-  { id: 'stn-dish', name: 'Sanitation & Dish', locationId: 'loc-main', sortOrder: 3, isArchived: false },
-  { id: 'stn-tortilla', name: 'Tortilla Station', locationId: 'loc-main', sortOrder: 4, isArchived: false },
+  { id: 'stn-gm', name: 'GM - Cold section + fryer', locationId: 'loc-main', sortOrder: 1, isArchived: false },
+  { id: 'stn-grill', name: 'Grill', locationId: 'loc-main', sortOrder: 2, isArchived: false },
+  { id: 'stn-expo', name: 'Expo', locationId: 'loc-main', sortOrder: 3, isArchived: false },
+  { id: 'stn-prep', name: 'prep kitchen', locationId: 'loc-main', sortOrder: 4, isArchived: false },
+  { id: 'stn-dish', name: 'Dishwasher', locationId: 'loc-main', sortOrder: 5, isArchived: false },
 ];
 
 const SEED_CATEGORIES: Category[] = [
-  { id: 'cat-station', slug: 'station', nameEn: 'Station Procedures', nameEs: 'Procedimientos de Estación', isArchived: false },
-  { id: 'cat-recipes', slug: 'recipes', nameEn: 'Recipes & Prep', nameEs: 'Recetas y Preparación', isArchived: false },
-  { id: 'cat-cleaning', slug: 'cleaning', nameEn: 'Cleaning Schedules', nameEs: 'Horarios de Limpieza', isArchived: false },
-  { id: 'cat-safety', slug: 'food-safety', nameEn: 'Food Safety', nameEs: 'Seguridad Alimentaria', isArchived: false },
-  { id: 'cat-equipment', slug: 'equipment', nameEn: 'Equipment Handling', nameEs: 'Manejo de Equipos', isArchived: false },
+  {
+    id: 'cat-onboarding',
+    slug: 'onboarding',
+    nameEn: 'Onboarding',
+    nameEs: 'Inducción y Capacitación',
+    icon: 'LuClipboardList',
+    isArchived: false,
+    subcategories: [
+      { id: 'sub-culture', slug: 'culture', nameEn: 'Culture', nameEs: 'Cultura' },
+      { id: 'sub-uniform', slug: 'uniform', nameEn: 'Uniform', nameEs: 'Uniforme' },
+      { id: 'sub-conduct', slug: 'conduct', nameEn: 'Employee Conduct', nameEs: 'Conducta del Empleado' },
+    ],
+  },
+  {
+    id: 'cat-safety',
+    slug: 'food-safety',
+    nameEn: 'Food Safety',
+    nameEs: 'Seguridad Alimentaria',
+    icon: 'LuShieldCheck',
+    isArchived: false,
+    subcategories: [
+      { id: 'sub-hygiene', slug: 'hygiene', nameEn: 'Hygiene', nameEs: 'Higiene' },
+      { id: 'sub-cross-contamination', slug: 'cross-contamination', nameEn: 'Cross-Contamination', nameEs: 'Contaminación Cruzada' },
+      { id: 'sub-labeling-dating', slug: 'labeling-dating', nameEn: 'Labeling & Dating', nameEs: 'Etiquetado y Fechado' },
+      { id: 'sub-allergy', slug: 'allergy', nameEn: 'Allergy', nameEs: 'Alergias' },
+    ],
+  },
+  {
+    id: 'cat-kitchen-ops',
+    slug: 'kitchen-operations',
+    nameEn: 'Kitchen Operations',
+    nameEs: 'Operaciones de Cocina',
+    icon: 'LuBuilding2',
+    isArchived: false,
+    subcategories: [
+      { id: 'sub-station-setup', slug: 'station-setup', nameEn: 'Station Setup', nameEs: 'Montaje de Estación', isStationSpecific: true, stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'] },
+      { id: 'sub-kitchen-comm', slug: 'kitchen-communication', nameEn: 'Kitchen Communication', nameEs: 'Comunicación en Cocina' },
+    ],
+  },
+  {
+    id: 'cat-cleaning',
+    slug: 'cleaning',
+    nameEn: 'Cleaning',
+    nameEs: 'Limpieza',
+    icon: 'LuBrush',
+    isArchived: false,
+    subcategories: [
+      { id: 'sub-dishwashing', slug: 'dishwashing', nameEn: 'Dishwashing', nameEs: 'Lavadiscos' },
+      { id: 'sub-chemical', slug: 'chemical-handling', nameEn: 'Chemical Handling', nameEs: 'Manejo de Químicos' },
+      { id: 'sub-waste', slug: 'waste-disposal', nameEn: 'Waste Disposal', nameEs: 'Disposición de Desechos' },
+    ],
+  },
+  {
+    id: 'cat-opening-closing',
+    slug: 'opening-closing',
+    nameEn: 'Opening and Closing',
+    nameEs: 'Apertura y Cierre',
+    icon: 'LuPackage',
+    isArchived: false,
+    subcategories: [
+      {
+        id: 'sub-opening',
+        slug: 'opening-procedures',
+        nameEn: 'Opening Procedures',
+        nameEs: 'Procedimientos de Apertura',
+        isStationSpecific: true,
+        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
+      },
+      {
+        id: 'sub-closing',
+        slug: 'closing-procedures',
+        nameEn: 'Closing Procedures',
+        nameEs: 'Procedimientos de Cierre',
+        isStationSpecific: true,
+        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
+      },
+      {
+        id: 'sub-end-day',
+        slug: 'end-of-day-checks',
+        nameEn: 'End of Day Checks',
+        nameEs: 'Verificaciones de Fin de Día',
+        isStationSpecific: true,
+        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
+      },
+    ],
+  },
+  {
+    id: 'cat-equipment',
+    slug: 'equipment',
+    nameEn: 'Equipment',
+    nameEs: 'Equipamiento',
+    icon: 'LuWrench',
+    isArchived: false,
+    subcategories: [
+      {
+        id: 'sub-operation',
+        slug: 'operation',
+        nameEn: 'Operation',
+        nameEs: 'Operación',
+        isStationSpecific: true,
+        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
+      },
+      {
+        id: 'sub-eq-safety',
+        slug: 'equipment-safety',
+        nameEn: 'Safety',
+        nameEs: 'Seguridad',
+        isStationSpecific: true,
+        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
+      },
+      {
+        id: 'sub-eq-cleaning',
+        slug: 'equipment-cleaning',
+        nameEn: 'Cleaning',
+        nameEs: 'Limpieza',
+        isStationSpecific: true,
+        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
+      },
+    ],
+  },
+  {
+    id: 'cat-recipes',
+    slug: 'recipes',
+    nameEn: 'Recipes',
+    nameEs: 'Recetas',
+    icon: 'LuUtensils',
+    isArchived: false,
+    subcategories: [
+      {
+        id: 'sub-plating',
+        slug: 'plating',
+        nameEn: 'Plating',
+        nameEs: 'Emplatado',
+        isStationSpecific: true,
+        stations: ['stn-gm', 'stn-grill', 'stn-expo'],
+      },
+      {
+        id: 'sub-cooking',
+        slug: 'cooking',
+        nameEn: 'Cooking',
+        nameEs: 'Cocción',
+        isStationSpecific: true,
+        stations: ['stn-gm', 'stn-grill'],
+      },
+      {
+        id: 'sub-portion',
+        slug: 'portion-standards',
+        nameEn: 'Portion Standards',
+        nameEs: 'Estándares de Porción',
+      },
+    ],
+  },
 ];
 
 const SEED_EMPLOYEES: AdminEmployee[] = [
@@ -81,8 +229,9 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     id: 'emp-admin',
     name: 'Chef Raúl Medina',
     locationId: 'loc-main',
-    roleId: 'role-exec',
-    stationId: null,
+    accessLevel: 'manager',
+    roleIds: ['role-exec'],
+    stationIds: [],
     clearanceLevel: 'master',
     role: 'admin',
     languagePref: 'en',
@@ -97,8 +246,9 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     id: 'emp-cook',
     name: 'Carlos Gomez',
     locationId: 'loc-main',
-    roleId: 'role-cook',
-    stationId: 'stn-grill',
+    accessLevel: 'employee',
+    roleIds: ['role-cook'],
+    stationIds: ['stn-grill'],
     clearanceLevel: 'station',
     role: 'employee',
     languagePref: 'es',
@@ -113,8 +263,9 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     id: 'emp-prep',
     name: 'Maria Santos',
     locationId: 'loc-main',
-    roleId: 'role-prep',
-    stationId: 'stn-prep',
+    accessLevel: 'employee',
+    roleIds: ['role-prep'],
+    stationIds: ['stn-prep'],
     clearanceLevel: 'general',
     role: 'employee',
     languagePref: 'es',
@@ -392,7 +543,7 @@ function setStored<T>(key: string, data: T): void {
 let mockLocations: Location[] = getStored('locations', SEED_LOCATIONS);
 let mockRoles: Role[] = getStored('roles', SEED_ROLES);
 let mockStations: Station[] = getStored('stations', SEED_STATIONS);
-let mockCategories: Category[] = getStored('categories', SEED_CATEGORIES);
+let mockCategories: Category[] = getStored('categories_v3', SEED_CATEGORIES);
 let mockEmployees: AdminEmployee[] = getStored('employees', SEED_EMPLOYEES);
 let mockProcedures: Procedure[] = getStored('procedures', SEED_PROCEDURES);
 // Centralised quizzes table. The wizard authors quizzes locally in form
@@ -414,7 +565,7 @@ function getStationsStore(): Station[] {
   return mockStations;
 }
 function getCategoriesStore(): Category[] {
-  if (typeof window !== 'undefined') mockCategories = getStored('categories', SEED_CATEGORIES);
+  if (typeof window !== 'undefined') mockCategories = getStored('categories_v3', SEED_CATEGORIES);
   return mockCategories;
 }
 function getEmployeesStore(): AdminEmployee[] {
@@ -561,23 +712,40 @@ export async function listEmployees(
 
 export async function createEmployee(input: CreateEmployeeInput): Promise<{ employee: Employee; invite: InviteResult }> {
   const loc = mockLocations.find((l) => l.id === input.locationId);
-  const role = mockRoles.find((r) => r.id === input.roleId);
+
+  // Highest clearance across all assigned job roles — what the LMS surfaces
+  // in the employee table. Manager access defaults to 'confidential' when
+  // no roles are attached yet (rare but the schema allows it).
+  const assignedRoles = input.roleIds
+    .map((id) => mockRoles.find((r) => r.id === id))
+    .filter((r): r is Role => Boolean(r));
+  const clearanceOrder: Record<typeof assignedRoles[number]['clearanceLevel'], number> = {
+    general: 0,
+    station: 1,
+    confidential: 2,
+    master: 3,
+  };
+  const highestClearance =
+    assignedRoles.length === 0
+      ? input.accessLevel === 'manager' ? 'confidential' : 'general'
+      : assignedRoles.reduce((acc, r) => (clearanceOrder[r.clearanceLevel] > clearanceOrder[acc.clearanceLevel] ? r : acc)).clearanceLevel;
 
   const newEmp: AdminEmployee = {
     id: `emp-${Date.now()}`,
     name: input.name,
     locationId: input.locationId,
-    roleId: input.roleId,
-    stationId: input.stationId ?? null,
-    clearanceLevel: input.clearanceLevel,
-    role: role?.clearanceLevel === 'master' ? 'admin' : 'employee',
+    accessLevel: input.accessLevel,
+    roleIds: [...input.roleIds],
+    stationIds: [...(input.stationIds ?? [])],
+    clearanceLevel: highestClearance,
+    role: input.accessLevel === 'manager' ? 'admin' : 'employee',
     languagePref: input.languagePref ?? 'en',
     employeeCode: input.employeeCode ?? null,
     status: 'pending',
     createdAt: new Date().toISOString(),
     deactivatedAt: null,
     locationName: loc?.name ?? null,
-    roleClearance: role?.clearanceLevel ?? null,
+    roleClearance: highestClearance,
   };
 
   mockEmployees = [newEmp, ...mockEmployees];
@@ -736,6 +904,12 @@ export async function createProcedure(input: CreateProcedureInput): Promise<{ pr
     status: input.status ?? 'draft',
     bodyEn: input.bodyEn,
     bodyEs: input.bodyEs,
+    // Subcategory under `categoryId`. Stored alongside the procedure so
+    // the library can filter by it without re-joining categories.
+    subcategoryId: input.subcategoryId ?? null,
+    // Per-procedure station scope. Stored alongside the procedure so
+    // the cook's station assignment can be matched against it on read.
+    stationScope: input.stationScope ?? null,
     createdBy: 'emp-admin',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -861,7 +1035,7 @@ export async function createCategory(input: {
     isArchived: false,
   };
   mockCategories = [...getCategoriesStore(), newCat];
-  setStored('categories', mockCategories);
+  setStored('categories_v3', mockCategories);
   return { category: newCat };
 }
 
@@ -871,7 +1045,7 @@ export async function updateCategory(
 ): Promise<{ category: Category }> {
   const cats = getCategoriesStore();
   mockCategories = cats.map((c) => (c.id === id ? { ...c, ...patch } : c));
-  setStored('categories', mockCategories);
+  setStored('categories_v3', mockCategories);
   const updated = mockCategories.find((c) => c.id === id)!;
   return { category: updated };
 }
