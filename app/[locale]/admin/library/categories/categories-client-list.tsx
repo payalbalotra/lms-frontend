@@ -10,7 +10,6 @@ import { CategoryActions } from './category-actions';
 import { LuFolders, LuSearch, LuX } from 'react-icons/lu';
 import { Icon } from '@/components/ui/icon';
 import { StatusPill } from '@/components/ui/status-pill';
-import { Input } from '@/components/ui/input';
 
 interface CategoriesClientListProps {
   initialCategories: Category[];
@@ -49,31 +48,46 @@ export function CategoriesClientList({
 
   return (
     <div className="space-y-4">
-      {/* Minimal Search & Stats Header Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-[var(--color-surface)] p-2.5 rounded-[var(--radius-lg)] border border-[var(--color-line-2)] shadow-2xs">
-        <div className="relative w-full sm:w-80">
-          <LuSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-3)] text-sm" />
-          <Input
+      {/* The search is the system's field, not a hand-built one: the icon was
+          absolutely positioned over a padded Input at 12px in a card of its own,
+          which put the page's chrome on the same plane as the cards it filters
+          and made this the one search box in the product with its own shape. The
+          count is a line of meta text, the way every other list says it. */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="find" role="search">
+          <LuSearch aria-hidden="true" className="i" />
+          <label className="sr-only" htmlFor="categories-search">
+            {isEs ? 'Buscar categorías' : 'Search categories'}
+          </label>
+          <input
+            id="categories-search"
             type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={isEs ? 'Buscar categorías...' : 'Search categories...'}
-            className="pl-8 pr-7 h-9 text-xs"
+            placeholder={isEs ? 'Buscar categorías…' : 'Search categories…'}
           />
-          {searchQuery && (
+          {searchQuery ? (
             <button
               type="button"
               onClick={() => setSearchQuery('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-ink-3)] hover:text-[var(--color-ink)]"
+              aria-label={isEs ? 'Borrar búsqueda' : 'Clear search'}
+              className="shrink-0 text-[var(--color-ink-3)] hover:text-[var(--color-ink)]"
             >
-              <LuX className="text-xs" />
+              <LuX aria-hidden="true" />
             </button>
-          )}
+          ) : null}
         </div>
 
-        <div className="shrink-0 whitespace-nowrap text-xs font-medium text-[var(--color-ink-3)] px-3 py-1.5 rounded-[var(--radius-md)] bg-[var(--color-panel)] border border-[var(--color-line-2)]">
-          {active.length} {isEs ? (active.length === 1 ? 'categoría' : 'categorías') : (active.length === 1 ? 'category' : 'categories')}
-        </div>
+        <p className="text-sm leading-meta text-[var(--color-ink-2)]">
+          {active.length}{' '}
+          {isEs
+            ? active.length === 1
+              ? 'categoría'
+              : 'categorías'
+            : active.length === 1
+              ? 'category'
+              : 'categories'}
+        </p>
       </div>
 
       {active.length === 0 && archived.length === 0 ? (
