@@ -702,18 +702,25 @@ function AddProcedureModal({
   const subName = isEs ? sub.nameEs || sub.nameEn : sub.nameEn;
   const catName = isEs ? category.nameEs : category.nameEn;
 
-  // Filter the catalog by title or station; case-insensitive; trims
-  // whitespace. Empty search shows the full list.
+  // Only draft procedures can be linked to a subcategory from this modal.
+  // A published procedure already lives somewhere in the library, so
+  // surfacing it here would let the manager create duplicates. The
+  // search filter narrows by title or station; case-insensitive; trims
+  // whitespace.
+  const draftCatalog = React.useMemo(
+    () => EXISTING_PROCEDURES.filter((p) => p.status === 'draft'),
+    [],
+  );
   const filtered = React.useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return EXISTING_PROCEDURES;
-    return EXISTING_PROCEDURES.filter(
+    if (!q) return draftCatalog;
+    return draftCatalog.filter(
       (p) =>
         p.titleEn.toLowerCase().includes(q) ||
         p.titleEs.toLowerCase().includes(q) ||
         p.station.toLowerCase().includes(q),
     );
-  }, [search]);
+  }, [search, draftCatalog]);
 
   const toggle = (id: string) => {
     setSelectedIds((prev) => {
@@ -960,7 +967,7 @@ function AddProcedureModal({
           variant="primary"
           disabled={!canAdd}
           onClick={() => {
-            const selected = EXISTING_PROCEDURES.filter((p) => selectedIds.has(p.id));
+            const selected = draftCatalog.filter((p) => selectedIds.has(p.id));
             onAddExisting(selected);
           }}
           className="px-4 text-xs font-semibold shadow-e1"

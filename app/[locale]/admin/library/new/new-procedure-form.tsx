@@ -669,6 +669,45 @@ export function NewProcedureForm({
     }
   }, []);
 
+  // Apply URL pre-fill on first client render. The `urlPreFill` `useMemo`
+  // above is `null` during SSR (and stays `null` on the client because its
+  // deps never change after hydration), so we re-read `window.location`
+  // here to seed the wizard state after mount. Runs once; afterwards the
+  // picker and handlers own the state.
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const catSlug = params.get('category');
+    const subSlug = params.get('subcategory');
+    const accessLocation = params.get('accessLocation');
+    const accessStationsCsv = params.get('accessStations');
+    if (!catSlug && !subSlug && !accessLocation && !accessStationsCsv) return;
+
+    const accessStationIds = accessStationsCsv
+      ? accessStationsCsv.split(',').map((s) => s.trim()).filter(Boolean)
+      : [];
+    const cat = sourceCategories.find((c) => c.slug === catSlug);
+    const sub = cat?.subcategories?.find((s) => s.slug === subSlug);
+
+    if (cat) setCategoryId(cat.id);
+    if (sub) setSubcategoryId(sub.id);
+    if (accessStationIds.length > 0) {
+      setStationScopeMode('specific');
+      setSelectedStationIds(new Set(accessStationIds));
+    }
+    setAccessSelections((prev) => ({
+      locations: accessLocation ? new Set([accessLocation]) : prev.locations,
+      jobRoles: prev.jobRoles,
+      stations: accessStationIds.length ? new Set(accessStationIds) : prev.stations,
+      employees: prev.employees,
+      categories: cat ? new Set([cat.id]) : prev.categories,
+      subcategories: sub ? new Set([sub.id]) : prev.subcategories,
+    }));
+    // Intentionally one-shot: the URL is the source of truth only on
+    // first mount, after which the picker owns its own state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Recipe specific states
   const [ingredients, setIngredients] = useState<RecipeIngredientItem[]>([
     { id: 'ing-1', name: '', quantity: '', unit: 'kg', notes: '' },
