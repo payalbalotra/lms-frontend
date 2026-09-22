@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { listCategories } from '@/lib/api';
+import { useCategories } from '@/services/categories/hooks';
 import { getCategoryIcon } from '@/lib/category-icons';
 import type { Category } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -21,37 +21,10 @@ export function CategoriesClientList({
   locationId,
   locale,
 }: CategoriesClientListProps): React.ReactElement {
-  const [categories, setCategories] = React.useState<Category[]>(initialCategories);
-
-  // Sync client-side localStorage categories on mount
-  React.useEffect(() => {
-    let isMounted = true;
-    async function loadClientCategories() {
-      if (!locationId) return;
-      try {
-        const result = await listCategories(locationId, { includeArchived: true });
-        if (isMounted && result.categories) {
-          setCategories(result.categories);
-        }
-      } catch {
-        // Fallback to initial
-      }
-    }
-    loadClientCategories();
-
-    // Listen for storage changes or custom update events
-    const handleStorageUpdate = () => {
-      loadClientCategories();
-    };
-    window.addEventListener('storage', handleStorageUpdate);
-    window.addEventListener('lms_categories_updated', handleStorageUpdate);
-
-    return () => {
-      isMounted = false;
-      window.removeEventListener('storage', handleStorageUpdate);
-      window.removeEventListener('lms_categories_updated', handleStorageUpdate);
-    };
-  }, [locationId]);
+  const { data: categories = initialCategories } = useCategories(
+    locationId ?? undefined,
+    true
+  );
 
   const active = categories.filter((c) => !c.isArchived);
   const archived = categories.filter((c) => c.isArchived);

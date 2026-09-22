@@ -1021,7 +1021,7 @@
         "ackStatementPlaceholder": "I have read and understood this course…"
       }
     }
-  },
+    },
   "activate": {
     "intro": "Welcome — set your password to finish activating your account.",
     "codeLabel": "5-digit activation code",

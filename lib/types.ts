@@ -307,12 +307,12 @@ export interface Procedure {
    *  don't both write N+1. Per PROJECT_OVERVIEW §02 SOP Library: "Every
    *  SOP prints cleanly for station posting, carrying a QR code that
    *  links back to the current version." Starts at 1. */
-  version: number;
+  version?: number;
   /** Soft-archive flag. Per PROJECT_OVERVIEW §02 Content Creation:
    *  "Content moves through draft, published and archived states."
    *  Archived procedures stay visible in the admin library under an
    *  opt-in filter for audit; the cook-side reader hides them. */
-  isArchived: boolean;
+  isArchived?: boolean;
   /** FK to the training course this SOP feeds into. `null` means the SOP
    *  is standalone — it is not part of any training plan and the employee
    *  only ever sees it via the library search. When non-null the linked
@@ -320,21 +320,16 @@ export interface Procedure {
    *  backend will add this column as `linked_training_id text` (nullable,
    *  no FK constraint yet — the `training_courses` table itself lands in
    *  stage 3, so the column stays free of the FK until then). */
-  linkedTrainingId: string | null;
+  linkedTrainingId?: string | null;
   /** How the attached quiz surfaces on the employee side. Defaults to
    *  `'training'` for new procedures; ignored when `quizId` is null. See
    *  `ProcedureQuizMode` for the full rules. */
-  quizMode: ProcedureQuizMode;
+  quizMode?: ProcedureQuizMode;
   /** FK to the centralised `quizzes` table. `null` means no quiz attached.
    *  The wizard authors the quiz locally in form state, and on save
    *  creates a `Quiz` row via `createQuiz()` and stamps its id here. The
    *  backend persists this as `quiz_id text` (nullable). */
-  quizId: string | null;
-  /** FK to the centralised `quizzes` table. `null` means no quiz attached.
-   *  The wizard authors the quiz locally in form state, and on save
-   *  creates a `Quiz` row via `createQuiz()` and stamps its id here. The
-   *  backend persists this as `quiz_id text` (nullable). */
-  quizId: string | null;
+  quizId?: string | null;
   /** Whether this procedure is part of a training plan. Legacy field —
    *  kept until the training-course UI is reworked (employee phase). */
   attachedToTraining?: boolean;

@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RowActions, type RowActionItem } from '@/components/ui/row-actions';
 import { cn } from '@/lib/utils';
-import { createCategory, updateCategory, archiveCategory, ApiException } from '@/lib/api';
+import { useCreateCategory, useUpdateCategory, useArchiveCategory } from '@/services/categories/hooks';
 import type { Category } from '@/lib/types';
 import { LuArchive, LuFolderPlus, LuGlobe, LuHistory, LuLink, LuPencil, LuPlus, LuUndo2, LuX } from 'react-icons/lu';
 import { Icon } from '@/components/ui/icon';
@@ -22,9 +22,13 @@ export function CategoryActions({ category }: CategoryActionsProps): React.React
   const t = useTranslations('admin.library.categories');
   const tCommon = useTranslations('admin');
   const router = useRouter();
-  const [pending, setPending] = React.useState(false);
+  const [isPending, setIsPending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [renameOpen, setRenameOpen] = React.useState(false);
+
+  const archiveMutation = useArchiveCategory();
+  const updateMutation = useUpdateCategory();
+  const pending = isPending || archiveMutation.isPending || updateMutation.isPending;
 
   const items: RowActionItem[] = React.useMemo(() => {
     const out: RowActionItem[] = [
@@ -53,34 +57,25 @@ export function CategoryActions({ category }: CategoryActionsProps): React.React
       });
     }
     return out;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category, t]);
 
   async function runArchive(target: Category): Promise<void> {
     setError(null);
-    setPending(true);
     try {
-      await archiveCategory(target.id);
-      if (typeof window !== 'undefined') window.dispatchEvent(new Event('lms_categories_updated'));
+      await archiveMutation.mutateAsync(target.id);
       router.refresh();
-    } catch (err) {
-      setError(err instanceof ApiException ? err.message : String(err));
-    } finally {
-      setPending(false);
+    } catch (err: any) {
+      setError(err?.message || String(err));
     }
   }
 
   async function runUnarchive(target: Category): Promise<void> {
     setError(null);
-    setPending(true);
     try {
-      await updateCategory(target.id, { isArchived: false });
-      if (typeof window !== 'undefined') window.dispatchEvent(new Event('lms_categories_updated'));
+      await updateMutation.mutateAsync({ id: target.id, input: { isArchived: false } });
       router.refresh();
-    } catch (err) {
-      setError(err instanceof ApiException ? err.message : String(err));
-    } finally {
-      setPending(false);
+    } catch (err: any) {
+      setError(err?.message || String(err));
     }
   }
 
@@ -111,7 +106,7 @@ export function CategoryActions({ category }: CategoryActionsProps): React.React
           category={category}
           pending={pending}
           error={error}
-          onPendingChange={setPending}
+          onPendingChange={setIsPending}
           onErrorChange={setError}
           onDone={() => {
             setRenameOpen(false);
@@ -231,6 +226,9 @@ function CategoryForm({
     }
   }
 
+  const createMutation = useCreateCategory();
+  const updateMutation = useUpdateCategory();
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>): Promise<void> {
     e.preventDefault();
     if (pending) return;
@@ -239,27 +237,26 @@ function CategoryForm({
     try {
       if (mode === 'create') {
         if (!locationId) throw new Error('Missing locationId');
-        await createCategory({
+        await createMutation.mutateAsync({
           locationId,
-          slug: slugify(slug || nameEn),
           nameEn: nameEn.trim(),
           nameEs: nameEs.trim() || nameEn.trim(),
         });
       } else if (category) {
-        await updateCategory(category.id, {
-          nameEn: nameEn.trim(),
-          nameEs: nameEs.trim() || nameEn.trim(),
+        await updateMutation.mutateAsync({
+          id: category.id,
+          input: {
+            nameEn: nameEn.trim(),
+            nameEs: nameEs.trim() || nameEn.trim(),
+          },
         });
       }
-      if (typeof window !== 'undefined') window.dispatchEvent(new Event('lms_categories_updated'));
       onDone();
-    } catch (err) {
-      if (err instanceof ApiException && err.code === 'CATEGORY_SLUG_TAKEN') {
+    } catch (err: any) {
+      if (err?.code === 'CATEGORY_SLUG_TAKEN') {
         onErrorChange(t('errors.slugTaken'));
-      } else if (err instanceof ApiException) {
-        onErrorChange(err.message);
       } else {
-        onErrorChange(String(err));
+        onErrorChange(err?.message || String(err));
       }
     } finally {
       onPendingChange(false);
