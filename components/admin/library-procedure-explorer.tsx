@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { listCategories, listProcedures } from '@/lib/api';
 import type { Procedure, Category, ProcedureStatus } from '@/lib/types';
@@ -167,10 +168,10 @@ const FULL_DEMO_SUITE: (Procedure & {
     purposeEn: 'Step-by-step instructions for preparing the grill station.',
     purposeEs: 'Instrucciones paso a paso para preparar la estación de parrilla.',
     category: {
-      id: 'cat-station',
-      slug: 'station',
-      nameEn: 'Station Procedure',
-      nameEs: 'Procedimiento de Estación',
+      id: 'cat-kitchen-ops',
+      slug: 'kitchen-operations',
+      nameEn: 'Kitchen Operations',
+      nameEs: 'Operaciones de Cocina',
       isArchived: false,
     },
     status: 'draft',
@@ -213,10 +214,10 @@ const FULL_DEMO_SUITE: (Procedure & {
     purposeEn: 'Key food safety principles for all team members.',
     purposeEs: 'Principios clave de seguridad alimentaria para todos los miembros.',
     category: {
-      id: 'cat-admin',
-      slug: 'general',
-      nameEn: 'General Procedures',
-      nameEs: 'Procedimientos Generales',
+      id: 'cat-onboarding',
+      slug: 'onboarding',
+      nameEn: 'Onboarding',
+      nameEs: 'Inducción y Capacitación',
       isArchived: false,
     },
     status: 'published',
@@ -259,10 +260,10 @@ const FULL_DEMO_SUITE: (Procedure & {
     purposeEn: 'Proper setup and operation of the dishwashing station.',
     purposeEs: 'Configuración y operación adecuada de la estación de lavavajillas.',
     category: {
-      id: 'cat-station',
-      slug: 'station',
-      nameEn: 'Station Procedure',
-      nameEs: 'Procedimiento de Estación',
+      id: 'cat-kitchen-ops',
+      slug: 'kitchen-operations',
+      nameEn: 'Kitchen Operations',
+      nameEs: 'Operaciones de Cocina',
       isArchived: false,
     },
     status: 'draft',
@@ -305,10 +306,10 @@ const FULL_DEMO_SUITE: (Procedure & {
     purposeEn: 'Essential morning prep steps before restaurant doors open to customers.',
     purposeEs: 'Pasos esenciales de preparación matutina antes de abrir el restaurante.',
     category: {
-      id: 'cat-admin',
-      slug: 'general',
-      nameEn: 'General Procedures',
-      nameEs: 'Procedimientos Generales',
+      id: 'cat-onboarding',
+      slug: 'onboarding',
+      nameEn: 'Onboarding',
+      nameEs: 'Inducción y Capacitación',
       isArchived: false,
     },
     status: 'published',
@@ -374,10 +375,10 @@ const FULL_DEMO_SUITE: (Procedure & {
     purposeEn: 'Setup, dispensing, and sanitization instructions for drinks station.',
     purposeEs: 'Instrucciones de configuración y limpieza de estación de bebidas.',
     category: {
-      id: 'cat-station',
-      slug: 'station',
-      nameEn: 'Station Procedure',
-      nameEs: 'Procedimiento de Estación',
+      id: 'cat-kitchen-ops',
+      slug: 'kitchen-operations',
+      nameEn: 'Kitchen Operations',
+      nameEs: 'Operaciones de Cocina',
       isArchived: false,
     },
     status: 'draft',
@@ -397,10 +398,10 @@ const FULL_DEMO_SUITE: (Procedure & {
     purposeEn: 'Mandatory 20-second handwashing protocol for food handlers.',
     purposeEs: 'Protocolo obligatorio de lavado de manos de 20 segundos.',
     category: {
-      id: 'cat-admin',
-      slug: 'general',
-      nameEn: 'General Procedures',
-      nameEs: 'Procedimientos Generales',
+      id: 'cat-onboarding',
+      slug: 'onboarding',
+      nameEn: 'Onboarding',
+      nameEs: 'Inducción y Capacitación',
       isArchived: false,
     },
     status: 'published',
@@ -466,10 +467,10 @@ const FULL_DEMO_SUITE: (Procedure & {
     purposeEn: 'Standard operating procedure for the fast-casual taco assembly line.',
     purposeEs: 'Procedimiento estándar para la línea de ensamblaje de tacos.',
     category: {
-      id: 'cat-station',
-      slug: 'station',
-      nameEn: 'Station Procedure',
-      nameEs: 'Procedimiento de Estación',
+      id: 'cat-kitchen-ops',
+      slug: 'kitchen-operations',
+      nameEn: 'Kitchen Operations',
+      nameEs: 'Operaciones de Cocina',
       isArchived: false,
     },
     status: 'published',
@@ -535,10 +536,10 @@ const FULL_DEMO_SUITE: (Procedure & {
     purposeEn: 'Location and operation of emergency utility shutoff valves.',
     purposeEs: 'Ubicación y operación de válvulas de cierre de emergencia.',
     category: {
-      id: 'cat-admin',
-      slug: 'general',
-      nameEn: 'General Procedures',
-      nameEs: 'Procedimientos Generales',
+      id: 'cat-onboarding',
+      slug: 'onboarding',
+      nameEn: 'Onboarding',
+      nameEs: 'Inducción y Capacitación',
       isArchived: false,
     },
     status: 'published',
@@ -581,10 +582,10 @@ const FULL_DEMO_SUITE: (Procedure & {
     purposeEn: 'Opening cash count, system login, and receipt printer check.',
     purposeEs: 'Conteo de efectivo de apertura, inicio de sesión y comprobación de impresora.',
     category: {
-      id: 'cat-station',
-      slug: 'station',
-      nameEn: 'Station Procedure',
-      nameEs: 'Procedimiento de Estación',
+      id: 'cat-kitchen-ops',
+      slug: 'kitchen-operations',
+      nameEn: 'Kitchen Operations',
+      nameEs: 'Operaciones de Cocina',
       isArchived: false,
     },
     status: 'published',
@@ -627,10 +628,10 @@ const FULL_DEMO_SUITE: (Procedure & {
     purposeEn: 'Rules for handling gluten, dairy, nut, and shellfish food prep.',
     purposeEs: 'Reglas para el manejo de alimentos con alérgenos.',
     category: {
-      id: 'cat-admin',
-      slug: 'general',
-      nameEn: 'General Procedures',
-      nameEs: 'Procedimientos Generales',
+      id: 'cat-onboarding',
+      slug: 'onboarding',
+      nameEn: 'Onboarding',
+      nameEs: 'Inducción y Capacitación',
       isArchived: false,
     },
     status: 'published',
@@ -696,10 +697,10 @@ const FULL_DEMO_SUITE: (Procedure & {
     purposeEn: 'Speed-of-service guidelines and window station operation.',
     purposeEs: 'Pautas de velocidad de servicio y operación de ventanilla.',
     category: {
-      id: 'cat-station',
-      slug: 'station',
-      nameEn: 'Station Procedure',
-      nameEs: 'Procedimiento de Estación',
+      id: 'cat-kitchen-ops',
+      slug: 'kitchen-operations',
+      nameEn: 'Kitchen Operations',
+      nameEs: 'Operaciones de Cocina',
       isArchived: false,
     },
     status: 'published',
@@ -742,10 +743,10 @@ const FULL_DEMO_SUITE: (Procedure & {
     purposeEn: 'Kitchen shutdown, refrigeration checks, and security lockup.',
     purposeEs: 'Cierre de cocina, verificación de refrigeración y seguridad.',
     category: {
-      id: 'cat-admin',
-      slug: 'general',
-      nameEn: 'General Procedures',
-      nameEs: 'Procedimientos Generales',
+      id: 'cat-onboarding',
+      slug: 'onboarding',
+      nameEn: 'Onboarding',
+      nameEs: 'Inducción y Capacitación',
       isArchived: false,
     },
     status: 'published',
@@ -765,10 +766,10 @@ const FULL_DEMO_SUITE: (Procedure & {
     purposeEn: 'HACCP temperature monitoring twice daily for coolers and freezers.',
     purposeEs: 'Monitoreo de temperatura HACCP dos veces al día para congeladores.',
     category: {
-      id: 'cat-admin',
-      slug: 'general',
-      nameEn: 'General Procedures',
-      nameEs: 'Procedimientos Generales',
+      id: 'cat-onboarding',
+      slug: 'onboarding',
+      nameEn: 'Onboarding',
+      nameEs: 'Inducción y Capacitación',
       isArchived: false,
     },
     status: 'published',
@@ -824,7 +825,17 @@ export function LibraryProcedureExplorer({
   }, []);
 
   // Filters State
-  const [selectedCategorySlug, setSelectedCategorySlug] = React.useState<string>('all');
+  const searchParams = useSearchParams();
+  const [selectedCategorySlug, setSelectedCategorySlug] = React.useState<string>(
+    () => searchParams.get('category') || 'all'
+  );
+
+  React.useEffect(() => {
+    const categoryParam = searchParams.get('category');
+    if (categoryParam) {
+      setSelectedCategorySlug(categoryParam);
+    }
+  }, [searchParams]);
   const [searchQuery, setSearchQuery] = React.useState<string>('');
   const [statusFilter, setStatusFilter] = React.useState<'all' | ProcedureStatus>('all');
   const [sortBy, setSortBy] = React.useState<'updated_desc' | 'updated_asc' | 'title_asc' | 'title_desc'>(
@@ -857,10 +868,10 @@ export function LibraryProcedureExplorer({
         isArchived: false,
       },
       {
-        id: 'cat-station',
-        slug: 'station',
-        nameEn: 'Station Procedures',
-        nameEs: 'Procedimientos de Estación',
+        id: 'cat-kitchen-ops',
+        slug: 'kitchen-operations',
+        nameEn: 'Kitchen Operations',
+        nameEs: 'Operaciones de Cocina',
         isArchived: false,
       },
       {
@@ -871,10 +882,10 @@ export function LibraryProcedureExplorer({
         isArchived: false,
       },
       {
-        id: 'cat-admin',
-        slug: 'general',
-        nameEn: 'General Procedures',
-        nameEs: 'Procedimientos Generales',
+        id: 'cat-onboarding',
+        slug: 'onboarding',
+        nameEn: 'Onboarding',
+        nameEs: 'Inducción y Capacitación',
         isArchived: false,
       },
     ];

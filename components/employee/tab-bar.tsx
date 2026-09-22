@@ -25,10 +25,7 @@ export function TabBar({
   const tabs: { key: EmployeeTab; href?: string; icon: typeof LuSearch; label: string; soon?: boolean }[] = [
     { key: 'ask', href: `/${locale}/employee/assigned`, icon: LuSearch, label: labels.ask },
     { key: 'procedures', href: `/${locale}/procedures`, icon: LuBookOpen, label: labels.procedures },
-    // No href: training is not built. It was a link to the home screen marked
-    // aria-disabled, which announced "dimmed" and then navigated anyway — so a
-    // cook tapping Training landed back where they started with no explanation.
-    { key: 'training', icon: LuGraduationCap, label: labels.training, soon: true },
+    { key: 'training', href: `/${locale}/employee/training`, icon: LuGraduationCap, label: labels.training },
   ];
 
   return (

@@ -14,12 +14,14 @@ import type {
   InviteResult,
   Location,
   Procedure,
+  ProcedureQuizMode,
   Role,
   Station,
   UpdateLocationInput,
   UpdateRoleInput,
   UpdateStationInput,
 } from './types';
+import { SEED_QUIZZES, type Quiz } from './quizzes';
 
 export const API_BASE = '';
 
@@ -60,18 +62,166 @@ const SEED_ROLES: Role[] = [
 ];
 
 const SEED_STATIONS: Station[] = [
-  { id: 'stn-grill', name: 'Hot Line / Grill', locationId: 'loc-main', sortOrder: 1, isArchived: false },
-  { id: 'stn-prep', name: 'Prep & Cold Station', locationId: 'loc-main', sortOrder: 2, isArchived: false },
-  { id: 'stn-dish', name: 'Sanitation & Dish', locationId: 'loc-main', sortOrder: 3, isArchived: false },
-  { id: 'stn-tortilla', name: 'Tortilla Station', locationId: 'loc-main', sortOrder: 4, isArchived: false },
+  { id: 'stn-gm', name: 'GM - Cold section + fryer', locationId: 'loc-main', sortOrder: 1, isArchived: false },
+  { id: 'stn-grill', name: 'Grill', locationId: 'loc-main', sortOrder: 2, isArchived: false },
+  { id: 'stn-expo', name: 'Expo', locationId: 'loc-main', sortOrder: 3, isArchived: false },
+  { id: 'stn-prep', name: 'prep kitchen', locationId: 'loc-main', sortOrder: 4, isArchived: false },
+  { id: 'stn-dish', name: 'Dishwasher', locationId: 'loc-main', sortOrder: 5, isArchived: false },
 ];
 
 const SEED_CATEGORIES: Category[] = [
-  { id: 'cat-station', slug: 'station', nameEn: 'Station Procedures', nameEs: 'Procedimientos de Estación', isArchived: false },
-  { id: 'cat-recipes', slug: 'recipes', nameEn: 'Recipes & Prep', nameEs: 'Recetas y Preparación', isArchived: false },
-  { id: 'cat-cleaning', slug: 'cleaning', nameEn: 'Cleaning Schedules', nameEs: 'Horarios de Limpieza', isArchived: false },
-  { id: 'cat-safety', slug: 'food-safety', nameEn: 'Food Safety', nameEs: 'Seguridad Alimentaria', isArchived: false },
-  { id: 'cat-equipment', slug: 'equipment', nameEn: 'Equipment Handling', nameEs: 'Manejo de Equipos', isArchived: false },
+  {
+    id: 'cat-onboarding',
+    slug: 'onboarding',
+    nameEn: 'Onboarding',
+    nameEs: 'Inducción y Capacitación',
+    icon: 'LuClipboardList',
+    isArchived: false,
+    subcategories: [
+      { id: 'sub-culture', slug: 'culture', nameEn: 'Culture', nameEs: 'Cultura' },
+      { id: 'sub-uniform', slug: 'uniform', nameEn: 'Uniform', nameEs: 'Uniforme' },
+      { id: 'sub-conduct', slug: 'conduct', nameEn: 'Employee Conduct', nameEs: 'Conducta del Empleado' },
+    ],
+  },
+  {
+    id: 'cat-safety',
+    slug: 'food-safety',
+    nameEn: 'Food Safety',
+    nameEs: 'Seguridad Alimentaria',
+    icon: 'LuShieldCheck',
+    isArchived: false,
+    subcategories: [
+      { id: 'sub-hygiene', slug: 'hygiene', nameEn: 'Hygiene', nameEs: 'Higiene' },
+      { id: 'sub-cross-contamination', slug: 'cross-contamination', nameEn: 'Cross-Contamination', nameEs: 'Contaminación Cruzada' },
+      { id: 'sub-labeling-dating', slug: 'labeling-dating', nameEn: 'Labeling & Dating', nameEs: 'Etiquetado y Fechado' },
+      { id: 'sub-allergy', slug: 'allergy', nameEn: 'Allergy', nameEs: 'Alergias' },
+    ],
+  },
+  {
+    id: 'cat-kitchen-ops',
+    slug: 'kitchen-operations',
+    nameEn: 'Kitchen Operations',
+    nameEs: 'Operaciones de Cocina',
+    icon: 'LuBuilding2',
+    isArchived: false,
+    subcategories: [
+      { id: 'sub-station-setup', slug: 'station-setup', nameEn: 'Station Setup', nameEs: 'Montaje de Estación', isStationSpecific: true, stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'] },
+      { id: 'sub-kitchen-comm', slug: 'kitchen-communication', nameEn: 'Kitchen Communication', nameEs: 'Comunicación en Cocina' },
+    ],
+  },
+  {
+    id: 'cat-cleaning',
+    slug: 'cleaning',
+    nameEn: 'Cleaning',
+    nameEs: 'Limpieza',
+    icon: 'LuBrush',
+    isArchived: false,
+    subcategories: [
+      { id: 'sub-dishwashing', slug: 'dishwashing', nameEn: 'Dishwashing', nameEs: 'Lavadiscos' },
+      { id: 'sub-chemical', slug: 'chemical-handling', nameEn: 'Chemical Handling', nameEs: 'Manejo de Químicos' },
+      { id: 'sub-waste', slug: 'waste-disposal', nameEn: 'Waste Disposal', nameEs: 'Disposición de Desechos' },
+    ],
+  },
+  {
+    id: 'cat-opening-closing',
+    slug: 'opening-closing',
+    nameEn: 'Opening and Closing',
+    nameEs: 'Apertura y Cierre',
+    icon: 'LuPackage',
+    isArchived: false,
+    subcategories: [
+      {
+        id: 'sub-opening',
+        slug: 'opening-procedures',
+        nameEn: 'Opening Procedures',
+        nameEs: 'Procedimientos de Apertura',
+        isStationSpecific: true,
+        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
+      },
+      {
+        id: 'sub-closing',
+        slug: 'closing-procedures',
+        nameEn: 'Closing Procedures',
+        nameEs: 'Procedimientos de Cierre',
+        isStationSpecific: true,
+        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
+      },
+      {
+        id: 'sub-end-day',
+        slug: 'end-of-day-checks',
+        nameEn: 'End of Day Checks',
+        nameEs: 'Verificaciones de Fin de Día',
+        isStationSpecific: true,
+        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
+      },
+    ],
+  },
+  {
+    id: 'cat-equipment',
+    slug: 'equipment',
+    nameEn: 'Equipment',
+    nameEs: 'Equipamiento',
+    icon: 'LuWrench',
+    isArchived: false,
+    subcategories: [
+      {
+        id: 'sub-operation',
+        slug: 'operation',
+        nameEn: 'Operation',
+        nameEs: 'Operación',
+        isStationSpecific: true,
+        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
+      },
+      {
+        id: 'sub-eq-safety',
+        slug: 'equipment-safety',
+        nameEn: 'Safety',
+        nameEs: 'Seguridad',
+        isStationSpecific: true,
+        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
+      },
+      {
+        id: 'sub-eq-cleaning',
+        slug: 'equipment-cleaning',
+        nameEn: 'Cleaning',
+        nameEs: 'Limpieza',
+        isStationSpecific: true,
+        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
+      },
+    ],
+  },
+  {
+    id: 'cat-recipes',
+    slug: 'recipes',
+    nameEn: 'Recipes',
+    nameEs: 'Recetas',
+    icon: 'LuUtensils',
+    isArchived: false,
+    subcategories: [
+      {
+        id: 'sub-plating',
+        slug: 'plating',
+        nameEn: 'Plating',
+        nameEs: 'Emplatado',
+        isStationSpecific: true,
+        stations: ['stn-gm', 'stn-grill', 'stn-expo'],
+      },
+      {
+        id: 'sub-cooking',
+        slug: 'cooking',
+        nameEn: 'Cooking',
+        nameEs: 'Cocción',
+        isStationSpecific: true,
+        stations: ['stn-gm', 'stn-grill'],
+      },
+      {
+        id: 'sub-portion',
+        slug: 'portion-standards',
+        nameEn: 'Portion Standards',
+        nameEs: 'Estándares de Porción',
+      },
+    ],
+  },
 ];
 
 const SEED_EMPLOYEES: AdminEmployee[] = [
@@ -79,8 +229,9 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     id: 'emp-admin',
     name: 'Chef Raúl Medina',
     locationId: 'loc-main',
-    roleId: 'role-exec',
-    stationId: null,
+    accessLevel: 'manager',
+    roleIds: ['role-exec'],
+    stationIds: [],
     clearanceLevel: 'master',
     role: 'admin',
     languagePref: 'en',
@@ -95,8 +246,9 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     id: 'emp-cook',
     name: 'Carlos Gomez',
     locationId: 'loc-main',
-    roleId: 'role-cook',
-    stationId: 'stn-grill',
+    accessLevel: 'employee',
+    roleIds: ['role-cook'],
+    stationIds: ['stn-grill'],
     clearanceLevel: 'station',
     role: 'employee',
     languagePref: 'es',
@@ -111,8 +263,9 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     id: 'emp-prep',
     name: 'Maria Santos',
     locationId: 'loc-main',
-    roleId: 'role-prep',
-    stationId: 'stn-prep',
+    accessLevel: 'employee',
+    roleIds: ['role-prep'],
+    stationIds: ['stn-prep'],
     clearanceLevel: 'general',
     role: 'employee',
     languagePref: 'es',
@@ -138,44 +291,11 @@ const SEED_PROCEDURES: Procedure[] = [
     createdBy: 'emp-admin',
     createdAt: '2026-09-04T00:00:00Z',
     updatedAt: '2026-09-04T00:00:00Z',
-    quiz: {
-      questions: [
-        {
-          id: 'seed-q1',
-          prompt: { en: 'What is the minimum sanitiser concentration for food-contact surfaces?', es: '¿Cuál es la concentración mínima de sanitizante para superficies en contacto con alimentos?' },
-          choices: [
-            { id: 'c1', label: { en: '100 ppm for 10 seconds', es: '100 ppm por 10 segundos' } },
-            { id: 'c2', label: { en: '200 ppm for at least 30 seconds', es: '200 ppm por al menos 30 segundos' } },
-            { id: 'c3', label: { en: '400 ppm for 1 minute', es: '400 ppm por 1 minuto' } },
-            { id: 'c4', label: { en: 'No test needed if the bottle is new', es: 'No se necesita prueba si el frasco es nuevo' } },
-          ],
-          correctChoiceId: 'c2',
-        },
-        {
-          id: 'seed-q2',
-          prompt: { en: 'How often must the Sanitise bucket be tested?', es: '¿Con qué frecuencia se debe probar la cubeta de desinfección?' },
-          choices: [
-            { id: 'c1', label: { en: 'Once per shift', es: 'Una vez por turno' } },
-            { id: 'c2', label: { en: 'Every 4 hours and whenever remade', es: 'Cada 4 horas y cada vez que se rehace' } },
-            { id: 'c3', label: { en: 'Once per week', es: 'Una vez por semana' } },
-            { id: 'c4', label: { en: 'Only when the water looks dirty', es: 'Solo cuando el agua se ve sucia' } },
-          ],
-          correctChoiceId: 'c2',
-        },
-        {
-          id: 'seed-q3',
-          prompt: { en: 'After sanitising, how should the surface be dried?', es: 'Después de desinfectar, ¿cómo se debe secar la superficie?' },
-          choices: [
-            { id: 'c1', label: { en: 'Wipe with a clean towel', es: 'Secar con un paño limpio' } },
-            { id: 'c2', label: { en: 'Use paper towel and discard it', es: 'Usar papel absorbente y desecharlo' } },
-            { id: 'c3', label: { en: 'Let it air dry — do not towel it', es: 'Dejar secar al aire — no usar paño' } },
-            { id: 'c4', label: { en: 'Blow on it until dry', es: 'Soplar hasta que se seque' } },
-          ],
-          correctChoiceId: 'c3',
-        },
-      ],
-      attached: true,
-    },
+    version: 1,
+    isArchived: false,
+    quizId: 'quiz-cleaning',
+    linkedTrainingId: 'course-food-safety',
+    quizMode: 'training',
     bodyEn: {
       blocks: [
         { id: 'cl-img', kind: 'image', src: '/img/cover-sanitising.jpg', hint: 'photo',
@@ -255,6 +375,11 @@ const SEED_PROCEDURES: Procedure[] = [
     createdBy: 'emp-admin',
     createdAt: '2026-09-01T00:00:00Z',
     updatedAt: '2026-09-01T00:00:00Z',
+    version: 1,
+    isArchived: false,
+    quizId: null,
+    linkedTrainingId: 'course-food-safety',
+    quizMode: 'training',
     bodyEn: {
       blocks: [
         { id: 'h1', kind: 'heading', level: 1, text: { en: 'Proper Handwashing Procedure', es: 'Procedimiento Correcto de Lavado de Manos' } },
@@ -284,6 +409,11 @@ const SEED_PROCEDURES: Procedure[] = [
     createdBy: 'emp-admin',
     createdAt: '2026-09-02T00:00:00Z',
     updatedAt: '2026-09-02T00:00:00Z',
+    version: 1,
+    isArchived: false,
+    quizId: null,
+    linkedTrainingId: 'course-kitchen-ops',
+    quizMode: 'training',
     bodyEn: {
       blocks: [
         { id: 'op-img', kind: 'image', src: '/img/equipment.jpg', hint: 'photo',
@@ -319,6 +449,11 @@ const SEED_PROCEDURES: Procedure[] = [
     createdBy: 'emp-admin',
     createdAt: '2026-09-03T00:00:00Z',
     updatedAt: '2026-09-03T00:00:00Z',
+    version: 1,
+    isArchived: false,
+    quizId: null,
+    linkedTrainingId: 'course-recipes',
+    quizMode: 'training',
     bodyEn: {
       blocks: [
         { id: 'sv-img', kind: 'image', src: '/img/video-cover.jpg', hint: 'photo',
@@ -354,6 +489,11 @@ const SEED_PROCEDURES: Procedure[] = [
     createdBy: 'emp-admin',
     createdAt: '2026-09-05T00:00:00Z',
     updatedAt: '2026-09-05T00:00:00Z',
+    version: 1,
+    isArchived: false,
+    quizId: null,
+    linkedTrainingId: 'course-kitchen-ops',
+    quizMode: 'training',
     bodyEn: {
       blocks: [
         { id: 'gr-img', kind: 'image', src: '/img/cover-fryer-oil.jpg', hint: 'photo',
@@ -403,9 +543,14 @@ function setStored<T>(key: string, data: T): void {
 let mockLocations: Location[] = getStored('locations', SEED_LOCATIONS);
 let mockRoles: Role[] = getStored('roles', SEED_ROLES);
 let mockStations: Station[] = getStored('stations', SEED_STATIONS);
-let mockCategories: Category[] = getStored('categories', SEED_CATEGORIES);
+let mockCategories: Category[] = getStored('categories_v3', SEED_CATEGORIES);
 let mockEmployees: AdminEmployee[] = getStored('employees', SEED_EMPLOYEES);
 let mockProcedures: Procedure[] = getStored('procedures', SEED_PROCEDURES);
+// Centralised quizzes table. The wizard authors quizzes locally in form
+// state and on save calls `createQuiz()` to materialise a row here and
+// stamp its id onto the procedure. Stage 3 (course creation) writes to
+// the same store — that is the whole point of having one table.
+let mockQuizzes: Quiz[] = getStored('quizzes', SEED_QUIZZES);
 
 function getLocationsStore(): Location[] {
   if (typeof window !== 'undefined') mockLocations = getStored('locations', SEED_LOCATIONS);
@@ -420,7 +565,7 @@ function getStationsStore(): Station[] {
   return mockStations;
 }
 function getCategoriesStore(): Category[] {
-  if (typeof window !== 'undefined') mockCategories = getStored('categories', SEED_CATEGORIES);
+  if (typeof window !== 'undefined') mockCategories = getStored('categories_v3', SEED_CATEGORIES);
   return mockCategories;
 }
 function getEmployeesStore(): AdminEmployee[] {
@@ -430,6 +575,10 @@ function getEmployeesStore(): AdminEmployee[] {
 function getProceduresStore(): Procedure[] {
   if (typeof window !== 'undefined') mockProcedures = getStored('procedures', SEED_PROCEDURES);
   return mockProcedures;
+}
+function getQuizzesStore(): Quiz[] {
+  if (typeof window !== 'undefined') mockQuizzes = getStored('quizzes', SEED_QUIZZES);
+  return mockQuizzes;
 }
 
 // ----------------------------------------------------------------------------
@@ -563,23 +712,40 @@ export async function listEmployees(
 
 export async function createEmployee(input: CreateEmployeeInput): Promise<{ employee: Employee; invite: InviteResult }> {
   const loc = mockLocations.find((l) => l.id === input.locationId);
-  const role = mockRoles.find((r) => r.id === input.roleId);
+
+  // Highest clearance across all assigned job roles — what the LMS surfaces
+  // in the employee table. Manager access defaults to 'confidential' when
+  // no roles are attached yet (rare but the schema allows it).
+  const assignedRoles = input.roleIds
+    .map((id) => mockRoles.find((r) => r.id === id))
+    .filter((r): r is Role => Boolean(r));
+  const clearanceOrder: Record<typeof assignedRoles[number]['clearanceLevel'], number> = {
+    general: 0,
+    station: 1,
+    confidential: 2,
+    master: 3,
+  };
+  const highestClearance =
+    assignedRoles.length === 0
+      ? input.accessLevel === 'manager' ? 'confidential' : 'general'
+      : assignedRoles.reduce((acc, r) => (clearanceOrder[r.clearanceLevel] > clearanceOrder[acc.clearanceLevel] ? r : acc)).clearanceLevel;
 
   const newEmp: AdminEmployee = {
     id: `emp-${Date.now()}`,
     name: input.name,
     locationId: input.locationId,
-    roleId: input.roleId,
-    stationId: input.stationId ?? null,
-    clearanceLevel: input.clearanceLevel,
-    role: role?.clearanceLevel === 'master' ? 'admin' : 'employee',
+    accessLevel: input.accessLevel,
+    roleIds: [...input.roleIds],
+    stationIds: [...(input.stationIds ?? [])],
+    clearanceLevel: highestClearance,
+    role: input.accessLevel === 'manager' ? 'admin' : 'employee',
     languagePref: input.languagePref ?? 'en',
     employeeCode: input.employeeCode ?? null,
     status: 'pending',
     createdAt: new Date().toISOString(),
     deactivatedAt: null,
     locationName: loc?.name ?? null,
-    roleClearance: role?.clearanceLevel ?? null,
+    roleClearance: highestClearance,
   };
 
   mockEmployees = [newEmp, ...mockEmployees];
@@ -738,10 +904,37 @@ export async function createProcedure(input: CreateProcedureInput): Promise<{ pr
     status: input.status ?? 'draft',
     bodyEn: input.bodyEn,
     bodyEs: input.bodyEs,
+    // Subcategory under `categoryId`. Stored alongside the procedure so
+    // the library can filter by it without re-joining categories.
+    subcategoryId: input.subcategoryId ?? null,
+    // Per-procedure station scope. Stored alongside the procedure so
+    // the cook's station assignment can be matched against it on read.
+    stationScope: input.stationScope ?? null,
     createdBy: 'emp-admin',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    quiz: input.quiz ?? null,
+    // Per PROJECT_OVERVIEW §02 SOP Library: every print carries a QR
+    // pointing at the current version. New procedures start at v1; the
+    // backend bumps the version inside a SELECT FOR UPDATE on every
+    // publish. The wizard never sets this explicitly.
+    version: input.version ?? 1,
+    // Per PROJECT_OVERVIEW §02 Content Creation: "Content moves through
+    // draft, published and archived states." New procedures start
+    // unarchived; archive is a separate admin action (⋯ kebab → Archive
+    // → modal confirm).
+    isArchived: input.isArchived ?? false,
+    // FK to the centralised quizzes table. The wizard authors a quiz
+    // locally in form state, calls createQuiz() first to materialise a
+    // row, then passes that id here. `null` means the SOP has no quiz.
+    quizId: input.quizId ?? null,
+    // FK to a training course this SOP feeds into. `null` means the SOP
+    // is standalone — not part of any training plan. The Training &
+    // Quiz step captures this in the wizard.
+    linkedTrainingId: input.linkedTrainingId ?? null,
+    // Quiz visibility on the employee side. Defaults to 'training' so
+    // standalone reads of the SOP hide the quiz; 'always' surfaces it on
+    // every read. Ignored when quizId is null.
+    quizMode: (input.quizMode ?? 'training') as ProcedureQuizMode,
   };
 
   mockProcedures = [newProc, ...getProceduresStore()];
@@ -756,6 +949,48 @@ export async function listProcedures(
   const procs = getProceduresStore();
   const filtered = filter.status ? procs.filter((p) => p.status === filter.status) : procs;
   return { procedures: [...filtered] };
+}
+
+// ----------------------------------------------------------------------------
+// Library — quizzes (centralised table)
+// ----------------------------------------------------------------------------
+
+/** Look up every quiz in the centralised store. The reader-side
+ *  component joins `procedure.quizId` against this list to render the
+ *  quiz block. The wizard reads this list when it needs to copy an
+ *  existing quiz onto a new procedure. */
+export async function listQuizzes(): Promise<{ quizzes: Quiz[] }> {
+  return { quizzes: [...getQuizzesStore()] };
+}
+
+/** Sync lookup for a single quiz by id. Read-side components
+ *  (`procedure-view-client`, training pages) read this on each render
+ *  to resolve `procedure.quizId` to its quiz data. The backend will
+ *  swap this for a server-side join in the procedure / course response. */
+export function getQuizById(id: string | null): Quiz | null {
+  if (!id) return null;
+  return getQuizzesStore().find((q) => q.id === id) ?? null;
+}
+
+/** Materialise a quiz row from the wizard's authored form state. Returns
+ *  the id the wizard then stamps onto `procedure.quizId` via
+ *  `createProcedure({ quizId })`. The backend will replace this with a
+ *  POST to `/api/admin/quizzes`. */
+export async function createQuiz(input: {
+  questions: Quiz['questions'];
+  attached: boolean;
+}): Promise<{ quiz: Quiz }> {
+  const now = new Date().toISOString();
+  const newQuiz: Quiz = {
+    id: `quiz-${Date.now()}`,
+    questions: input.questions,
+    attached: input.attached,
+    createdAt: now,
+    updatedAt: now,
+  };
+  mockQuizzes = [newQuiz, ...getQuizzesStore()];
+  setStored('quizzes', mockQuizzes);
+  return { quiz: newQuiz };
 }
 
 export async function getProcedureBySlug(
@@ -800,7 +1035,7 @@ export async function createCategory(input: {
     isArchived: false,
   };
   mockCategories = [...getCategoriesStore(), newCat];
-  setStored('categories', mockCategories);
+  setStored('categories_v3', mockCategories);
   return { category: newCat };
 }
 
@@ -810,7 +1045,7 @@ export async function updateCategory(
 ): Promise<{ category: Category }> {
   const cats = getCategoriesStore();
   mockCategories = cats.map((c) => (c.id === id ? { ...c, ...patch } : c));
-  setStored('categories', mockCategories);
+  setStored('categories_v3', mockCategories);
   const updated = mockCategories.find((c) => c.id === id)!;
   return { category: updated };
 }

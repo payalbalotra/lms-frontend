@@ -108,8 +108,8 @@ export function buildAttention(input: HomeInput): AttentionGroup[] {
       key: `invite-${e.id}`,
       title: t.inviteTitle(e.name),
       meta: [
-        roleById.get(e.roleId),
-        e.stationId ? stationById.get(e.stationId) : undefined,
+        e.roleIds[0] ? roleById.get(e.roleIds[0]) : undefined,
+        e.stationIds[0] ? stationById.get(e.stationIds[0]) : undefined,
         t.invitedAgo(relativeDays(e.createdAt, locale, now)),
         e.languagePref === 'es' ? t.readsSpanish : undefined,
       ].filter((x): x is string => Boolean(x)),

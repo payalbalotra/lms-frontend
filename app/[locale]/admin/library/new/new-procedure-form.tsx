@@ -12,21 +12,22 @@ import { SegmentedControl } from '@/components/ui/segmented-control';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CustomSelect } from '@/components/ui/custom-select';
-import { Modal } from '@/components/ui/modal';
 import { Drawer } from '@/components/ui/drawer';
 import { QuizEditor } from '@/components/admin/quiz-editor';
 import { cn } from '@/lib/utils';
-import { createProcedure, createCategory, listCategories, listProcedures, ApiException } from '@/lib/api';
+import { createProcedure, createQuiz, listCategories, listStations, ApiException } from '@/lib/api';
 import { getCategoryIcon } from '@/lib/category-icons';
 import type {
   Category,
-  ExtractedProcedure,
   ProcedureBlock,
   ProcedureBody,
   ProcedureIngredient,
   ProcedureMethodStep,
   ProcedureQuiz,
+  ProcedureQuizMode,
+  ProcedureStationScope,
   ProcedureYieldItem,
+  Station,
   Localised,
   LocalisedOptional,
 } from '@/lib/types';
@@ -43,15 +44,16 @@ import {
   RecipeIngredientsEditor,
   type RecipeIngredientItem,
 } from '@/components/admin/recipe-ingredients-editor';
-import { DocumentImportPanel } from '@/components/admin/document-import-panel';
-import { LuArrowLeft, LuArrowRight, LuBrush, LuCheck, LuChevronRight, LuCircleAlert, LuCircleCheck, LuDownload, LuEllipsis, LuEye, LuFileText, LuFolder, LuLayoutGrid, LuPaperclip, LuSearch, LuShieldAlert, LuStore, LuTriangleAlert, LuTruck, LuUserCog, LuUtensils, LuWrench, LuX } from 'react-icons/lu';
+import { type StationScopeMode } from '@/components/admin/library-location-selector';
+import { LuArrowLeft, LuArrowRight, LuCheck, LuCircleAlert, LuCircleCheck, LuDownload, LuEye, LuFileText, LuFolder, LuLayoutGrid, LuPaperclip, LuTriangleAlert, LuUtensils, LuX } from 'react-icons/lu';
 import { Icon } from '@/components/ui/icon';
 import type { IconType } from 'react-icons';
 import { AccessScreen } from './access-screen';
 import { type AccessLevel } from './access-level-selector';
 import {
   ACCESS_LOCATIONS,
-  ACCESS_ROLES,
+  ACCESS_TIER_ROLES,
+  ACCESS_JOB_ROLES,
   ACCESS_STATIONS,
   ACCESS_EMPLOYEES,
 } from './access-data';
@@ -84,39 +86,157 @@ function emptyYieldItem(): ProcedureYieldItem {
   return { label: '', value: '', unit: '' };
 }
 
+/** Mirror of `SEED_CATEGORIES` in `lib/api.ts`. Used as a fallback when
+ *  localStorage hasn't seeded yet (e.g. SSR or a freshly cleared store).
+ *  Kept in sync with the seed so the picker renders identically whether
+ *  data comes from the API or this constant. */
 const DEFAULT_CATEGORIES: Category[] = [
-  { id: 'cat-recipes', slug: 'recipes', nameEn: 'Recipes', nameEs: 'Recetas', isArchived: false },
-  { id: 'cat-station', slug: 'station', nameEn: 'Station Procedures', nameEs: 'Procedimientos de Estación', isArchived: false },
-  { id: 'cat-cleaning', slug: 'cleaning', nameEn: 'Cleaning Schedules', nameEs: 'Horarios de Limpieza', isArchived: false },
-  { id: 'cat-admin', slug: 'admin', nameEn: 'General Procedures', nameEs: 'Procedimientos Generales', isArchived: false },
-  { id: 'cat-delivery', slug: 'delivery', nameEn: 'Delivery & Receiving', nameEs: 'Entrega y Recepción', isArchived: false },
-  { id: 'cat-safety', slug: 'food-safety', nameEn: 'Food Safety', nameEs: 'Seguridad Alimentaria', isArchived: false },
-  { id: 'cat-equipment', slug: 'equipment', nameEn: 'Equipment Handling', nameEs: 'Manejo de Equipos', isArchived: false },
-  { id: 'cat-other', slug: 'other', nameEn: 'Other', nameEs: 'Otros', isArchived: false },
+  {
+    id: 'cat-onboarding',
+    slug: 'onboarding',
+    nameEn: 'Onboarding',
+    nameEs: 'Inducción y Capacitación',
+    isArchived: false,
+    subcategories: [
+      { id: 'sub-culture', slug: 'culture', nameEn: 'Culture', nameEs: 'Cultura' },
+      { id: 'sub-uniform', slug: 'uniform', nameEn: 'Uniform', nameEs: 'Uniforme' },
+      { id: 'sub-conduct', slug: 'conduct', nameEn: 'Employee Conduct', nameEs: 'Conducta del Empleado' },
+    ],
+  },
+  {
+    id: 'cat-safety',
+    slug: 'food-safety',
+    nameEn: 'Food Safety',
+    nameEs: 'Seguridad Alimentaria',
+    isArchived: false,
+    subcategories: [
+      { id: 'sub-hygiene', slug: 'hygiene', nameEn: 'Hygiene', nameEs: 'Higiene' },
+      { id: 'sub-cross-contamination', slug: 'cross-contamination', nameEn: 'Cross-Contamination', nameEs: 'Contaminación Cruzada' },
+      { id: 'sub-labeling-dating', slug: 'labeling-dating', nameEn: 'Labeling & Dating', nameEs: 'Etiquetado y Fechado' },
+      { id: 'sub-allergy', slug: 'allergy', nameEn: 'Allergy', nameEs: 'Alergias' },
+    ],
+  },
+  {
+    id: 'cat-kitchen-ops',
+    slug: 'kitchen-operations',
+    nameEn: 'Kitchen Operations',
+    nameEs: 'Operaciones de Cocina',
+    isArchived: false,
+    subcategories: [
+      { id: 'sub-station-setup', slug: 'station-setup', nameEn: 'Station Setup', nameEs: 'Montaje de Estación', isStationSpecific: true },
+      { id: 'sub-kitchen-comm', slug: 'kitchen-communication', nameEn: 'Kitchen Communication', nameEs: 'Comunicación en Cocina' },
+    ],
+  },
+  {
+    id: 'cat-cleaning',
+    slug: 'cleaning',
+    nameEn: 'Cleaning',
+    nameEs: 'Limpieza',
+    isArchived: false,
+    subcategories: [
+      { id: 'sub-dishwashing', slug: 'dishwashing', nameEn: 'Dishwashing', nameEs: 'Lavadiscos' },
+      { id: 'sub-chemical', slug: 'chemical-handling', nameEn: 'Chemical Handling', nameEs: 'Manejo de Químicos' },
+      { id: 'sub-waste', slug: 'waste-disposal', nameEn: 'Waste Disposal', nameEs: 'Disposición de Desechos' },
+    ],
+  },
+  {
+    id: 'cat-opening-closing',
+    slug: 'opening-closing',
+    nameEn: 'Opening and Closing',
+    nameEs: 'Apertura y Cierre',
+    isArchived: false,
+    subcategories: [
+      {
+        id: 'sub-opening',
+        slug: 'opening-procedures',
+        nameEn: 'Opening Procedures',
+        nameEs: 'Procedimientos de Apertura',
+        isStationSpecific: true,
+        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
+      },
+      {
+        id: 'sub-closing',
+        slug: 'closing-procedures',
+        nameEn: 'Closing Procedures',
+        nameEs: 'Procedimientos de Cierre',
+        isStationSpecific: true,
+        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
+      },
+      {
+        id: 'sub-end-day',
+        slug: 'end-of-day-checks',
+        nameEn: 'End of Day Checks',
+        nameEs: 'Verificaciones de Fin de Día',
+        isStationSpecific: true,
+        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
+      },
+    ],
+  },
+  {
+    id: 'cat-equipment',
+    slug: 'equipment',
+    nameEn: 'Equipment',
+    nameEs: 'Equipamiento',
+    isArchived: false,
+    subcategories: [
+      {
+        id: 'sub-operation',
+        slug: 'operation',
+        nameEn: 'Operation',
+        nameEs: 'Operación',
+        isStationSpecific: true,
+        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
+      },
+      {
+        id: 'sub-eq-safety',
+        slug: 'equipment-safety',
+        nameEn: 'Safety',
+        nameEs: 'Seguridad',
+        isStationSpecific: true,
+        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
+      },
+      {
+        id: 'sub-eq-cleaning',
+        slug: 'equipment-cleaning',
+        nameEn: 'Cleaning',
+        nameEs: 'Limpieza',
+        isStationSpecific: true,
+        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
+      },
+    ],
+  },
+  {
+    id: 'cat-recipes',
+    slug: 'recipes',
+    nameEn: 'Recipes',
+    nameEs: 'Recetas',
+    isArchived: false,
+    subcategories: [
+      {
+        id: 'sub-plating',
+        slug: 'plating',
+        nameEn: 'Plating',
+        nameEs: 'Emplatado',
+        isStationSpecific: true,
+        stations: ['stn-gm', 'stn-grill', 'stn-expo'],
+      },
+      {
+        id: 'sub-cooking',
+        slug: 'cooking',
+        nameEn: 'Cooking',
+        nameEs: 'Cocción',
+        isStationSpecific: true,
+        stations: ['stn-gm', 'stn-grill'],
+      },
+      {
+        id: 'sub-portion',
+        slug: 'portion-standards',
+        nameEn: 'Portion Standards',
+        nameEs: 'Estándares de Porción',
+      },
+    ],
+  },
 ];
-
-function getCategoryBadgeStyle(slug: string): { icon: IconType; bg: string; text: string } {
-  switch (slug) {
-    case 'recipes':
-      return { icon: LuUtensils, bg: 'bg-[var(--color-panel)]', text: 'text-[var(--color-ink-2)]' };
-    case 'station':
-      return { icon: LuStore, bg: 'bg-[var(--color-panel)]', text: 'text-[var(--color-ink-2)]' };
-    case 'cleaning':
-      return { icon: LuBrush, bg: 'bg-[var(--color-panel)]', text: 'text-[var(--color-ink-2)]' };
-    case 'admin':
-    case 'general':
-      return { icon: LuFileText, bg: 'bg-[var(--color-panel)]', text: 'text-[var(--color-ink-2)]' };
-    case 'delivery':
-      return { icon: LuTruck, bg: 'bg-[var(--color-panel)]', text: 'text-[var(--color-ink-2)]' };
-    case 'food-safety':
-    case 'safety':
-      return { icon: LuShieldAlert, bg: 'bg-[var(--color-panel)]', text: 'text-[var(--color-ink-2)]' };
-    case 'equipment':
-      return { icon: LuWrench, bg: 'bg-[var(--color-panel)]', text: 'text-[var(--color-ink-2)]' };
-    default:
-      return { icon: LuFolder, bg: 'bg-[var(--color-panel)]', text: 'text-[var(--color-ink-2)]' };
-  }
-}
 
 function deriveTypeFromCategory(cat?: Category): ProcedureTypeId {
   if (!cat) return 'recipe';
@@ -140,6 +260,9 @@ interface FormSnapshot {
   titleEn: string;
   titleEs: string;
   categoryId: string;
+  subcategoryId: string | null;
+  stationScopeMode: StationScopeMode;
+  selectedStationIds: Set<string>;
   purposeEn: string;
   purposeEs: string;
   procedureType: ProcedureTypeId;
@@ -250,6 +373,16 @@ function isBlockEmpty(block: ProcedureBlock): boolean {
     case 'table':
       return block.headers.every((h) => locEmpty(h)) &&
         block.rows.every((r) => r.every((c) => locEmpty(c)));
+    case 'checklist':
+      // Drop the block only when every item is empty on both locales — a
+      // partially authored list is still meaningful, so keep it.
+      return (
+        (block.title?.en ?? '').trim() === '' &&
+        (block.title?.es ?? '').trim() === '' &&
+        block.items.every((it) => locEmpty(it.text))
+      );
+    default:
+      return false;
   }
 }
 
@@ -307,139 +440,20 @@ function backfillBlock(block: ProcedureBlock): ProcedureBlock {
         headers: block.headers.map((h) => backfillLocalised(h) as Localised),
         rows: block.rows.map((row) => row.map((c) => backfillLocalised(c) as Localised)),
       };
+    case 'checklist':
+      return {
+        ...block,
+        title: backfillLocalised(block.title) as LocalisedOptional,
+        items: block.items.map((it) => ({ ...it, text: backfillLocalised(it.text) as Localised })),
+      };
+    default:
+      return block;
   }
 }
 
 /** `h:mm a` in the user's locale (e.g. `10:42 AM`). */
 function formatSavedTime(d: Date, locale: string): string {
   return d.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });
-}
-
-/** Map a stable id to an ExtractedProcedure's block. Used by the AI
- *  preview→apply path so re-renders don't reshuffle step ids. */
-function idForBlock(prefix: string): string {
-  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
-}
-
-/** Mirror the empty side of a Localised so the bilingual save rule
- *  (`min(1)` on both sides) is satisfied after an extraction. The AI fills
- *  only one side per the prompt's language rule; we copy that side to the
- *  other before applying so the backend doesn't reject the save. */
-function fillBothSides(l: Localised | undefined): Localised | undefined {
-  if (!l) return l;
-  const en = (l.en ?? '').trim();
-  const es = (l.es ?? '').trim();
-  if (en && !es) return { en, es: en };
-  if (es && !en) return { en: es, es };
-  return l;
-}
-
-/** Convert an ExtractedProcedure's blocks into the wizard's internal
- *  ProcedureBlock shape. Each block gets a stable id, a backfill pass to
- *  fill empty bilingual sides, and is filtered to the kinds the wizard's
- *  block editor can render. */
-function blocksFromExtracted(ext: ExtractedProcedure): ProcedureBlock[] {
-  if (!ext.blocks || ext.blocks.length === 0) return [];
-  const out: ProcedureBlock[] = [];
-  for (const b of ext.blocks) {
-    switch (b.kind) {
-      case 'text': {
-        const body = fillBothSides(b.body);
-        if (!body) continue;
-        out.push({ id: idForBlock('t'), kind: 'text', body });
-        break;
-      }
-      case 'heading': {
-        const text = fillBothSides(b.text);
-        if (!text) continue;
-        out.push({
-          id: idForBlock('h'),
-          kind: 'heading',
-          level: b.level,
-          text,
-        });
-        break;
-      }
-      case 'method': {
-        const steps: ProcedureMethodStep[] = b.steps
-          .map((s) => fillBothSides(s.body))
-          .filter((body): body is Localised => Boolean(body))
-          .map((body) => ({ id: idForBlock('s'), body }));
-        if (steps.length === 0) continue;
-        out.push({ id: idForBlock('m'), kind: 'method', steps });
-        break;
-      }
-      case 'warning': {
-        const body = fillBothSides(b.body);
-        if (!body) continue;
-        out.push({
-          id: idForBlock('w'),
-          kind: 'warning',
-          severity: b.severity,
-          body,
-        });
-        break;
-      }
-      case 'table': {
-        const headers = b.headers
-          .map(fillBothSides)
-          .filter((h): h is Localised => Boolean(h));
-        const rows = b.rows
-          .map((r) => r.map(fillBothSides).filter((c): c is Localised => Boolean(c)))
-          .filter((r) => r.length > 0);
-        if (headers.length === 0) continue;
-        out.push({ id: idForBlock('tb'), kind: 'table', headers, rows });
-        break;
-      }
-      case 'recipe': {
-        const steps = (b.steps ?? [])
-          .map((s) => fillBothSides(s.body))
-          .filter((body): body is Localised => Boolean(body))
-          .map((body) => ({ id: idForBlock('s'), body }));
-        if (steps.length === 0) continue;
-        const ingredients: ProcedureIngredient[] = (b.ingredients ?? [])
-          .filter((i) => i.name.trim().length > 0)
-          .map((i) => ({
-            name: i.name.trim(),
-            unit: i.unit,
-            allergen: false,
-            amounts: (i.amounts ?? []).filter((a) => a.trim().length > 0),
-          }));
-        out.push({
-          id: idForBlock('r'),
-          kind: 'recipe',
-          audience: b.audience ?? '',
-          yieldItems: b.yieldItems,
-          ingredients,
-          steps,
-        });
-        break;
-      }
-    }
-  }
-  return out;
-}
-
-/** Map the AI's recipe ingredients to the wizard's RecipeIngredientItem
- *  rows. Empty ingredient lists fall back to a single blank row so the
- *  editor doesn't render an empty list (which would silently break the
- *  "at least one ingredient" submission rule). */
-function recipeIngredientsFromExtracted(
-  ext: ExtractedProcedure,
-): RecipeIngredientItem[] {
-  const list = ext.recipe?.ingredients;
-  if (!list || list.length === 0) {
-    return [{ id: idForBlock('ing'), name: '', quantity: '', unit: 'kg', notes: '' }];
-  }
-  return list
-    .filter((i) => i.name.trim().length > 0)
-    .map((i) => ({
-      id: idForBlock('ing'),
-      name: i.name.trim(),
-      quantity: (i.amounts ?? []).filter((a) => a.trim().length > 0).join(' '),
-      unit: i.unit ?? '',
-      notes: '',
-    }));
 }
 
 export function NewProcedureForm({
@@ -486,45 +500,77 @@ export function NewProcedureForm({
     return localCategories && localCategories.length >= 4 ? localCategories : DEFAULT_CATEGORIES;
   }, [localCategories]);
 
-  const initialCat = sourceCategories[0];
+  // URL pre-fill — `?category=<slug>&subcategory=<slug>` deep-links from the
+  // library category pages. The Add Procedure modal also passes
+  // `accessLocation=<id>&accessStations=<csv>` so the Access step lands with
+  // the location + station scope already filled in. We resolve slugs against
+  // the merged category list and pre-set both ids so the picker lands with
+  // the right selection on first paint. URL is the source of truth on first
+  // mount; afterwards the picker owns its own state.
+  const urlPreFill = React.useMemo(() => {
+    if (typeof window === 'undefined') return null;
+    const params = new URLSearchParams(window.location.search);
+    const catSlug = params.get('category');
+    const subSlug = params.get('subcategory');
+    const accessLocation = params.get('accessLocation');
+    const accessStationsCsv = params.get('accessStations');
+    const accessStationIds = accessStationsCsv
+      ? accessStationsCsv.split(',').map((s) => s.trim()).filter(Boolean)
+      : [];
+    if (!catSlug && !subSlug && !accessLocation && accessStationIds.length === 0) {
+      return null;
+    }
+    const cat = sourceCategories.find((c) => c.slug === catSlug);
+    const sub = cat?.subcategories?.find((s) => s.slug === subSlug);
+    return {
+      categoryId: cat?.id ?? null,
+      subcategoryId: sub?.id ?? null,
+      accessLocation: accessLocation ?? null,
+      accessStationIds,
+    };
+  }, [sourceCategories]);
+
+  const initialCat = urlPreFill?.categoryId
+    ? sourceCategories.find((c) => c.id === urlPreFill.categoryId) ?? sourceCategories[0]
+    : sourceCategories[0];
+  const initialSubId = urlPreFill?.subcategoryId ?? null;
   const initialType = React.useMemo(() => deriveTypeFromCategory(initialCat), [initialCat]);
 
-  const [creationMode, setCreationMode] = useState<'manual' | 'import'>('manual');
-  // Once the manager picks how they want to start, the chooser at the top of
-  // the page gets out of the way — they don't need to keep seeing it while
-  // they're filling in the rest of the form.
   const [wizardStep, setWizardStep] = useState<WizardStepId>('details');
   const [categoryId, setCategoryId] = useState<string>(() => initialCat?.id ?? DEFAULT_CATEGORIES[0].id);
+  const [subcategoryId, setSubcategoryId] = useState<string | null>(initialSubId);
+  // Library location — station scope. Default to 'all' for general
+  // subcategories; the LibraryLocationPicker snaps the mode to 'specific'
+  // when the chosen subcategory is `isStationSpecific`.
+  const [stationScopeMode, setStationScopeMode] = useState<StationScopeMode>(
+    () => (urlPreFill?.accessStationIds?.length ? 'specific' : 'all'),
+  );
+  const [selectedStationIds, setSelectedStationIds] = useState<Set<string>>(
+    () => new Set(urlPreFill?.accessStationIds ?? []),
+  );
+  const [stations, setStations] = useState<Station[]>([]);
   const [procedureType, setProcedureType] = useState<ProcedureTypeId>(() => initialType);
   const isRecipeMode = procedureType === 'recipe';
-  // How many procedures each category already holds. The tiles used to print
-  // fixed numbers from the demo copy; this reads the library.
-  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
+  // Stations used by the library-location picker's station-scope panel.
+  // Only loaded once — the picker is the only consumer, and the modal-free
+  // design means the manager never picks stations anywhere else.
   React.useEffect(() => {
     let alive = true;
-    void listProcedures()
-      .then(({ procedures }) => {
-        if (!alive) return;
-        const counts: Record<string, number> = {};
-        for (const proc of procedures) {
-          const slug = proc.category?.slug;
-          if (slug) counts[slug] = (counts[slug] ?? 0) + 1;
-        }
-        setCategoryCounts(counts);
+    void listStations('loc-main')
+      .then(({ stations: fetched }) => {
+        if (alive) setStations(fetched);
       })
       .catch(() => {
-        /* the tiles simply say "no procedures yet" */
+        /* picker renders an empty-state copy on its own */
       });
     return () => {
       alive = false;
     };
   }, []);
-  const categoryCountLabel = (slug: string): string => {
-    const n = categoryCounts[slug] ?? 0;
-    if (n === 0) return locale === 'es' ? 'Sin procedimientos' : 'No procedures yet';
-    if (n === 1) return locale === 'es' ? '1 procedimiento' : '1 procedure';
-    return locale === 'es' ? `${n} procedimientos` : `${n} procedures`;
-  };
+
+  // Stations are loaded by the LibraryLocationPicker mount effect above;
+  // no category-count labels here — the new picker doesn't print per-card
+  // counts (the design dropped them in favour of the subcategory count).
   const [titleEn, setTitleEn] = useState('');
   const [titleEs, setTitleEs] = useState('');
   const [titleLang, setTitleLang] = useState<'en' | 'es'>('en');
@@ -535,43 +581,93 @@ export function NewProcedureForm({
   const [blocks, setBlocksRaw] = useState<ProcedureBlock[]>([]);
   // Quiz authored in the wizard's Quiz step. `null` means the step was
   // skipped (no questions authored yet); an object with `attached: false`
-  // means the manager authored but chose not to attach.
+  // means the manager authored but chose not to attach. On save, a
+  // non-null quiz with at least one question is materialised via
+  // `createQuiz()` and its id stamped onto `procedure.quizId`.
   const [quiz, setQuiz] = useState<ProcedureQuiz | null>(null);
+  // Training & Quiz step fields. `linkedTrainingId` is the FK to the
+  // training course this SOP feeds into (null = standalone SOP). The
+  // wizard's UI for these is the next slice (F2.5b); defaults hold
+  // the type contract working in the meantime.
+  const [linkedTrainingId, setLinkedTrainingId] = useState<string | null>(null);
+  const [quizMode, setQuizMode] = useState<ProcedureQuizMode>('training');
 
-  // Access selections (Step 3 / 4). Lives in the wizard so the Review step
-  // can render them — `AccessScreen` only owns ephemeral interaction state
-  // now (like the assign search query) and reads/writes through these.
+  // Access selections live in the wizard so the Review step can render
+  // them. Tier is single-select (Manager or Employee are mutually
+  // exclusive on a person) and lives outside the Sets so a plain string
+  // can carry the "no tier picked" state.
   const [accessSelections, setAccessSelections] = useState<{
     locations: Set<string>;
-    roles: Set<string>;
+    jobRoles: Set<string>;
     stations: Set<string>;
     employees: Set<string>;
+    /** Library categories the procedure lives in. Drives the subcategory
+     *  list shown right below. Empty Set = show every subcategory. */
+    categories: Set<string>;
+    /** Library subcategories the procedure lives in. Always a subset of
+     *  (every subcategory of selected categories). Cascade-cleared by
+     *  `updateAccess` when the parent category is removed. */
+    subcategories: Set<string>;
   }>(() => ({
-    locations: new Set<string>(),
-    roles: new Set<string>(),
-    stations: new Set<string>(),
+    // Seed from URL pre-fill so the manager lands on the Access step with
+    // the subcategory's location + stations already selected (when the
+    // wizard was launched from the Add Procedure modal). Categories and
+    // subcategories mirror the Details-step picker so step 4 opens with
+    // the same selection already checked.
+    locations: new Set<string>(urlPreFill?.accessLocation ? [urlPreFill.accessLocation] : []),
+    jobRoles: new Set<string>(),
+    stations: new Set<string>(urlPreFill?.accessStationIds ?? []),
     employees: new Set<string>(),
+    categories: new Set<string>(urlPreFill?.categoryId ? [urlPreFill.categoryId] : []),
+    subcategories: new Set<string>(urlPreFill?.subcategoryId ? [urlPreFill.subcategoryId] : []),
   }));
 
-  // Access level — the top-level choice on the Access step. When
-  // 'everyone' the procedure is visible to every employee regardless of
-  // the location / role / station / employee selections below. Those
-  // selections stay in state untouched, so flipping back to 'restricted'
-  // restores the prior scoped access without losing the manager's
-  // choices.
+  const [accessTier, setAccessTier] = React.useState<string | null>(null);
+
+  // Access level — kept for the Review badge. The Access step no longer
+  // surfaces an Everyone / Restricted radio; every procedure is scoped
+  // through its pickers so 'restricted' is the only valid value now.
   const [accessLevel, setAccessLevel] = React.useState<AccessLevel>('restricted');
 
   const updateAccess = React.useCallback(
-    (key: 'locations' | 'roles' | 'stations' | 'employees', id: string): void => {
+    (key: 'locations' | 'jobRoles' | 'stations' | 'employees' | 'categories' | 'subcategories', id: string): void => {
       setAccessSelections((prev) => {
-        const next = new Set(prev[key]);
-        if (next.has(id)) next.delete(id);
-        else next.add(id);
-        return { ...prev, [key]: next };
+        const nextSet = new Set(prev[key]);
+        if (nextSet.has(id)) nextSet.delete(id);
+        else nextSet.add(id);
+
+        // Categories and subcategories are linked: removing a category
+        // must drop its subcategories from the selection, otherwise a
+        // ghost row would show in the Review step.
+        if (key === 'categories') {
+          const validSubIds = new Set(
+            sourceCategories
+              .filter((c) => nextSet.has(c.id))
+              .flatMap((c) => (c.subcategories ?? []).map((s) => s.id)),
+          );
+          const filteredSubs = new Set(Array.from(prev.subcategories).filter((sid) => validSubIds.has(sid)));
+          return { ...prev, categories: nextSet, subcategories: filteredSubs };
+        }
+
+        return { ...prev, [key]: nextSet };
       });
     },
-    [],
+    [sourceCategories],
   );
+
+  // Pre-select the single location when the list has exactly one entry,
+  // so the submit payload carries it. No-op once a second location lands.
+  React.useEffect(() => {
+    if (ACCESS_LOCATIONS.length === 1) {
+      const only = ACCESS_LOCATIONS[0].id;
+      setAccessSelections((prev) => {
+        if (prev.locations.size === 0 && !prev.locations.has(only)) {
+          return { ...prev, locations: new Set([only]) };
+        }
+        return prev;
+      });
+    }
+  }, []);
 
   // Recipe specific states
   const [ingredients, setIngredients] = useState<RecipeIngredientItem[]>([
@@ -593,38 +689,6 @@ export function NewProcedureForm({
   const [isPending, startTransition] = useTransition();
   const [isDirty, setIsDirty] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
-
-  // Inline "create new category" form inside the modal
-  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
-  const [newCatNameEn, setNewCatNameEn] = useState('');
-  const [newCatNameEs, setNewCatNameEs] = useState('');
-  const [isSavingCat, setIsSavingCat] = useState(false);
-
-  async function handleCreateCategory(): Promise<void> {
-    const nameEn = newCatNameEn.trim();
-    const nameEs = newCatNameEs.trim() || nameEn;
-    if (!nameEn) return;
-    const slug = nameEn.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    setIsSavingCat(true);
-    try {
-      const { category } = await createCategory({
-        locationId: 'loc-main',
-        slug: `${slug}-${Date.now().toString(36)}`,
-        nameEn,
-        nameEs,
-      });
-      setLocalCategories((prev) => [...prev, category]);
-      if (typeof window !== 'undefined') window.dispatchEvent(new Event('lms_categories_updated'));
-      handleCategoryChange(category.id);
-      setIsOtherModalOpen(false);
-      setModalSearchQuery('');
-      setIsCreatingCategory(false);
-      setNewCatNameEn('');
-      setNewCatNameEs('');
-    } finally {
-      setIsSavingCat(false);
-    }
-  }
 
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewLang, setPreviewLang] = useState<'en' | 'es'>('en');
@@ -698,34 +762,9 @@ export function NewProcedureForm({
     }
   }, [wizardStep, isRecipeMode]);
 
-  const primaryCategories = React.useMemo(() => {
-    return sourceCategories.slice(0, 7);
-  }, [sourceCategories]);
-
-  const isPrimaryCategorySelected = React.useMemo(() => {
-    return primaryCategories.some((c) => c.id === categoryId);
-  }, [primaryCategories, categoryId]);
-
   const selectedCategory = React.useMemo(() => {
     return sourceCategories.find((c) => c.id === categoryId);
   }, [sourceCategories, categoryId]);
-
-  const selectedExceedingCategory = !isPrimaryCategorySelected ? selectedCategory : null;
-
-  // The tiles show the primary categories; everything else is behind "Other".
-  const displayCategories = primaryCategories;
-
-  const [isOtherModalOpen, setIsOtherModalOpen] = useState(false);
-  const [modalSearchQuery, setModalSearchQuery] = useState('');
-
-  const modalFilteredCategories = React.useMemo(() => {
-    const query = modalSearchQuery.toLowerCase().trim();
-    if (!query) return sourceCategories;
-    return sourceCategories.filter((c) => {
-      const name = (locale === 'es' ? c.nameEs : c.nameEn).toLowerCase();
-      return name.includes(query) || c.slug.toLowerCase().includes(query);
-    });
-  }, [sourceCategories, modalSearchQuery, locale]);
 
   // Map slug -> id so the type/category auto-sync can still target the
   // standard slugs even if the manager added custom categories alongside.
@@ -739,6 +778,9 @@ export function NewProcedureForm({
     titleEn: '',
     titleEs: '',
     categoryId: initialCat?.id ?? DEFAULT_CATEGORIES[0].id,
+    subcategoryId: initialSubId,
+    stationScopeMode: 'all',
+    selectedStationIds: new Set(),
     purposeEn: '',
     purposeEs: '',
     procedureType: initialType,
@@ -767,12 +809,29 @@ export function NewProcedureForm({
     const slug = slugByType[nextType];
     if (slug) {
       const id = idBySlug[slug];
-      if (id) setCategoryId(id);
+      if (id) handleCategoryChange(id);
     }
   };
 
+  /** Switching category resets the subcategory and station scope. The
+   *  picker recomputes which subcategories are visible; the station
+   *  scope falls back to "all" because the new category's first
+   *  subcategory may not be station-specific. */
   const handleCategoryChange = (nextId: string): void => {
     setCategoryId(nextId);
+    setSubcategoryId(null);
+    setStationScopeMode('all');
+    setSelectedStationIds(new Set());
+    // Mirror the Library-location reset into the Access step so both
+    // station pickers stay in sync — the wizard doesn't re-derive one from
+    // the other on render. Replacing (not merging) the category also
+    // drops the now-orphaned subcategory on the Access step.
+    setAccessSelections((prev) => ({
+      ...prev,
+      categories: new Set([nextId]),
+      subcategories: new Set<string>(),
+      stations: new Set<string>(),
+    }));
     setIsDirty(true);
 
     // Sync type if user picks a category mapped to one of the standard
@@ -804,11 +863,72 @@ export function NewProcedureForm({
     }
   };
 
+  /** Switching subcategory applies the subcategory's default station
+   *  scope: if it's station-specific, pre-tick the suggested stations
+   *  and default the mode to "specific"; otherwise reset to "all".
+   *  Mirrors the same selection into the Access step's stations Set so
+   *  step 4 (Access) opens with the same stations already checked. */
+  const handleSubcategoryChange = (nextSubId: string | null): void => {
+    setSubcategoryId(nextSubId);
+    setIsDirty(true);
+
+    const cat = sourceCategories.find((c) => c.id === categoryId);
+    const sub = cat?.subcategories?.find((s) => s.id === nextSubId);
+    if (!sub) {
+      setStationScopeMode('all');
+      setSelectedStationIds(new Set());
+      setAccessSelections((prev) => ({
+        ...prev,
+        subcategories: new Set<string>(),
+        stations: new Set<string>(),
+      }));
+      return;
+    }
+    // Translate subcategory station ids (e.g. `stn-gm`) into the Access
+    // step's option ids (e.g. `st-gm`) so the checkboxes line up.
+    const accessIds = (sub.stations ?? []).map((id) => id.replace(/^stn-/, 'st-'));
+    if (sub.isStationSpecific) {
+      setStationScopeMode('specific');
+      setSelectedStationIds(new Set(sub.stations ?? []));
+      setAccessSelections((prev) => ({
+        ...prev,
+        subcategories: new Set([sub.id]),
+        stations: new Set(accessIds),
+      }));
+    } else {
+      setStationScopeMode('all');
+      setSelectedStationIds(new Set());
+      setAccessSelections((prev) => ({
+        ...prev,
+        subcategories: new Set([sub.id]),
+        stations: new Set<string>(),
+      }));
+    }
+  };
+
+  const handleStationScopeModeChange = (mode: StationScopeMode): void => {
+    setStationScopeMode(mode);
+    setIsDirty(true);
+  };
+
+  const handleStationToggle = (stationId: string): void => {
+    setSelectedStationIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(stationId)) next.delete(stationId);
+      else next.add(stationId);
+      return next;
+    });
+    setIsDirty(true);
+  };
+
   const discard = (): void => {
     const s = initialRef.current;
     setTitleEn(s.titleEn);
     setTitleEs(s.titleEs);
     setCategoryId(s.categoryId);
+    setSubcategoryId(s.subcategoryId);
+    setStationScopeMode(s.stationScopeMode);
+    setSelectedStationIds(new Set(s.selectedStationIds));
     setPurposeEn(s.purposeEn);
     setPurposeEs(s.purposeEs);
     setProcedureType(s.procedureType);
@@ -818,39 +938,6 @@ export function NewProcedureForm({
     setIsDirty(false);
     setLastSavedAt(null);
   };
-
-  // Apply an AI-extracted draft to the form. Called by DocumentImportPanel
-  // when the manager clicks "Use this draft". The extraction only fills the
-  // sides it found in the source language; we mirror to the other side so
-  // the bilingual save rule is met.
-  const handleExtracted = React.useCallback(
-    (extraction: ExtractedProcedure): void => {
-      const title = fillBothSides(extraction.title);
-      if (title) {
-        setTitleEn(title.en);
-        setTitleEs(title.es);
-      }
-      const purpose = fillBothSides(extraction.purpose);
-      if (purpose) {
-        setPurposeEn(purpose.en);
-        setPurposeEs(purpose.es);
-      }
-      if (extraction.recipe && isRecipeMode) {
-        setIngredients(recipeIngredientsFromExtracted(extraction));
-      }
-      const blocks = blocksFromExtracted(extraction);
-      if (blocks.length > 0) setBlocks(blocks);
-      // Flip back to manual mode so the populated form is what the manager
-      // sees, not the import tile.
-      setCreationMode('manual');
-      setWizardStep('details');
-      setError(null);
-      setIsDirty(true);
-    },
-    // setBlocks is stable (useCallback above); setters are stable.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isRecipeMode],
-  );
 
   async function submit(status: 'draft' | 'published'): Promise<void> {
     setError(null);
@@ -874,16 +961,50 @@ export function NewProcedureForm({
 
     startTransition(async () => {
       try {
+        // Materialise the wizard's authored quiz into the centralised
+        // `quizzes` table first, then stamp its id onto the procedure.
+        // A quiz with no questions is treated as "manager chose not to
+        // attach" — we drop it rather than save an empty row.
+        let quizId: string | null = null;
+        if (quiz && quiz.questions.length > 0) {
+          const { quiz: createdQuiz } = await createQuiz({
+            questions: quiz.questions,
+            attached: quiz.attached,
+          });
+          quizId = createdQuiz.id;
+        }
+
+        // Build the station scope. Only emitted when the chosen
+        // subcategory is station-specific and the manager actually
+        // picked some stations — otherwise the procedure is "all
+        // stations" and we drop the field, mirroring the schema's
+        // `mode: 'all'` + empty `stationIds` shape as the absence of
+        // a scope entirely.
+        let stationScopePayload: ProcedureStationScope | null = null;
+        const pickedCategory = sourceCategories.find((c) => c.id === categoryId);
+        const pickedSub = pickedCategory?.subcategories?.find((s) => s.id === subcategoryId);
+        if (pickedSub?.isStationSpecific) {
+          const ids = stationScopeMode === 'specific' ? Array.from(selectedStationIds) : [];
+          stationScopePayload = {
+            mode: ids.length > 0 ? 'specific' : 'all',
+            stationIds: ids,
+          };
+        }
+
         await createProcedure({
           titleEn: titleEn.trim() || titleEs.trim(),
           titleEs: titleEs.trim() || titleEn.trim(),
           categoryId: categoryId.length > 0 ? categoryId : null,
+          subcategoryId: subcategoryId,
+          stationScope: stationScopePayload,
           purposeEn: purposeEn.trim() || purposeEs.trim(),
           purposeEs: purposeEs.trim() || purposeEn.trim(),
           status,
           bodyEn: body,
           bodyEs: body,
-          quiz,
+          quizId,
+          linkedTrainingId,
+          quizMode,
         });
         setLastSavedAt(new Date());
         setIsDirty(false);
@@ -934,11 +1055,12 @@ export function NewProcedureForm({
       ];
 
   const completedCount = sections.filter((s) => s.completed).length;
-  // Total selections across location + role + station — drives the access
-  // card eyebrow and the publish-band copy at the bottom of Review.
+  // Total selections across all four access dimensions — drives the
+  // access card eyebrow on Review. Tier contributes 1 when picked.
   const accessCount =
     accessSelections.locations.size +
-    accessSelections.roles.size +
+    (accessTier ? 1 : 0) +
+    accessSelections.jobRoles.size +
     accessSelections.stations.size;
   const activeCategory = categories.find((c) => c.id === categoryId);
   const categoryLabel = activeCategory
@@ -978,32 +1100,6 @@ export function NewProcedureForm({
         }
       />
 
-      {/* The question and its seats, on the page ground: the same shape as the
-          library's category filters. It used to sit in a white card and vanish
-          the moment it was answered, which left no way back to the other view. */}
-      <div className="space-y-2">
-        <span className="block text-sm font-semibold text-[var(--color-ink-3)]">
-          How would you like to start?
-        </span>
-        <FilterChips
-          label="How would you like to start?"
-          value={creationMode}
-          onChange={(mode) => setCreationMode(mode as 'manual' | 'import')}
-          chips={[
-            { value: 'manual', label: 'Create manually' },
-            { value: 'import', label: 'Import a document' },
-          ]}
-        />
-      </div>
-
-      {/* AI Import Upload Box when Import mode is selected */}
-      {creationMode === 'import' && (
-        <DocumentImportPanel
-          procedureType={procedureType}
-          onExtracted={handleExtracted}
-        />
-      )}
-
       {/* Wizard Stepper Header */}
       <ProcedureWizardStepper
         currentStep={wizardStep}
@@ -1032,116 +1128,6 @@ export function NewProcedureForm({
         {/* Step 1: Basic information / Details */}
         {wizardStep === 'details' && (
           <div className="space-y-8">
-            {/* Library Category Card Grid Section */}
-            <Section
-              id="proc-category"
-              icon={LuFolder}
-              title="Library category"
-              subtitle="Choose where this procedure will appear in the library."
-            >
-              <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  {displayCategories.map((c) => {
-                    const isSelected = categoryId === c.id;
-                    const style = getCategoryBadgeStyle(c.slug);
-                    const name = locale === 'es' ? c.nameEs : c.nameEn;
-
-                    return (
-                      <button
-                        key={c.id}
-                        type="button"
-                        title={name}
-                        onClick={() => handleCategoryChange(c.id)}
-                        className={cn(
-                          'group relative flex flex-col justify-between rounded-[var(--radius-lg)] border p-4 text-left transition-all duration-[var(--dur)] min-h-tile h-full',
-                          isSelected
-                            ? 'border-[var(--color-brand-600)] bg-[var(--color-surface)]'
-                            : 'border-[var(--color-line-2)] bg-[var(--color-surface)] hover:bg-[var(--color-wash)] hover:border-[var(--color-line-3)]',
-                        )}
-                      >
-                        {/* Selected Checkmark Badge */}
-                        {isSelected && (
-                          <div className="absolute top-3 right-3 flex size-5 items-center justify-center rounded-full bg-[var(--color-brand-600)] text-white text-sm shadow-e1">
-                            <LuCheck aria-hidden="true" className="font-semibold" />
-                          </div>
-                        )}
-
-                        {/* Icon in Colored Circle/Square Box */}
-                        <div className={cn('flex size-10 items-center justify-center rounded-[var(--radius-lg)] text-lg shadow-e1 transition-transform', style.bg, style.text)}>
-                          <Icon icon={style.icon} />
-                        </div>
-
-                        {/* Title and subtitle */}
-                        <div className="mt-3">
-                          <h4
-                            className="font-[family-name:var(--font-ui)] text-sm font-semibold tracking-snug text-[var(--color-ink)] line-clamp-2 leading-heading"
-                            title={name}
-                          >
-                            {name}
-                          </h4>
-                          <p className="mt-1 text-sm text-[var(--color-ink-2)]">
-                            {categoryCountLabel(c.slug)}
-                          </p>
-                        </div>
-                      </button>
-                    );
-                  })}
-
-                  {/* 8th Card: Other (triggers modal to view/select from all exceeding categories) */}
-                  {(() => {
-                    const isOtherSelected = !isPrimaryCategorySelected;
-                    const style = getCategoryBadgeStyle('other');
-                    const selectedName = selectedExceedingCategory
-                      ? (locale === 'es' ? selectedExceedingCategory.nameEs : selectedExceedingCategory.nameEn)
-                      : null;
-
-                    return (
-                      <button
-                        key="card-other-trigger"
-                        type="button"
-                        title={selectedName ? `Selected: ${selectedName}` : 'View all categories'}
-                        onClick={() => setIsOtherModalOpen(true)}
-                        className={cn(
-                          'group relative flex flex-col justify-between rounded-[var(--radius-lg)] border p-4 text-left transition-all duration-[var(--dur)] min-h-tile h-full',
-                          isOtherSelected
-                            ? 'border-[var(--color-brand-600)] bg-[var(--color-surface)]'
-                            : 'border-[var(--color-line-2)] bg-[var(--color-surface)] hover:bg-[var(--color-wash)] hover:border-[var(--color-line-3)]',
-                        )}
-                      >
-                        {/* Selected Checkmark Badge */}
-                        {isOtherSelected && (
-                          <div className="absolute top-3 right-3 flex size-5 items-center justify-center rounded-full bg-[var(--color-brand-600)] text-white text-sm shadow-e1">
-                            <LuCheck aria-hidden="true" className="font-semibold" />
-                          </div>
-                        )}
-
-                        {/* Icon */}
-                        <div className={cn('flex size-10 items-center justify-center rounded-[var(--radius-lg)] text-lg shadow-e1 transition-transform', style.bg, style.text)}>
-                          <LuEllipsis aria-hidden="true" className="text-xl font-semibold" />
-                        </div>
-
-                        {/* Title and subtitle */}
-                        <div className="mt-3">
-                          <h4
-                            className="font-[family-name:var(--font-ui)] text-sm font-semibold tracking-snug text-[var(--color-ink)] line-clamp-2 leading-heading"
-                            title={selectedName || 'Other'}
-                          >
-                            {selectedName ? selectedName : (locale === 'es' ? 'Otros' : 'Other')}
-                          </h4>
-                          <p className="mt-1 text-sm text-[var(--color-ink-2)] flex items-center gap-1">
-                            <span>
-                              {selectedName
-                                ? (locale === 'es' ? 'Seleccionada' : 'Selected')
-                                : (locale === 'es' ? 'Ver todas' : 'View all')}
-                            </span>
-                            <LuChevronRight aria-hidden="true" className="text-sm" />
-                          </p>
-                        </div>
-                      </button>
-                    );
-                  })()}
-              </div>
-            </Section>
-
             {/* Procedure Details Section */}
             <Section
               id="proc-details"
@@ -1314,19 +1300,19 @@ export function NewProcedureForm({
           <QuizEditor value={quiz} onChange={setQuiz} />
         )}
 
-        {/* Step: Access — radio choice + four compact rows. */}
+        {/* Step: Access — linked category → subcategory → station → assign. */}
         {wizardStep === 'access' && (
           <AccessScreen
-            selectedLocations={accessSelections.locations}
-            selectedRoles={accessSelections.roles}
             selectedStations={accessSelections.stations}
             assignedEmployees={accessSelections.employees}
-            accessLevel={accessLevel}
-            onToggleLocation={(id) => updateAccess('locations', id)}
-            onToggleRole={(id) => updateAccess('roles', id)}
+            categories={sourceCategories}
+            selectedCategoryIds={accessSelections.categories}
+            selectedSubcategoryIds={accessSelections.subcategories}
             onToggleStation={(id) => updateAccess('stations', id)}
             onToggleEmployee={(id) => updateAccess('employees', id)}
-            onChangeAccessLevel={setAccessLevel}
+            onToggleCategory={(id) => updateAccess('categories', id)}
+            onToggleSubcategory={(id) => updateAccess('subcategories', id)}
+            locale={locale}
           />
         )}
 
@@ -1388,7 +1374,14 @@ export function NewProcedureForm({
                 eyebrow={
                   accessLevel === 'everyone'
                     ? tAccess('reviewPublicBadge')
-                    : `${accessCount} selected across ${['locations', 'roles', 'stations'].filter((k) => accessSelections[k as 'locations' | 'roles' | 'stations'].size > 0).length || 0} tier${'s'}`
+                    : (() => {
+                        const groups =
+                          ['locations', 'jobRoles', 'stations'].filter(
+                            (k) =>
+                              accessSelections[k as 'locations' | 'jobRoles' | 'stations'].size > 0,
+                          ).length + (accessTier ? 1 : 0);
+                        return `${accessCount} selected across ${groups} dimension${groups === 1 ? '' : 's'}`;
+                      })()
                 }
               >
                 {/* Locations */}
@@ -1399,12 +1392,24 @@ export function NewProcedureForm({
                   emptyText="No locations selected — open to everyone"
                 />
 
-                {/* Roles */}
+                {/* Access level (single-select tier) */}
                 <ReviewChipRow
-                  icon="ri-user-star-line"
-                  label="Roles"
-                  items={ACCESS_ROLES.filter((o) => accessSelections.roles.has(o.id))}
-                  emptyText="No roles selected — open to everyone"
+                  icon="ri-shield-user-line"
+                  label="Access level"
+                  items={
+                    accessTier
+                      ? ACCESS_TIER_ROLES.filter((o) => o.id === accessTier)
+                      : []
+                  }
+                  emptyText="No tier picked — no access level filter"
+                />
+
+                {/* Job roles */}
+                <ReviewChipRow
+                  icon="ri-knife-line"
+                  label="Job role"
+                  items={ACCESS_JOB_ROLES.filter((o) => accessSelections.jobRoles.has(o.id))}
+                  emptyText="No job roles picked"
                 />
 
                 {/* Stations */}
@@ -1627,189 +1632,6 @@ export function NewProcedureForm({
         </div>
       </form>
 
-      {/* Category Selection Modal for Exceeding Categories ("Other") */}
-      <Modal
-        open={isOtherModalOpen}
-        onClose={() => {
-          setIsOtherModalOpen(false);
-          setModalSearchQuery('');
-        }}
-        title={locale === 'es' ? 'Todas las categorías' : 'All Library Categories'}
-        size="lg"
-      >
-        <div className="p-6 space-y-5">
-          {/* Modal Header */}
-          <div className="flex items-center justify-between border-b border-[var(--color-line)] pb-4">
-            <div>
-              <h3 className="font-[family-name:var(--font-ui)] text-lg font-semibold text-[var(--color-ink)]">
-                {locale === 'es' ? 'Seleccionar Categoría' : 'Select Library Category'}
-              </h3>
-              <p className="text-sm text-[var(--color-ink-2)] mt-0.5">
-                {locale === 'es'
-                  ? 'Elige cualquier categoría para este procedimiento'
-                  : 'Choose any category where this procedure will appear.'}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setIsOtherModalOpen(false);
-                setModalSearchQuery('');
-              }}
-              className="flex size-8 items-center justify-center rounded-lg text-[var(--color-ink-3)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)] transition-colors"
-            >
-              <LuX aria-hidden="true" className="text-lg" />
-            </button>
-          </div>
-
-          {/* Search Input inside Modal */}
-          <div className="relative">
-            <LuSearch aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-ink-3)]" />
-            <Input
-              type="text"
-              placeholder={locale === 'es' ? 'Buscar categorías...' : 'Search categories...'}
-              value={modalSearchQuery}
-              onChange={(e) => setModalSearchQuery(e.target.value)}
-              className="pl-10 pr-8 text-sm h-10 bg-[var(--color-surface)] border-[var(--color-line-2)]"
-            />
-            {modalSearchQuery && (
-              <button
-                type="button"
-                onClick={() => setModalSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-ink-3)] hover:text-[var(--color-ink)]"
-              >
-                <LuX aria-hidden="true" />
-              </button>
-            )}
-          </div>
-
-          {/* Category Grid inside Modal */}
-          <div className="max-h-list overflow-y-auto pr-1">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {modalFilteredCategories.map((c) => {
-                const isSelected = categoryId === c.id;
-                const style = getCategoryBadgeStyle(c.slug);
-                const name = locale === 'es' ? c.nameEs : c.nameEn;
-
-                return (
-                  <button
-                    key={c.id}
-                    type="button"
-                    title={name}
-                    onClick={() => {
-                      handleCategoryChange(c.id);
-                      setIsOtherModalOpen(false);
-                      setModalSearchQuery('');
-                    }}
-                    className={cn(
-                      'group relative flex items-center gap-4 rounded-[var(--radius-lg)] border p-4 text-left transition-all duration-[var(--dur)]',
-                      isSelected
-                        ? 'border-[var(--color-brand-600)] bg-[var(--color-surface)]'
-                        : 'border-[var(--color-line-2)] bg-[var(--color-surface)] hover:bg-[var(--color-wash)] hover:border-[var(--color-line-3)]',
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        'flex size-10 shrink-0 items-center justify-center rounded-lg text-lg shadow-e1',
-                        style.bg,
-                        style.text,
-                      )}
-                    >
-                      <Icon icon={style.icon} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h4 className="font-semibold text-sm text-[var(--color-ink)] line-clamp-2 leading-heading" title={name}>
-                        {name}
-                      </h4>
-                      <p className="mt-0.5 text-sm text-[var(--color-ink-2)] truncate">
-                        {categoryCountLabel(c.slug)}
-                      </p>
-                    </div>
-                    {isSelected && (
-                      <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand-600)] text-white text-sm">
-                        <LuCheck aria-hidden="true" className="font-semibold" />
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-            {modalFilteredCategories.length === 0 && (
-              <div className="py-8 text-center text-sm text-[var(--color-ink-2)]">
-                {locale === 'es' ? 'No se encontraron categorías.' : 'No categories found.'}
-              </div>
-            )}
-          </div>
-
-          {/* Create new category — inline mini-form */}
-          <div className="border-t border-[var(--color-line)] pt-4">
-            {!isCreatingCategory ? (
-              <button
-                type="button"
-                onClick={() => setIsCreatingCategory(true)}
-                className="flex w-full items-center gap-2 rounded-[var(--radius-md)] border border-dashed border-[var(--color-line-3)] px-4 py-3 text-sm font-medium text-[var(--color-ink-2)] hover:border-[var(--color-brand-600)] hover:bg-[var(--color-brand-tint)] hover:text-[var(--color-brand-700)] transition-colors"
-              >
-                <Icon icon="ri-add-circle-line" className="text-base" />
-                New category
-              </button>
-            ) : (
-              <div className="space-y-3 rounded-[var(--radius-md)] border border-[var(--color-brand-600)] bg-[var(--color-brand-tint)] p-4">
-                <p className="text-sm font-semibold text-[var(--color-brand-700)]">Create a new category</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium text-[var(--color-ink-2)]">Name (EN) <span className="text-[var(--color-bad)]">*</span></label>
-                    <Input
-                      value={newCatNameEn}
-                      onChange={(e) => setNewCatNameEn(e.target.value)}
-                      placeholder="e.g. Allergen Control"
-                      className="h-tap-admin text-sm"
-                      autoFocus
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium text-[var(--color-ink-2)]">Name (ES)</label>
-                    <Input
-                      value={newCatNameEs}
-                      onChange={(e) => setNewCatNameEs(e.target.value)}
-                      placeholder="e.g. Control de Alérgenos"
-                      className="h-tap-admin text-sm"
-                    />
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 pt-1">
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={() => { void handleCreateCategory(); }}
-                    disabled={!newCatNameEn.trim() || isSavingCat}
-                    className="bg-[var(--color-brand-700)] text-white hover:bg-[var(--color-brand-800)]"
-                  >
-                    {isSavingCat ? 'Creating…' : 'Create & select'}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setIsCreatingCategory(false);
-                      setNewCatNameEn('');
-                      setNewCatNameEs('');
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </Modal>
-
-      {/* The floating Live Preview pill was here: the same control, with the same
-          words and the same icon, already sits in the page's own bar at the top.
-          Two of one control on one screen makes a reader check whether they do
-          different things. */}
-
       {/* Live Procedure Preview Drawer */}
       <Drawer
         open={isPreviewOpen}
@@ -1981,6 +1803,41 @@ export function NewProcedureForm({
                         <LuPaperclip aria-hidden="true" className="text-lg text-[var(--color-ink-2)]" />
                         <span className="font-semibold text-sm text-[var(--color-ink)] flex-1">{title || 'Download attachment'}</span>
                         <LuDownload aria-hidden="true" className="text-sm text-[var(--color-ink-2)]" />
+                      </div>
+                    );
+                  }
+                  if (b.kind === 'checklist') {
+                    const rawTitle = previewLang === 'en'
+                      ? (b.title?.en || b.title?.es)
+                      : (b.title?.es || b.title?.en);
+                    const checklistTitle = rawTitle?.trim() || (previewLang === 'es' ? 'Lista de verificación' : 'Checklist');
+                    return (
+                      <div key={b.id || idx} className="space-y-3 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] p-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-bold text-[var(--color-ink)]">{checklistTitle}</p>
+                          <span className="text-[10px] font-semibold text-[var(--color-ink-3)] px-1.5 py-0.5 rounded bg-[var(--color-wash)]">
+                            0/{b.items.length}
+                          </span>
+                        </div>
+                        <ul className="space-y-1.5">
+                          {b.items.map((it, iIdx) => {
+                            const itemText = previewLang === 'en'
+                              ? (it.text?.en || it.text?.es)
+                              : (it.text?.es || it.text?.en);
+                            return (
+                              <li key={it.id || iIdx} className="flex items-center gap-2.5 text-sm text-[var(--color-ink)]">
+                                <span
+                                  aria-hidden="true"
+                                  className="flex size-4 shrink-0 items-center justify-center rounded border border-[var(--color-line-2)] bg-[var(--color-surface)]"
+                                />
+                                <span className="flex-1 text-sm font-medium">{itemText || `Item ${iIdx + 1}`}</span>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                        <p className="pt-0.5 text-xs font-medium text-[var(--color-ink-3)]">
+                          {tForm('composer.checklist.previewHint')}
+                        </p>
                       </div>
                     );
                   }

@@ -9,10 +9,39 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RowActions, type RowActionItem } from '@/components/ui/row-actions';
 import { cn } from '@/lib/utils';
-import { createCategory, updateCategory, archiveCategory, ApiException } from '@/lib/api';
+import { useCreateCategory, useUpdateCategory, useArchiveCategory } from '@/services/categories/hooks';
 import type { Category } from '@/lib/types';
-import { LuArchive, LuFolderPlus, LuGlobe, LuHistory, LuLink, LuPencil, LuPlus, LuUndo2, LuX } from 'react-icons/lu';
-import { Icon } from '@/components/ui/icon';
+import {
+  LuArchive,
+  LuBrush,
+  LuBuilding2,
+  LuChefHat,
+  LuClipboardList,
+  LuFolder,
+  LuPackage,
+  LuPencil,
+  LuPlus,
+  LuShieldCheck,
+  LuTruck,
+  LuUndo2,
+  LuUtensils,
+  LuWrench,
+  LuX,
+  LuChevronDown,
+} from 'react-icons/lu';
+
+const AVAILABLE_ICONS = [
+  { id: 'LuFolder', label: 'Folder', icon: LuFolder },
+  { id: 'LuUtensils', label: 'Recipes', icon: LuUtensils },
+  { id: 'LuBuilding2', label: 'Station', icon: LuBuilding2 },
+  { id: 'LuWrench', label: 'Equipment', icon: LuWrench },
+  { id: 'LuBrush', label: 'Cleaning', icon: LuBrush },
+  { id: 'LuTruck', label: 'Delivery', icon: LuTruck },
+  { id: 'LuShieldCheck', label: 'Safety', icon: LuShieldCheck },
+  { id: 'LuClipboardList', label: 'Checklist', icon: LuClipboardList },
+  { id: 'LuChefHat', label: 'Chef', icon: LuChefHat },
+  { id: 'LuPackage', label: 'Stock', icon: LuPackage },
+] as const;
 
 interface CategoryActionsProps {
   category: Category;
@@ -22,9 +51,13 @@ export function CategoryActions({ category }: CategoryActionsProps): React.React
   const t = useTranslations('admin.library.categories');
   const tCommon = useTranslations('admin');
   const router = useRouter();
-  const [pending, setPending] = React.useState(false);
+  const [isPending, setIsPending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [renameOpen, setRenameOpen] = React.useState(false);
+
+  const archiveMutation = useArchiveCategory();
+  const updateMutation = useUpdateCategory();
+  const pending = isPending || archiveMutation.isPending || updateMutation.isPending;
 
   const items: RowActionItem[] = React.useMemo(() => {
     const out: RowActionItem[] = [
@@ -53,34 +86,25 @@ export function CategoryActions({ category }: CategoryActionsProps): React.React
       });
     }
     return out;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category, t]);
 
   async function runArchive(target: Category): Promise<void> {
     setError(null);
-    setPending(true);
     try {
-      await archiveCategory(target.id);
-      if (typeof window !== 'undefined') window.dispatchEvent(new Event('lms_categories_updated'));
+      await archiveMutation.mutateAsync(target.id);
       router.refresh();
-    } catch (err) {
-      setError(err instanceof ApiException ? err.message : String(err));
-    } finally {
-      setPending(false);
+    } catch (err: any) {
+      setError(err?.message || String(err));
     }
   }
 
   async function runUnarchive(target: Category): Promise<void> {
     setError(null);
-    setPending(true);
     try {
-      await updateCategory(target.id, { isArchived: false });
-      if (typeof window !== 'undefined') window.dispatchEvent(new Event('lms_categories_updated'));
+      await updateMutation.mutateAsync({ id: target.id, input: { isArchived: false } });
       router.refresh();
-    } catch (err) {
-      setError(err instanceof ApiException ? err.message : String(err));
-    } finally {
-      setPending(false);
+    } catch (err: any) {
+      setError(err?.message || String(err));
     }
   }
 
@@ -111,7 +135,7 @@ export function CategoryActions({ category }: CategoryActionsProps): React.React
           category={category}
           pending={pending}
           error={error}
-          onPendingChange={setPending}
+          onPendingChange={setIsPending}
           onErrorChange={setError}
           onDone={() => {
             setRenameOpen(false);
@@ -147,8 +171,14 @@ export function CreateCategoryButton({ locationId }: CreateButtonProps): React.R
 
   return (
     <>
-      <Button variant="primary" onClick={() => setOpen(true)} disabled={pending} icon={LuPlus}>
-        {t('addButton')}
+      <Button
+        variant="primary"
+        onClick={() => setOpen(true)}
+        disabled={pending}
+        className="shrink-0 font-semibold shadow-2xs"
+      >
+        <LuPlus className="text-base" />
+        <span>{t('addButton')}</span>
       </Button>
 
       <Modal open={open} onClose={close} size="md">
@@ -176,7 +206,6 @@ export function CreateCategoryButton({ locationId }: CreateButtonProps): React.R
 
 interface CategoryFormProps {
   mode: 'create' | 'rename';
-  /** Required for `create`; ignored for `rename`. */
   locationId?: string;
   category: Category | null;
   pending: boolean;
@@ -187,19 +216,6 @@ interface CategoryFormProps {
   onCancel: () => void;
   cancelLabel: string;
   saveLabel: string;
-}
-
-const SLUG_REGEX = /[^a-z0-9]+/g;
-
-function slugify(input: string): string {
-  return input
-    .normalize('NFKD')
-    .toLowerCase()
-    .trim()
-    .replace(/[̀-ͯ]/g, '')
-    .replace(SLUG_REGEX, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 64);
 }
 
 function CategoryForm({
@@ -215,83 +231,75 @@ function CategoryForm({
   cancelLabel,
   saveLabel,
 }: CategoryFormProps): React.ReactElement {
-  const t = useTranslations('admin.library.categories');
   const locale = useLocale();
   const isEs = locale === 'es';
 
   const [nameEn, setNameEn] = React.useState(category?.nameEn ?? '');
   const [nameEs, setNameEs] = React.useState(category?.nameEs ?? '');
-  const [slug, setSlug] = React.useState(category?.slug ?? '');
-  const [slugDirty, setSlugDirty] = React.useState(mode === 'rename');
+  const [icon, setIcon] = React.useState(category?.icon ?? 'LuFolder');
+  const [showIconPicker, setShowIconPicker] = React.useState(false);
 
-  function onNameEnChange(value: string): void {
-    setNameEn(value);
-    if (mode === 'create' && !slugDirty) {
-      setSlug(slugify(value));
-    }
-  }
+  const createMutation = useCreateCategory();
+  const updateMutation = useUpdateCategory();
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>): Promise<void> {
     e.preventDefault();
     if (pending) return;
     onErrorChange(null);
     onPendingChange(true);
+
     try {
       if (mode === 'create') {
         if (!locationId) throw new Error('Missing locationId');
-        await createCategory({
+        await createMutation.mutateAsync({
           locationId,
-          slug: slugify(slug || nameEn),
           nameEn: nameEn.trim(),
           nameEs: nameEs.trim() || nameEn.trim(),
+          icon,
         });
       } else if (category) {
-        await updateCategory(category.id, {
-          nameEn: nameEn.trim(),
-          nameEs: nameEs.trim() || nameEn.trim(),
+        await updateMutation.mutateAsync({
+          id: category.id,
+          input: {
+            nameEn: nameEn.trim(),
+            nameEs: nameEs.trim() || nameEn.trim(),
+            icon,
+          },
         });
       }
-      if (typeof window !== 'undefined') window.dispatchEvent(new Event('lms_categories_updated'));
       onDone();
-    } catch (err) {
-      if (err instanceof ApiException && err.code === 'CATEGORY_SLUG_TAKEN') {
-        onErrorChange(t('errors.slugTaken'));
-      } else if (err instanceof ApiException) {
-        onErrorChange(err.message);
-      } else {
-        onErrorChange(String(err));
-      }
+    } catch (err: any) {
+      onErrorChange(err?.message || String(err));
     } finally {
       onPendingChange(false);
     }
   }
 
-  const canSubmit =
-    !pending &&
-    nameEn.trim().length > 0 &&
-    (mode === 'rename' || slug.trim().length > 0);
+  const canSubmit = !pending && nameEn.trim().length > 0;
+  const currentIconObj = AVAILABLE_ICONS.find((i) => i.id === icon) ?? AVAILABLE_ICONS[0];
+  const CurrentIconComp = currentIconObj.icon;
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col">
-      {/* Modal Header */}
-      <div className="flex items-start justify-between border-b border-[var(--color-line)] p-6 pb-5">
-        <div className="flex items-start gap-4">
-          <div className="flex size-12 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-panel)] text-[var(--color-ink-2)] text-xl shadow-e1">
-            <Icon icon={mode === 'create' ? LuFolderPlus : LuPencil} />
-          </div>
-          <div className="space-y-0.5">
-            <h2 className="font-[family-name:var(--font-display)] text-xl font-bold tracking-tight text-[var(--color-ink)]">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-[var(--color-line)] p-5 pb-3">
+        <div className="flex items-center gap-2.5">
+          <span className="flex size-9 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-panel)] text-[var(--color-ink-2)] text-base border border-[var(--color-line-2)]">
+            <LuFolder />
+          </span>
+          <div>
+            <h2 className="font-[family-name:var(--font-display)] text-lg font-bold tracking-tight text-[var(--color-ink)]">
               {mode === 'create'
                 ? isEs
                   ? 'Crear categoría'
                   : 'Create category'
                 : isEs
-                  ? 'Renombrar categoría'
-                  : 'Rename category'}
+                  ? 'Editar categoría'
+                  : 'Edit category'}
             </h2>
-            <p className="text-sm text-[var(--color-ink-2)] font-medium">
+            <p className="text-xs text-[var(--color-ink-3)]">
               {isEs
-                ? 'Añade una categoría para organizar tus procedimientos en la biblioteca.'
+                ? 'Agrega una categoría para organizar tus procedimientos.'
                 : 'Add a category to organize your procedures in the library.'}
             </p>
           </div>
@@ -301,142 +309,111 @@ function CategoryForm({
           type="button"
           onClick={onCancel}
           aria-label="Close"
-          className="flex size-8 items-center justify-center rounded-md text-[var(--color-ink-3)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)] transition-colors"
+          className="flex size-7 items-center justify-center rounded-md text-[var(--color-ink-3)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)] transition-colors"
         >
-          <LuX aria-hidden="true" className="text-xl" />
+          <LuX aria-hidden="true" className="text-lg" />
         </button>
       </div>
 
-      {/* Modal Form Body */}
-      <div className="p-6 space-y-6">
-        {/* Category Details Section */}
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-sm font-semibold text-[var(--color-ink)]">
-              {isEs ? 'Detalles de la categoría' : 'Category details'}
-            </h3>
-            <p className="text-sm text-[var(--color-ink-2)] font-medium mt-0.5">
-              {isEs
-                ? 'Introduce el nombre en inglés. El nombre en español es opcional.'
-                : 'Enter the name in English. The Spanish name is optional and can be added later.'}
-            </p>
-          </div>
-
-          {/* English Name Input */}
-          <div className="space-y-1">
-            <Label
-              htmlFor="category-name-en"
-              className="text-sm font-semibold text-[var(--color-ink)]"
-            >
-              {isEs ? 'Nombre de la categoría (Inglés)' : 'Category name (English)'}{' '}
-              <span aria-hidden="true" className="text-[var(--color-bad)]">
-                *
-              </span>
-            </Label>
-            <Input
-              id="category-name-en"
-              name="nameEn"
-              value={nameEn}
-              onChange={(e) => onNameEnChange(e.currentTarget.value.slice(0, 100))}
-              placeholder={isEs ? 'ej. Procedimientos de Estación' : 'Station Procedures'}
-              maxLength={100}
-              required
-              autoFocus
-              autoComplete="off"
-            />
-            <div className="text-sm text-[var(--color-ink-3)] text-right font-mono font-semibold pt-0.5">
-              {nameEn.length} / 100
-            </div>
-          </div>
-
-          {/* Spanish Name Input */}
-          <div className="space-y-1">
-            <Label
-              htmlFor="category-name-es"
-              className="text-sm font-semibold text-[var(--color-ink)]"
-            >
-              {isEs ? 'Nombre en español' : 'Spanish name'}{' '}
-              <span className="text-[var(--color-ink-3)] font-normal">(optional)</span>
-            </Label>
-            <Input
-              id="category-name-es"
-              name="nameEs"
-              value={nameEs}
-              onChange={(e) => setNameEs(e.currentTarget.value)}
-              placeholder={isEs ? 'Procedimientos de estación' : 'Procedimientos de estación'}
-              autoComplete="off"
-            />
-            <p className="flex items-center gap-2 text-sm text-[var(--color-ink-2)] pt-1 font-medium">
-              <LuGlobe aria-hidden="true" className="text-sm text-[var(--color-ink-3)]" />
-              {isEs
-                ? 'Se usa cuando la biblioteca se ve en español.'
-                : 'Used when the library is viewed in Spanish.'}
-            </p>
-          </div>
+      {/* Form Body */}
+      <div className="p-5 space-y-3.5">
+        {/* Name (English) */}
+        <div className="space-y-1">
+          <Label htmlFor="cat-name-en" className="text-xs font-semibold text-[var(--color-ink)]">
+            {isEs ? 'Nombre (Inglés)' : 'Name (English)'}{' '}
+            <span className="text-[var(--color-bad)]">*</span>
+          </Label>
+          <Input
+            id="cat-name-en"
+            value={nameEn}
+            onChange={(e) => setNameEn(e.target.value)}
+            placeholder="e.g. Food Safety"
+            required
+            autoFocus
+            className="h-9 text-xs"
+          />
         </div>
 
-        {/* URL Identifier Callout Card */}
-        {mode === 'create' && (
-          <div className="rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-4 space-y-3">
-            <div className="flex items-start gap-3">
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-panel)] text-[var(--color-ink-2)] text-sm mt-0.5 shadow-e1">
-                <LuLink aria-hidden="true" />
-              </span>
-              <div className="space-y-0.5">
-                <h4 className="text-sm font-semibold text-[var(--color-ink)]">
-                  {isEs ? 'Identificador URL' : 'URL identifier'}
-                </h4>
-                <p className="text-sm text-[var(--color-ink-2)] font-medium">
-                  {isEs
-                    ? 'Generado automáticamente a partir del nombre en inglés.'
-                    : 'Automatically generated from the English name.'}
-                </p>
-              </div>
-            </div>
+        {/* Name (Spanish) */}
+        <div className="space-y-1">
+          <Label htmlFor="cat-name-es" className="text-xs font-semibold text-[var(--color-ink)]">
+            {isEs ? 'Nombre (Español)' : 'Name (Spanish)'}{' '}
+            <span className="text-[var(--color-bad)]">*</span>
+          </Label>
+          <Input
+            id="cat-name-es"
+            value={nameEs}
+            onChange={(e) => setNameEs(e.target.value)}
+            placeholder="e.g. Seguridad Alimentaria"
+            required
+            className="h-9 text-xs"
+          />
+        </div>
 
-            <div className="relative">
-              <Input
-                id="category-slug"
-                name="slug"
-                value={slug}
-                onChange={(e) => {
-                  setSlug(e.currentTarget.value);
-                  setSlugDirty(true);
-                }}
-                required
-                autoComplete="off"
-                spellCheck={false}
-                className="pr-10 font-mono text-sm"
-              />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-3)] pointer-events-none">
-                <LuHistory aria-hidden="true" className="text-sm" />
-              </span>
-            </div>
-
-            <p className="text-sm text-[var(--color-ink-3)] font-medium">
-              {isEs ? 'Puedes editarlo más tarde si es necesario.' : 'You can edit it later if needed.'}
-            </p>
+        {/* Icon Selection */}
+        <div className="space-y-1 pt-1">
+          <Label className="text-xs font-semibold text-[var(--color-ink)] block">
+            {isEs ? 'Icono' : 'Icon'}
+          </Label>
+          <div className="flex items-center gap-2.5">
+            <span className="flex size-9 items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)] text-base">
+              <CurrentIconComp />
+            </span>
+            <Button
+              type="button"
+              variant="neutral"
+              onClick={() => setShowIconPicker(!showIconPicker)}
+              className="text-xs px-3 py-1.5 rounded-[var(--radius-md)] border border-[var(--color-line)]"
+            >
+              <span>{isEs ? 'Elegir icono' : 'Choose icon'}</span>
+              <LuChevronDown className="text-xs ml-1" />
+            </Button>
           </div>
-        )}
+
+          {showIconPicker && (
+            <div className="grid grid-cols-5 gap-1.5 p-2.5 mt-2 rounded-[var(--radius-md)] border border-[var(--color-line)] bg-[var(--color-wash)]">
+              {AVAILABLE_ICONS.map((item) => {
+                const isSelected = icon === item.id;
+                const IconComponent = item.icon;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      setIcon(item.id);
+                      setShowIconPicker(false);
+                    }}
+                    className={cn(
+                      'flex flex-col items-center gap-1 rounded-[var(--radius-md)] border p-1.5 text-xs transition-all',
+                      isSelected
+                        ? 'border-[var(--color-brand-600)] bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] font-semibold'
+                        : 'border-[var(--color-line)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:bg-[var(--color-panel)]'
+                    )}
+                  >
+                    <IconComponent className="text-base" />
+                    <span className="truncate w-full text-center text-[10px]">{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         {error && (
-          <p
-            role="alert"
-            className="rounded-[var(--radius-md)] bg-[var(--color-bad-tint)] px-4 py-2 text-sm font-medium text-[var(--color-bad)]"
-          >
+          <p role="alert" className="rounded-[var(--radius-md)] bg-[var(--color-bad-tint)] px-3 py-1.5 text-xs font-medium text-[var(--color-bad)]">
             {error}
           </p>
         )}
       </div>
 
-      {/* Modal Action Footer */}
-      <div className="flex items-center justify-end gap-3 border-t border-[var(--color-line)] bg-[var(--color-wash)] px-6 py-4">
+      {/* Footer */}
+      <div className="flex items-center justify-end gap-2.5 border-t border-[var(--color-line)] bg-[var(--color-wash)] px-5 py-3">
         <Button
           type="button"
           variant="neutral"
           onClick={onCancel}
           disabled={pending}
-          className="rounded-full px-5 text-sm font-semibold"
+          className="rounded-full px-4 text-xs font-semibold"
         >
           {cancelLabel}
         </Button>
@@ -444,9 +421,9 @@ function CategoryForm({
           type="submit"
           variant="primary"
           disabled={!canSubmit}
-          className="rounded-full bg-[var(--color-brand-600)] hover:bg-[var(--color-brand-700)] text-white px-5 text-sm font-semibold shadow-e1"
+          className="rounded-full bg-[var(--color-brand-600)] hover:bg-[var(--color-brand-700)] text-white px-4 text-xs font-semibold shadow-e1"
         >
-          {mode === 'create' ? (isEs ? 'Crear categoría' : 'Create category') : saveLabel}
+          {mode === 'create' ? (isEs ? 'Crear' : 'Create') : saveLabel}
         </Button>
       </div>
     </form>

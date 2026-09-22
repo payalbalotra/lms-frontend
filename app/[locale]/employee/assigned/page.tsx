@@ -52,13 +52,20 @@ export default async function EmployeeHomePage({ params }: PageProps): Promise<R
   let procedures: Procedure[] = [];
   let roleName: string | null = null;
   let stationName: string | null = null;
+  // Pull the primary assignment off the (new) array shape. First entry is
+  // the primary — see lib/api.ts createEmployee which seeds roleIds[0] /
+  // stationIds[0] into the legacy single-column backend storage.
+  const primaryRoleId = employee.roleIds[0];
+  const primaryStationId = employee.stationIds[0];
   await Promise.all([
     listCategories(employee.locationId, {}, cookieHeader).then((r) => { categories = r.categories; }).catch(() => {}),
     listProcedures({}, cookieHeader).then((r) => { procedures = r.procedures; }).catch(() => {}),
-    listRoles(cookieHeader).then((r) => { roleName = r.roles.find((x) => x.id === employee.roleId)?.name ?? null; }).catch(() => {}),
-    employee.stationId
+    primaryRoleId
+      ? listRoles(cookieHeader).then((r) => { roleName = r.roles.find((x) => x.id === primaryRoleId)?.name ?? null; }).catch(() => {})
+      : Promise.resolve(),
+    primaryStationId
       ? listStations(employee.locationId, cookieHeader)
-          .then((r) => { stationName = r.stations.find((s) => s.id === employee.stationId)?.name ?? null; })
+          .then((r) => { stationName = r.stations.find((s) => s.id === primaryStationId)?.name ?? null; })
           .catch(() => {})
       : Promise.resolve(),
   ]);
