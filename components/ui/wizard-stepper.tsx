@@ -56,10 +56,14 @@ export function WizardStepper({
                     <span
                       className={cn(
                         'flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-bold shadow-e1 transition-all',
+                        // One brand mark in the row: where you are. A step you
+                        // have finished says so with a tick on a grey disc, and
+                        // the filled connector behind it — five brand discs and
+                        // a brand button made the page's one action ordinary.
                         isActive
                           ? 'scale-105 bg-[var(--color-brand-600)] text-white ring-4 ring-[var(--color-brand-tint)]'
                           : isCompleted
-                            ? 'bg-[var(--color-brand-600)] text-white'
+                            ? 'bg-[var(--color-panel)] text-[var(--color-brand-700)]'
                             : 'border border-[var(--color-line-3)] bg-[var(--color-surface)] text-[var(--color-ink-3)] group-hover:border-[var(--color-ring)]',
                       )}
                     >

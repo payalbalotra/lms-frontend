@@ -198,9 +198,12 @@ export function TrainingCourseExplorer({ locale, rows }: TrainingCourseExplorerP
                 </div>
 
                 <div className="flex shrink-0 items-center gap-2 self-start md:self-center">
+                  {/* Grey, not brand-tinted. One per row times ten rows is
+                      ten brand marks on a page whose only real signal is the
+                      red "overdue" pill, and the pill loses. */}
                   <Button
                     type="button"
-                    variant="secondary"
+                    variant="neutral"
                     size="sm"
                     icon={LuUserPlus}
                     onClick={() => router.push(`/${locale}/admin/training/${row.course.id}/assign`)}

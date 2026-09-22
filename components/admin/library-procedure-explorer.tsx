@@ -1404,7 +1404,10 @@ export function LibraryProcedureExplorer({
                 className={cn(
                   'flex size-8 items-center justify-center rounded-full text-sm font-bold transition-all',
                   validCurrentPage === pageNum
-                    ? 'bg-[var(--color-brand-600)] text-white shadow-e1'
+                    // Where you are, said the way the filter pills say it.
+                    // A solid brand disc here was a second brand-filled
+                    // control on a page that already has its one action.
+                    ? 'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] ring-1 ring-[var(--color-ring)]'
                     : 'text-[var(--color-ink-3)] hover:text-[var(--color-ink)]',
                 )}
               >

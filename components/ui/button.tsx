@@ -24,7 +24,8 @@ import type { IconType } from 'react-icons';
  *   ghost        Barely-there actions (icon button, tertiary link).
  *                Ink text on transparent.
  *   destructive  ONLY on the confirm step of a destructive flow — never
- *                on the first surface. Light bad tint → solid bad on hover.
+ *                on the first surface. Grey with a red word; solid red on
+ *                hover. Never a red fill at rest: the brand is a red too.
  *
  * Heuristic: if the button is in a footer, on a card, or is the page-level
  * add/create trigger, default to `secondary`. Reserve `neutral` for true
@@ -53,8 +54,13 @@ const variantClasses: Record<ButtonVariant, string> = {
     'bg-[var(--color-brand-600)] text-white! hover:bg-[var(--color-brand-hover)]',
   secondary:
     'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] hover:bg-[var(--color-brand-tint-2)]',
+  // Neutral at rest with the word in red, solid red only under the pointer.
+  // The brand here is itself a red, so a red-filled destructive button and a
+  // brand-filled primary are two red pills on one screen and the reader has to
+  // work out which is which. Red is worth more as the signal on a grey button
+  // than as a second fill competing with the brand.
   destructive:
-    'bg-[var(--color-bad-fill)] text-white! hover:bg-[var(--color-bad-hover)]',
+    'bg-[var(--color-panel)] text-[var(--color-bad)]! hover:bg-[var(--color-bad-fill)] hover:text-white!',
   neutral:
     'bg-[var(--color-panel)] text-[var(--color-ink)] hover:bg-[var(--color-panel-2)]',
   ghost:
