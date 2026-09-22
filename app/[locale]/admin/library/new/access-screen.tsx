@@ -3,38 +3,36 @@
 /**
  * Access step on the new-procedure wizard.
  *
- * Top-level: AccessLevelSelector (Everyone / Restricted). When
- * "Everyone" is selected, the four rows below render inert and stay
- * inert until the manager flips back to Restricted — the selected sets
- * are preserved either way.
- *
- * Below that: four compact rows (Locations, Roles, Stations, People).
- * Each row is a thin wrapper around the same `AccessRow` layout — only
- * the option list and the picker affordance differ (Add button for the
- * first three, search input for People).
- *
- * Lives in its own file so the wizard renders `<AccessScreen />` without
- * any of the row / picker markup being interleaved with the wizard's
- * other step markup. Merge conflicts only touch the import + JSX in the
- * wizard.
+ * Top-level AccessLevelSelector (Everyone / Restricted) sits above four
+ * compact rows: Locations (dropdown), Access level (single-select tier),
+ * Job role (multi-select), Stations (multi-select with "All" shortcut),
+ * and Assign (search + multi-select). When "Everyone" is picked, the
+ * rows render inert and selections stay in state for the audit trail.
  */
 
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { AccessBlock } from './access-block';
 import { AccessAssignBlock } from './access-assign-block';
+import { AccessTierRow } from './access-tier-row';
 import { AccessLevelSelector, type AccessLevel } from './access-level-selector';
-import { ACCESS_LOCATIONS, ACCESS_ROLES, ACCESS_STATIONS } from './access-data';
+import {
+  ACCESS_LOCATIONS,
+  ACCESS_JOB_ROLES,
+  ACCESS_STATIONS,
+} from './access-data';
 import { Icon } from '@/components/ui/icon';
 
 interface AccessScreenProps {
   selectedLocations: Set<string>;
-  selectedRoles: Set<string>;
+  selectedTier: string | null;
+  selectedJobRoles: Set<string>;
   selectedStations: Set<string>;
   assignedEmployees: Set<string>;
   accessLevel: AccessLevel;
   onToggleLocation: (id: string) => void;
-  onToggleRole: (id: string) => void;
+  onChangeTier: (id: string | null) => void;
+  onToggleJobRole: (id: string) => void;
   onToggleStation: (id: string) => void;
   onToggleEmployee: (id: string) => void;
   onChangeAccessLevel: (next: AccessLevel) => void;
@@ -42,12 +40,14 @@ interface AccessScreenProps {
 
 export function AccessScreen({
   selectedLocations,
-  selectedRoles,
+  selectedTier,
+  selectedJobRoles,
   selectedStations,
   assignedEmployees,
   accessLevel,
   onToggleLocation,
-  onToggleRole,
+  onChangeTier,
+  onToggleJobRole,
   onToggleStation,
   onToggleEmployee,
   onChangeAccessLevel,
@@ -105,18 +105,29 @@ export function AccessScreen({
             options={ACCESS_LOCATIONS}
             selected={selectedLocations}
             onToggle={onToggleLocation}
-            columns={2}
+            variant="dropdown"
           />
 
+          {/* Access Level — single-select tier ("what can they do in the LMS?"). */}
+          <AccessTierRow
+            title={tAccess('tierTitle')}
+            emptyLabel={tAccess('tierEmpty')}
+            countLabel={(count) => tAccess('rowSelected', { count })}
+            value={selectedTier}
+            onChange={onChangeTier}
+          />
+
+          {/* Job Role — multi-select ("what is their job?"). */}
           <AccessBlock
-            icon="ri-user-star-line"
+            icon="ri-knife-line"
             title={tAccess('roleTitle')}
             emptyLabel={tAccess('roleEmpty')}
             countLabel={(count) => tAccess('rowSelected', { count })}
-            options={ACCESS_ROLES}
-            selected={selectedRoles}
-            onToggle={onToggleRole}
+            options={ACCESS_JOB_ROLES}
+            selected={selectedJobRoles}
+            onToggle={onToggleJobRole}
             columns={3}
+            maxVisible={6}
           />
 
           <AccessBlock
@@ -128,6 +139,8 @@ export function AccessScreen({
             selected={selectedStations}
             onToggle={onToggleStation}
             columns={3}
+            allOption
+            allOptionLabel={tAccess('stationAll')}
           />
 
           <AccessAssignBlock

@@ -52,7 +52,8 @@ import { AccessScreen } from './access-screen';
 import { type AccessLevel } from './access-level-selector';
 import {
   ACCESS_LOCATIONS,
-  ACCESS_ROLES,
+  ACCESS_TIER_ROLES,
+  ACCESS_JOB_ROLES,
   ACCESS_STATIONS,
   ACCESS_EMPLOYEES,
 } from './access-data';
@@ -565,20 +566,23 @@ export function NewProcedureForm({
   const [linkedTrainingId, setLinkedTrainingId] = useState<string | null>(null);
   const [quizMode, setQuizMode] = useState<ProcedureQuizMode>('training');
 
-  // Access selections (Step 3 / 4). Lives in the wizard so the Review step
-  // can render them — `AccessScreen` only owns ephemeral interaction state
-  // now (like the assign search query) and reads/writes through these.
+  // Access selections live in the wizard so the Review step can render
+  // them. Tier is single-select (Manager or Employee are mutually
+  // exclusive on a person) and lives outside the Sets so a plain string
+  // can carry the "no tier picked" state.
   const [accessSelections, setAccessSelections] = useState<{
     locations: Set<string>;
-    roles: Set<string>;
+    jobRoles: Set<string>;
     stations: Set<string>;
     employees: Set<string>;
   }>(() => ({
     locations: new Set<string>(),
-    roles: new Set<string>(),
+    jobRoles: new Set<string>(),
     stations: new Set<string>(),
     employees: new Set<string>(),
   }));
+
+  const [accessTier, setAccessTier] = React.useState<string | null>(null);
 
   // Access level — the top-level choice on the Access step. When
   // 'everyone' the procedure is visible to every employee regardless of
@@ -589,7 +593,7 @@ export function NewProcedureForm({
   const [accessLevel, setAccessLevel] = React.useState<AccessLevel>('restricted');
 
   const updateAccess = React.useCallback(
-    (key: 'locations' | 'roles' | 'stations' | 'employees', id: string): void => {
+    (key: 'locations' | 'jobRoles' | 'stations' | 'employees', id: string): void => {
       setAccessSelections((prev) => {
         const next = new Set(prev[key]);
         if (next.has(id)) next.delete(id);
@@ -599,6 +603,20 @@ export function NewProcedureForm({
     },
     [],
   );
+
+  // Pre-select the single location when the list has exactly one entry,
+  // so the submit payload carries it. No-op once a second location lands.
+  React.useEffect(() => {
+    if (ACCESS_LOCATIONS.length === 1) {
+      const only = ACCESS_LOCATIONS[0].id;
+      setAccessSelections((prev) => {
+        if (prev.locations.size === 0 && !prev.locations.has(only)) {
+          return { ...prev, locations: new Set([only]) };
+        }
+        return prev;
+      });
+    }
+  }, []);
 
   // Recipe specific states
   const [ingredients, setIngredients] = useState<RecipeIngredientItem[]>([
@@ -976,11 +994,12 @@ export function NewProcedureForm({
       ];
 
   const completedCount = sections.filter((s) => s.completed).length;
-  // Total selections across location + role + station — drives the access
-  // card eyebrow and the publish-band copy at the bottom of Review.
+  // Total selections across all four access dimensions — drives the
+  // access card eyebrow on Review. Tier contributes 1 when picked.
   const accessCount =
     accessSelections.locations.size +
-    accessSelections.roles.size +
+    (accessTier ? 1 : 0) +
+    accessSelections.jobRoles.size +
     accessSelections.stations.size;
   const activeCategory = categories.find((c) => c.id === categoryId);
   const categoryLabel = activeCategory
@@ -1360,12 +1379,14 @@ export function NewProcedureForm({
         {wizardStep === 'access' && (
           <AccessScreen
             selectedLocations={accessSelections.locations}
-            selectedRoles={accessSelections.roles}
+            selectedTier={accessTier}
+            selectedJobRoles={accessSelections.jobRoles}
             selectedStations={accessSelections.stations}
             assignedEmployees={accessSelections.employees}
             accessLevel={accessLevel}
             onToggleLocation={(id) => updateAccess('locations', id)}
-            onToggleRole={(id) => updateAccess('roles', id)}
+            onChangeTier={setAccessTier}
+            onToggleJobRole={(id) => updateAccess('jobRoles', id)}
             onToggleStation={(id) => updateAccess('stations', id)}
             onToggleEmployee={(id) => updateAccess('employees', id)}
             onChangeAccessLevel={setAccessLevel}
@@ -1430,7 +1451,14 @@ export function NewProcedureForm({
                 eyebrow={
                   accessLevel === 'everyone'
                     ? tAccess('reviewPublicBadge')
-                    : `${accessCount} selected across ${['locations', 'roles', 'stations'].filter((k) => accessSelections[k as 'locations' | 'roles' | 'stations'].size > 0).length || 0} tier${'s'}`
+                    : (() => {
+                        const groups =
+                          ['locations', 'jobRoles', 'stations'].filter(
+                            (k) =>
+                              accessSelections[k as 'locations' | 'jobRoles' | 'stations'].size > 0,
+                          ).length + (accessTier ? 1 : 0);
+                        return `${accessCount} selected across ${groups} dimension${groups === 1 ? '' : 's'}`;
+                      })()
                 }
               >
                 {/* Locations */}
@@ -1441,12 +1469,24 @@ export function NewProcedureForm({
                   emptyText="No locations selected — open to everyone"
                 />
 
-                {/* Roles */}
+                {/* Access level (single-select tier) */}
                 <ReviewChipRow
-                  icon="ri-user-star-line"
-                  label="Roles"
-                  items={ACCESS_ROLES.filter((o) => accessSelections.roles.has(o.id))}
-                  emptyText="No roles selected — open to everyone"
+                  icon="ri-shield-user-line"
+                  label="Access level"
+                  items={
+                    accessTier
+                      ? ACCESS_TIER_ROLES.filter((o) => o.id === accessTier)
+                      : []
+                  }
+                  emptyText="No tier picked — no access level filter"
+                />
+
+                {/* Job roles */}
+                <ReviewChipRow
+                  icon="ri-knife-line"
+                  label="Job role"
+                  items={ACCESS_JOB_ROLES.filter((o) => accessSelections.jobRoles.has(o.id))}
+                  emptyText="No job roles picked"
                 />
 
                 {/* Stations */}

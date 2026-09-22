@@ -1,29 +1,29 @@
 'use client';
 
 /**
- * Compact access row for Locations / Roles / Stations.
+ * Compact access row used for Job Roles and Stations on the Access step.
+ * Each option is a selectable pill-tab inside a multi-column grid; the
+ * selected one fills with the brand tint and shows a check badge.
  *
- * Renders every option as a small selectable "tab" inside a 4-column
- * grid — same pill-tab affordance used by the procedure library's
- * category filter, just grid-laid. Each tab has an icon, a label, and
- * a check badge when selected. Clicking a tab toggles its membership in
- * the selected set.
+ * The `variant="dropdown"` form is used for Locations — a CustomSelect
+ * picker with single-select semantics. Stations get an optional `allOption`
+ * shortcut that toggles every option id in one click (hidden when only
+ * one station exists). `maxVisible` collapses longer lists behind a
+ * "Show N more" toggle.
  *
- * The grid wraps to 2-up on narrow viewports so the tabs never get too
- * cramped to read. The `disabled` prop dims the whole grid when Public
- * visibility is on — Public overrides these without losing selections
- * (they stay in state for the audit trail).
- *
- * Lives in its own file because Locations, Roles, and Stations share the
- * same exact UX — only the option list and i18n labels change.
+ * The grid wraps to 2-up on narrow viewports so tabs stay readable. When
+ * `disabled` (Public visibility on) the row renders inert — selections
+ * stay in state for the audit trail.
  */
 
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
+import { CustomSelect, type SelectOption } from '@/components/ui/custom-select';
 import { AccessRow } from './access-row';
 import type { AccessOption } from './access-data';
 import { Icon } from '@/components/ui/icon';
+import { LuMapPin } from 'react-icons/lu';
 
 export interface AccessBlockProps {
   icon: string;
@@ -33,10 +33,16 @@ export interface AccessBlockProps {
   options: AccessOption[];
   selected: Set<string>;
   onToggle: (id: string) => void;
-  /** Number of columns on the `sm` breakpoint and up. Defaults to 2 so
-   *  Locations renders as a clean 2×2 grid (matching the procedure
-   *  library's 2x2 metadata pattern). Pass 3 or 4 for wider option sets. */
+  /** Columns on the `sm` breakpoint and up. Defaults to 2. */
   columns?: 2 | 3 | 4;
+  /** Swaps the picker grid for a single CustomSelect (used by Locations). */
+  variant?: 'grid' | 'dropdown';
+  /** Appends an "All" shortcut at the end that toggles every option. */
+  allOption?: boolean;
+  /** Label for the all-option trigger. */
+  allOptionLabel?: string;
+  /** Cap on rendered options before a "Show N more" toggle appears. */
+  maxVisible?: number;
   disabled?: boolean;
 }
 
@@ -49,9 +55,62 @@ export function AccessBlock({
   selected,
   onToggle,
   columns = 2,
+  variant = 'grid',
+  allOption = false,
+  allOptionLabel,
+  maxVisible,
   disabled = false,
 }: AccessBlockProps): React.ReactElement {
   const tAccess = useTranslations('admin.library.new.access');
+
+  if (variant === 'dropdown') {
+    return (
+      <AccessRow
+        icon={icon}
+        title={title}
+        count={selected.size}
+        emptyLabel={emptyLabel}
+        countLabel={countLabel}
+        disabled={disabled}
+      >
+        <div className={cn('pl-10 pt-1', disabled && 'pointer-events-none')}>
+          <CustomSelect
+            value={Array.from(selected)[0] ?? ''}
+            onChange={(value) => {
+              // Single-select: flip the new id in, then clear any prior
+              // selection. `onToggle` is idempotent on a Set, so duplicates
+              // are harmless.
+              onToggle(value);
+              for (const prev of Array.from(selected)) {
+                if (prev !== value) onToggle(prev);
+              }
+            }}
+            options={options.map<SelectOption>((opt) => ({
+              value: opt.id,
+              label: opt.label,
+              description: opt.sub,
+              icon: opt.icon,
+            }))}
+            placeholder={tAccess('locationDropdownPlaceholder')}
+            leadingIcon={LuMapPin}
+            disabled={disabled}
+          />
+        </div>
+
+        {disabled && (
+          <p className="pl-10 text-sm text-[var(--color-ink-3)] italic">
+            {tAccess('publicDisabledHint')}
+          </p>
+        )}
+      </AccessRow>
+    );
+  }
+
+  const [showAll, setShowAll] = React.useState(false);
+  const cap = maxVisible ?? options.length;
+  const needsToggle = options.length > cap;
+  const visibleOptions = needsToggle && !showAll ? options.slice(0, cap) : options;
+  const allSelected = allOption && selected.size === options.length && options.length > 0;
 
   const gridCols = cn(
     'grid grid-cols-2 gap-2 pl-10 pt-1',
@@ -70,7 +129,7 @@ export function AccessBlock({
       disabled={disabled}
     >
       <div className={gridCols}>
-        {options.map((opt) => {
+        {visibleOptions.map((opt) => {
           const isSelected = selected.has(opt.id);
           return (
             <button
@@ -119,6 +178,76 @@ export function AccessBlock({
             </button>
           );
         })}
+
+        {allOption && options.length > 1 && (
+          <button
+            type="button"
+            onClick={() => {
+              if (allSelected) {
+                for (const opt of options) {
+                  if (selected.has(opt.id)) onToggle(opt.id);
+                }
+              } else {
+                for (const opt of options) {
+                  if (!selected.has(opt.id)) onToggle(opt.id);
+                }
+              }
+            }}
+            disabled={disabled}
+            aria-pressed={allSelected}
+            className={cn(
+              'group relative flex items-center gap-2 rounded-[var(--radius-md)] border border-dashed px-3 py-2 text-left transition-all min-h-10',
+              allSelected
+                ? 'border-[var(--color-brand-600)] bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] shadow-e1 ring-2 ring-[var(--color-brand-tint-2)]'
+                : 'border-[var(--color-line-3)] bg-[var(--color-wash)] text-[var(--color-ink-2)] hover:bg-[var(--color-surface)] hover:border-[var(--color-brand-600)] hover:text-[var(--color-brand-700)]',
+              disabled && 'cursor-not-allowed hover:bg-[var(--color-wash)] hover:border-[var(--color-line-3)] hover:text-[var(--color-ink-2)]',
+            )}
+          >
+            <span
+              className={cn(
+                'flex size-6 shrink-0 items-center justify-center rounded-md text-sm shadow-e1 transition-colors',
+                allSelected
+                  ? 'bg-[var(--color-brand-600)] text-white'
+                  : 'bg-[var(--color-surface)] text-[var(--color-ink-3)] border border-[var(--color-line-2)]',
+              )}
+              aria-hidden="true"
+            >
+              <Icon icon="ri-checkbox-multiple-line" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span
+                className={cn(
+                  'block text-sm font-semibold truncate',
+                  allSelected ? 'text-[var(--color-brand-700)]' : 'text-[var(--color-ink-2)]',
+                )}
+              >
+                {allOptionLabel ?? tAccess('locationAll')}
+              </span>
+            </span>
+            {allSelected && (
+              <span
+                aria-hidden="true"
+                className="flex size-4 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand-600)] text-white text-sm shadow-e1"
+              >
+                <Icon icon="ri-check-line" />
+              </span>
+            )}
+          </button>
+        )}
+
+        {needsToggle && (
+          <button
+            type="button"
+            onClick={() => setShowAll((prev) => !prev)}
+            disabled={disabled}
+            className="col-span-full inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] border border-dashed border-[var(--color-line-3)] bg-[var(--color-wash)] px-3 py-2 text-sm font-semibold text-[var(--color-ink-2)] transition-colors hover:border-[var(--color-brand-600)] hover:bg-[var(--color-surface)] hover:text-[var(--color-brand-700)] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Icon icon={showAll ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line'} className="text-base" />
+            {showAll
+              ? tAccess('showLess')
+              : tAccess('showMore', { count: options.length - cap })}
+          </button>
+        )}
       </div>
 
       {disabled && (

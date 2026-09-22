@@ -21,43 +21,87 @@ export interface EmployeeOption {
   station: string;
 }
 
+/**
+ * Demo data for the Access step on the new-procedure wizard.
+ * Presentational only — the lists are not persisted.
+ */
+
+export interface AccessOption {
+  id: string;
+  label: string;
+  sub: string;
+  icon: string;
+}
+
+export interface EmployeeOption {
+  id: string;
+  name: string;
+  initials: string;
+  role: string;
+  station: string;
+}
+
+/** Single restaurant at launch. Add entries here when a second location
+ *  goes live — the dropdown stays in place and the form-level auto-select
+ *  effect becomes a no-op once the list has more than one entry. */
 export const ACCESS_LOCATIONS: AccessOption[] = [
-  { id: 'loc-downtown', label: 'Downtown Kitchen', sub: '4 stations · 22 staff', icon: 'ri-building-2-line' },
-  { id: 'loc-harbor', label: 'Harbor Branch', sub: '3 stations · 14 staff', icon: 'ri-ship-line' },
-  { id: 'loc-airport', label: 'Airport Terminal 2', sub: '2 stations · 9 staff', icon: 'ri-plane-line' },
-  { id: 'loc-north', label: 'North Plaza', sub: '5 stations · 30 staff', icon: 'ri-store-3-line' },
+  { id: 'loc-main', label: 'Alimentaria Mexicana — Main', sub: '5 stations · 22 staff', icon: 'ri-store-2-line' },
 ];
 
-export const ACCESS_ROLES: AccessOption[] = [
-  { id: 'role-line-cook', label: 'Line Cook', sub: 'Station-bound, certified by station', icon: 'ri-knife-line' },
-  { id: 'role-prep', label: 'Prep Cook', sub: 'Cold prep, dry storage, basics', icon: 'ri-restaurant-line' },
-  { id: 'role-pastry', label: 'Pastry Chef', sub: 'Pastry kitchen + dessert station', icon: 'ri-cake-3-line' },
-  { id: 'role-head-chef', label: 'Head Chef', sub: 'Full kitchen access', icon: 'ri-vip-crown-line' },
-  { id: 'role-dishwasher', label: 'Dishwasher / Porter', sub: 'Closing + sanitation', icon: 'ri-sparkling-2-line' },
+/** Platform tier — what a person can do in the LMS (manager or employee).
+ *  Single-select: the two tiers are mutually exclusive on a person.
+ *  Admin is intentionally absent (admin bypass is applied downstream). */
+export const ACCESS_TIER_ROLES: AccessOption[] = [
+  { id: 'role-manager', label: 'Manager / Head Chef', sub: 'Team & content access', icon: 'ri-user-star-line' },
+  { id: 'role-employee', label: 'Employee', sub: 'Assigned content & training access', icon: 'ri-team-line' },
 ];
 
+/** Kitchen job roles — what a person does. Multi-select: a person can
+ *  hold several (line cook + prep cook across shifts). */
+export const ACCESS_JOB_ROLES: AccessOption[] = [
+  { id: 'job-line-cook', label: 'Line Cook', sub: 'Station-bound, certified by station', icon: 'ri-knife-line' },
+  { id: 'job-prep-cook', label: 'Prep Cook', sub: 'Cold prep, dry storage, basics', icon: 'ri-restaurant-line' },
+  { id: 'job-pastry', label: 'Pastry Chef', sub: 'Pastry kitchen + dessert station', icon: 'ri-cake-3-line' },
+  { id: 'job-sous-chef', label: 'Sous Chef', sub: 'Second-in-command, station oversight', icon: 'ri-shield-star-line' },
+  { id: 'job-dishwasher', label: 'Dishwasher / Porter', sub: 'Closing + sanitation', icon: 'ri-sparkling-2-line' },
+  { id: 'job-pantry', label: 'Pantry Cook', sub: 'Cold section, salads, dressings', icon: 'ri-leaf-line' },
+  { id: 'job-grill-cook', label: 'Grill Cook', sub: 'Hot line, high-heat station', icon: 'ri-fire-line' },
+];
+
+/** Mirrors §03 Content Taxonomy → Stations in PROJECT_OVERVIEW.md. The
+ *  "All stations" shortcut on the Access step only renders when this list
+ *  has more than one entry. */
 export const ACCESS_STATIONS: AccessOption[] = [
+  { id: 'st-gm', label: 'GM', sub: 'Cold section & pantry', icon: 'ri-snowflake-line' },
   { id: 'st-grill', label: 'Grill', sub: 'Hot line · high heat', icon: 'ri-fire-line' },
-  { id: 'st-saute', label: 'Sauté', sub: 'Pans, sauces, finishing', icon: 'ri-restaurant-2-line' },
-  { id: 'st-pastry', label: 'Pastry', sub: 'Bench, oven, chocolate', icon: 'ri-cake-line' },
-  { id: 'st-cold', label: 'Cold / Salads', sub: 'Garde manger', icon: 'ri-snowflake-line' },
   { id: 'st-expo', label: 'Expo', sub: 'Pass / plating', icon: 'ri-arrow-left-right-line' },
+  { id: 'st-prep', label: 'Prep Kitchen', sub: 'Cold prep & dry storage', icon: 'ri-knife-line' },
+  { id: 'st-dish', label: 'Dishwasher', sub: 'Closing & sanitation', icon: 'ri-sparkling-2-line' },
 ];
 
+/** Demo roster — 18 people. The "Show more" toggle only renders when the
+ *  filtered count exceeds the visible cap. */
 export const ACCESS_EMPLOYEES: EmployeeOption[] = [
   { id: 'emp-001', name: 'María González', initials: 'MG', role: 'Line Cook', station: 'Grill' },
-  { id: 'emp-002', name: 'James Carter', initials: 'JC', role: 'Line Cook', station: 'Sauté' },
-  { id: 'emp-003', name: 'Ana Martínez', initials: 'AM', role: 'Pastry Chef', station: 'Pastry' },
-  { id: 'emp-004', name: 'David Park', initials: 'DP', role: 'Prep Cook', station: 'Cold' },
+  { id: 'emp-002', name: 'James Carter', initials: 'JC', role: 'Line Cook', station: 'GM' },
+  { id: 'emp-003', name: 'Ana Martínez', initials: 'AM', role: 'Pastry Chef', station: 'Prep Kitchen' },
+  { id: 'emp-004', name: 'David Park', initials: 'DP', role: 'Prep Cook', station: 'GM' },
   { id: 'emp-005', name: 'Sofía Hernández', initials: 'SH', role: 'Head Chef', station: 'Expo' },
-  { id: 'emp-006', name: 'Lucas Silva', initials: 'LS', role: 'Dishwasher', station: 'Dish' },
-  { id: 'emp-007', name: 'Priya Patel', initials: 'PP', role: 'Line Cook', station: 'Sauté' },
-  { id: 'emp-008', name: 'Hiroshi Tanaka', initials: 'HT', role: 'Pastry Chef', station: 'Pastry' },
-  { id: 'emp-009', name: 'Carla Fernández', initials: 'CF', role: 'Prep Cook', station: 'Cold' },
+  { id: 'emp-006', name: 'Lucas Silva', initials: 'LS', role: 'Dishwasher', station: 'Dishwasher' },
+  { id: 'emp-007', name: 'Priya Patel', initials: 'PP', role: 'Line Cook', station: 'GM' },
+  { id: 'emp-008', name: 'Hiroshi Tanaka', initials: 'HT', role: 'Pastry Chef', station: 'Prep Kitchen' },
+  { id: 'emp-009', name: 'Carla Fernández', initials: 'CF', role: 'Prep Cook', station: 'GM' },
   { id: 'emp-010', name: 'Noah Williams', initials: 'NW', role: 'Line Cook', station: 'Grill' },
+  { id: 'emp-011', name: 'Tomas Novak', initials: 'TN', role: 'Sous Chef', station: 'Expo' },
+  { id: 'emp-012', name: 'Aisha Khan', initials: 'AK', role: 'Line Cook', station: 'Grill' },
+  { id: 'emp-013', name: 'Diego Romero', initials: 'DR', role: 'Pantry Cook', station: 'GM' },
+  { id: 'emp-014', name: 'Yuki Sato', initials: 'YS', role: 'Pastry Chef', station: 'Prep Kitchen' },
+  { id: 'emp-015', name: 'Olivia Brown', initials: 'OB', role: 'Prep Cook', station: 'GM' },
+  { id: 'emp-016', name: 'Mateo Alvarez', initials: 'MA', role: 'Line Cook', station: 'GM' },
+  { id: 'emp-017', name: 'Leila Rahman', initials: 'LR', role: 'Dishwasher', station: 'Dishwasher' },
+  { id: 'emp-018', name: 'Ethan Wright', initials: 'EW', role: 'Sous Chef', station: 'Expo' },
 ];
 
-/** Filter helper used by the Assign tab's search input. */
 export function filterEmployees(query: string): EmployeeOption[] {
   const q = query.toLowerCase().trim();
   if (!q) return ACCESS_EMPLOYEES;
@@ -69,8 +113,6 @@ export function filterEmployees(query: string): EmployeeOption[] {
   );
 }
 
-/** Add/remove `value` from a Set<unknown>. Used by all four multi-select
- *  blocks (location / role / station / assign). */
 export function toggleSet<T>(current: Set<T>, value: T): Set<T> {
   const next = new Set(current);
   if (next.has(value)) {
