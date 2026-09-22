@@ -187,7 +187,7 @@ export function DocumentImportPanel({
               'flex flex-col items-center justify-center rounded-[var(--radius-lg)] border border-dashed bg-[var(--color-wash)] p-6 text-center',
               'transition-colors duration-[var(--dur)] ease-[var(--ease)]',
               dragOver
-                ? 'border-[var(--color-brand-600)] bg-[var(--color-brand-tint)]'
+                ? 'border-[var(--color-ring)] bg-[var(--color-brand-tint)]'
                 : 'border-[var(--color-line-3)] hover:bg-[var(--color-panel)]',
             )}
           >

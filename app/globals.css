@@ -40,6 +40,7 @@
   --color-ground: var(--ground);
   --color-bg-admin: var(--ground);
   --color-surface: var(--surface);
+  --color-field: var(--field);
   --color-panel: var(--panel);
   --color-panel-2: var(--panel-2);
   --color-wash: var(--wash);
@@ -55,7 +56,9 @@
   --color-muted: var(--panel);
   --color-muted-foreground: var(--ink-2);
   --color-border: var(--line-2);
-  --color-ring: var(--brand-600);
+  --color-nav-current: var(--nav-current);
+  --color-ring: var(--ring);
+  --duration-press: var(--dur-press);
   --color-primary: var(--brand-600);
   --color-primary-foreground: var(--on-fill);
   --color-input: var(--surface);
@@ -63,17 +66,21 @@
   --color-brand: var(--brand);
   --color-brand-600: var(--brand-600);
   --color-brand-700: var(--brand-700);
+  --color-brand-hover: var(--brand-hover);
   --color-brand-tint: var(--brand-tint);
   --color-brand-tint-2: var(--brand-tint-2);
 
   --color-ok: var(--ok);
+  --color-ok-fill: var(--ok-fill);
   --color-ok-700: var(--ok-700);
   --color-ok-tint: var(--ok-tint);
   --color-ok-tint-2: var(--ok-tint-2);
   --color-warn: var(--warn);
   --color-warn-ink: var(--warn-ink);
   --color-warn-tint: var(--warn-tint);
+  --color-warn-tint-2: var(--warn-tint-2);
   --color-bad: var(--bad);
+  --color-bad-fill: var(--bad-fill);
   --color-bad-hover: var(--bad-hover);
   --color-bad-tint: var(--bad-tint);
 
@@ -229,7 +236,7 @@
     border-color: var(--color-brand) !important;
   }
   /* The outline follows each element's own radius. Exclude form controls which handle focus via custom borders. */
-  :focus-visible:not(input):not(textarea):not(select) { outline: 3px solid var(--color-brand-600); outline-offset: 2px; }
+  :focus-visible:not(input):not(textarea):not(select) { outline: 3px solid var(--color-ring); outline-offset: 2px; }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 0.01ms !important;

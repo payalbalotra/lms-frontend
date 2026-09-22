@@ -69,18 +69,18 @@ export function Ask({
           {label}
         </label>
         <div className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--color-line-3)] bg-[var(--color-surface)] px-4 py-1 transition-colors duration-[var(--dur)] ease-[var(--ease)] focus-within:border-[var(--color-brand)]">
-          <LuSearch aria-hidden="true" className="text-xl text-[var(--color-ink-2)]" />
+          <LuSearch aria-hidden="true" className="text-lg text-[var(--color-ink-2)]" />
           <input
             id="q"
             name="q"
             type="search"
             placeholder={placeholder}
-            className="h-tap min-w-0 flex-1 border-0 bg-transparent text-md text-[var(--color-ink)] outline-none placeholder:text-[var(--color-ink-3)]"
+            className="h-tap min-w-0 flex-1 border-0 bg-transparent text-base text-[var(--color-ink)] outline-none placeholder:text-[var(--color-ink-3)]"
           />
           <button
             type="submit"
             aria-label={label}
-            className="inline-flex size-12 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand-600)] text-white transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:bg-[var(--color-brand-700)]"
+            className="inline-flex size-12 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand-600)] text-white transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:bg-[var(--color-brand-hover)]"
           >
             <LuArrowRight aria-hidden="true" className="text-lg" />
           </button>
@@ -182,14 +182,14 @@ export function CategoryGrid({
         /* Chips, not cards. Six cards each the size of a postcard push everything
            else below the fold and say nothing more than their own name; a row of
            chips puts the whole library one tap away and still clears 48px. */
-        <ul className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <ul className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
           {categories.map((c) => {
             const n = countOf(c);
             return (
               <li key={c.id}>
                 <Link
                   href={`/${locale}/procedures?category=${encodeURIComponent(c.slug)}`}
-                  className={`flex min-h-tap w-full items-center gap-2 rounded-full px-4 text-base font-semibold transition-colors duration-[var(--dur)] ease-[var(--ease)] ${
+                  className={`flex min-h-tap w-full items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold leading-heading transition-colors duration-[var(--dur)] ease-[var(--ease)] ${
                     n === 0
                       ? 'bg-[var(--color-panel)] text-[var(--color-ink-3)]'
                       : 'bg-[var(--color-panel)] text-[var(--color-ink)] hover:bg-[var(--color-panel-2)]'
@@ -202,9 +202,11 @@ export function CategoryGrid({
                       keeps a grey mark, because there is nothing behind it to open. */}
                   <Icon
                     icon={getCategoryIcon(c)}
-                    className={`text-lg ${n === 0 ? 'text-[var(--color-ink-3)]' : 'text-[var(--color-brand-600)]'}`}
+                    className={`text-base ${n === 0 ? 'text-[var(--color-ink-3)]' : 'text-[var(--color-brand-600)]'}`}
                   />
-                  <span className="min-w-0 flex-1 truncate">
+                  {/* No truncation: a category a cook cannot read is worse than a
+                      chip two lines tall. */}
+                  <span className="min-w-0 flex-1">
                     {locale === 'es' ? c.nameEs || c.nameEn : c.nameEn || c.nameEs}
                   </span>
                   {n > 0 ? <span className="shrink-0 font-normal text-[var(--color-ink-2)]">{n}</span> : null}

@@ -19,7 +19,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(function Inp
       type={type}
       data-slot="input"
       className={cn(
-        'flex min-h-10 w-full rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)]',
+        'flex min-h-10 w-full rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-field)]',
         'px-4 py-2 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)]',
         'shadow-e1 transition-all duration-[var(--dur)] font-[family-name:var(--font-ui)]',
         'hover:border-[var(--color-line-3)]',

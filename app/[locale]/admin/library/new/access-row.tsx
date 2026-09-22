@@ -122,7 +122,7 @@ export function AccessChip({
         onClick={onRemove}
         disabled={disabled}
         aria-label={label}
-        className="flex size-4 shrink-0 items-center justify-center rounded-full text-[var(--color-brand-tint-2)] transition-colors hover:bg-[var(--color-brand-600)] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-tint-2)] disabled:cursor-not-allowed"
+        className="flex size-4 shrink-0 items-center justify-center rounded-full text-[var(--color-brand-tint-2)] transition-colors hover:bg-[var(--color-brand-600)] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] disabled:cursor-not-allowed"
       >
         <Icon icon="ri-close-line" className="text-sm" />
       </button>

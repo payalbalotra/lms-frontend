@@ -6,6 +6,7 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import type { Employee } from '@/lib/types';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { LuArrowLeft, LuArrowUpRight, LuChartColumn, LuChefHat, LuCirclePlus, LuClipboardList, LuFolders, LuGraduationCap, LuHouse, LuLogOut, LuMapPin, LuMenu, LuUserCog, LuUserPlus, LuUsers, LuX } from 'react-icons/lu';
 import { Icon } from '@/components/ui/icon';
 import { AdminSearch } from '@/components/admin/admin-search';
@@ -57,6 +58,7 @@ function LocaleSwitch({ locale, label }: { locale: string; label: string }): Rea
   // the language, not clear the filter.
   const query = useSearchParams().toString();
   const suffix = query ? `?${query}` : '';
+
   // .segbar is the recipe scaler's control at admin size — same shape, same
   // seats, same filled answer — so the two places the app asks "which one?" look
   // alike.
@@ -159,6 +161,7 @@ export function AdminShell({
   signOutAction,
 }: AdminShellProps): React.ReactElement {
   const t = useTranslations('admin');
+  const tApp = useTranslations('app');
   const tShell = useTranslations('admin.shell');
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = React.useState(false);
@@ -239,7 +242,7 @@ export function AdminShell({
             'inline-flex h-12 w-12 items-center justify-center rounded-[var(--radius-md)]',
             'text-[var(--color-ink)] transition-colors duration-[var(--dur)] ease-[var(--ease)]',
             'hover:bg-[var(--color-panel)] active:translate-y-px',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-tint-2)] focus-visible:ring-offset-2',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2',
           )}
         >
           <LuMenu aria-hidden="true" className="text-lg" />
@@ -279,7 +282,7 @@ export function AdminShell({
                   'inline-flex h-12 w-12 items-center justify-center rounded-[var(--radius-md)]',
                   'text-[var(--color-ink)] transition-colors duration-[var(--dur)] ease-[var(--ease)]',
                   'hover:bg-[var(--color-panel)] active:translate-y-px',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-tint-2)] focus-visible:ring-offset-2',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2',
                 )}
               >
                 <LuX aria-hidden="true" className="text-lg" />
@@ -326,12 +329,17 @@ export function AdminShell({
               {/* The mark for a link that leaves this area for the other one. */}
               <LuArrowUpRight aria-hidden="true" />
             </Link>
+            <ThemeToggle labels={{ toDark: tApp('themeToDark'), toLight: tApp('themeToLight') }} />
             <LocaleSwitch locale={locale} label={tShell('langLabel')} />
           </div>
         </div>
 
         <main className="min-w-0 flex-1 px-4 pb-12 pt-6 sm:px-6 lg:px-10 lg:pb-12 lg:pt-8">
-          <div className="pt-10 lg:pt-0">{children}</div>
+          {/* Keyed by locale, so the fade runs when the language changes rather
+              than on every render. */}
+          <div key={locale} className="content-in pt-10 lg:pt-0">
+            {children}
+          </div>
         </main>
       </div>
     </div>
@@ -460,7 +468,7 @@ function Sidebar({
             'text-sm font-medium text-[var(--color-ink-2)]',
             'transition-colors duration-[var(--dur)] ease-[var(--ease)]',
             'hover:bg-[var(--color-panel)] hover:text-[var(--color-ink)]',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-tint-2)] focus-visible:ring-offset-2',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2',
           )}
         >
           <LuArrowLeft aria-hidden="true" className="text-md" />
@@ -477,7 +485,7 @@ function Sidebar({
               'text-sm font-medium text-[var(--color-ink-3)]',
               'transition-colors duration-[var(--dur)] ease-[var(--ease)]',
               'hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)]',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-tint-2)] focus-visible:ring-offset-2',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2',
             )}
           >
             <LuLogOut aria-hidden="true" className="text-md" />
@@ -514,10 +522,13 @@ function NavLink({
       className={cn(
         'group flex min-h-10 items-center gap-3 rounded-[var(--radius-md)] px-3 py-2',
         'text-sm font-medium',
-        'transition-colors duration-[var(--dur)] ease-[var(--ease)]',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-tint-2)] focus-visible:ring-offset-2',
+        // A sidebar link is passed over dozens of times an hour: the colour
+        // lands at press speed, and the row gives a little when pressed.
+        'transition-[background-color,color,transform] duration-[var(--dur-press)] ease-[var(--ease)]',
+        'active:scale-[var(--press)]',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2',
         active
-          ? 'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)]'
+          ? 'bg-[var(--color-nav-current)] text-[var(--color-brand-700)]'
           : 'text-[var(--color-ink-2)] hover:bg-[var(--color-panel)] hover:text-[var(--color-ink)]',
       )}
     >

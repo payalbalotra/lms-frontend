@@ -11,7 +11,10 @@
    Semantic colours are the industry standard, so nobody has to
    learn what green or red means. Every text pairing clears AA.
    ============================================================ */
-:root {
+/* .theme-light holds a subtree in the light scale whatever the page is set to:
+   a specimen that documents white, a contrast table whose ratios were measured
+   on white. Custom properties inherit, so the nearer declaration wins. */
+:root, .theme-light {
   /* Neutrals. White ground, warm-grey chrome. */
   --ink:      #222222;  /* body text. 15.9:1 on white */
   --ink-2:    #515252;  /* secondary. 7.8:1 */
@@ -23,6 +26,7 @@
   --ground:   #f0efeb;  /* the page under the cards. Tried lighter (#f5f4ef, #f9f9f6) and darker (#e8e5dd); this is the one that reads right — pale warm bone, with the card's edge doing the separating and the lift kept to a breath. */
   --bg-admin: var(--ground);  /* the old name, kept so existing markup resolves */
   --surface:  #ffffff;
+  --field:    #ffffff;  /* what a text control is filled with. The same as a card here; on a dark ground a control has to sit below the card rather than level with it */
   --panel:    #f2f1ec;  /* sidebar and toolbars only. The brand bone as chrome, never as ground */
   --panel-2:  #e6e3db;  /* the same bone one step down: hover and pressed on a panel */
   --wash:     #f7f6f3;  /* the bone at its faintest: marks a region without boxing it */
@@ -38,7 +42,10 @@
   /* Brand. One colour, for action and selection. */
   --brand:        #eb5940;  /* the site's own terracotta. Progress fill on dark surfaces, hover rules. Not for text on white: 3.5:1 */
   --brand-600:    #c94327;  /* primary button, current tab, focus ring, selection dot. White on it 4.9:1 */
-  --brand-700:    #a8371f;  /* pressed, and text on brand-tint 5.6:1 */
+  --brand-700:    #a8371f;  /* the word: text on brand-tint, 5.6:1 */
+  --nav-current:  var(--brand-tint);  /* the seat under the current sidebar item. A token of its own because on a dark sidebar a tinted seat is the only coloured field in a column of neutral ones */
+  --ring:         #c94327;  /* focus rings and the outline of a chosen seat. The same colour as the fill here; on a dark ground it cannot be, because the fill has to be dark enough to carry white and the ring light enough to be seen */
+  --brand-hover:  #a8371f;  /* the fill under the pointer. One name per job: in dark the word goes pale and the fill stays dark, and a single token cannot do both */
   --brand-tint:   #fce8d4;  /* secondary button. Peach, not pink: dE 10.6 from bad-tint, so a secondary and a destructive-at-rest never match */
   --brand-tint-2: #f8dcc0;  /* secondary hover. brand-700 on it 5.1:1 */
 
@@ -47,12 +54,21 @@
   --ok-700:    #14532d;  /* confirm button hover */
   --ok-tint:   #dcfce7;  /* ok on it 6.5:1 */
   --ok-tint-2: #bbf7d0;
+  /* The ink a word takes when it sits on a tint. In this theme it is the same
+     colour as the fill; in the dark one it cannot be, because a fill that
+     carries white and a word that sits on a dark tint are different jobs. */
+  /* The same green under two names, because the dark theme needs them apart:
+     --ok is the word (it must read on a tint), --ok-fill is the block a white
+     label sits on. Red works the same way. */
+  --ok-fill:   var(--ok);
   --warn:      #d97706;  /* amber, for dots and icons. Ink on it 5.0:1 */
   --warn-ink:  #92400e;  /* amber text. 6.4:1 on warn-tint */
   --warn-tint: #fef3c7;
+  --warn-tint-2: #fde68a;  /* the amber tint one step down: hover, and the banner's own action. warn-ink on it 5.7:1 */
   --bad:       #b91c1c;  /* red, kept dark enough that it separates from the terracotta by brightness, not only by hue. White on it 6.5:1 */
   --bad-hover: #991b1b;  /* the destructive fill under the pointer: one step darker, so the state is visible without changing hue. White on it 8.6:1 */
   --bad-tint:  #fee2e2;  /* bad on it 5.3:1 */
+  --bad-fill:  var(--bad);
 
   /* On a fill. White here is not a surface: it is the text and icon colour on
      brand-600, ok, bad and ink. The translucent steps exist only on the dark
@@ -118,7 +134,9 @@
   --e-3: 0 6px 14px rgb(34 34 34 / 0.10);
 
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --dur: 180ms;
+  --dur: 180ms;        /* something entering, leaving, or moving across the screen */
+  --dur-press: 120ms;  /* a press, and a hover colour. Seen dozens of times an hour, so it is nearly instant: at 180ms a hover reads as lag */
+  --press: 0.97;       /* how far a control gives under the finger. Subtle on purpose: enough to feel heard, not enough to see */
 
   --tap-employee: 48px;
   --tap-admin: 36px;
@@ -165,6 +183,153 @@
   --z-dropdown: 10; --z-sticky: 20; --z-backdrop: 30; --z-modal: 40; --z-toast: 50; --z-tooltip: 60;
 }
 /* ============================================================
+   DARK
+   The same token names with a different scale under them, so no component
+   knows this exists. Authored, not inverted: every value was picked against
+   the dark ground and measured, because the pairs that pass on white do not
+   pass here.
+   Set data-theme="dark" (or "light") on <html> to force one; with neither, the
+   system preference decides. The two blocks below are the same declarations.
+   ============================================================ */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  /* 1-2 · the two page backgrounds. Warm, never neutral grey, and never #000:
+     bright content on pure black is what causes the halation Material warns
+     about, and a lighter surface cannot be seen against it. */
+  --ground:   #171614;   /* the plane every card sits on */
+  --bg-admin: var(--ground);
+  --wash:     #1c1b18;   /* marks a region without boxing it */
+
+  /* 3-5 · surfaces, lighter than the ground rather than darker. This is the
+     whole of elevation here: a shadow on a dark ground is invisible, so a card
+     advances by being a step up, the way Apple's elevated set does. */
+  --bg:       #282622;   /* the reading plane: document, form, card */
+  --surface:  #282622;   /* a card, one step further off the page than the first pass: 1.20 against the ground, where the light theme's card separates by 1.15 */
+  --field:     #1a1917;   /* a text control, recessed under the card it sits in. The card rises, the field sinks; a field level with its card is a hairline on a flat block */
+  --panel:    #322f28;   /* sidebar and toolbars, and the tile a mark sits in. 1.13 off a card, which is the separation the light theme gives the same tile */
+  --panel-2:  #3b382f;  /* hover and pressed on a panel */
+
+  /* 6-8 · borders. The first two are decorative and sit near their light-theme
+     separations (1.22 and 1.44 against a card); the third is a real boundary
+     and clears 3:1 on every surface it can land on. */
+  --line:     #36342d;
+  --line-2:   #403e35;
+  --line-3:   #89847a;
+
+  /* 11-12 · text. Not #fff — a pure white on a dark ground smears on OLED and
+     is the second thing Material tells you not to do. */
+  --ink:      #e3dfd7;   /* 87% white, which is where Material puts high-emphasis text and why: at 91% a page of it glares. 12.0:1 on a card */
+  --ink-2:    #bdb9af;   /* secondary. 7.7:1 on a card */
+  --ink-3:    #a8a397;   /* the faintest ink. 4.7:1 on the lightest surface it lands on, which is a hovered panel */
+
+  /* Brand. The fill keeps the restaurant's terracotta, because white still
+     clears 4.9:1 on it. What changes is terracotta as *text*: #a8371f on a
+     dark tint is unreadable, so the text step is a light tint of the same hue
+     — Radix's step 9 and step 11 are different colours for a reason. */
+  --brand:        #d0614e;   /* the accent, well down in chroma from the light theme's: a saturated colour vibrates on a dark ground. 4.7:1 on it */
+  --brand-600:    #b03e26;   /* every solid fill: the primary button, the sidebar block, a current step. As deep as it goes while a filled control still separates from the page it sits on — 3.07:1 there, and white on it 5.9:1 */
+  --brand-700:    #e2a48d;   /* the word: terracotta text on a tint or a card. 7.0:1 on the tint */
+  --nav-current:  #34322b;   /* neutral, a step up from the sidebar rather than a rust slab. The terracotta word on it still carries 6.1:1 */
+  --ring:         #d0614e;   /* the ring, and it has to be seen against the page rather than carry white: 4.7:1 on the ground, 4.2:1 on a card */
+  --brand-hover:  #8f2f1c;   /* the fill under the pointer, a step below it. White on it 8.1:1 */
+  --brand-tint:   #33241d;   /* secondary button, and the current nav item. Same lightness as the first pass at 28% saturation rather than 40%: the item still reads as current without the sidebar looking rusty */
+  --brand-tint-2: #4a2a20;   /* its hover */
+
+  /* Semantic. Same split: a fill that carries white, and an ink that carries
+     the word on a dark tint. --warn already worked this way in the light
+     theme; --ok and --bad now do too. */
+  --ok:        #7bd3a0;  --ok-fill:  #1f7a44;  --ok-tint:   #14301f;  --ok-tint-2: #1b4029;
+  --ok-700:    #196237;   /* the fill's hover */
+  --warn:      #e5a54b;  --warn-ink: #edbb6e;  --warn-tint: #33260f;  --warn-tint-2: #43310f;
+  --bad:       #f08a7e;  --bad-fill: #c2382e;  --bad-tint:  #3a1a17;  --bad-hover: #a72f27;
+
+  /* Elevation, continued: a shadow still separates an overlay from what it
+     covers, but it is black and it is doing far less work than the surface
+     step above. */
+  --e-1: 0 1px 2px rgb(0 0 0 / 0.30);
+  --e-2: 0 2px 6px rgb(0 0 0 / 0.38);
+  --e-3: 0 8px 20px rgb(0 0 0 / 0.50);
+
+  /* Overlays. --on-fill and --on-dark-1..4 are not restated: white on a
+     coloured fill is still white, and the four white-over-dark washes were
+     already built for a dark surface. */
+  --glass:        rgb(24 23 20 / 0.82);     /* the disc over a photograph: dark glass now, or a near-white disc would carry a near-white icon */
+  --sheen:        rgb(255 255 255 / 0.10);  /* the skeleton sweep. 55% white across a dark card is a flash, not a shimmer */
+  --scrim:        rgb(0 0 0 / 0.62);        /* modal backdrop: deeper, because the page beneath it is already dark */
+  --scrim-strong: rgb(0 0 0 / 0.86);        /* caption over a photograph */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    /* 1-2 · the two page backgrounds. Warm, never neutral grey, and never #000:
+       bright content on pure black is what causes the halation Material warns
+       about, and a lighter surface cannot be seen against it. */
+    --ground:   #171614;   /* the plane every card sits on */
+    --bg-admin: var(--ground);
+    --wash:     #1c1b18;   /* marks a region without boxing it */
+
+    /* 3-5 · surfaces, lighter than the ground rather than darker. This is the
+       whole of elevation here: a shadow on a dark ground is invisible, so a card
+       advances by being a step up, the way Apple's elevated set does. */
+    --bg:       #282622;   /* the reading plane: document, form, card */
+    --surface:  #282622;   /* a card, one step further off the page than the first pass: 1.20 against the ground, where the light theme's card separates by 1.15 */
+    --field:     #1a1917;   /* a text control, recessed under the card it sits in. The card rises, the field sinks; a field level with its card is a hairline on a flat block */
+    --panel:    #322f28;   /* sidebar and toolbars, and the tile a mark sits in. 1.13 off a card, which is the separation the light theme gives the same tile */
+    --panel-2:  #3b382f;  /* hover and pressed on a panel */
+
+    /* 6-8 · borders. The first two are decorative and sit near their light-theme
+       separations (1.22 and 1.44 against a card); the third is a real boundary
+       and clears 3:1 on every surface it can land on. */
+    --line:     #36342d;
+    --line-2:   #403e35;
+    --line-3:   #89847a;
+
+    /* 11-12 · text. Not #fff — a pure white on a dark ground smears on OLED and
+       is the second thing Material tells you not to do. */
+    --ink:      #e3dfd7;   /* 87% white, which is where Material puts high-emphasis text and why: at 91% a page of it glares. 12.0:1 on a card */
+    --ink-2:    #bdb9af;   /* secondary. 7.7:1 on a card */
+    --ink-3:    #a8a397;   /* the faintest ink. 4.7:1 on the lightest surface it lands on, which is a hovered panel */
+
+    /* Brand. The fill keeps the restaurant's terracotta, because white still
+       clears 4.9:1 on it. What changes is terracotta as *text*: #a8371f on a
+       dark tint is unreadable, so the text step is a light tint of the same hue
+       — Radix's step 9 and step 11 are different colours for a reason. */
+    --brand:        #d0614e;   /* the accent, well down in chroma from the light theme's: a saturated colour vibrates on a dark ground. 4.7:1 on it */
+    --brand-600:    #b03e26;   /* every solid fill: the primary button, the sidebar block, a current step. As deep as it goes while a filled control still separates from the page it sits on — 3.07:1 there, and white on it 5.9:1 */
+    --brand-700:    #e2a48d;   /* the word: terracotta text on a tint or a card. 7.0:1 on the tint */
+  --nav-current:  #34322b;   /* neutral, a step up from the sidebar rather than a rust slab. The terracotta word on it still carries 6.1:1 */
+  --ring:         #d0614e;   /* the ring, and it has to be seen against the page rather than carry white: 4.7:1 on the ground, 4.2:1 on a card */
+  --brand-hover:  #8f2f1c;   /* the fill under the pointer, a step below it. White on it 8.1:1 */
+    --brand-tint:   #33241d;   /* secondary button, and the current nav item. Same lightness as the first pass at 28% saturation rather than 40%: the item still reads as current without the sidebar looking rusty */
+    --brand-tint-2: #4a2a20;   /* its hover */
+
+    /* Semantic. Same split: a fill that carries white, and an ink that carries
+       the word on a dark tint. --warn already worked this way in the light
+       theme; --ok and --bad now do too. */
+    --ok:        #7bd3a0;  --ok-fill:  #1f7a44;  --ok-tint:   #14301f;  --ok-tint-2: #1b4029;
+    --ok-700:    #196237;   /* the fill's hover */
+    --warn:      #e5a54b;  --warn-ink: #edbb6e;  --warn-tint: #33260f;  --warn-tint-2: #43310f;
+    --bad:       #f08a7e;  --bad-fill: #c2382e;  --bad-tint:  #3a1a17;  --bad-hover: #a72f27;
+
+    /* Elevation, continued: a shadow still separates an overlay from what it
+       covers, but it is black and it is doing far less work than the surface
+       step above. */
+    --e-1: 0 1px 2px rgb(0 0 0 / 0.30);
+    --e-2: 0 2px 6px rgb(0 0 0 / 0.38);
+    --e-3: 0 8px 20px rgb(0 0 0 / 0.50);
+
+  /* Overlays. --on-fill and --on-dark-1..4 are not restated: white on a
+     coloured fill is still white, and the four white-over-dark washes were
+     already built for a dark surface. */
+  --glass:        rgb(24 23 20 / 0.82);     /* the disc over a photograph: dark glass now, or a near-white disc would carry a near-white icon */
+  --sheen:        rgb(255 255 255 / 0.10);  /* the skeleton sweep. 55% white across a dark card is a flash, not a shimmer */
+  --scrim:        rgb(0 0 0 / 0.62);        /* modal backdrop: deeper, because the page beneath it is already dark */
+  --scrim-strong: rgb(0 0 0 / 0.86);        /* caption over a photograph */
+  }
+}
+
+/* ============================================================
    BASE
    ============================================================ */
 *, *::before, *::after { box-sizing: border-box; }
@@ -200,9 +365,16 @@ h1,h2,h3,h4,h5 { margin: 0; line-height: var(--lh-heading); text-wrap: balance; 
 
 p { margin: 0; text-wrap: pretty; }
 button, input, select, textarea { font: inherit; color: inherit; }
+/* The browser paints a <button> with its own button face, which under
+   color-scheme: dark is a mid grey. Every control in this system paints its own
+   ground, so the default is cleared rather than overridden one class at a time. */
+button { background: none; border: 0; }
+/* The tokens alone are not enough: `color` is inherited, so a subtree pinned to
+   the light scale must restate it or keep the ink it inherited from the page. */
+.theme-light { color: var(--ink); }
 /* The outline follows each element's own radius. Setting border-radius here would
    reshape a pill into a rectangle the moment it took keyboard focus. */
-:focus-visible { outline: 3px solid var(--brand-600); outline-offset: 2px; }
+:focus-visible { outline: 3px solid var(--ring); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) {
   /* Duration alone is not enough. An infinite animation at 0.01ms is a strobe,
      shown to exactly the people who asked for less motion. */
@@ -245,7 +417,7 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85em;
 .btn-icon { width: var(--tap-admin); height: var(--tap-admin); padding: 0; }
 .btn-icon.btn-lg { width: var(--tap-employee); height: var(--tap-employee); }
 .btn-primary { background: var(--brand-600); color: var(--on-fill); }
-.btn-primary:hover { background: var(--brand-700); }
+.btn-primary:hover { background: var(--brand-hover); }
 .btn-primary:active { transform: translateY(1px); }
 .btn-secondary { background: var(--brand-tint); color: var(--brand-700); }
 .btn-secondary:hover { background: var(--brand-tint-2); }
@@ -254,14 +426,14 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85em;
 .btn-neutral:hover { background: var(--panel-2); }
 .btn-ghost { color: var(--ink-2); }
 .btn-ghost:hover { background: var(--panel); color: var(--ink); }
-.btn-ok { background: var(--ok); color: var(--on-fill); }
+.btn-ok { background: var(--ok-fill); color: var(--on-fill); }
 .btn-ok:hover { background: var(--ok-700); }
 .btn-ok-soft { background: var(--ok-tint); color: var(--ok); }
 .btn-ok-soft:hover { background: var(--ok-tint-2); }
 /* Light tone at rest, dark tone on hover. Never an outline, and never a bright
    block sitting under a wet thumb waiting to be hit. */
 .btn-danger { background: var(--bad-tint); color: var(--bad); }
-.btn-danger:hover { background: var(--bad); color: var(--on-fill); }
+.btn-danger:hover { background: var(--bad-fill); color: var(--on-fill); }
 .btn:disabled { background: var(--panel); color: var(--ink-3); border-color: transparent; cursor: not-allowed; transform: none; }
 .btn-loading { pointer-events: none; opacity: 0.8; }
 .spinner { width: 14px; height: 14px; border-radius: 50%; border: 2px solid currentColor; border-top-color: transparent; animation: spin 700ms linear infinite; }
@@ -274,7 +446,7 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85em;
 .field .hint { font-size: var(--t-sm); color: var(--ink-2); }
 .input {
   min-height: var(--tap-admin); padding: var(--s-2) var(--s-3); width: 100%;
-  background: var(--surface); border: 1px solid var(--line-3); border-radius: var(--r-md);
+  background: var(--field); border: 1px solid var(--line-3); border-radius: var(--r-md);
   transition: border-color var(--dur) var(--ease);
 }
 .input::placeholder { color: var(--ink-3); }
@@ -287,16 +459,16 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85em;
 .err { font-size: var(--t-sm); color: var(--bad); font-weight: 500; display: flex; gap: var(--s-1); align-items: center; }
 .search-hero {
   display: flex; align-items: center; gap: var(--s-3);
-  background: var(--surface); border: 1px solid var(--line-3); border-radius: var(--r-lg);
+  background: var(--field); border: 1px solid var(--line-3); border-radius: var(--r-lg);
   padding: var(--s-3) var(--s-4); min-height: 64px;
 }
 .search-hero input { border: 0; background: transparent; width: 100%; font-size: var(--t-md); font-weight: 500; min-width: 0; }
 .search-hero input:focus { outline: none; }
-.search-hero:focus-within { border-color: var(--brand-600); }
+.search-hero:focus-within { border-color: var(--ring); }
 .mic { flex-shrink: 0; width: 48px; height: 48px; border-radius: var(--r-pill); border: 0; background: var(--panel); color: var(--ink); display: grid; place-items: center; cursor: pointer; }
 .mic:hover { background: var(--brand-tint); color: var(--brand-700); }
 .pin-row { display: flex; gap: var(--s-3); }
-.pin-box { width: 52px; height: 60px; text-align: center; font-size: var(--t-xl); font-weight: 600; border: 2px solid var(--line-3); border-radius: var(--r-lg); background: var(--surface); }
+.pin-box { width: 52px; height: 60px; text-align: center; font-size: var(--t-xl); font-weight: 600; border: 2px solid var(--line-3); border-radius: var(--r-lg); background: var(--field); }
 .pin-box.filled { border-color: var(--ink); }
 .keypad { display: grid; grid-template-columns: repeat(3, 68px); gap: var(--s-2); }
 .key { height: 60px; font-size: var(--t-lg); font-weight: 600; background: var(--surface); border: 1px solid var(--line-3); border-radius: var(--r-lg); cursor: pointer; }
@@ -313,7 +485,7 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85em;
 .pill { display: inline-flex; align-items: center; gap: var(--s-2); font-size: var(--t-sm); font-weight: 600; padding: 3px var(--s-2); border-radius: var(--r-sm); white-space: nowrap; }
 .pill .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
 .pill-complete { background: var(--ok-tint); color: var(--ok); }
-.pill-verified { background: var(--ok); color: var(--on-fill); }
+.pill-verified { background: var(--ok-fill); color: var(--on-fill); }
 .pill-progress { background: var(--panel); color: var(--ink); }
 .pill-progress .dot { background: var(--brand-600); }
 /* 4.3:1 on panel; the word carries the meaning, the dot only reinforces it */
@@ -424,7 +596,7 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85em;
    of the box it rotates about, so it never lands in the middle of the circle. */
 .tick:checked {
   border-color: var(--ok);
-  background: var(--ok) center / 17px 17px no-repeat
+  background: var(--ok-fill) center / 17px 17px no-repeat
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8l3 3 5-5'/%3E%3C/svg%3E");
 }
 /* Done work steps back without disappearing: a cook scanning for what is left
@@ -453,7 +625,7 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85em;
 .progress { display: grid; gap: var(--s-2); }
 .progress-top { display: flex; justify-content: space-between; font-size: var(--t-sm); font-weight: 600; }
 .track { height: 8px; background: var(--line); border-radius: var(--r-pill); overflow: hidden; }
-.track > i { display: block; height: 100%; background: var(--ok); border-radius: inherit; }
+.track > i { display: block; height: 100%; background: var(--ok-fill); border-radius: inherit; }
 .chapters { display: grid; gap: var(--s-2); max-width: var(--narrow-w); }
 .chapter { display: flex; align-items: center; gap: var(--s-4); min-height: var(--tap-employee); padding: var(--s-3) var(--s-4); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
 /* A cook recognises the two red buckets faster than they read "Cleaning and
@@ -462,7 +634,7 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85em;
    restaurant's own — no stock imagery, which is also what the scope asks for. */
 .chapter .thumb { width: 48px; height: 48px; border-radius: var(--r-md); object-fit: cover; flex-shrink: 0; background: var(--panel); }
 .chapter .idx { width: 32px; height: 32px; border-radius: var(--r-pill); background: var(--panel); color: var(--ink-2); display: grid; place-items: center; font-weight: 700; font-size: var(--t-sm); flex-shrink: 0; }
-.chapter .idx.done { background: var(--ok); color: var(--on-fill); }
+.chapter .idx.done { background: var(--ok-fill); color: var(--on-fill); }
 .chapter .idx.now { background: var(--brand-600); color: var(--on-fill); }
 .chapter > div:not(.idx) { flex: 1; min-width: 0; }
 .chapter .title { font-weight: 600; }
@@ -479,10 +651,10 @@ a.chapter { text-decoration: none; color: inherit; }
 .opt:hover { border-color: var(--ink-3); }
 .opt .mark { width: 28px; height: 28px; border-radius: var(--r-pill); border: 2px solid var(--line-3); flex-shrink: 0; display: grid; place-items: center; font-weight: 700; font-size: var(--t-sm); }
 .opt.correct { border-color: var(--ok); background: var(--ok-tint); }
-.opt.correct .mark { border-color: var(--ok); background: var(--ok); color: var(--on-fill); }
+.opt.correct .mark { border-color: var(--ok); background: var(--ok-fill); color: var(--on-fill); }
 .opt.wrong { border-color: var(--bad); background: var(--bad-tint); }
-.opt.wrong .mark { border-color: var(--bad); background: var(--bad); color: var(--on-fill); }
-.receipt { display: flex; align-items: center; gap: var(--s-4); padding: var(--s-5); background: var(--ok); color: var(--on-fill); border-radius: var(--r-lg); max-width: var(--narrow-w); }
+.opt.wrong .mark { border-color: var(--bad); background: var(--bad-fill); color: var(--on-fill); }
+.receipt { display: flex; align-items: center; gap: var(--s-4); padding: var(--s-5); background: var(--ok-fill); color: var(--on-fill); border-radius: var(--r-lg); max-width: var(--narrow-w); }
 .receipt .tick { width: 48px; height: 48px; border-radius: var(--r-pill); background: var(--on-dark-3); display: grid; place-items: center; flex-shrink: 0; }
 .receipt .head { font-weight: 700; font-size: var(--t-md); }
 .receipt .stamp { font-size: var(--t-sm); opacity: 0.92; margin-top: 2px; }
@@ -503,19 +675,19 @@ a.chapter { text-decoration: none; color: inherit; }
    ============================================================ */
 .tabbar { display: flex; background: var(--surface); border: 1px solid var(--line); max-width: 400px; border-radius: var(--r-lg); overflow: hidden; }
 .tabbar a { flex: 1; min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--s-1); text-decoration: none; color: var(--ink-2); font-size: var(--t-sm); font-weight: 600; border-top: 3px solid transparent; }
-.tabbar a[aria-current="page"] { color: var(--ink); border-top-color: var(--brand-600); }
+.tabbar a[aria-current="page"] { color: var(--ink); border-top-color: var(--ring); }
 .sidebar { width: var(--sidebar-w); background: var(--panel); border-right: 1px solid var(--line); padding: var(--s-4) var(--s-3); border-radius: var(--r-lg); }
 .sidebar .brandmark { font-size: var(--t-lg); font-weight: 700; letter-spacing: var(--heading-track); padding: var(--s-2) var(--s-3) var(--s-5); }
 .sidebar .grp { font-size: var(--t-sm); font-weight: 600; color: var(--ink-2); padding: var(--s-4) var(--s-3) var(--s-2); }
 .sidebar a { display: flex; align-items: center; gap: var(--s-3); min-height: var(--tap-admin); padding: 0 var(--s-3); border-radius: var(--r-md); text-decoration: none; color: var(--ink-2); font-size: var(--t-sm); font-weight: 500; }
 .sidebar a:hover { background: var(--surface); color: var(--ink); }
 .sidebar a[aria-current="page"] { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: var(--e-1); }
-.sidebar .count { margin-left: auto; font-size: var(--t-sm); font-weight: 700; background: var(--bad); color: var(--on-fill); border-radius: var(--r-pill); padding: 1px var(--s-2); }
+.sidebar .count { margin-left: auto; font-size: var(--t-sm); font-weight: 700; background: var(--bad-fill); color: var(--on-fill); border-radius: var(--r-pill); padding: 1px var(--s-2); }
 /* ============================================================
    IMPORT AND MEDIA
    ============================================================ */
 .dropzone { border: 2px dashed var(--line-2); border-radius: var(--r-lg); padding: var(--s-8) var(--s-6); text-align: center; background: var(--surface); transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease); }
-.dropzone:hover, .dropzone.is-over { border-color: var(--brand-600); background: var(--brand-tint); }
+.dropzone:hover, .dropzone.is-over { border-color: var(--ring); background: var(--brand-tint); }
 .dropzone .glyph { width: 48px; height: 48px; border-radius: var(--r-pill); background: var(--panel); display: grid; place-items: center; margin: 0 auto var(--s-3); color: var(--ink-2); }
 .dropzone h4 { font-size: var(--t-md); font-weight: 600; margin-bottom: var(--s-1); }
 .dropzone p { font-size: var(--t-sm); color: var(--ink-2); margin-bottom: var(--s-4); }
@@ -525,7 +697,7 @@ a.chapter { text-decoration: none; color: inherit; }
 .upload .file .meta { font-size: var(--t-sm); color: var(--ink-2); }
 .upload .file .kill { margin-left: auto; }
 .draft-ready { border: 1px solid var(--ok-tint-2); background: var(--ok-tint); border-radius: var(--r-lg); padding: var(--s-4) var(--s-5); display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); }
-.draft-ready .tick { width: 40px; height: 40px; border-radius: var(--r-pill); background: var(--ok); color: var(--on-fill); display: grid; place-items: center; flex-shrink: 0; }
+.draft-ready .tick { width: 40px; height: 40px; border-radius: var(--r-pill); background: var(--ok-fill); color: var(--on-fill); display: grid; place-items: center; flex-shrink: 0; }
 .draft-ready .what { flex: 1; min-width: 200px; }
 .draft-ready .what strong { display: block; }
 .draft-ready .what span { font-size: var(--t-sm); color: var(--ink-2); }
@@ -558,7 +730,7 @@ a.chapter { text-decoration: none; color: inherit; }
    OVERLAYS
    ============================================================ */
 .toast { position: relative; z-index: var(--z-toast); display: inline-flex; align-items: center; gap: var(--s-3); background: var(--ink); color: var(--on-fill); border-radius: var(--r-lg); padding: var(--s-3) var(--s-3) var(--s-3) var(--s-4); box-shadow: var(--e-3); max-width: 420px; }
-.toast .ico { width: 28px; height: 28px; border-radius: var(--r-pill); background: var(--ok); display: grid; place-items: center; flex-shrink: 0; }
+.toast .ico { width: 28px; height: 28px; border-radius: var(--r-pill); background: var(--ok-fill); display: grid; place-items: center; flex-shrink: 0; }
 .toast .ico.warn { background: var(--warn); color: var(--ink); }
 .toast .msg { font-size: var(--t-sm); font-weight: 500; flex: 1; }
 /* Full target height without a taller toast: the button overlaps the padding */
@@ -790,7 +962,7 @@ dl.yield { margin: 0 0 var(--s-5); }
    set the whole marker in ink on the theory that weight beats colour. On a page that
    is already black on white, more black is not a signal at all, and the step nobody
    may skip was the step nobody noticed. */
-.step.is-crit .step-num { background: var(--bad); border-color: var(--bad); color: var(--on-fill); }
+.step.is-crit .step-num { background: var(--bad-fill); border-color: var(--bad); color: var(--on-fill); }
 .step-flag {
   display: inline-flex; align-items: center; gap: var(--s-2); margin-bottom: var(--s-2);
   padding: var(--s-1) var(--s-3); border-radius: var(--r-sm);
@@ -907,9 +1079,9 @@ dl.yield { margin: 0 0 var(--s-5); }
     transition: background var(--dur) var(--ease), width var(--dur) var(--ease), height var(--dur) var(--ease);
   }
   .steprail a:hover::after { background: var(--ink-3); }
-  .steprail a.is-crit::after { background: var(--bad); }
+  .steprail a.is-crit::after { background: var(--bad-fill); }
   .steprail a[aria-current="true"]::after { width: 28px; height: 3px; background: var(--ink); }
-  .steprail a.is-crit[aria-current="true"]::after { background: var(--bad); }
+  .steprail a.is-crit[aria-current="true"]::after { background: var(--bad-fill); }
   .steprail .n {
     position: absolute; right: var(--s-8); white-space: nowrap;
     font-size: var(--t-sm); font-weight: 600; color: var(--ink);
@@ -1118,6 +1290,72 @@ dl.yield { margin: 0 0 var(--s-5); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* --- things that appear -----------------------------------------------------
+   A dropdown that pops into existence reads as a glitch; one that grows a little
+   out of the control that opened it reads as a consequence of the click. Two
+   cases only: a menu, which scales from its trigger, and a dialog, which is
+   anchored to nothing and so scales from its own centre. Nothing starts at
+   scale(0) — nothing in the world appears out of nothing — and both are under
+   200ms, which is where a dropdown stops feeling like a wait. */
+@keyframes pop-in {
+  from { opacity: 0; transform: scale(0.97) translateY(-2px); }
+  to   { opacity: 1; transform: none; }
+}
+.pop-in {
+  animation: pop-in var(--dur) var(--ease);
+  /* the component sets this once it knows whether it sits above or below */
+  transform-origin: var(--pop-origin, top center);
+}
+@keyframes dialog-in {
+  from { opacity: 0; transform: scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+.dialog-in { animation: dialog-in var(--dur) var(--ease); transform-origin: center; }
+@keyframes scrim-in { from { opacity: 0; } to { opacity: 1; } }
+.scrim-in { animation: scrim-in var(--dur) var(--ease); }
+
+/* The last of the way in. A page that has just arrived does not cut in at full
+   strength; it is already there and legible at 40%, and reaches full in 140ms.
+   Nothing waits on this — unlike a view transition, which holds the old page
+   until the new one is ready and adds its whole duration to the wait. */
+@keyframes content-in { from { opacity: 0.4; } to { opacity: 1; } }
+.content-in { animation: content-in 140ms var(--ease); }
+@media (prefers-reduced-motion: reduce) { .content-in { animation-duration: 0.01ms; } }
+
+
+/* --- the theme, changing ---------------------------------------------------
+   The page crossfades as a whole rather than as several thousand separate
+   colour transitions: one compositor animation, no style recalculation. A
+   browser without view transitions switches instantly, which is the behaviour
+   this replaced, so nothing is lost. 400ms — slower than any control in the
+   system, because the whole screen is moving and it should feel like a room
+   dimming rather than a light switch. */
+::view-transition-group(root),
+::view-transition-old(root),
+::view-transition-new(root) {
+  /* One duration across all three, or the group finishes 10ms before the layers
+     it holds. The dissolve keeps the browser's linear timing on purpose: an
+     ease-out crossfade moves its own mid-point and reads as a wipe. */
+  animation-duration: 400ms;
+  /* Both layers sit still and fade; a slide or a scale here would be motion for
+     its own sake on something the reader did not ask to move. */
+  mix-blend-mode: normal;
+}
+/* A navigation replaces the words on the page, not its whole colour scheme, so
+   it crossfades in half the time. The root carries data-vt="nav" only while such
+   a transition is running. */
+[data-vt='nav']::view-transition-group(root),
+[data-vt='nav']::view-transition-old(root),
+[data-vt='nav']::view-transition-new(root) { animation-duration: 200ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(root),
+  ::view-transition-old(root),
+  ::view-transition-new(root) { animation-duration: 0.01ms; }
+}
+
+
+
 /* --- sticky action bar (admin composer save/publish footer) ---------------- */
 .sticky-bar { position: sticky; bottom: 0; z-index: var(--z-sticky); }
 
@@ -1211,6 +1449,9 @@ dl.yield { margin: 0 0 var(--s-5); }
 .pix-edge {
   display: block;
   height: var(--pix-h);
+  /* The same colour as the block it hangs from, not the button's: in dark the
+     block is deeper, and teeth a step brighter than their own edge read as a
+     separate object. */
   background: var(--brand-600);
   -webkit-mask: var(--pix-zigzag) 0 0 / var(--pix-w) var(--pix-h) repeat-x;
   mask: var(--pix-zigzag) 0 0 / var(--pix-w) var(--pix-h) repeat-x;
@@ -1236,7 +1477,7 @@ dl.yield { margin: 0 0 var(--s-5); }
   position: relative; display: flex; align-items: center; gap: var(--s-2);
   width: 100%; max-width: var(--field-xl);
   min-height: var(--tap-admin); padding: 0 var(--s-3);
-  background: var(--surface); border: 1px solid var(--line-3); border-radius: var(--r-md);
+  background: var(--field); border: 1px solid var(--line-3); border-radius: var(--r-md);
   transition: border-color var(--dur) var(--ease);
 }
 .find:focus-within { border-color: var(--brand); }
@@ -1293,8 +1534,27 @@ dl.yield { margin: 0 0 var(--s-5); }
    bone, borrowed from the recipe scaler where the tray sits on a white document;
    on the pale ground the two are 1.03:1 apart, so it read as a smudge behind the
    seats rather than as a control. */
+/* The tray is a control's fill, not a card's: on the dark theme a tray painted
+   --surface is the same colour as the content behind it. */
 .segbar { display: inline-flex; gap: var(--s-1); padding: var(--s-1);
-  border-radius: var(--r-pill); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line-3); }
+  border-radius: var(--r-pill); background: var(--field); box-shadow: inset 0 0 0 1px var(--line-3);
+  position: relative; isolation: isolate; }
+/* The fill, as one object that moves. The component measures the chosen seat and
+   writes its position and width here; before the first measurement the pill is
+   not drawn at all, so nothing slides in from the left edge on load. */
+.segbar[data-sliding]::after {
+  content: ''; position: absolute; z-index: -1;
+  top: var(--s-1); bottom: var(--s-1); left: 0;
+  width: var(--seg-w, 0); transform: translateX(var(--seg-x, 0));
+  background: var(--ink); border-radius: var(--r-pill);
+  transition: transform var(--dur) var(--ease), width var(--dur) var(--ease);
+}
+.segbar[data-sliding]:not([data-ready])::after { display: none; }
+/* With the pill drawing the fill, the seat underneath must not draw its own --
+   but only once the pill is actually drawn. Gated on data-sliding alone, the
+   frames between mount and the first measurement left the chosen seat with no
+   fill under white text, i.e. white on the white tray. */
+.segbar[data-sliding][data-ready] > [aria-current="true"] { background: none; }
 .segbar > * {
   display: inline-flex; align-items: center; gap: var(--s-2);
   min-height: var(--tap-admin); padding: 0 var(--s-3);
@@ -1303,9 +1563,13 @@ dl.yield { margin: 0 0 var(--s-5); }
   flex-shrink: 0; white-space: nowrap;
   border-radius: var(--r-pill); box-shadow: inset 0 0 0 1px var(--line-3);
   font-size: var(--t-sm); font-weight: 600; color: var(--ink-2); text-decoration: none;
-  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+  transition: background var(--dur-press) var(--ease), color var(--dur-press) var(--ease),
+              transform var(--dur-press) var(--ease);
 }
-.segbar > *:hover { color: var(--ink); }
+.segbar > *:active { transform: scale(var(--press)); }
+@media (hover: hover) and (pointer: fine) {
+  .segbar > *:hover { color: var(--ink); }
+}
 /* Filled, exactly like the scaler: on a control with two or three seats the
    filled one is the answer to "which am I on", and a white seat on a white tray
    makes you look twice to find out. */
@@ -1331,16 +1595,22 @@ dl.yield { margin: 0 0 var(--s-5); }
   min-height: var(--tap-admin); padding: 0 var(--s-4);
   flex-shrink: 0; white-space: nowrap;
   border-radius: var(--r-pill);
-  background: var(--surface); box-shadow: inset 0 0 0 1px var(--line-2);
+  /* Filled the way a control is filled, not the way a card is: white on the
+     light theme, where there is no plane between the bone ground and a white
+     card, and a recessed step on the dark one, where the card is what rises. */
+  background: var(--field); box-shadow: inset 0 0 0 1px var(--line-3);
   font-size: var(--t-sm); font-weight: 600; color: var(--ink-2);
   text-decoration: none; cursor: pointer;
-  transition: background var(--dur) var(--ease), color var(--dur) var(--ease),
-              box-shadow var(--dur) var(--ease);
+  transition: background var(--dur-press) var(--ease), color var(--dur-press) var(--ease),
+              box-shadow var(--dur-press) var(--ease), transform var(--dur-press) var(--ease);
 }
-.chipbar > *:hover { color: var(--ink); box-shadow: inset 0 0 0 1px var(--line-3); }
+.chipbar > *:active { transform: scale(var(--press)); }
+@media (hover: hover) and (pointer: fine) {
+  .chipbar > *:hover { background: var(--panel); color: var(--ink); }
+}
 .chipbar > [aria-current="true"] {
   background: var(--brand-tint); color: var(--brand-700);
-  box-shadow: inset 0 0 0 1px var(--brand-600);
+  box-shadow: inset 0 0 0 1px var(--ring);
 }
 /* The count is part of the label, not a badge beside it: one step back, so the
    name is read first and the number answers "anything in there?". */

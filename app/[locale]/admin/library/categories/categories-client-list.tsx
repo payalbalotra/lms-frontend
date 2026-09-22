@@ -137,7 +137,7 @@ function CategoryCard({
       className={cn(
         'group flex flex-col justify-between rounded-[var(--radius-lg)] cursor-pointer h-full min-h-[110px]',
         'border border-[var(--color-line-2)] bg-[var(--color-surface)] p-4 shadow-2xs transition-all',
-        'hover:border-[var(--color-brand-600)] hover:shadow-e1',
+        'hover:border-[var(--color-ring)] hover:shadow-e1',
         archivedChipLabel ? 'bg-[var(--color-wash)] opacity-75' : undefined,
       )}
     >

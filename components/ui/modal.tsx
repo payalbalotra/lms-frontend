@@ -58,7 +58,10 @@ export function Modal({
         tabIndex={-1}
         aria-label="Close backdrop"
         onClick={onClose}
-        className="fixed inset-0 bg-scrim transition-opacity animate-in fade-in duration-[var(--dur)]"
+        // animate-in / fade-in came from tailwindcss-animate, which this project
+        // does not install, so the dialog has been appearing with no animation at
+        // all. These two are ours.
+        className="scrim-in fixed inset-0 bg-scrim"
       />
 
       {/* Modal Dialog Card */}
@@ -66,7 +69,7 @@ export function Modal({
         ref={modalRef}
         tabIndex={-1}
         className={cn(
-          'relative w-full overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] shadow-e3 transition-all animate-in zoom-in-95 duration-[var(--dur)] focus:outline-none',
+          'dialog-in relative w-full overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] shadow-e3 focus:outline-none',
           sizeClasses[size],
           className,
         )}

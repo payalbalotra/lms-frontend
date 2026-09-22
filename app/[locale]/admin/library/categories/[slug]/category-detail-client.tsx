@@ -405,7 +405,7 @@ export function CategoryDetailClient({
                   }}
                   className={cn(
                     'flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-3 text-left transition-colors',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-600)] focus-visible:ring-inset',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-inset',
                     isExpanded
                       ? 'bg-[var(--color-wash)]'
                       : 'hover:bg-[var(--color-wash)]',
@@ -1076,7 +1076,7 @@ function StationPickerModal({
           type="button"
           variant="primary"
           onClick={() => onSave(selected)}
-          className="rounded-full bg-[var(--color-brand-600)] hover:bg-[var(--color-brand-700)] text-white px-4 text-xs font-semibold shadow-e1"
+          className="rounded-full bg-[var(--color-brand-600)] hover:bg-[var(--color-brand-hover)] text-white px-4 text-xs font-semibold shadow-e1"
         >
           {isEs ? 'Guardar estaciones' : 'Save stations'}
         </Button>

@@ -38,7 +38,7 @@ export function TabBar({
           const on = tab.key === active;
           const inner = (
             <>
-              <tab.icon aria-hidden="true" className="text-xl" />
+              <tab.icon aria-hidden="true" className="text-lg" />
               {tab.label}
               {tab.soon ? <span className="sr-only">{labels.soon}</span> : null}
             </>

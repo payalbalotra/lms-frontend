@@ -35,8 +35,13 @@ type ButtonSize = 'default' | 'sm' | 'lg' | 'icon';
 
 const BASE =
   'inline-flex items-center justify-center gap-2 rounded-full font-medium whitespace-nowrap ' +
-  // Transition follows the --ease curve + 180ms duration from §2.4.
-  'transition-colors duration-[var(--dur)] ease-[var(--ease)] ' +
+  // Named properties, not `all`, and press speed rather than enter speed: a
+  // button is pressed dozens of times an hour and its colour should land under
+  // the finger, not after it.
+  'transition-[background-color,color,box-shadow,transform] duration-[var(--dur-press)] ease-[var(--ease)] ' +
+  // It gives when pressed. The scale is the system's --press, so every control
+  // in the product gives by the same amount.
+  'active:scale-[var(--press)] ' +
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2 ' +
   'disabled:pointer-events-none disabled:opacity-50';
 
@@ -45,13 +50,13 @@ const variantClasses: Record<ButtonVariant, string> = {
     // text-white! needed because base CSS resets button color to inherit, and
     // class-selector specificity loses to the `button { color: inherit }` rule
     // in lms.css without it. The `!` makes the override survive the cascade.
-    'bg-[var(--color-brand-600)] text-white! hover:bg-[var(--color-brand-700)] active:translate-y-px',
+    'bg-[var(--color-brand-600)] text-white! hover:bg-[var(--color-brand-hover)]',
   secondary:
-    'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] hover:bg-[var(--color-brand-tint-2)] active:translate-y-px',
+    'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] hover:bg-[var(--color-brand-tint-2)]',
   destructive:
-    'bg-[var(--color-bad)] text-white! hover:bg-[var(--color-bad-hover)] active:translate-y-px',
+    'bg-[var(--color-bad-fill)] text-white! hover:bg-[var(--color-bad-hover)]',
   neutral:
-    'bg-[var(--color-panel)] text-[var(--color-ink)] hover:bg-[var(--color-panel-2)] active:translate-y-px',
+    'bg-[var(--color-panel)] text-[var(--color-ink)] hover:bg-[var(--color-panel-2)]',
   ghost:
     'bg-transparent text-[var(--color-ink)] hover:bg-[var(--color-panel)]',
   // A secondary action standing on the page ground rather than inside a card.
@@ -59,7 +64,7 @@ const variantClasses: Record<ButtonVariant, string> = {
   // disappears. White with the card's own edge and lift reads as a control on a
   // surface that is nearly the same colour.
   surface:
-    'bg-[var(--color-surface)] text-[var(--color-ink)] border border-[var(--color-line-2)] shadow-e1 hover:bg-[var(--color-panel)] active:translate-y-px',
+    'bg-[var(--color-surface)] text-[var(--color-ink)] border border-[var(--color-line-2)] shadow-e1 hover:bg-[var(--color-panel)]',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {

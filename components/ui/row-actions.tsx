@@ -59,7 +59,7 @@ export function RowActions({ items, triggerLabel, className }: RowActionsProps):
   const triggerRef = React.useRef<HTMLButtonElement>(null);
   const menuRef = React.useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = React.useState(false);
-  const [pos, setPos] = React.useState<{ top: number; right: number } | null>(null);
+  const [pos, setPos] = React.useState<{ top: number; right: number; origin: string } | null>(null);
 
   React.useEffect(() => {
     setMounted(true);
@@ -73,8 +73,9 @@ export function RowActions({ items, triggerLabel, className }: RowActionsProps):
     const r = trigger.getBoundingClientRect();
     const height = menuRef.current?.offsetHeight ?? 160;
     const below = window.innerHeight - r.bottom;
-    const top = below < height + 12 && r.top > height + 12 ? r.top - height - 4 : r.bottom + 4;
-    setPos({ top, right: Math.max(8, window.innerWidth - r.right) });
+    const flipped = below < height + 12 && r.top > height + 12;
+    const top = flipped ? r.top - height - 4 : r.bottom + 4;
+    setPos({ top, right: Math.max(8, window.innerWidth - r.right), origin: flipped ? 'bottom right' : 'top right' });
   }, []);
 
   React.useLayoutEffect(() => {
@@ -165,9 +166,9 @@ export function RowActions({ items, triggerLabel, className }: RowActionsProps):
           ref={menuRef}
           role="menu"
           aria-label={triggerLabel ?? t('rowActionsLabel')}
-          style={{ top: pos?.top ?? -9999, right: pos?.right ?? 0 }}
+          style={{ top: pos?.top ?? -9999, right: pos?.right ?? 0, ['--pop-origin' as string]: pos?.origin ?? 'top right' }}
           className={cn(
-            'fixed z-dropdown min-w-field-md',
+            'pop-in fixed z-dropdown min-w-field-md',
             'rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)]',
             'shadow-[var(--e-3)]',
           )}

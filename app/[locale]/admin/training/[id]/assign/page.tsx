@@ -2,7 +2,9 @@ import * as React from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { LuArrowLeft, LuBookOpen, LuGraduationCap, LuSignature } from 'react-icons/lu';
+import { LuBookOpen, LuSignature } from 'react-icons/lu';
+import { PageHeader } from '@/components/admin/page-header';
+import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { StatusPill } from '@/components/ui/status-pill';
 import { getQuizById } from '@/lib/api';
@@ -18,14 +20,13 @@ interface PageProps {
   params: Promise<{ locale: string; id: string }>;
 }
 
-export default async function AssignCoursePage({
-  params,
-}: PageProps): Promise<React.ReactElement> {
+export default async function AssignCoursePage({ params }: PageProps): Promise<React.ReactElement> {
   const { locale, id } = await params;
   setRequestLocale(locale);
 
   const t = await getTranslations('admin.training.assign');
   const tCourse = await getTranslations('admin.training');
+  const tForm = await getTranslations('admin.training.form');
 
   const course = getCourseById(id);
   if (!course) notFound();
@@ -37,60 +38,46 @@ export default async function AssignCoursePage({
   const assignments = listTrainingAssignmentsForCourse(course.id);
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 pb-12">
-      <Link
-        href={`/${locale}/admin/training`}
-        className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--color-ink-2)] hover:text-[var(--color-ink)]"
-      >
-        <Icon icon={LuArrowLeft} className="text-md" />
-        {tCourse('backToList')}
-      </Link>
+    <div className="mx-auto max-w-page space-y-6">
+      {/* The course is the heading; the eyebrow says what is being done to it.
+          Wrapping the name in straight quotes inside the h1 — Assign "Knife
+          safety" — put punctuation at display size and said the page's job
+          twice, once in the eyebrow and once in the title. */}
+      <PageHeader
+        eyebrow={t('eyebrow')}
+        title={title}
+        subtitle={t('subtitle')}
+        actions={
+          <Link href={`/${locale}/admin/training`}>
+            <Button variant="neutral">{tForm('cancel')}</Button>
+          </Link>
+        }
+      />
 
-      <header className="space-y-2">
-        <p className="text-xs font-semibold text-[var(--color-ink-2)]">{t('eyebrow')}</p>
-        <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight text-[var(--color-ink)]">
-          {t('title', { course: title })}
-        </h1>
-        <p className="max-w-2xl text-sm text-[var(--color-ink-2)]">{t('subtitle')}</p>
-      </header>
-
-      <section className="rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-5">
-        <div className="space-y-3">
-          <div className="flex items-start gap-3">
-            <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-brand-tint)] text-[var(--color-brand-700)]">
-              <LuGraduationCap aria-hidden="true" className="text-md" />
-            </span>
-            <div className="min-w-0 space-y-1">
-              <h2 className="font-[family-name:var(--font-ui)] text-md font-semibold text-[var(--color-ink)]">
-                {title}
-              </h2>
-              {purpose ? (
-                <p className="text-xs text-[var(--color-ink-2)]">{purpose}</p>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 pt-1">
-            {(course.quizId && getQuizById(course.quizId)?.questions?.length) ? (
-              <StatusPill tone="info">{tCourse('quizAttached')}</StatusPill>
-            ) : (
-              <StatusPill tone="neutral">{tCourse('noQuiz')}</StatusPill>
-            )}
-            {course.acknowledgement ? (
-              <StatusPill tone="info">
-                <Icon icon={LuSignature} className="text-xs" aria-hidden="true" />
-                {t('ackRequired', { version: course.acknowledgement.versionLabel })}
-              </StatusPill>
-            ) : null}
-            {linkedSops.length > 0 ? (
-              <StatusPill tone="neutral">
-                <Icon icon={LuBookOpen} className="text-xs" aria-hidden="true" />
-                {t('linkedSopsCount', { count: linkedSops.length })}
-              </StatusPill>
-            ) : null}
-          </div>
+      {/* What this course carries, as a line on the page: a card here repeated
+          the title and the purpose the header had just given. */}
+      <div className="space-y-3">
+        {purpose ? <p className="max-w-prose text-base leading-body text-[var(--color-ink-2)]">{purpose}</p> : null}
+        <div className="flex flex-wrap items-center gap-2">
+          {course.quizId && getQuizById(course.quizId)?.questions?.length ? (
+            <StatusPill tone="info">{tCourse('quizAttached')}</StatusPill>
+          ) : (
+            <StatusPill tone="warn">{tCourse('noQuiz')}</StatusPill>
+          )}
+          {course.acknowledgement ? (
+            <StatusPill tone="info">
+              <Icon icon={LuSignature} className="text-sm" aria-hidden="true" />
+              {t('ackRequired', { version: course.acknowledgement.versionLabel })}
+            </StatusPill>
+          ) : null}
+          {linkedSops.length > 0 ? (
+            <StatusPill tone="neutral">
+              <Icon icon={LuBookOpen} className="text-sm" aria-hidden="true" />
+              {t('linkedSopsCount', { count: linkedSops.length })}
+            </StatusPill>
+          ) : null}
         </div>
-      </section>
+      </div>
 
       <AssignForm
         locale={locale}

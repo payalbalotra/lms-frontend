@@ -123,7 +123,7 @@ export function Drawer({
               'inline-flex h-tap-admin w-tap-admin items-center justify-center rounded-[var(--radius-md)]',
               'text-[var(--color-ink)] transition-colors duration-[var(--dur)] ease-[var(--ease)]',
               'hover:bg-[var(--color-panel)] active:translate-y-px',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-tint-2)] focus-visible:ring-offset-2',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2',
             )}
           >
             <LuX aria-hidden="true" className="text-lg" />

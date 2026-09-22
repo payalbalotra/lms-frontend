@@ -45,7 +45,7 @@ export function CustomSelect({
   const triggerRef = React.useRef<HTMLButtonElement>(null);
   const panelRef = React.useRef<HTMLDivElement>(null);
   const [open, setOpen] = React.useState(false);
-  const [pos, setPos] = React.useState<{ top: number; left: number; width: number } | null>(null);
+  const [pos, setPos] = React.useState<{ top: number; left: number; width: number; origin: string } | null>(null);
   const [mounted, setMounted] = React.useState(false);
   const [highlightedIndex, setHighlightedIndex] = React.useState<number>(-1);
 
@@ -69,16 +69,20 @@ export function CustomSelect({
 
     const panelHeight = Math.min(options.length * 44 + 16, 280);
     let top = rect.bottom + gap;
+    let flipped = false;
 
     if (top + panelHeight > vh - 12) {
       if (rect.top - panelHeight - gap > 12) {
         top = rect.top - panelHeight - gap;
+        flipped = true;
       } else {
         top = Math.max(12, vh - panelHeight - 12);
       }
     }
 
-    setPos({ top, left, width });
+    // Which edge it is attached to, so it can grow from there rather than from
+    // its own top-left corner.
+    setPos({ top, left, width, origin: flipped ? 'bottom center' : 'top center' });
   }, [options.length, size]);
 
   React.useEffect(() => {
@@ -146,7 +150,7 @@ export function CustomSelect({
         disabled={disabled}
         onClick={() => setOpen((prev) => !prev)}
         className={cn(
-          'flex w-full items-center justify-between gap-2 rounded-[var(--radius-md)] border border-[var(--color-line-3)] bg-[var(--color-surface)] text-[var(--color-ink)] transition-all duration-[var(--dur)]',
+          'flex w-full items-center justify-between gap-2 rounded-[var(--radius-md)] border border-[var(--color-line-3)] bg-[var(--color-field)] text-[var(--color-ink)] transition-all duration-[var(--dur)]',
           size === 'sm'
             ? 'min-h-8 px-3 py-1 text-sm'
             : 'min-h-10 px-4 py-2 text-sm',
@@ -190,8 +194,11 @@ export function CustomSelect({
               width: pos.width,
               maxHeight: 280,
               zIndex: 9999,
+              ['--pop-origin' as string]: pos.origin,
             }}
-            className="overflow-y-auto rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-2 shadow-[var(--e-3)] transition-opacity duration-[var(--dur)]"
+            // A transition on a thing that is mounted when it opens never runs;
+            // the animation does.
+            className="pop-in overflow-y-auto rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-2 shadow-[var(--e-3)]"
           >
             {options.map((opt, idx) => {
               const isSelected = opt.value === value;

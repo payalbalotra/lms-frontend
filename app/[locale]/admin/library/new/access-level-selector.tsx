@@ -82,7 +82,7 @@ export function AccessLevelSelector({
               className={cn(
                 'group relative flex items-start gap-3 rounded-[var(--radius-lg)] border p-4 text-left transition-all min-h-20',
                 isSelected
-                  ? 'border-[var(--color-brand-600)] bg-[var(--color-brand-tint)] shadow-e1 ring-2 ring-[var(--color-brand-tint-2)]'
+                  ? 'border-[var(--color-ring)] bg-[var(--color-brand-tint)] shadow-e1 ring-2 ring-[var(--color-ring)]'
                   : 'border-[var(--color-line-2)] bg-[var(--color-surface)] hover:bg-[var(--color-wash)] hover:border-[var(--color-line-3)]',
               )}
             >
@@ -90,7 +90,7 @@ export function AccessLevelSelector({
                 className={cn(
                   'mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors',
                   isSelected
-                    ? 'border-[var(--color-brand-600)] bg-[var(--color-brand-600)]'
+                    ? 'border-[var(--color-ring)] bg-[var(--color-brand-600)]'
                     : 'border-[var(--color-line-3)] bg-transparent group-hover:border-[var(--color-ink-3)]',
                 )}
                 aria-hidden="true"

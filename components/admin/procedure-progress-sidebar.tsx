@@ -68,7 +68,7 @@ export function ProcedureProgressSidebar({
           {sections.map((sec) => (
             <li key={sec.key} className="flex items-center gap-3">
               {sec.completed ? (
-                <span className="flex size-4 items-center justify-center rounded-full bg-[var(--color-ok)] text-white text-sm font-bold">
+                <span className="flex size-4 items-center justify-center rounded-full bg-[var(--color-ok-fill)] text-white text-sm font-bold">
                   ✓
                 </span>
               ) : (

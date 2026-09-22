@@ -122,7 +122,7 @@ export function AccessAssignBlock({
             onChange={(e) => setSearch(e.target.value)}
             disabled={disabled}
             placeholder={tAccess('rowSearchPlaceholder')}
-            className="h-8 pl-8 pr-8 text-sm bg-[var(--color-surface)] border-[var(--color-line-2)] focus:border-[var(--color-brand-600)] disabled:cursor-not-allowed"
+            className="h-8 pl-8 pr-8 text-sm bg-[var(--color-surface)] border-[var(--color-line-2)] focus:border-[var(--color-ring)] disabled:cursor-not-allowed"
           />
           {search && (
             <button
@@ -171,7 +171,7 @@ export function AccessAssignBlock({
                     className={cn(
                       'group flex items-center gap-3 rounded-[var(--radius-md)] border px-3 py-2 text-left transition-all min-h-10',
                       isAssigned
-                        ? 'border-[var(--color-brand-600)] bg-[var(--color-brand-tint)] shadow-e1 ring-2 ring-[var(--color-brand-tint-2)]'
+                        ? 'border-[var(--color-ring)] bg-[var(--color-brand-tint)] shadow-e1 ring-2 ring-[var(--color-ring)]'
                         : 'border-[var(--color-line-2)] bg-[var(--color-surface)] hover:bg-[var(--color-wash)] hover:border-[var(--color-line-3)]',
                       disabled && 'cursor-not-allowed hover:bg-[var(--color-surface)] hover:border-[var(--color-line-2)]',
                     )}
@@ -212,7 +212,7 @@ export function AccessAssignBlock({
             type="button"
             onClick={() => setShowAll((prev) => !prev)}
             disabled={disabled}
-            className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius-md)] border border-dashed border-[var(--color-line-3)] bg-[var(--color-wash)] px-3 py-2 text-sm font-semibold text-[var(--color-ink-2)] transition-colors hover:border-[var(--color-brand-600)] hover:bg-[var(--color-surface)] hover:text-[var(--color-brand-700)] disabled:cursor-not-allowed disabled:opacity-60"
+            className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius-md)] border border-dashed border-[var(--color-line-3)] bg-[var(--color-wash)] px-3 py-2 text-sm font-semibold text-[var(--color-ink-2)] transition-colors hover:border-[var(--color-ring)] hover:bg-[var(--color-surface)] hover:text-[var(--color-brand-700)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Icon icon={showAll ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line'} className="text-base" />
             {showAll

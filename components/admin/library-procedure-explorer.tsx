@@ -1104,7 +1104,10 @@ export function LibraryProcedureExplorer({
           one in the admin bar — same job, same shape, two implementations. The
           view switch is the segmented control the language switch and the batch
           scaler use. */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-3">
+      {/* A row of controls, not a card: the search, the two filters and the view
+          switch each carry their own edge, and wrapping them in a second
+          surface put the page's chrome on the same plane as its content. */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="find" role="search">
           <LuSearch aria-hidden="true" className="i" />
           <label className="sr-only" htmlFor="library-search">

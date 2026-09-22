@@ -127,7 +127,7 @@ export function ProcedureViewClient({
           <div className="pt-4">
             <Link
               href={backHref}
-              className="inline-flex items-center gap-2 rounded-full bg-[var(--color-brand-600)] px-5 py-3 text-sm font-semibold text-white shadow-e1 hover:bg-[var(--color-brand-700)]"
+              className="inline-flex items-center gap-2 rounded-full bg-[var(--color-brand-600)] px-5 py-3 text-sm font-semibold text-white shadow-e1 hover:bg-[var(--color-brand-hover)]"
             >
               <LuArrowLeft aria-hidden="true" />
               {labels.back}

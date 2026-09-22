@@ -71,7 +71,7 @@ export function ProcedureOutline(): React.ReactElement {
                   className={cn(
                     '-ml-px inline-flex items-center gap-2 border-l py-1 pl-3 text-sm transition-colors',
                     active
-                      ? 'border-[var(--color-brand-600)] font-semibold text-[var(--color-ink)]'
+                      ? 'border-[var(--color-ring)] font-semibold text-[var(--color-ink)]'
                       : 'border-transparent text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
                   )}
                   aria-current={active ? 'true' : undefined}

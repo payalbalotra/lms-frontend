@@ -262,7 +262,7 @@ function InsertAfterButton({
           'flex size-8 items-center justify-center rounded-md transition-all',
           ghost
             ? 'text-[var(--color-ink-3)] opacity-30 hover:opacity-100 hover:bg-[var(--color-wash)] hover:text-[var(--color-ink-2)]'
-            : 'bg-[var(--color-surface)] text-[var(--color-ink-2)] ring-1 ring-[var(--color-line-2)] shadow-e1 hover:bg-[var(--color-brand-tint)] hover:text-[var(--color-brand-700)] hover:ring-[var(--color-brand-600)]',
+            : 'bg-[var(--color-surface)] text-[var(--color-ink-2)] ring-1 ring-[var(--color-line-2)] shadow-e1 hover:bg-[var(--color-brand-tint)] hover:text-[var(--color-brand-700)] hover:ring-[var(--color-ring)]',
         )}
       >
         <Icon icon="ri-add-line" className="text-lg" />
@@ -462,7 +462,7 @@ function HeadingBody({
           'border-transparent bg-transparent shadow-none flex-1',
           headingCls(block.level),
           'px-2',
-          'focus:border-[var(--color-brand-600)] focus:bg-[var(--color-surface)] focus:ring-0',
+          'focus:border-[var(--color-ring)] focus:bg-[var(--color-surface)] focus:ring-0',
         )}
       />
     </div>
@@ -703,7 +703,7 @@ function ImageBody({ block, onPatch, lang }: BodyProps<Extract<ProcedureBlock, {
             const f = e.dataTransfer.files?.[0];
             if (f) void startUpload(f);
           }}
-          className="flex w-full flex-col items-center justify-center gap-1 rounded-[var(--radius-md)] border border-dashed border-[var(--color-line-3)] bg-[var(--color-wash)] px-4 py-6 text-sm text-[var(--color-ink-2)] hover:border-[var(--color-brand-600)] hover:bg-[var(--color-brand-tint)]"
+          className="flex w-full flex-col items-center justify-center gap-1 rounded-[var(--radius-md)] border border-dashed border-[var(--color-line-3)] bg-[var(--color-wash)] px-4 py-6 text-sm text-[var(--color-ink-2)] hover:border-[var(--color-ring)] hover:bg-[var(--color-brand-tint)]"
         >
           <Icon icon="ri-image-add-line" className="text-2xl text-[var(--color-ink-3)]" />
           <span className="font-medium">Drop image, or click to browse</span>
@@ -829,7 +829,7 @@ function VideoBody({ block, onPatch, lang }: BodyProps<Extract<ProcedureBlock, {
               const f = e.dataTransfer.files?.[0];
               if (f) void startUpload(f);
             }}
-            className="flex w-full flex-col items-center justify-center gap-1 rounded-[var(--radius-md)] border border-dashed border-[var(--color-line-3)] bg-[var(--color-wash)] px-4 py-5 text-sm text-[var(--color-ink-2)] hover:border-[var(--color-brand-600)] hover:bg-[var(--color-brand-tint)]"
+            className="flex w-full flex-col items-center justify-center gap-1 rounded-[var(--radius-md)] border border-dashed border-[var(--color-line-3)] bg-[var(--color-wash)] px-4 py-5 text-sm text-[var(--color-ink-2)] hover:border-[var(--color-ring)] hover:bg-[var(--color-brand-tint)]"
           >
             <Icon icon="ri-video-add-line" className="text-2xl text-[var(--color-ink-3)]" />
             <span className="font-medium">Drop video, or click to upload</span>
@@ -916,7 +916,7 @@ function AttachmentBody({ block, onPatch, lang }: BodyProps<Extract<ProcedureBlo
         value={asLoc(block.title, lang)}
         onChange={(e) => onPatch({ ...block, title: setLoc(block.title, lang, e.target.value) })}
         placeholder={lang === 'en' ? 'e.g. HACCP checklist' : 'e.g. Lista HACCP'}
-        className="border-transparent bg-transparent shadow-none focus:border-[var(--color-brand-600)] focus:ring-0"
+        className="border-transparent bg-transparent shadow-none focus:border-[var(--color-ring)] focus:ring-0"
       />
     </div>
   );
@@ -992,7 +992,7 @@ function TableBody({
                         value={asLoc(block.headers[j], lang)}
                         onChange={(e) => setHeader(j, lang, e.target.value)}
                         placeholder={`Header ${j + 1} (${currentLabel})`}
-                        className="w-full rounded px-2 py-1 text-sm font-semibold text-[var(--color-ink)] bg-transparent placeholder:text-[var(--color-ink-3)] border border-transparent hover:border-[var(--color-line-2)] focus:border-[var(--color-brand-600)] focus:bg-[var(--color-surface)] focus:outline-none focus:ring-1 focus:ring-[var(--color-brand-tint-2)] transition-colors"
+                        className="w-full rounded px-2 py-1 text-sm font-semibold text-[var(--color-ink)] bg-transparent placeholder:text-[var(--color-ink-3)] border border-transparent hover:border-[var(--color-line-2)] focus:border-[var(--color-ring)] focus:bg-[var(--color-surface)] focus:outline-none focus:ring-1 focus:ring-[var(--color-ring)] transition-colors"
                       />
                       {isFilledOther && (
                         <span
@@ -1048,7 +1048,7 @@ function TableBody({
                           value={asLoc(row[j], lang)}
                           onChange={(e) => setCell(i, j, lang, e.target.value)}
                           placeholder={`Cell (${currentLabel})`}
-                          className="w-full rounded px-2 py-1 text-sm text-[var(--color-ink)] bg-transparent placeholder:text-[var(--color-ink-3)] border border-transparent hover:border-[var(--color-line-2)] focus:border-[var(--color-brand-600)] focus:bg-[var(--color-surface)] focus:outline-none focus:ring-1 focus:ring-[var(--color-brand-tint-2)] transition-colors"
+                          className="w-full rounded px-2 py-1 text-sm text-[var(--color-ink)] bg-transparent placeholder:text-[var(--color-ink-3)] border border-transparent hover:border-[var(--color-line-2)] focus:border-[var(--color-ring)] focus:bg-[var(--color-surface)] focus:outline-none focus:ring-1 focus:ring-[var(--color-ring)] transition-colors"
                         />
                         {isFilledOther && (
                           <span
@@ -1253,7 +1253,7 @@ function ChecklistBody({
 // ---------------------------------------------------------------------------
 
 const bodyTextareaCls =
-  'flex w-full resize-none rounded-[var(--radius-md)] border border-transparent bg-transparent px-3 py-2 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] transition-colors hover:border-[var(--color-line-2)] hover:bg-[var(--color-surface)] focus:border-[var(--color-brand-600)] focus:bg-[var(--color-surface)] focus:outline-none';
+  'flex w-full resize-none rounded-[var(--radius-md)] border border-transparent bg-transparent px-3 py-2 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] transition-colors hover:border-[var(--color-line-2)] hover:bg-[var(--color-surface)] focus:border-[var(--color-ring)] focus:bg-[var(--color-surface)] focus:outline-none';
 
 function LangToggle({
   lang,
@@ -1277,7 +1277,7 @@ function LangToggle({
         className={cn(
           'rounded-[var(--radius-sm)] px-3 py-1 transition-colors',
           lang === 'en'
-            ? 'bg-[var(--color-surface)] text-[var(--color-brand-700)] shadow-e1 ring-1 ring-[var(--color-brand-tint-2)]'
+            ? 'bg-[var(--color-surface)] text-[var(--color-brand-700)] shadow-e1 ring-1 ring-[var(--color-ring)]'
             : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
         )}
       >
@@ -1292,7 +1292,7 @@ function LangToggle({
         className={cn(
           'rounded-[var(--radius-sm)] px-3 py-1 transition-colors',
           lang === 'es'
-            ? 'bg-[var(--color-surface)] text-[var(--color-brand-700)] shadow-e1 ring-1 ring-[var(--color-brand-tint-2)]'
+            ? 'bg-[var(--color-surface)] text-[var(--color-brand-700)] shadow-e1 ring-1 ring-[var(--color-ring)]'
             : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
         )}
       >
@@ -1384,7 +1384,7 @@ function BilingualInput({
           placeholder={placeholder}
           className={cn(
             'border-transparent bg-[var(--color-wash)] shadow-none',
-            'focus:border-[var(--color-brand-600)] focus:ring-2 focus:ring-[var(--color-brand-tint)]',
+            'focus:border-[var(--color-ring)] focus:ring-2 focus:ring-[var(--color-brand-tint)]',
             className,
           )}
         />
@@ -1431,7 +1431,7 @@ function EmptyState({ onAdd }: { onAdd: (kind: ProcedureBlockKind) => void }): R
             key={opt.kind}
             type="button"
             onClick={() => onAdd(opt.kind)}
-            className="group flex items-start gap-3 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-3 text-left transition-colors hover:border-[var(--color-brand-600)] hover:bg-[var(--color-wash)]"
+            className="group flex items-start gap-3 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-3 text-left transition-colors hover:border-[var(--color-ring)] hover:bg-[var(--color-wash)]"
           >
             <Icon icon={opt.icon} className="mt-0.5 text-lg text-[var(--color-ink-2)] group-hover:text-[var(--color-brand-700)]" />
             <span className="min-w-0">

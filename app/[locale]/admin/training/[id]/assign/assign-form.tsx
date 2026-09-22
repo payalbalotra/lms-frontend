@@ -8,10 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { StatusPill } from '@/components/ui/status-pill';
 import { Icon } from '@/components/ui/icon';
+import { FormSection } from '@/components/admin/form-section';
 import { cn } from '@/lib/utils';
 import type { TrainingAssignment, TrainingAssignmentStatus } from '@/lib/types';
 import { effectiveStatus } from '@/lib/mock-training';
-import { LuCheck, LuSearch, LuUserPlus, LuUsers } from 'react-icons/lu';
+import { LuCheck, LuClipboardList, LuSearch, LuUserPlus, LuUsers } from 'react-icons/lu';
 
 interface MockEmployee {
   id: string;
@@ -68,7 +69,7 @@ function AlreadyAssignedTable({
 
   if (rows.length === 0) {
     return (
-      <p className="rounded-[var(--radius-lg)] border border-dashed border-[var(--color-line-2)] bg-[var(--color-wash)] px-4 py-3 text-xs text-[var(--color-ink-2)]">
+      <p className="rounded-[var(--radius-lg)] border border-dashed border-[var(--color-line-2)] bg-[var(--color-wash)] px-4 py-3 text-sm text-[var(--color-ink-2)]">
         {t('noneAssigned')}
       </p>
     );
@@ -135,10 +136,10 @@ function EmployeePicker({
   }, [employees, search]);
 
   return (
-    <div className="space-y-3 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-4">
+    <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
         <Label className="text-sm">{t('pickEmployees')}</Label>
-        <span className="text-xs text-[var(--color-ink-2)]">
+        <span className="text-sm text-[var(--color-ink-2)]">
           {t('selectedCount', { count: selectedIds.size })}
         </span>
       </div>
@@ -158,7 +159,7 @@ function EmployeePicker({
 
       <ul className="max-h-64 divide-y divide-[var(--color-line)] overflow-y-auto rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)]">
         {filtered.length === 0 ? (
-          <li className="px-3 py-2 text-xs text-[var(--color-ink-2)]">
+          <li className="px-3 py-2 text-sm text-[var(--color-ink-2)]">
             {t('noEmployeesMatch')}
           </li>
         ) : (
@@ -251,15 +252,7 @@ export function AssignForm({
 
   return (
     <div className="space-y-8">
-      {/* Section 1 — Pick employees + due date */}
-      <section className="space-y-4">
-        <div className="space-y-1">
-          <h2 className="font-[family-name:var(--font-ui)] text-lg font-semibold text-[var(--color-ink)]">
-            {t('sectionNew')}
-          </h2>
-          <p className="text-xs text-[var(--color-ink-2)]">{t('sectionNewSubtitle')}</p>
-        </div>
-
+      <FormSection icon={LuUsers} title={t('sectionNew')} subtitle={t('sectionNewSubtitle')}>
         <div className="grid gap-4 lg:grid-cols-3">
           <div className="lg:col-span-2">
             <EmployeePicker
@@ -269,7 +262,7 @@ export function AssignForm({
             />
           </div>
 
-          <div className="space-y-3 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-4">
+          <div className="space-y-3">
             <Label htmlFor="dueAt" className="text-sm">
               {t('dueAt')}
             </Label>
@@ -278,14 +271,14 @@ export function AssignForm({
               type="date"
               value={dueAt}
               onChange={(e) => setDueAt(e.target.value)}
-              className="h-tap-admin text-xs"
+              className="h-tap-admin text-sm"
               min={new Date().toISOString().slice(0, 10)}
             />
-            <p className="text-[11px] text-[var(--color-ink-2)]">{t('dueAtHint')}</p>
+            <p className="text-sm text-[var(--color-ink-2)]">{t('dueAtHint')}</p>
 
             {newSelections.length > 0 ? (
               <div className="space-y-2 pt-2">
-                <p className="text-xs font-semibold text-[var(--color-ink-2)]">
+                <p className="text-sm font-semibold text-[var(--color-ink-2)]">
                   {t('summary', { count: newSelections.length })}
                 </p>
                 <ul className="space-y-1">
@@ -330,25 +323,20 @@ export function AssignForm({
             </div>
           </div>
         </div>
-      </section>
+      </FormSection>
 
-      {/* Section 2 — Already assigned */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between gap-2">
-          <div className="space-y-1">
-            <h2 className="font-[family-name:var(--font-ui)] text-lg font-semibold text-[var(--color-ink)]">
-              {t('sectionCurrent')}
-            </h2>
-            <p className="text-xs text-[var(--color-ink-2)]">{t('sectionCurrentSubtitle')}</p>
-          </div>
-          <span className="inline-flex items-center gap-1 text-xs text-[var(--color-ink-2)]">
-            <Icon icon={LuUsers} className="text-xs" aria-hidden="true" />
+      <FormSection
+        icon={LuClipboardList}
+        title={t('sectionCurrent')}
+        subtitle={t('sectionCurrentSubtitle')}
+        headerAction={
+          <span className="text-sm leading-meta text-[var(--color-ink-2)]">
             {t('totalAssigned', { count: existingAssignments.length })}
           </span>
-        </div>
-
+        }
+      >
         <AlreadyAssignedTable employees={employees} assignments={existingAssignments} />
-      </section>
+      </FormSection>
     </div>
   );
 }

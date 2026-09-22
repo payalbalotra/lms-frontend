@@ -363,7 +363,7 @@ function ChecklistBlock({
                   className={cn(
                     'checklist-box flex size-5 shrink-0 items-center justify-center rounded border transition-colors',
                     checked
-                      ? 'checklist-box--on border-[var(--color-ok)] bg-[var(--color-ok)] text-white'
+                      ? 'checklist-box--on border-[var(--color-ok-fill)] bg-[var(--color-ok-fill)] text-white'
                       : 'checklist-box--off border-[var(--color-line-2)] bg-[var(--color-surface)] text-transparent group-hover:border-[var(--color-ink-3)]',
                   )}
                   aria-hidden="true"

@@ -70,7 +70,7 @@ export function ProcedureTypeSelector({
               className={cn(
                 'group relative flex flex-col items-center justify-center rounded-[var(--radius-lg)] border p-3 text-center transition-all',
                 isSelected
-                  ? 'border-[var(--color-brand-600)] bg-[var(--color-surface)] ring-1 ring-[var(--color-brand-600)]'
+                  ? 'border-[var(--color-ring)] bg-[var(--color-surface)] ring-1 ring-[var(--color-ring)]'
                   : 'border-[var(--color-line-2)] bg-[var(--color-surface)] hover:border-[var(--color-brand-tint-2)] hover:bg-[var(--color-wash)]',
               )}
             >

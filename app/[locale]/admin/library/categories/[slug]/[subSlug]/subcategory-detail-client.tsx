@@ -187,7 +187,7 @@ export function SubcategoryDetailClient({
           <select
             value={selectedStation}
             onChange={(e) => setSelectedStation(e.target.value)}
-            className="rounded-[var(--radius-md)] border border-[var(--color-line)] bg-[var(--color-surface)] px-2.5 h-9 text-xs font-medium text-[var(--color-ink-2)] focus:outline-none focus:ring-1 focus:ring-[var(--color-brand-600)]"
+            className="rounded-[var(--radius-md)] border border-[var(--color-line)] bg-[var(--color-surface)] px-2.5 h-9 text-xs font-medium text-[var(--color-ink-2)] focus:outline-none focus:ring-1 focus:ring-[var(--color-ring)]"
           >
             <option value="all">{isEs ? 'Todas las estaciones' : 'All stations'}</option>
             {stationList.map((stn) => (
@@ -201,7 +201,7 @@ export function SubcategoryDetailClient({
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="rounded-[var(--radius-md)] border border-[var(--color-line)] bg-[var(--color-surface)] px-2.5 h-9 text-xs font-medium text-[var(--color-ink-2)] focus:outline-none focus:ring-1 focus:ring-[var(--color-brand-600)]"
+            className="rounded-[var(--radius-md)] border border-[var(--color-line)] bg-[var(--color-surface)] px-2.5 h-9 text-xs font-medium text-[var(--color-ink-2)] focus:outline-none focus:ring-1 focus:ring-[var(--color-ring)]"
           >
             <option value="newest">{isEs ? 'Más recientes' : 'Sort by newest'}</option>
             <option value="alphabetical">{isEs ? 'Alfabético' : 'Sort A-Z'}</option>
@@ -235,7 +235,7 @@ export function SubcategoryDetailClient({
               className={cn(
                 'group flex items-center justify-between rounded-[var(--radius-lg)] border border-[var(--color-line-2)]',
                 'bg-[var(--color-surface)] p-3.5 shadow-2xs transition-all cursor-pointer',
-                'hover:border-[var(--color-brand-600)] hover:shadow-e1 gap-3'
+                'hover:border-[var(--color-ring)] hover:shadow-e1 gap-3'
               )}
             >
               <div className="flex items-center gap-3 min-w-0">

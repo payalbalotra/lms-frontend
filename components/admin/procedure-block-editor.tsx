@@ -132,7 +132,7 @@ function Field({
 }
 
 const textareaCls =
-  'flex w-full rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-4 py-3 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] transition-all duration-[var(--dur)] font-[family-name:var(--font-ui)] hover:border-[var(--color-line-3)] focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:border-[var(--color-brand-600)] focus-visible:border-[var(--color-brand-600)]';
+  'flex w-full rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-4 py-3 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] transition-all duration-[var(--dur)] font-[family-name:var(--font-ui)] hover:border-[var(--color-line-3)] focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:border-[var(--color-ring)] focus-visible:border-[var(--color-ring)]';
 
 // ---------------------------------------------------------------------------
 // Per-kind editors
@@ -765,7 +765,7 @@ function RecipeEditor({
                     'flex cursor-pointer items-center gap-2 rounded-[var(--radius-sm)] border px-3 py-2 text-sm transition-colors',
                     checked
                       ? 'border-[var(--color-warn)] bg-[var(--color-warn-tint)] text-[var(--color-ink)]'
-                      : 'border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:bg-[var(--color-tint)]',
+                      : 'border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:bg-[var(--color-wash)]',
                   )}
                 >
                   <input

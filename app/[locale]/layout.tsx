@@ -1,11 +1,19 @@
 import type { ReactNode } from 'react';
 import * as React from 'react';
+import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { hasLocale, NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server';
 import { routing } from '@/i18n/routing';
 import { QueryProvider } from '@/components/providers/query-provider';
 import '../globals.css';
+import { THEME_COOKIE, isTheme } from '@/lib/theme';
+
+// The root reads a cookie (the theme), so it renders per request. next-intl's
+// setRequestLocale below is what would otherwise let this segment be static, and
+// in a statically rendered segment cookies() hands back an empty store — which
+// is why the theme arrived as undefined until this was set.
+export const dynamic = 'force-dynamic';
 
 export function generateStaticParams(): Array<{ locale: string }> {
   return routing.locales.map((locale) => ({ locale }));
@@ -30,8 +38,13 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
   setRequestLocale(locale);
   const messages = await getMessages();
 
+  // The theme comes from a cookie so the server can render it. With no cookie
+  // the attribute is left off and the stylesheet follows the operating system.
+  const stored = (await cookies()).get(THEME_COOKIE)?.value;
+  const theme = isTheme(stored) ? stored : undefined;
+
   return (
-    <html lang={locale}>
+    <html lang={locale} data-theme={theme}>
       <head>
         {/* Two faces on a real contrast axis: DM Sans is display only (28px and up),
             Inter is everything else. Authoritative reference: /DESIGN.md §2.2. */}

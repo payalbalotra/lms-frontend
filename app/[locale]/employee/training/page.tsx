@@ -4,6 +4,8 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { LuChevronRight, LuGraduationCap } from 'react-icons/lu';
+import { EmptyState } from '@/components/ui/empty-state';
+import { StatusPill } from '@/components/ui/status-pill';
 import { ApiException, fetchMe } from '@/lib/api';
 import {
   getTrainingRowsForEmployee,
@@ -102,10 +104,9 @@ export default async function EmployeeTrainingPage({
   return (
     <>
       <main className="mx-auto w-full max-w-doc space-y-8 px-4 pb-20 pt-6 sm:px-6 sm:pt-8">
+        {/* No eyebrow: the tab bar below already says Training, and so does
+            the heading. */}
         <header className="space-y-1">
-          <p className="text-sm font-semibold leading-meta text-[var(--color-ink-2)]">
-            {t('eyebrow')}
-          </p>
           <h1 className="font-[family-name:var(--font-display)] text-xl font-bold leading-display tracking-tight text-[var(--color-ink)] sm:text-2xl">
             {t('heading')}
           </h1>
@@ -113,7 +114,7 @@ export default async function EmployeeTrainingPage({
         </header>
 
         {empty ? (
-          <EmptyTraining heading={t('emptyHeading')} body={t('emptyBody')} />
+          <EmptyState icon={LuGraduationCap} title={t('emptyHeading')} body={t('emptyBody')} />
         ) : (
           <>
             {active.length > 0 ? (
@@ -213,12 +214,6 @@ function TrainingSection({
       <ul className="divide-y divide-[var(--color-line)] rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)]">
         {rows.map((r) => {
           const tone = pillTone(r.effectiveStatus);
-          const toneCls =
-            tone === 'ok'
-              ? 'bg-[var(--color-ok-tint)] text-[var(--color-ok)] border-[var(--color-ok)]/30'
-              : tone === 'bad'
-                ? 'bg-[var(--color-bad-tint)] text-[var(--color-bad)] border-[var(--color-bad)]/30'
-                : 'bg-[var(--color-warn-tint)] text-[var(--color-warn-ink)] border-[var(--color-warn)]/30';
           const label = statusLabel(r.effectiveStatus, r.assignment.dueAt, now, t);
           return (
             <li key={r.assignment.id}>
@@ -243,11 +238,9 @@ function TrainingSection({
                   ) : null}
                 </div>
                 <div className="flex items-center gap-2">
-                  <span
-                    className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border px-2 py-1 text-sm font-semibold ${toneCls}`}
-                  >
+                  <StatusPill tone={tone} withDot>
                     {label}
-                  </span>
+                  </StatusPill>
                   <LuChevronRight aria-hidden="true" className="text-xl text-[var(--color-ink-3)]" />
                 </div>
               </Link>
@@ -256,28 +249,5 @@ function TrainingSection({
         })}
       </ul>
     </section>
-  );
-}
-
-function EmptyTraining({
-  heading,
-  body,
-}: {
-  heading: string;
-  body: string;
-}): React.ReactElement {
-  return (
-    <div className="flex flex-col items-center gap-3 rounded-[var(--radius-lg)] border border-dashed border-[var(--color-line-2)] bg-[var(--color-surface)] px-6 py-16 text-center">
-      <span
-        aria-hidden="true"
-        className="inline-flex size-12 items-center justify-center rounded-full bg-[var(--color-panel)] text-[var(--color-ink-2)]"
-      >
-        <LuGraduationCap aria-hidden="true" className="text-2xl" />
-      </span>
-      <h2 className="font-[family-name:var(--font-ui)] text-md font-semibold text-[var(--color-ink)]">
-        {heading}
-      </h2>
-      <p className="max-w-md text-base text-[var(--color-ink-2)]">{body}</p>
-    </div>
   );
 }

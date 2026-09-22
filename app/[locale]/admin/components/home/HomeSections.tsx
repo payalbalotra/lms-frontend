@@ -221,7 +221,7 @@ export interface GroupCopy {
 
 const TONE_DOT: Record<GroupCopy['tone'], string> = {
   warn: 'bg-[var(--color-warn)]',
-  bad: 'bg-[var(--color-bad)]',
+  bad: 'bg-[var(--color-bad-fill)]',
   ink: 'bg-[var(--color-ink-3)]',
 };
 

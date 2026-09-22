@@ -7,6 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Icon } from '@/components/ui/icon';
+import { SegmentedControl } from '@/components/ui/segmented-control';
+import { WizardStepper } from '@/components/ui/wizard-stepper';
+import { EmptyState } from '@/components/ui/empty-state';
+import { FormSection } from '@/components/admin/form-section';
 import { cn } from '@/lib/utils';
 import type {
   Localised,
@@ -26,6 +30,7 @@ import {
 import { ProcedureBlockCard } from '@/components/admin/procedure-block-card';
 import {
   LuArrowDown,
+  LuArrowLeft,
   LuArrowUp,
   LuBookOpen,
   LuCheck,
@@ -37,6 +42,7 @@ import {
   LuPaperclip,
   LuPlus,
   LuSave,
+  LuFileText,
   LuSearch,
   LuSignature,
   LuTable,
@@ -104,40 +110,30 @@ function emptyQuiz(): ProcedureQuiz {
 }
 
 // ---------------------------------------------------------------------------
-// BilingualTabs — local copy; matches the look in the procedure-block editor.
+// The EN/ES switch. A local copy of the segmented control used to live here;
+// it is the same control the procedure wizard and the language switch wear,
+// so it is that one, with the course's own two seats.
 // ---------------------------------------------------------------------------
 
-function BilingualTabs({
+function CourseLangSwitch({
   active,
   onChange,
-  enLabel = 'EN',
-  esLabel = 'ES',
+  label,
 }: {
   active: CourseLang;
   onChange: (next: CourseLang) => void;
-  enLabel?: string;
-  esLabel?: string;
+  label: string;
 }): React.ReactElement {
   return (
-    <div className="inline-flex rounded-md border border-[var(--color-line-3)] bg-[var(--color-surface)] p-0.5 text-xs font-semibold">
-      {(['en', 'es'] as const).map((lang) => (
-        <button
-          key={lang}
-          type="button"
-          role="tab"
-          aria-checked={active === lang}
-          onClick={() => onChange(lang)}
-          className={cn(
-            'rounded-[var(--radius-sm)] px-3 py-1 transition-colors',
-            active === lang
-              ? 'bg-[var(--color-ink)] text-white'
-              : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
-          )}
-        >
-          {lang === 'en' ? enLabel : esLabel}
-        </button>
-      ))}
-    </div>
+    <SegmentedControl
+      label={label}
+      value={active}
+      onChange={(v) => onChange(v as CourseLang)}
+      segments={[
+        { value: 'en', label: 'EN' },
+        { value: 'es', label: 'ES' },
+      ]}
+    />
   );
 }
 
@@ -165,13 +161,13 @@ function Field({
         ) : null}
       </Label>
       {children}
-      {hint ? <p className="text-xs text-[var(--color-ink-2)]">{hint}</p> : null}
+      {hint ? <p className="text-sm text-[var(--color-ink-2)]">{hint}</p> : null}
     </div>
   );
 }
 
 const inputCls =
-  'flex w-full rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-4 py-2 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] transition-all duration-[var(--dur)] focus:border-[var(--color-brand-600)] focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0';
+  'flex w-full rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-field)] px-4 py-2 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] transition-all duration-[var(--dur)] focus:border-[var(--color-ring)] focus:outline-none focus-visible:outline-none focus:ring-2 focus:ring-[var(--color-brand-tint)] focus-visible:ring-2 focus-visible:ring-[var(--color-brand-tint)]';
 const textareaCls = `${inputCls} py-3`;
 
 // ---------------------------------------------------------------------------
@@ -254,15 +250,10 @@ function QuizEditor({
   }
 
   return (
-    <div className="space-y-4 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-4">
+    <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="space-y-0.5">
-          <h3 className="font-[family-name:var(--font-ui)] text-md font-semibold text-[var(--color-ink)]">
-            {tForm('quizHeading')}
-          </h3>
-          <p className="text-xs text-[var(--color-ink-2)]">{tForm('quizSubheading')}</p>
-        </div>
-        <BilingualTabs active={lang} onChange={setLang} />
+        <p className="text-sm text-[var(--color-ink-2)]">{tForm('quizSubheading')}</p>
+        <CourseLangSwitch active={lang} onChange={setLang} label={tForm('titleLanguage')} />
       </div>
 
       <ol className="space-y-4">
@@ -328,7 +319,7 @@ function QuizEditor({
                       className={cn(
                         'inline-flex size-7 shrink-0 items-center justify-center rounded-full border transition-colors',
                         isCorrect
-                          ? 'border-[var(--color-ok)] bg-[var(--color-ok)] text-white'
+                          ? 'border-[var(--color-ok-fill)] bg-[var(--color-ok-fill)] text-white'
                           : 'border-[var(--color-line-3)] text-transparent hover:border-[var(--color-ink-2)]',
                       )}
                       aria-label={tForm('markCorrect')}
@@ -431,17 +422,12 @@ function LinkedSopsEditor({
   }
 
   return (
-    <div className="space-y-4 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-4">
-      {/* Selected chips — ordered; the order here is what the employee sees */}
+    <div className="space-y-4">
+      {/* Selected first, in the order the employee will read them. */}
       <div className="space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="font-[family-name:var(--font-ui)] text-md font-semibold text-[var(--color-ink)]">
-            {tForm('linkedSopsHeading')}
-          </h3>
-          <span className="text-xs text-[var(--color-ink-2)]">
-            {tForm('linkedSopsCount', { count: selected.length })}
-          </span>
-        </div>
+        <p className="text-sm text-[var(--color-ink-2)]">
+          {tForm('linkedSopsCount', { count: selected.length })}
+        </p>
 
         {selected.length === 0 ? (
           <p className="rounded-[var(--radius-md)] border border-dashed border-[var(--color-line-2)] bg-[var(--color-wash)] px-3 py-2 text-xs text-[var(--color-ink-2)]">
@@ -571,28 +557,22 @@ function AcknowledgementEditor({
 
   if (value === null) {
     return (
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-dashed border-[var(--color-line-2)] bg-[var(--color-surface)] p-4">
-        <div className="space-y-0.5">
-          <h3 className="font-[family-name:var(--font-ui)] text-md font-semibold text-[var(--color-ink)]">
-            {tForm('ackHeading')}
-          </h3>
-          <p className="text-xs text-[var(--color-ink-2)]">{tForm('ackSubheading')}</p>
-        </div>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={() =>
-            onChange({
-              versionLabel: '',
-              statement: emptyBilingual(),
-            })
-          }
-        >
-          <LuPlus aria-hidden="true" className="mr-1" />
-          {tForm('ackAdd')}
-        </Button>
-      </div>
+      <EmptyState
+        compact
+        icon={LuSignature}
+        title={tForm('ackHeading')}
+        body={tForm('ackSubheading')}
+        action={
+          <Button
+            type="button"
+            variant="secondary"
+            icon={LuPlus}
+            onClick={() => onChange({ versionLabel: '', statement: emptyBilingual() })}
+          >
+            {tForm('ackAdd')}
+          </Button>
+        }
+      />
     );
   }
 
@@ -605,16 +585,10 @@ function AcknowledgementEditor({
   }
 
   return (
-    <div className="space-y-4 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <div className="flex items-center gap-2">
-          <Icon icon={LuSignature} className="text-md text-[var(--color-brand-700)]" />
-          <h3 className="font-[family-name:var(--font-ui)] text-md font-semibold text-[var(--color-ink)]">
-            {tForm('ackHeading')}
-          </h3>
-        </div>
-        <div className="flex items-center gap-2">
-          <BilingualTabs active={lang} onChange={setLang} />
+          <CourseLangSwitch active={lang} onChange={setLang} label={tForm('purposeLanguage')} />
           <button
             type="button"
             onClick={() => onChange(null)}
@@ -712,7 +686,7 @@ function CourseBlockList({
                 key={kind}
                 type="button"
                 onClick={() => add(kind)}
-                className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2 text-xs font-semibold text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-brand-600)] transition-colors"
+                className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2 text-xs font-semibold text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-ring)] transition-colors"
               >
                 <Icon icon={meta.icon} className="text-sm text-[var(--color-ink-2)]" />
                 {meta.label}
@@ -724,6 +698,19 @@ function CourseBlockList({
     </div>
   );
 }
+
+// The five steps of a course, in the order they are built. The procedure
+// wizard names its own; both are drawn by the same stepper, so the two
+// creation flows read as one product.
+type CourseStep = 'details' | 'content' | 'quiz' | 'sops' | 'ack';
+
+const COURSE_STEPS: Array<{ id: CourseStep; labelKey: string; num: number }> = [
+  { id: 'details', labelKey: 'stepDetails', num: 1 },
+  { id: 'content', labelKey: 'stepContent', num: 2 },
+  { id: 'quiz', labelKey: 'stepQuiz', num: 3 },
+  { id: 'sops', labelKey: 'stepSops', num: 4 },
+  { id: 'ack', labelKey: 'stepAck', num: 5 },
+];
 
 // ---------------------------------------------------------------------------
 // NewCourseForm — the page's main composer.
@@ -752,6 +739,9 @@ export function NewCourseForm({
   const [acknowledgement, setAcknowledgement] =
     React.useState<ProcedureAcknowledgement | null>(null);
   const [status, setStatus] = React.useState<ProcedureStatus>('draft');
+  const [step, setStep] = React.useState<CourseStep>('details');
+  const [titleLang, setTitleLang] = React.useState<CourseLang>('en');
+  const [purposeLang, setPurposeLang] = React.useState<CourseLang>('en');
 
   const canPublish =
     titleEn.trim().length > 0 && titleEs.trim().length > 0 && blocks.length > 0;
@@ -773,149 +763,146 @@ export function NewCourseForm({
     router.push(`/${locale}/admin/training`);
   }
 
+  const stepIdx = COURSE_STEPS.findIndex((x) => x.id === step);
+  const isLastStep = stepIdx === COURSE_STEPS.length - 1;
+
   return (
-    <div className="space-y-8">
-      {/* Section 1 — Title & purpose (bilingual) */}
-      <section className="space-y-4 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-5">
-        <div className="space-y-1">
-          <h2 className="font-[family-name:var(--font-ui)] text-lg font-semibold text-[var(--color-ink)]">
-            {tForm('sectionTitle')}
-          </h2>
-          <p className="text-xs text-[var(--color-ink-2)]">{tForm('sectionSubtitle')}</p>
-        </div>
+    <div className="space-y-6 pb-24">
+      <WizardStepper
+        ariaLabel={tForm('stepperLabel')}
+        currentStep={step}
+        steps={COURSE_STEPS.map((x) => ({ id: x.id, num: x.num, label: tForm(x.labelKey as never) }))}
+        onSelectStep={(id) => setStep(id as CourseStep)}
+      />
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <Field label={tForm('titleEn')} required>
+      {step === 'details' && (
+        <FormSection icon={LuFileText} title={tForm('sectionTitle')} subtitle={tForm('sectionSubtitle')}>
+          {/* One language at a time, switched by the control the rest of the
+              product uses. Both titles side by side asked the author to write
+              the Spanish before they had settled the English. */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <Label className="text-sm font-semibold text-[var(--color-ink)]">
+                {tForm('titleLabel')}
+                <span aria-hidden="true" className="ml-1 text-[var(--color-bad)]">*</span>
+              </Label>
+              <CourseLangSwitch active={titleLang} onChange={setTitleLang} label={tForm('titleLanguage')} />
+            </div>
             <Input
-              value={titleEn}
-              onChange={(e) => setTitleEn(e.target.value)}
-              placeholder={tForm('titleEnPlaceholder')}
-              className="text-sm"
+              value={titleLang === 'en' ? titleEn : titleEs}
+              onChange={(e) => (titleLang === 'en' ? setTitleEn : setTitleEs)(e.target.value)}
+              placeholder={titleLang === 'en' ? tForm('titleEnPlaceholder') : tForm('titleEsPlaceholder')}
             />
-          </Field>
-          <Field label={tForm('titleEs')} required>
-            <Input
-              value={titleEs}
-              onChange={(e) => setTitleEs(e.target.value)}
-              placeholder={tForm('titleEsPlaceholder')}
-              className="text-sm"
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <Label className="text-sm font-semibold text-[var(--color-ink)]">
+                {tForm('purpose')}
+                <span aria-hidden="true" className="ml-1 text-[var(--color-bad)]">*</span>
+              </Label>
+              <CourseLangSwitch active={purposeLang} onChange={setPurposeLang} label={tForm('purposeLanguage')} />
+            </div>
+            <textarea
+              value={purposeLang === 'en' ? purposeEn : purposeEs}
+              onChange={(e) => (purposeLang === 'en' ? setPurposeEn : setPurposeEs)(e.target.value)}
+              rows={3}
+              placeholder={purposeLang === 'en' ? tForm('purposeEnPlaceholder') : tForm('purposeEsPlaceholder')}
+              className={textareaCls}
             />
-          </Field>
-        </div>
-
-        <Field label={tForm('purpose')} required hint={tForm('purposeHint')}>
-          <textarea
-            value={purposeEn}
-            onChange={(e) => setPurposeEn(e.target.value)}
-            rows={2}
-            placeholder={tForm('purposeEnPlaceholder')}
-            className={`${textareaCls} mb-2`}
-          />
-          <textarea
-            value={purposeEs}
-            onChange={(e) => setPurposeEs(e.target.value)}
-            rows={2}
-            placeholder={tForm('purposeEsPlaceholder')}
-            className={textareaCls}
-          />
-        </Field>
-      </section>
-
-      {/* Section 2 — Optional quiz */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between gap-4">
-          <div className="space-y-1">
-            <h2 className="font-[family-name:var(--font-ui)] text-lg font-semibold text-[var(--color-ink)]">
-              {tForm('sectionQuiz')}
-            </h2>
-            <p className="text-xs text-[var(--color-ink-2)]">{tForm('sectionQuizSubtitle')}</p>
+            <p className="text-sm text-[var(--color-ink-2)]">{tForm('purposeHint')}</p>
           </div>
-          {quiz === null ? (
-            <Button type="button" variant="secondary" size="sm" onClick={() => setQuiz(emptyQuiz())}>
-              <LuPlus aria-hidden="true" className="mr-1" />
-              {tForm('addQuiz')}
-            </Button>
-          ) : null}
-        </div>
-        {quiz ? (
-          <QuizEditor
-            quiz={quiz}
-            onChange={setQuiz}
-            onDetach={() => setQuiz(null)}
-          />
-        ) : (
-          <p className="rounded-[var(--radius-lg)] border border-dashed border-[var(--color-line-2)] bg-[var(--color-wash)] px-4 py-3 text-xs text-[var(--color-ink-2)]">
-            {tForm('noQuizYet')}
-          </p>
-        )}
-      </section>
+        </FormSection>
+      )}
 
-      {/* Section 3 — Block composer (videos, checklists, headings, steps, etc.) */}
-      <section className="space-y-4">
-        <div className="space-y-1">
-          <h2 className="font-[family-name:var(--font-ui)] text-lg font-semibold text-[var(--color-ink)]">
-            {tForm('sectionBlocks')}
-          </h2>
-          <p className="text-xs text-[var(--color-ink-2)]">{tForm('sectionBlocksSubtitle')}</p>
-        </div>
-        {blocks.length === 0 ? (
-          <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--color-line-2)] bg-[var(--color-surface)] p-4 text-xs text-[var(--color-ink-2)]">
-            {tForm('emptyBlocks')}
-          </div>
-        ) : (
+      {step === 'content' && (
+        <FormSection icon={LuListOrdered} title={tForm('sectionBlocks')} subtitle={tForm('sectionBlocksSubtitle')}>
+          {/* Always rendered: the palette that adds the first block lives inside
+              it, so hiding the list while it was empty left no way in. */}
           <CourseBlockList blocks={blocks} onChange={setBlocks} />
-        )}
-      </section>
+        </FormSection>
+      )}
 
-      {/* Section 4 — Linked SOPs (read alongside) */}
-      <section className="space-y-4">
-        <div className="space-y-1">
-          <h2 className="font-[family-name:var(--font-ui)] text-lg font-semibold text-[var(--color-ink)]">
-            {tForm('sectionSops')}
-          </h2>
-          <p className="text-xs text-[var(--color-ink-2)]">{tForm('sectionSopsSubtitle')}</p>
-        </div>
-        <LinkedSopsEditor
-          available={availableSops}
-          selectedIds={linkedSops}
-          onChange={setLinkedSops}
-        />
-      </section>
-
-      {/* Section 5 — Acknowledgement gate */}
-      <section className="space-y-4">
-        <div className="space-y-1">
-          <h2 className="font-[family-name:var(--font-ui)] text-lg font-semibold text-[var(--color-ink)]">
-            {tForm('sectionAck')}
-          </h2>
-          <p className="text-xs text-[var(--color-ink-2)]">{tForm('sectionAckSubtitle')}</p>
-        </div>
-        <AcknowledgementEditor value={acknowledgement} onChange={setAcknowledgement} />
-      </section>
-
-      {/* Footer — save actions */}
-      <footer className="flex flex-wrap items-center justify-end gap-3 border-t border-[var(--color-line)] pt-6">
-        <Button
-          type="button"
-          variant="neutral"
-          size="sm"
-          disabled={!canSaveDraft}
-          onClick={() => handleSave('draft')}
+      {step === 'quiz' && (
+        <FormSection
+          icon={LuListChecks}
+          title={tForm('sectionQuiz')}
+          subtitle={tForm('sectionQuizSubtitle')}
+          headerAction={
+            quiz === null ? (
+              <Button type="button" variant="secondary" icon={LuPlus} onClick={() => setQuiz(emptyQuiz())}>
+                {tForm('addQuiz')}
+              </Button>
+            ) : null
+          }
         >
-          <LuClipboardList aria-hidden="true" className="mr-1" />
-          {tForm('saveDraft')}
-        </Button>
-        <Button
-          type="button"
-          variant="primary"
-          size="sm"
-          disabled={!canPublish}
-          onClick={() => handleSave('published')}
-        >
-          <LuSave aria-hidden="true" className="mr-1" />
-          {tForm('publish')}
-        </Button>
-      </footer>
+          {quiz ? (
+            <QuizEditor quiz={quiz} onChange={setQuiz} onDetach={() => setQuiz(null)} />
+          ) : (
+            <EmptyState compact icon={LuListChecks} title={tForm('noQuizYet')} />
+          )}
+        </FormSection>
+      )}
+
+      {step === 'sops' && (
+        <FormSection icon={LuBookOpen} title={tForm('sectionSops')} subtitle={tForm('sectionSopsSubtitle')}>
+          <LinkedSopsEditor available={availableSops} selectedIds={linkedSops} onChange={setLinkedSops} />
+        </FormSection>
+      )}
+
+      {step === 'ack' && (
+        <FormSection icon={LuSignature} title={tForm('sectionAck')} subtitle={tForm('sectionAckSubtitle')}>
+          <AcknowledgementEditor value={acknowledgement} onChange={setAcknowledgement} />
+        </FormSection>
+      )}
+
+      {/* The same bar the procedure wizard carries: where the draft stands on
+          the left, the way out of the step on the right. */}
+      <div className="sticky-bar fixed bottom-0 left-0 right-0 z-sticky flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3 shadow-e2 sm:px-6">
+        <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-[var(--color-ink-2)]">
+          <span
+            className={cn('size-2 rounded-full', canPublish ? 'bg-[var(--color-ok-fill)]' : 'bg-[var(--color-warn)]')}
+            aria-hidden="true"
+          />
+          {tForm('draftLabel')}
+        </div>
+        <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
+          {stepIdx > 0 && (
+            <Button
+              type="button"
+              variant="neutral"
+              icon={LuArrowLeft}
+              onClick={() => setStep(COURSE_STEPS[stepIdx - 1].id)}
+            >
+              {tForm('back')}
+            </Button>
+          )}
+          <Button
+            type="button"
+            variant="secondary"
+            icon={LuClipboardList}
+            disabled={!canSaveDraft}
+            onClick={() => handleSave('draft')}
+          >
+            {tForm('saveDraft')}
+          </Button>
+          {isLastStep ? (
+            <Button
+              type="button"
+              variant="primary"
+              icon={LuSave}
+              disabled={!canPublish}
+              onClick={() => handleSave('published')}
+            >
+              {tForm('publish')}
+            </Button>
+          ) : (
+            <Button type="button" variant="primary" onClick={() => setStep(COURSE_STEPS[stepIdx + 1].id)}>
+              {tForm('next')}
+            </Button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

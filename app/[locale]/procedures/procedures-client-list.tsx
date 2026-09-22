@@ -116,7 +116,7 @@ export function ProceduresClientList({
         <label htmlFor="q-client" className="sr-only">
           {labels.searchLabel}
         </label>
-        <div className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--color-line-3)] bg-[var(--color-surface)] px-4 py-2 transition-colors duration-[var(--dur)] ease-[var(--ease)] focus-within:border-[var(--color-brand-600)] focus-within:outline focus-within:outline-2 focus-within:outline-[var(--color-brand-tint-2)]">
+        <div className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--color-line-3)] bg-[var(--color-surface)] px-4 py-2 transition-colors duration-[var(--dur)] ease-[var(--ease)] focus-within:border-[var(--color-ring)] focus-within:outline focus-within:outline-2 focus-within:outline-[var(--color-brand-tint-2)]">
           <LuSearch aria-hidden="true" className="text-lg text-[var(--color-ink-2)]" />
           <input
             id="q-client"
@@ -135,7 +135,7 @@ export function ProceduresClientList({
           <button
             type="button"
             onClick={() => setActiveCategory('')}
-            className={`${chip} ${activeCategory === '' ? 'bg-[var(--color-ink)] text-white' : 'bg-[var(--color-panel)] text-[var(--color-ink)]'}`}
+            className={`${chip} ${activeCategory === '' ? 'bg-[var(--color-ink)] text-[var(--color-surface)]' : 'bg-[var(--color-panel)] text-[var(--color-ink)]'}`}
           >
             {labels.all}
           </button>
@@ -148,7 +148,7 @@ export function ProceduresClientList({
                   type="button"
                   key={c.id}
                   onClick={() => setActiveCategory(on ? '' : c.slug)}
-                  className={`${chip} ${on ? 'bg-[var(--color-ink)] text-white' : 'bg-[var(--color-panel)] text-[var(--color-ink)]'}`}
+                  className={`${chip} ${on ? 'bg-[var(--color-ink)] text-[var(--color-surface)]' : 'bg-[var(--color-panel)] text-[var(--color-ink)]'}`}
                 >
                   <Icon icon={getCategoryIcon(c)} />
                   {nameOf(c)}

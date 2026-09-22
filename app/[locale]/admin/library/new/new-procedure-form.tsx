@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/admin/page-header';
 import { FilterChips } from '@/components/ui/filter-chips';
 import { SegmentedControl } from '@/components/ui/segmented-control';
+import { FormSection } from '@/components/admin/form-section';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CustomSelect } from '@/components/ui/custom-select';
@@ -1114,7 +1115,7 @@ export function NewProcedureForm({
     : tAccess('notConfigured');
 
   const textareaCls =
-    'flex w-full rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-4 py-3 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] transition-all duration-[var(--dur)] hover:border-[var(--color-line-3)] focus:outline-none focus-visible:outline-none focus:border-[var(--color-brand-600)] focus-visible:border-[var(--color-brand-600)] focus:ring-2 focus:ring-[var(--color-brand-tint)] focus-visible:ring-2 focus-visible:ring-[var(--color-brand-tint)]';
+    'flex w-full rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-field)] px-4 py-3 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] transition-all duration-[var(--dur)] hover:border-[var(--color-line-3)] focus:outline-none focus-visible:outline-none focus:border-[var(--color-ring)] focus-visible:border-[var(--color-ring)] focus:ring-2 focus:ring-[var(--color-brand-tint)] focus-visible:ring-2 focus-visible:ring-[var(--color-brand-tint)]';
 
   return (
     <div className="mx-auto max-w-page space-y-6">
@@ -1168,7 +1169,7 @@ export function NewProcedureForm({
         {wizardStep === 'details' && (
           <div className="space-y-8">
             {/* Procedure Details Section */}
-            <Section
+            <FormSection
               id="proc-details"
               icon={LuFileText}
               title="Procedure details"
@@ -1298,7 +1299,7 @@ export function NewProcedureForm({
                   </div>
                 </div>
               </div>
-            </Section>
+            </FormSection>
           </div>
         )}
 
@@ -1324,14 +1325,14 @@ export function NewProcedureForm({
 
         {/* Step 3 (Recipe) / Step 2 (Non-Recipe): Notion-type Block Editor Screen */}
         {(wizardStep === 'method' || (wizardStep === 'content' && !isRecipeMode)) && (
-          <Section
+          <FormSection
             id="proc-content"
             icon={LuLayoutGrid}
             title={isRecipeMode ? tRecipe('methodTitle') : tForm('contentSectionTitle')}
             subtitle={isRecipeMode ? tRecipe('methodSubtitle') : tForm('contentSectionSubtitle')}
           >
             <NotionBlockList blocks={blocks} onChange={setBlocks} />
-          </Section>
+          </FormSection>
         )}
 
         {/* Step: Quiz — hardcoded questions preview + Attach toggle. */}
@@ -1357,7 +1358,7 @@ export function NewProcedureForm({
 
         {/* Step: Review & Finish Section */}
         {wizardStep === 'review' && (
-          <Section
+          <FormSection
             id="proc-review"
             icon="ri-checkbox-circle-line"
             title="Review & finish"
@@ -1581,7 +1582,7 @@ export function NewProcedureForm({
                 </p>
               </div>
             </div>
-          </Section>
+          </FormSection>
         )}
 
         {/* Sticky Bottom Toolbar */}
@@ -1590,7 +1591,7 @@ export function NewProcedureForm({
             <span
               className={cn(
                 'size-2 rounded-full',
-                isDirty ? 'bg-[var(--color-warn)]' : 'bg-[var(--color-ok)]',
+                isDirty ? 'bg-[var(--color-warn)]' : 'bg-[var(--color-ok-fill)]',
               )}
               aria-hidden="true"
             />
@@ -1888,55 +1889,6 @@ export function NewProcedureForm({
         </div>
       </Drawer>
     </div>
-  );
-}
-
-function Section({
-  id,
-  icon,
-  title,
-  subtitle,
-  headerAction,
-  children,
-}: {
-  id?: string;
-  /** A component, or a name the icon registry resolves. */
-  icon?: IconType | string;
-  title: string;
-  subtitle?: string;
-  headerAction?: React.ReactNode;
-  children: React.ReactNode;
-}): React.ReactElement {
-  return (
-    <section
-      id={id}
-      className="scroll-mt-6 space-y-4 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-6"
-    >
-      {/* Wraps on a phone. The header's action is a search field and two arrows
-          at their natural width; beside a title at 390px they pushed the section
-          78px past the screen and the whole page scrolled sideways. */}
-      <header className="flex flex-wrap items-start justify-between gap-4 border-b border-[var(--color-line)] pb-3">
-        <div className="flex min-w-0 flex-1 items-start gap-3">
-          {icon && (
-            <div className="flex size-tap-admin shrink-0 items-center justify-center rounded-lg bg-[var(--color-panel)] text-[var(--color-ink-2)] text-lg">
-              <Icon icon={icon} />
-            </div>
-          )}
-          <div className="min-w-0">
-            <h2 className="font-[family-name:var(--font-ui)] text-md font-semibold tracking-snug text-[var(--color-ink)]">
-              {title}
-            </h2>
-            {subtitle && (
-              <p className="mt-0.5 text-sm text-[var(--color-ink-2)]">
-                {subtitle}
-              </p>
-            )}
-          </div>
-        </div>
-        {headerAction}
-      </header>
-      <div className="space-y-4 pt-1">{children}</div>
-    </section>
   );
 }
 

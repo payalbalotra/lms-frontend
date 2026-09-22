@@ -50,7 +50,7 @@ export function Meter({
         cy={size / 2}
         r={r}
         fill="none"
-        stroke={tone === 'warn' ? 'var(--color-warn)' : 'var(--color-ok)'}
+        stroke={tone === 'warn' ? 'var(--color-warn)' : 'var(--color-ok-fill)'}
         strokeWidth={stroke}
         strokeLinecap="round"
         strokeDasharray={`${c * share} ${c}`}

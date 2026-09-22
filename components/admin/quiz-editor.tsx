@@ -166,7 +166,7 @@ export function QuizEditor({ value, onChange, isSaving }: QuizEditorProps): Reac
                   onChange={(e) => updatePrompt(qi, e.target.value)}
                   placeholder={t('promptPlaceholder')}
                   disabled={isSaving}
-                  className="w-full rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold text-[var(--color-ink)] placeholder:font-normal placeholder:text-[var(--color-ink-3)] focus:border-[var(--color-brand-600)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-tint)]"
+                  className="w-full rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold text-[var(--color-ink)] placeholder:font-normal placeholder:text-[var(--color-ink-3)] focus:border-[var(--color-ring)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-tint)]"
                 />
                 {q.choices.every((c) => !c.label.en.trim()) ? null : !q.correctChoiceId ? (
                   <p className="pt-1 text-sm font-medium text-[var(--color-warn-ink)]">
@@ -215,7 +215,7 @@ export function QuizEditor({ value, onChange, isSaving }: QuizEditorProps): Reac
                         'flex-1 rounded-[var(--radius-md)] border bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] focus:outline-none focus:ring-2',
                         isCorrect
                           ? 'border-[var(--color-ok)] focus:border-[var(--color-ok)] focus:ring-[var(--color-ok-tint)]'
-                          : 'border-[var(--color-line-2)] focus:border-[var(--color-brand-600)] focus:ring-[var(--color-brand-tint)]',
+                          : 'border-[var(--color-line-2)] focus:border-[var(--color-ring)] focus:ring-[var(--color-brand-tint)]',
                       )}
                     />
                     {q.choices.length > MIN_CHOICES ? (
@@ -254,7 +254,7 @@ export function QuizEditor({ value, onChange, isSaving }: QuizEditorProps): Reac
         type="button"
         onClick={addQuestion}
         disabled={isSaving}
-        className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-lg)] border-2 border-dashed border-[var(--color-line-2)] bg-[var(--color-surface)] py-3 text-sm font-semibold text-[var(--color-ink-2)] transition-colors hover:border-[var(--color-brand-600)] hover:bg-[var(--color-brand-tint)] hover:text-[var(--color-brand-700)] disabled:opacity-50"
+        className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-lg)] border-2 border-dashed border-[var(--color-line-2)] bg-[var(--color-surface)] py-3 text-sm font-semibold text-[var(--color-ink-2)] transition-colors hover:border-[var(--color-ring)] hover:bg-[var(--color-brand-tint)] hover:text-[var(--color-brand-700)] disabled:opacity-50"
       >
         <LuPlus className="size-4" aria-hidden="true" />
         {t('addQuestion')}

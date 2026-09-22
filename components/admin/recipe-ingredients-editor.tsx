@@ -256,7 +256,7 @@ export function RecipeIngredientsEditor({
                 className={cn(
                   'flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-all',
                   isSelected
-                    ? 'border-[var(--color-brand-600)] bg-[var(--color-brand-600)] text-white'
+                    ? 'border-[var(--color-ring)] bg-[var(--color-brand-600)] text-white'
                     : 'border-[var(--color-line-3)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:border-[var(--color-brand-tint-2)]',
                 )}
               >

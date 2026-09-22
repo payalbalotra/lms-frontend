@@ -7,6 +7,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { fetchMe, logout, ApiException } from '@/lib/api';
 import type { Employee } from '@/lib/types';
 import { LuArrowUpRight, LuLogOut } from 'react-icons/lu';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 // Force per-request SSR — without this Next.js prerenders the layout at build
 // time when no dynamic API is observed at module-init, and the build-time
@@ -58,10 +59,11 @@ export default async function EmployeeLayout({ children, params }: EmployeeLayou
           {t('signedInAs', { name: employee.name })}
         </p>
         <div className="flex shrink-0 items-center gap-3">
+          <ThemeToggle labels={{ toDark: tCommon('themeToDark'), toLight: tCommon('themeToLight') }} />
           {employee.role === 'admin' ? (
             <Link
               href={`/${locale}/admin`}
-              className="inline-flex items-center gap-1 whitespace-nowrap text-sm font-medium text-[var(--color-ink-2)] hover:text-[var(--color-brand-600)]"
+              className="inline-flex min-h-tap items-center gap-1 whitespace-nowrap px-2 text-sm font-medium text-[var(--color-ink-2)] hover:text-[var(--color-brand-600)]"
             >
               {tCommon('admin')}
               {/* The same mark the admin bar uses on the link back here. */}
@@ -75,7 +77,7 @@ export default async function EmployeeLayout({ children, params }: EmployeeLayou
                 already there. */}
             <button
               type="submit"
-              className="inline-flex min-h-tap-admin items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium text-[var(--color-ink-2)] transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)] focus-visible:bg-[var(--color-bad-tint)] focus-visible:text-[var(--color-bad)]"
+              className="inline-flex min-h-tap items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium text-[var(--color-ink-2)] transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)] focus-visible:bg-[var(--color-bad-tint)] focus-visible:text-[var(--color-bad)]"
             >
               <LuLogOut aria-hidden="true" className="text-md" />
               {t('signOut')}

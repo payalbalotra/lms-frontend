@@ -155,7 +155,7 @@ export function QuizAttachBanner({
           type="button"
           onClick={onAttach}
           disabled={isAttaching}
-          className="rounded-full bg-[var(--color-warn-ink)] px-3 py-2 text-sm font-semibold text-white shadow-e1 hover:opacity-90 disabled:opacity-50"
+          className="rounded-full bg-[var(--color-warn-tint-2)] px-3 py-2 text-sm font-semibold text-[var(--color-warn-ink)] shadow-e1 hover:brightness-95 disabled:opacity-50"
         >
           {isAttaching ? t('bannerAttaching') : t('bannerAttach')}
         </button>
