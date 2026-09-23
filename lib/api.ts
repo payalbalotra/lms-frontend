@@ -17,6 +17,7 @@ import type {
   ProcedureQuizMode,
   Role,
   Station,
+  Subcategory,
   UpdateLocationInput,
   UpdateRoleInput,
   UpdateStationInput,
@@ -993,6 +994,31 @@ export async function createQuiz(input: {
   return { quiz: newQuiz };
 }
 
+/** Patch a quiz row in the mock store. Used by the procedure detail page's
+ *  "Attach quiz" banner to flip `quiz.attached` so the read side starts
+ *  rendering the quiz on the next render. The backend will replace this
+ *  with a PATCH on `/api/admin/quizzes/:id`. */
+export async function updateQuiz(
+  id: string,
+  patch: Partial<Pick<Quiz, 'attached' | 'questions'>>,
+): Promise<{ quiz: Quiz }> {
+  const store = getQuizzesStore();
+  const idx = store.findIndex((q) => q.id === id);
+  if (idx === -1) {
+    throw new ApiException(404, 'NOT_FOUND', `Quiz ${id} not found`);
+  }
+  const updated: Quiz = {
+    ...store[idx],
+    ...patch,
+    updatedAt: new Date().toISOString(),
+  };
+  const next = [...store];
+  next[idx] = updated;
+  mockQuizzes = next;
+  setStored('quizzes', mockQuizzes);
+  return { quiz: updated };
+}
+
 export async function getProcedureBySlug(
   slug: string,
   _cookieHeader?: string,
@@ -1023,16 +1049,33 @@ export async function listCategories(
 
 export async function createCategory(input: {
   locationId: string;
-  slug: string;
+  slug?: string;
   nameEn: string;
   nameEs: string;
+  icon?: string;
+  subcategories?: Array<{ nameEn: string; nameEs: string; isStationSpecific?: boolean }>;
 }): Promise<{ category: Category }> {
+  const derivedSlug =
+    input.slug ??
+    input.nameEn
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
   const newCat: Category = {
     id: `cat-${Date.now()}`,
-    slug: input.slug,
+    slug: derivedSlug,
     nameEn: input.nameEn,
     nameEs: input.nameEs,
     isArchived: false,
+    icon: input.icon,
+    subcategories: input.subcategories?.map((s, i) => ({
+      id: `sub-${Date.now()}-${i}`,
+      slug: s.nameEn.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
+      nameEn: s.nameEn,
+      nameEs: s.nameEs,
+      isStationSpecific: s.isStationSpecific,
+      stations: s.isStationSpecific ? [] : undefined,
+    })),
   };
   mockCategories = [...getCategoriesStore(), newCat];
   setStored('categories_v3', mockCategories);
@@ -1041,10 +1084,40 @@ export async function createCategory(input: {
 
 export async function updateCategory(
   id: string,
-  patch: { nameEn?: string; nameEs?: string; isArchived?: boolean },
+  patch: {
+    nameEn?: string;
+    nameEs?: string;
+    icon?: string;
+    isArchived?: boolean;
+    subcategories?: Array<{ nameEn: string; nameEs: string; isStationSpecific?: boolean }>;
+  },
 ): Promise<{ category: Category }> {
   const cats = getCategoriesStore();
-  mockCategories = cats.map((c) => (c.id === id ? { ...c, ...patch } : c));
+  mockCategories = cats.map((c) => {
+    if (c.id !== id) return c;
+    // Spread patch (sans subcategories) first; then overwrite subcategories
+    // with the rebuilt shape so the result always satisfies `Subcategory[]`.
+    const { subcategories: _ignored, ...patchRest } = patch;
+    const next: Category = { ...c, ...patchRest };
+    if (patch.subcategories) {
+      const existing = c.subcategories ?? [];
+      const rebuilt: Subcategory[] = patch.subcategories.map((s, i) => {
+        const prev = existing[i];
+        return {
+          id: prev?.id ?? `sub-${Date.now()}-${i}`,
+          slug:
+            prev?.slug ??
+            s.nameEn.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
+          nameEn: s.nameEn,
+          nameEs: s.nameEs,
+          isStationSpecific: s.isStationSpecific,
+          stations: prev?.stations ?? (s.isStationSpecific ? [] : undefined),
+        };
+      });
+      next.subcategories = rebuilt;
+    }
+    return next;
+  });
   setStored('categories_v3', mockCategories);
   const updated = mockCategories.find((c) => c.id === id)!;
   return { category: updated };

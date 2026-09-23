@@ -168,8 +168,12 @@ export function AdminShell({
 
   const activeHref = React.useMemo(() => {
     // Longest matching href wins — the most specific item is "the"
-    // current page.
-    let best = '';
+    // current page. Initialised to `null` (not `''`) so the `Home` row,
+    // whose own href is the empty string, doesn't accidentally light up
+    // on every non-admin route the shell is wrapped around (e.g. the
+    // shared /procedures/* detail pages — admins there aren't "on Home",
+    // they're on a procedure).
+    let best: string | null = null;
     for (const group of NAV_GROUPS) {
       for (const item of group.items) {
         const full = `/${locale}/admin${item.href}`;
@@ -177,7 +181,9 @@ export function AdminShell({
           item.href === ''
             ? pathname === full || pathname === `${full}/`
             : pathname === full || pathname.startsWith(`${full}/`);
-        if (matches && item.href.length > best.length) best = item.href;
+        if (matches && (best === null || item.href.length > best.length)) {
+          best = item.href;
+        }
       }
     }
     return best;

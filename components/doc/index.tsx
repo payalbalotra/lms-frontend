@@ -30,21 +30,38 @@ export function DocBar({
   backLabel,
   title,
   category,
+  onBack,
 }: {
   backHref: string;
   backLabel: string;
   title: string;
   category: string;
+  /** When provided, the back control calls this instead of following
+   *  `backHref`. Used to wire `router.back()` so deep-linked procedures
+   *  (e.g. opened from a category detail page) return to the previous
+   *  page rather than a hard-coded landing. */
+  onBack?: () => void;
 }) {
   return (
     <div className="doc-bar" id="bar">
-      <a
-        className="btn btn-ghost btn-icon btn-lg"
-        href={backHref}
-        aria-label={backLabel}
-      >
-        <LuArrowLeft aria-hidden="true" className="i" />
-      </a>
+      {onBack ? (
+        <button
+          type="button"
+          onClick={onBack}
+          aria-label={backLabel}
+          className="btn btn-ghost btn-icon btn-lg"
+        >
+          <LuArrowLeft aria-hidden="true" className="i" />
+        </button>
+      ) : (
+        <a
+          className="btn btn-ghost btn-icon btn-lg"
+          href={backHref}
+          aria-label={backLabel}
+        >
+          <LuArrowLeft aria-hidden="true" className="i" />
+        </a>
+      )}
       <div className="where">
         <b>{title}</b>
         <span>{category}</span>

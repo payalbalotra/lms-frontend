@@ -1,45 +1,65 @@
-import { apiClient } from '../api-client';
-import { CATEGORIES_ENDPOINTS } from './endpoints';
-import type { Category, CreateCategoryInput, UpdateCategoryInput } from './types';
+/**
+ * Categories data layer.
+ *
+ * Mirrors the previous axios-backed shape (`fetchCategories`, `createCategory`,
+ * `updateCategory`, `archiveCategory`) but routes every call through the
+ * localStorage mock store in `lib/api.ts`. The wizard, the categories list,
+ * and the category detail page all share this module — switching it to the
+ * real backend later is a single-file change.
+ */
+
+import {
+  listCategories,
+  createCategory as mockCreateCategory,
+  updateCategory as mockUpdateCategory,
+  archiveCategory as mockArchiveCategory,
+} from '@/lib/api';
+import type { Category } from '@/lib/types';
+import type {
+  CreateCategoryInput,
+  UpdateCategoryInput,
+} from './types';
+
+const DEFAULT_LOCATION = 'loc-main';
 
 export async function fetchCategories(
   locationId?: string,
   includeArchived = false
 ): Promise<Category[]> {
-  const endpoint = includeArchived
-    ? CATEGORIES_ENDPOINTS.LIST_ADMIN
-    : CATEGORIES_ENDPOINTS.LIST_PUBLIC;
-
-  const response = await apiClient.get<{ categories: Category[] }>(endpoint, {
-    params: { locationId, includeArchived },
+  const { categories } = await listCategories(locationId ?? DEFAULT_LOCATION, {
+    includeArchived,
   });
-  return response.data.categories;
+  return categories;
 }
 
 export async function createCategory(
   input: CreateCategoryInput & { locationId: string }
 ): Promise<Category> {
-  const response = await apiClient.post<{ category: Category }>(
-    CATEGORIES_ENDPOINTS.CREATE,
-    input
-  );
-  return response.data.category;
+  const { category } = await mockCreateCategory({
+    locationId: input.locationId,
+    nameEn: input.nameEn,
+    nameEs: input.nameEs,
+    icon: input.icon,
+    subcategories: input.subcategories,
+  });
+  return category;
 }
 
 export async function updateCategory(
   id: string,
   input: UpdateCategoryInput
 ): Promise<Category> {
-  const response = await apiClient.patch<{ category: Category }>(
-    CATEGORIES_ENDPOINTS.UPDATE(id),
-    input
-  );
-  return response.data.category;
+  const { category } = await mockUpdateCategory(id, {
+    nameEn: input.nameEn,
+    nameEs: input.nameEs,
+    icon: input.icon,
+    isArchived: input.isArchived,
+    subcategories: input.subcategories,
+  });
+  return category;
 }
 
 export async function archiveCategory(id: string): Promise<Category> {
-  const response = await apiClient.post<{ category: Category }>(
-    CATEGORIES_ENDPOINTS.ARCHIVE(id)
-  );
-  return response.data.category;
+  const { category } = await mockArchiveCategory(id);
+  return category;
 }
