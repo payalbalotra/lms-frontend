@@ -78,13 +78,18 @@ export default async function ProceduresPage({ params, searchParams }: PageProps
   return (
     <>
       <main className={mainClass}>
-        <Link
-          href={backHref}
-          className="inline-flex min-h-tap items-center gap-2 text-base font-semibold text-[var(--color-ink-2)]"
-        >
-          <LuArrowLeft aria-hidden="true" />
-          {t('back')}
-        </Link>
+        {/* Procedures is a tab: the bar at the foot already holds Home, and a
+            "back" above a tab reads as if the tabs were a hierarchy. An admin
+            reading inside the admin shell has no tab bar, so keeps the link. */}
+        {isAdmin ? (
+          <Link
+            href={backHref}
+            className="inline-flex min-h-tap items-center gap-2 text-base font-semibold text-[var(--color-ink-2)]"
+          >
+            <LuArrowLeft aria-hidden="true" />
+            {t('back')}
+          </Link>
+        ) : null}
 
         <h1 className="mt-2 font-[family-name:var(--font-display)] text-2xl font-bold leading-display tracking-tight text-[var(--color-ink)]">
           {t('heading')}

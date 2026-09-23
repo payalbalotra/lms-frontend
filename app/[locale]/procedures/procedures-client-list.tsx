@@ -120,7 +120,7 @@ export function ProceduresClientList({
         <label htmlFor="q-client" className="sr-only">
           {labels.searchLabel}
         </label>
-        <div className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--color-line-3)] bg-[var(--color-surface)] px-4 py-2 transition-colors duration-[var(--dur)] ease-[var(--ease)] focus-within:border-[var(--color-ring)] focus-within:outline focus-within:outline-2 focus-within:outline-[var(--color-brand-tint-2)]">
+        <div className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--color-line-3)] bg-[var(--color-surface)] px-4 py-2 transition-colors duration-[var(--dur)] ease-[var(--ease)] focus-within:border-[var(--color-ring)] focus-within:outline focus-within:outline-2 focus-within:outline-[var(--color-ring)]">
           <LuSearch aria-hidden="true" className="text-lg text-[var(--color-ink-2)]" />
           <input
             id="q-client"
@@ -134,8 +134,8 @@ export function ProceduresClientList({
       </div>
 
       {/* Categories Bar */}
-      <div className="-mx-4 mt-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-        <div className="flex gap-2">
+      <div className="chip-rail -mx-4 mt-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0">
+        <div className="flex gap-2 sm:flex-wrap">
           <button
             type="button"
             onClick={() => setActiveCategory('')}

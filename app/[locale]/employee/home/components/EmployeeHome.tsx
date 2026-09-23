@@ -1,5 +1,7 @@
 import * as React from 'react';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
+import { buttonClassName } from '@/components/ui/button';
 import { StatusPill } from '@/components/ui/status-pill';
 import type { Procedure } from '@/lib/types';
 import {
@@ -132,7 +134,7 @@ export function SearchHero({
     <section aria-labelledby="ask-h" className="mt-6">
       <p
         id="ask-h"
-        className="font-[family-name:var(--font-display)] text-md font-semibold leading-heading tracking-tight text-[var(--color-ink)]"
+        className="font-[family-name:var(--font-ui)] text-md font-semibold leading-heading text-[var(--color-ink)]"
       >
         {heading}
       </p>
@@ -168,15 +170,21 @@ export function SearchHero({
 // ---------------------------------------------------------------------------
 
 function SectionHead({
+  id,
   title,
   seeAll,
 }: {
+  /** The section's aria-labelledby points here. */
+  id?: string;
   title: string;
   seeAll?: { href: string; label: string };
 }): React.ReactElement {
   return (
-    <div className="mt-12 flex items-baseline justify-between gap-3 first:mt-8">
-      <h2 className="text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink-2)] sm:text-base">
+    // Sentence case at the heading size the rest of the employee side uses
+    // ("Due now", "Browse by category"). Tracked capitals are the label style
+    // this system removed everywhere else.
+    <div className="flex items-baseline justify-between gap-3">
+      <h2 id={id} className="text-lg font-semibold leading-heading text-[var(--color-ink)]">
         {title}
       </h2>
       {seeAll ? (
@@ -222,12 +230,15 @@ export type TrainingStats = {
 };
 
 export function TrainingStackSection({
+  title,
   cards,
   stats,
   caughtUpTitle,
   caughtUpBody,
   seeAll,
 }: {
+  /** It was the literal "Your training", so the Spanish home said it in English. */
+  title: string;
   cards: TrainingCard[];
   stats: TrainingStats;
   caughtUpTitle: string;
@@ -244,23 +255,7 @@ export function TrainingStackSection({
 
   return (
     <section aria-labelledby="training-h" className="mt-12 first:mt-8">
-      <div className="flex items-baseline justify-between gap-3">
-        <h2
-          id="training-h"
-          className="text-sm font-bold uppercase tracking-[0.08em] text-[var(--color-ink-2)] sm:text-base"
-        >
-          Your training
-        </h2>
-        {seeAll ? (
-          <Link
-            href={seeAll.href}
-            className="inline-flex min-h-tap shrink-0 items-center gap-1 whitespace-nowrap text-sm font-semibold text-[var(--color-brand-700)]"
-          >
-            {seeAll.label}
-            <LuChevronRight aria-hidden="true" />
-          </Link>
-        ) : null}
-      </div>
+      <SectionHead id="training-h" title={title} seeAll={seeAll} />
 
       <div className="mt-3 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3">
         <div className="flex items-baseline justify-between gap-3 text-sm">
@@ -295,39 +290,32 @@ export function TrainingStackSection({
           </span>
         </div>
       ) : (
-        <ul
-          className={`mt-3 grid gap-3 ${
-            cards.length === 1
-              ? 'grid-cols-1'
-              : cards.length === 2
-                ? 'grid-cols-1 sm:grid-cols-2'
-                : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
-          }`}
-        >
+        <ul className="mt-3 divide-y divide-[var(--color-line)] overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)]">
+          {/* The courses as rows, the shape the section below and the training
+              page already give the same kind of thing. As a grid of cards in this
+              630px column they broke titles over three lines, left an orphan card
+              beside a hole, and made the one action of each a button of its own;
+              the row itself is the way in, as it is for every procedure below. */}
           {cards.slice(0, 6).map((r) => (
             <li key={r.href}>
               <Link
                 href={r.href}
-                className="flex h-full flex-col gap-3 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-4 transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:bg-[var(--color-wash)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-brand-600)]"
+                aria-label={`${r.actionLabel}: ${r.title}`}
+                className="flex min-h-tap items-center gap-3 px-4 py-3 transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:bg-[var(--color-wash)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-ring)]"
               >
-                <StatusPill tone={r.statusPill.tone} withDot className="self-start font-semibold">
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-md font-semibold leading-heading text-[var(--color-ink)]">{r.title}</span>
+                  {/* An in-progress course's due line was the words "In progress",
+                      the pill beside it said again. */}
+                  {r.dueLabel !== r.statusPill.text ? (
+                    <span className="mt-0.5 block truncate text-sm leading-meta text-[var(--color-ink-2)]">{r.dueLabel}</span>
+                  ) : null}
+                </span>
+                <StatusPill tone={r.statusPill.tone} withDot className="shrink-0">
                   {r.statusPill.text}
                 </StatusPill>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-md font-semibold leading-heading text-[var(--color-ink)]">
-                    {r.title}
-                  </span>
-                  <span className="mt-1 block text-sm leading-meta text-[var(--color-ink-2)]">{r.dueLabel}</span>
-                </span>
-                <span
-                  className={`inline-flex min-h-tap w-full items-center justify-center gap-1 self-stretch rounded-full px-4 text-sm font-semibold ${
-                    r.action === 'continue'
-                      ? 'bg-[var(--color-brand-600)] text-white'
-                      : 'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)]'
-                  }`}
-                >
-                  <LuPlay aria-hidden="true" className="text-sm" />
-                  {r.actionLabel}
+                <span aria-hidden="true" className="text-xl text-[var(--color-ink-3)]">
+                  <LuChevronRight />
                 </span>
               </Link>
             </li>
@@ -365,8 +353,8 @@ export function RelevantProceduresSection({
   emptyBrowseHref?: string;
 }): React.ReactElement {
   return (
-    <section aria-labelledby="relevant-h">
-      <SectionHead title={title} seeAll={seeAll} />
+    <section aria-labelledby="relevant-h" className="mt-12">
+      <SectionHead id="relevant-h" title={title} seeAll={seeAll} />
       {rows.length === 0 ? (
         <div className="mt-3 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-4">
           <p className="text-base text-[var(--color-ink-2)]">{emptyBody}</p>
@@ -386,7 +374,7 @@ export function RelevantProceduresSection({
             <li key={r.href}>
               <Link
                 href={r.href}
-                className="flex min-h-tap items-center gap-3 px-4 py-3 transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:bg-[var(--color-wash)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-brand-600)]"
+                className="flex min-h-tap items-center gap-3 px-4 py-3 transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:bg-[var(--color-wash)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-ring)]"
               >
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-md font-semibold leading-heading text-[var(--color-ink)]">{r.title}</span>
@@ -440,7 +428,7 @@ export function EmployeeHome({
   greetingMorning: string;
   greetingAfternoon: string;
   greetingEvening: string;
-  training: { cards: TrainingCard[]; stats: TrainingStats; seeAll?: { href: string; label: string } };
+  training: { title: string; cards: TrainingCard[]; stats: TrainingStats; seeAll?: { href: string; label: string } };
   procedures: { rows: ProcedureRowData[]; title: string; seeAll?: { href: string; label: string }; emptyBody: string; browseLabel?: string; browseHref?: string };
   caughtUpTitle: string;
   caughtUpBody: string;
@@ -472,6 +460,7 @@ export function EmployeeHome({
       ) : null}
 
       <TrainingStackSection
+        title={training.title}
         cards={training.cards}
         stats={training.stats}
         caughtUpTitle={caughtUpTitle}

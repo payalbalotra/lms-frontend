@@ -192,7 +192,7 @@ export default async function EmployeeHomePage({ params }: PageProps): Promise<R
         .map((p) => ({
           href: withAs(`/${locale}/procedures/${p.slug}`, viewAs),
           title: readsSpanish ? p.titleEs || p.titleEn : p.titleEn || p.titleEs,
-          meta: procedureMeta(p, roleName, stationName, t),
+          meta: procedureMeta(p, roleName, stationName, t, readsSpanish),
         }))
     : [];
 
@@ -216,6 +216,7 @@ export default async function EmployeeHomePage({ params }: PageProps): Promise<R
           greetingAfternoon={t('greetingAfternoon', { name: firstName })}
           greetingEvening={t('greetingEvening', { name: firstName })}
           training={{
+            title: t('trainingAttentionHeading'),
             cards: trainingCards,
             stats: trainingStats,
             seeAll: { href: `/${locale}/employee/training`, label: t('trainingSeeAll') },
@@ -308,15 +309,18 @@ function dueLabelFor(
 }
 
 function procedureMeta(
-  _p: Procedure,
+  p: Procedure,
   roleName: string | null,
   stationName: string | null,
   t: (k: string, v?: Record<string, string | number>) => string,
+  readsSpanish = false,
 ): string {
-  // The section heading already says "For your role & station", so the row
-  // meta mirrors that wording uniformly: every row shows the cook's role and
-  // station joined by " · ". Falls back to a single token or the "no station"
-  // label so the line is never empty or inconsistent.
+  // The procedure's category -- the fact that tells one row from the next. The
+  // reader's own role and station were printed on every row, the same words
+  // four times under a heading that already says "for your role & station".
+  // They stay as the fallback for a procedure with no category.
+  const category = p.category ? (readsSpanish ? p.category.nameEs || p.category.nameEn : p.category.nameEn) : '';
+  if (category) return category;
   const tokens = [roleName, stationName].filter(Boolean);
   if (tokens.length === 0) return t('noStation');
   return tokens.join(' · ');

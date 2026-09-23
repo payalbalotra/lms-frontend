@@ -1367,7 +1367,7 @@ export function NewProcedureForm({
                 title="Procedure"
                 eyebrow={`${categoryLabel} · ${isRecipeMode ? 'Recipe' : 'Procedure'}`}
               >
-                <h3 className="font-[family-name:var(--font-display)] text-lg font-semibold tracking-snug text-[var(--color-ink)]">
+                <h3 className="font-[family-name:var(--font-ui)] text-lg font-semibold tracking-snug text-[var(--color-ink)]">
                   {activeTitle || '(Untitled procedure)'}
                 </h3>
                 <p className="mt-1 text-sm leading-body text-[var(--color-ink-2)]">
@@ -1442,13 +1442,11 @@ export function NewProcedureForm({
                             className="rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-4"
                           >
                             <div className="flex items-center gap-2">
-                              <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[var(--color-brand-tint)] text-[var(--color-brand-700)]">
-                                <Icon icon={cat.icon ?? 'ri-folder-line'} className="text-base" />
-                              </span>
+                              <IconTile size="sm" icon={cat.icon ?? 'ri-folder-line'} />
                               <span className="font-[family-name:var(--font-ui)] text-sm font-semibold text-[var(--color-ink)]">
                                 {isEs ? cat.nameEs : cat.nameEn}
                               </span>
-                              <span className="ml-auto text-xs font-medium text-[var(--color-ink-3)]">
+                              <span className="ml-auto text-sm text-[var(--color-ink-3)]">
                                 {subsInCat.length} subcategor{subsInCat.length === 1 ? 'y' : 'ies'}
                               </span>
                             </div>
@@ -1511,7 +1509,7 @@ export function NewProcedureForm({
                     <span className="text-sm font-semibold text-[var(--color-ink-2)]">
                       Station scope
                     </span>
-                    <span className="text-xs text-[var(--color-ink-3)]">
+                    <span className="text-sm text-[var(--color-ink-3)]">
                       {accessSelections.stations.size} station
                       {accessSelections.stations.size === 1 ? '' : 's'} selected
                     </span>
@@ -1604,7 +1602,7 @@ export function NewProcedureForm({
                 <div className="flex items-start gap-3">
                   <IconTile size="md" icon="ri-rocket-2-line" />
                   <div className="flex-1">
-                    <h3 className="font-[family-name:var(--font-display)] text-md font-semibold tracking-snug text-[var(--color-ink)]">
+                    <h3 className="font-[family-name:var(--font-ui)] text-md font-semibold tracking-snug text-[var(--color-ink)]">
                       Ready to go live?
                     </h3>
                     <p className="mt-0.5 text-sm text-[var(--color-ink-2)]">
@@ -1897,9 +1895,7 @@ export function NewProcedureForm({
                       <div key={b.id || idx} className="space-y-3 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] p-3">
                         <div className="flex items-center justify-between">
                           <p className="text-sm font-bold text-[var(--color-ink)]">{checklistTitle}</p>
-                          <span className="text-[10px] font-semibold text-[var(--color-ink-3)] px-1.5 py-0.5 rounded bg-[var(--color-wash)]">
-                            0/{b.items.length}
-                          </span>
+                          <StatusPill tone="neutral">0/{b.items.length}</StatusPill>
                         </div>
                         <ul className="space-y-1.5">
                           {b.items.map((it, iIdx) => {
@@ -1917,7 +1913,7 @@ export function NewProcedureForm({
                             );
                           })}
                         </ul>
-                        <p className="pt-0.5 text-xs font-medium text-[var(--color-ink-3)]">
+                        <p className="pt-0.5 text-sm text-[var(--color-ink-3)]">
                           {tForm('composer.checklist.previewHint')}
                         </p>
                       </div>

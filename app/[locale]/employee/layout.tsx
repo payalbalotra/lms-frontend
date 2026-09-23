@@ -1,13 +1,11 @@
 import type { ReactNode } from 'react';
 import * as React from 'react';
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { fetchMe, logout, ApiException } from '@/lib/api';
 import type { Employee } from '@/lib/types';
-import { LuArrowUpRight, LuLogOut } from 'react-icons/lu';
-import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { EmployeeTopBar } from '@/components/employee/employee-top-bar';
 
 // Force per-request SSR — without this Next.js prerenders the layout at build
 // time when no dynamic API is observed at module-init, and the build-time
@@ -52,39 +50,19 @@ export default async function EmployeeLayout({ children, params }: EmployeeLayou
 
   return (
     <div className="flex min-h-screen flex-col bg-[var(--color-bg)]">
-      {/* At 390px the name wrapped onto two lines and pushed "Sign out" into two
-          of its own. The name gives way; the two controls keep their shape. */}
-      <header className="flex items-center justify-between gap-3 border-b border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3 sm:px-6">
-        <p className="min-w-0 truncate text-sm text-[var(--color-ink-2)]">
-          {t('signedInAs', { name: employee.name })}
-        </p>
-        <div className="flex shrink-0 items-center gap-3">
-          <ThemeToggle labels={{ toDark: tCommon('themeToDark'), toLight: tCommon('themeToLight') }} />
-          {employee.role === 'admin' ? (
-            <Link
-              href={`/${locale}/admin`}
-              className="inline-flex min-h-tap items-center gap-1 whitespace-nowrap px-2 text-sm font-medium text-[var(--color-ink-2)] hover:text-[var(--color-ink)]"
-            >
-              {tCommon('admin')}
-              {/* The same mark the admin bar uses on the link back here. */}
-              <LuArrowUpRight aria-hidden="true" />
-            </Link>
-          ) : null}
-          <form action={signOut}>
-            {/* Sign out carries its own mark and stays quiet at rest: red is what
-                a wrong tap looks like, not what the control looks like sitting
-                there. It turns red on hover and on focus, where the intent is
-                already there. */}
-            <button
-              type="submit"
-              className="inline-flex min-h-tap items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium text-[var(--color-ink-2)] transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)] focus-visible:bg-[var(--color-bad-tint)] focus-visible:text-[var(--color-bad)]"
-            >
-              <LuLogOut aria-hidden="true" className="text-md" />
-              {t('signOut')}
-            </button>
-          </form>
-        </div>
-      </header>
+      <EmployeeTopBar
+        locale={locale}
+        name={employee.name}
+        isAdmin={employee.role === 'admin'}
+        signOutAction={signOut}
+        labels={{
+          signedInAs: t('signedInAs', { name: employee.name }),
+          signOut: t('signOut'),
+          admin: tCommon('admin'),
+          toDark: tCommon('themeToDark'),
+          toLight: tCommon('themeToLight'),
+        }}
+      />
 
       {/* A div, not a second <main>: the page inside brings its own, and a document
           has one main. The page also brings its own padding and its own reading
