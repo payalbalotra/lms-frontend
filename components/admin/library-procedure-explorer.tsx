@@ -40,6 +40,8 @@ import { Icon } from '@/components/ui/icon';
 import type { IconType } from 'react-icons';
 import { StatusPill } from '@/components/ui/status-pill';
 import { FilterChips } from '@/components/ui/filter-chips';
+import { IconTile } from '@/components/ui/icon-tile';
+import { EmptyState } from '@/components/ui/empty-state';
 
 interface LibraryProcedureExplorerProps {
   procedures: Procedure[];
@@ -1206,32 +1208,22 @@ export function LibraryProcedureExplorer({
 
       {/* Empty State */}
       {filteredProcedures.length === 0 ? (
-        <article className="flex flex-col items-center justify-center rounded-[var(--radius-lg)] border border-dashed border-[var(--color-line-2)] bg-[var(--color-surface)] px-6 py-16 text-center space-y-3">
-          <span className="flex size-12 items-center justify-center rounded-full bg-[var(--color-wash)] text-[var(--color-ink-3)] text-xl">
-            <LuFileSearch aria-hidden="true" />
-          </span>
-          <div className="space-y-1">
-            <h3 className="font-[family-name:var(--font-ui)] text-base font-semibold text-[var(--color-ink)]">
-              {isEs ? 'No se encontraron procedimientos' : 'No procedures found'}
-            </h3>
-            <p className="text-sm text-[var(--color-ink-2)] max-w-note">
-              {isEs
-                ? 'Intenta ajustar tus términos de búsqueda o selecciona otra categoría.'
-                : 'Try adjusting your search query or selecting another category filter.'}
-            </p>
-          </div>
-          {hasActiveFilters && (
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={resetFilters}
-              className="rounded-[var(--radius-lg)] border-[var(--color-line-2)]"
-            >
-              {isEs ? 'Ver todos los procedimientos' : 'View all procedures'}
-            </Button>
-          )}
-        </article>
+        <EmptyState
+          icon={LuFileSearch}
+          title={isEs ? 'No se encontraron procedimientos' : 'No procedures found'}
+          body={
+            isEs
+              ? 'Intenta ajustar tus términos de búsqueda o selecciona otra categoría.'
+              : 'Try adjusting your search query or selecting another category filter.'
+          }
+          action={
+            hasActiveFilters ? (
+              <Button type="button" variant="secondary" onClick={resetFilters}>
+                {isEs ? 'Ver todos los procedimientos' : 'View all procedures'}
+              </Button>
+            ) : undefined
+          }
+        />
       ) : viewMode === 'list' ? (
         /* List View - Rich Cards Matching Design Specification */
         <ul className="divide-y divide-[var(--color-line)] rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)]">
@@ -1263,12 +1255,7 @@ export function LibraryProcedureExplorer({
                 {/* The icon is a mark, not a framed object: the bordered tile was
                     the only one of its kind in the product. */}
                 <div className="flex min-w-0 flex-1 items-start gap-4">
-                  <span
-                    aria-hidden="true"
-                    className="flex size-12 shrink-0 items-center justify-center rounded-[var(--radius-lg)] bg-[var(--color-panel)] text-lg text-[var(--color-ink-2)]"
-                  >
-                    <Icon icon={theme.icon} />
-                  </span>
+                  <IconTile size="lg" icon={theme.icon} />
 
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -1335,12 +1322,7 @@ export function LibraryProcedureExplorer({
                   <div className="flex items-start justify-between gap-2">
                     {/* The same mark as the list row: a tile, not a framed
                         object, and the same badge from the same component. */}
-                    <span
-                      aria-hidden="true"
-                      className="flex size-12 shrink-0 items-center justify-center rounded-[var(--radius-lg)] bg-[var(--color-panel)] text-lg text-[var(--color-ink-2)]"
-                    >
-                      <Icon icon={theme.icon} />
-                    </span>
+                    <IconTile size="lg" icon={theme.icon} />
 
                     <StatusPill tone={p.status === 'published' ? 'ok' : 'neutral'} withDot>
                       {p.status === 'published' ? (isEs ? 'Publicado' : 'Published') : isEs ? 'Borrador' : 'Draft'}

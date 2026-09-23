@@ -55,6 +55,7 @@ import type {
   ProcedureMethodStep,
   ProcedureNoteKind,
 } from '@/lib/types';
+import { IconTile } from '@/components/ui/icon-tile';
 
 // ---------------------------------------------------------------------------
 // Localised helpers (kept local — this file is self-contained).
@@ -1401,9 +1402,7 @@ function EmptyState({ onAdd }: { onAdd: (kind: ProcedureBlockKind) => void }): R
   return (
     <div className="space-y-4 rounded-[var(--radius-lg)] border border-dashed border-[var(--color-line-2)] bg-[var(--color-surface)] p-8">
       <div className="flex items-start gap-3">
-        <div className="flex size-tap-admin shrink-0 items-center justify-center rounded-lg bg-[var(--color-panel)] text-[var(--color-ink-2)] text-lg">
-          <Icon icon="ri-file-text-line" />
-        </div>
+        <IconTile size="md" icon="ri-file-text-line" />
         <div>
           <h3 className="font-[family-name:var(--font-ui)] text-md font-semibold text-[var(--color-ink)]">
             Start writing

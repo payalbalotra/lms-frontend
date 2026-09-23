@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { LuChevronRight } from 'react-icons/lu';
 import { Icon } from '@/components/ui/icon';
 import type { IconType } from 'react-icons';
+import { IconTile } from '@/components/ui/icon-tile';
 
 interface PopoverProps {
   open: boolean;
@@ -185,9 +186,7 @@ export function PopoverItem({
     >
       <div className="flex items-center gap-3 min-w-0">
         {icon && (
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-wash)] text-[var(--color-ink-2)] transition-colors group-hover:bg-[var(--color-panel)] group-hover:text-[var(--color-ink)]">
-            <Icon icon={icon} className="text-base" />
-          </div>
+          <IconTile size="sm" icon={icon} tone="quiet" shape="circle" className="group-hover:bg-[var(--color-panel)] group-hover:text-[var(--color-ink)]" />
         )}
         <div className="min-w-0">
           <div className="text-sm font-semibold text-[var(--color-ink)]">

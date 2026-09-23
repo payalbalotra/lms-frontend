@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { Button } from '@/components/ui/button';
-import { Modal } from '@/components/ui/modal';
+import { Modal, ModalBody, ModalFooter, ModalHeader } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RowActions, type RowActionItem } from '@/components/ui/row-actions';
@@ -29,6 +29,7 @@ import {
   LuX,
   LuChevronDown,
 } from 'react-icons/lu';
+import { IconTile } from '@/components/ui/icon-tile';
 
 const AVAILABLE_ICONS = [
   { id: 'LuFolder', label: 'Folder', icon: LuFolder },
@@ -281,47 +282,34 @@ function CategoryForm({
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-[var(--color-line)] p-5 pb-3">
-        <div className="flex items-center gap-2.5">
-          <span className="flex size-9 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-panel)] text-[var(--color-ink-2)] text-base border border-[var(--color-line-2)]">
-            <LuFolder />
-          </span>
-          <div>
-            <h2 className="font-[family-name:var(--font-display)] text-lg font-bold tracking-tight text-[var(--color-ink)]">
-              {mode === 'create'
-                ? isEs
-                  ? 'Crear categoría'
-                  : 'Create category'
-                : isEs
-                  ? 'Editar categoría'
-                  : 'Edit category'}
-            </h2>
-            <p className="text-xs text-[var(--color-ink-3)]">
-              {isEs
-                ? 'Agrega una categoría para organizar tus procedimientos.'
-                : 'Add a category to organize your procedures in the library.'}
-            </p>
-          </div>
-        </div>
+      <ModalHeader
+        title={
+          mode === 'create'
+            ? isEs
+              ? 'Crear categoría'
+              : 'Create category'
+            : isEs
+              ? 'Editar categoría'
+              : 'Edit category'
+        }
+        description={
+          mode === 'create'
+            ? isEs
+              ? 'Agrega una categoría para organizar tus procedimientos.'
+              : 'Add a category to organize your procedures in the library.'
+            : isEs
+              ? 'Cambia su nombre o su icono.'
+              : 'Change its name or its icon.'
+        }
+        onClose={onCancel}
+        closeLabel={isEs ? 'Cerrar' : 'Close'}
+      />
 
-        <button
-          type="button"
-          onClick={onCancel}
-          aria-label="Close"
-          className="flex size-7 items-center justify-center rounded-md text-[var(--color-ink-3)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)] transition-colors"
-        >
-          <LuX aria-hidden="true" className="text-lg" />
-        </button>
-      </div>
-
-      {/* Form Body */}
-      <div className="p-5 space-y-3.5">
-        {/* Name (English) */}
-        <div className="space-y-1">
-          <Label htmlFor="cat-name-en" className="text-xs font-semibold text-[var(--color-ink)]">
+      <ModalBody className="space-y-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="cat-name-en">
             {isEs ? 'Nombre (Inglés)' : 'Name (English)'}{' '}
-            <span className="text-[var(--color-bad)]">*</span>
+            <span aria-hidden="true" className="text-[var(--color-bad)]">*</span>
           </Label>
           <Input
             id="cat-name-en"
@@ -330,15 +318,13 @@ function CategoryForm({
             placeholder="e.g. Food Safety"
             required
             autoFocus
-            className="h-9 text-xs"
           />
         </div>
 
-        {/* Name (Spanish) */}
-        <div className="space-y-1">
-          <Label htmlFor="cat-name-es" className="text-xs font-semibold text-[var(--color-ink)]">
+        <div className="space-y-1.5">
+          <Label htmlFor="cat-name-es">
             {isEs ? 'Nombre (Español)' : 'Name (Spanish)'}{' '}
-            <span className="text-[var(--color-bad)]">*</span>
+            <span aria-hidden="true" className="text-[var(--color-bad)]">*</span>
           </Label>
           <Input
             id="cat-name-es"
@@ -346,32 +332,27 @@ function CategoryForm({
             onChange={(e) => setNameEs(e.target.value)}
             placeholder="e.g. Seguridad Alimentaria"
             required
-            className="h-9 text-xs"
           />
         </div>
 
-        {/* Icon Selection */}
-        <div className="space-y-1 pt-1">
-          <Label className="text-xs font-semibold text-[var(--color-ink)] block">
-            {isEs ? 'Icono' : 'Icon'}
-          </Label>
-          <div className="flex items-center gap-2.5">
-            <span className="flex size-9 items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)] text-base">
-              <CurrentIconComp />
-            </span>
+        <div className="space-y-1.5">
+          <Label htmlFor="cat-icon-toggle">{isEs ? 'Icono' : 'Icon'}</Label>
+          <div className="flex items-center gap-3">
+            <IconTile size="md" icon={CurrentIconComp} />
             <Button
+              id="cat-icon-toggle"
               type="button"
               variant="neutral"
+              icon={LuChevronDown}
+              aria-expanded={showIconPicker}
               onClick={() => setShowIconPicker(!showIconPicker)}
-              className="text-xs px-3 py-1.5 rounded-[var(--radius-md)] border border-[var(--color-line)]"
             >
-              <span>{isEs ? 'Elegir icono' : 'Choose icon'}</span>
-              <LuChevronDown className="text-xs ml-1" />
+              {isEs ? 'Elegir icono' : 'Choose icon'}
             </Button>
           </div>
 
           {showIconPicker && (
-            <div className="grid grid-cols-5 gap-1.5 p-2.5 mt-2 rounded-[var(--radius-md)] border border-[var(--color-line)] bg-[var(--color-wash)]">
+            <div className="mt-2 grid grid-cols-4 gap-2 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-wash)] p-2">
               {AVAILABLE_ICONS.map((item) => {
                 const isSelected = icon === item.id;
                 const IconComponent = item.icon;
@@ -379,19 +360,21 @@ function CategoryForm({
                   <button
                     key={item.id}
                     type="button"
+                    title={item.label}
+                    aria-pressed={isSelected}
                     onClick={() => {
                       setIcon(item.id);
                       setShowIconPicker(false);
                     }}
                     className={cn(
-                      'flex flex-col items-center gap-1 rounded-[var(--radius-md)] border p-1.5 text-xs transition-all',
+                      'flex flex-col items-center gap-1 rounded-[var(--radius-md)] border p-2 text-sm transition-colors',
                       isSelected
-                        ? 'border-[var(--color-brand-600)] bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] font-semibold'
-                        : 'border-[var(--color-line)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:bg-[var(--color-panel)]'
+                        ? 'border-[var(--color-ring)] bg-[var(--color-brand-tint)] font-semibold text-[var(--color-brand-700)]'
+                        : 'border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:bg-[var(--color-panel)]',
                     )}
                   >
-                    <IconComponent className="text-base" />
-                    <span className="truncate w-full text-center text-[10px]">{item.label}</span>
+                    <IconComponent aria-hidden="true" className="text-lg" />
+                    <span className="w-full truncate text-center">{item.label}</span>
                   </button>
                 );
               })}
@@ -400,31 +383,23 @@ function CategoryForm({
         </div>
 
         {error && (
-          <p role="alert" className="rounded-[var(--radius-md)] bg-[var(--color-bad-tint)] px-3 py-1.5 text-xs font-medium text-[var(--color-bad)]">
+          <p
+            role="alert"
+            className="rounded-[var(--radius-md)] bg-[var(--color-bad-tint)] px-3 py-2 text-sm font-medium text-[var(--color-bad)]"
+          >
             {error}
           </p>
         )}
-      </div>
+      </ModalBody>
 
-      {/* Footer */}
-      <div className="flex items-center justify-end gap-2.5 border-t border-[var(--color-line)] bg-[var(--color-wash)] px-5 py-3">
-        <Button
-          type="button"
-          variant="neutral"
-          onClick={onCancel}
-          disabled={pending}
-          className="rounded-full px-4 text-xs font-semibold"
-        >
+      <ModalFooter>
+        <Button type="button" variant="neutral" onClick={onCancel} disabled={pending}>
           {cancelLabel}
         </Button>
-        <Button
-          type="submit"
-          variant="primary"
-          disabled={!canSubmit}
-        >
+        <Button type="submit" variant="primary" disabled={!canSubmit}>
           {mode === 'create' ? (isEs ? 'Crear' : 'Create') : saveLabel}
         </Button>
-      </div>
+      </ModalFooter>
     </form>
   );
 }

@@ -833,12 +833,13 @@ function RecipeEditor({
                     >
                       <span>{tag}</span>
                       <button
+                        aria-label={`Remove ${tag}`}
                         type="button"
                         onClick={() => removeCustom(tag)}
                         className="hover:text-[var(--color-bad)] font-semibold ml-0.5"
                         title={`Remove ${tag}`}
                       >
-                        ✕
+                        <LuX aria-hidden="true" />
                       </button>
                     </span>
                   ))}

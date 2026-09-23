@@ -18,7 +18,7 @@ import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import type { Localised, ProcedureQuiz } from '@/lib/types';
-import { LuCheck, LuCircleCheck, LuCircle, LuMessageCircleQuestion } from 'react-icons/lu';
+import { LuCheck, LuChevronRight, LuCircle, LuCircleCheck, LuMessageCircleQuestion } from 'react-icons/lu';
 
 interface QuizReaderProps {
   quiz: ProcedureQuiz;
@@ -69,7 +69,7 @@ export function QuizReader({ quiz, locale }: QuizReaderProps): React.ReactElemen
                   )}
                   aria-hidden="true"
                 >
-                  ›
+                  <LuChevronRight />
                 </span>
               </button>
               {isOpen && (

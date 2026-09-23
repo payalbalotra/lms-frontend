@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { CustomSelect } from '@/components/ui/custom-select';
 import { cn } from '@/lib/utils';
 import { LuGripVertical, LuLayers, LuPlus, LuScale, LuTrash2, LuUtensils } from 'react-icons/lu';
+import { IconTile } from '@/components/ui/icon-tile';
 
 export interface RecipeIngredientItem {
   id: string;
@@ -89,9 +90,7 @@ export function RecipeIngredientsEditor({
     >
       <header className="flex items-center justify-between border-b border-[var(--color-line)] pb-3">
         <div className="flex items-center gap-3">
-          <div className="flex size-tap-admin shrink-0 items-center justify-center rounded-lg bg-[var(--color-panel)] text-[var(--color-ink-2)] text-lg">
-            <LuUtensils aria-hidden="true" />
-          </div>
+          <IconTile size="md" icon={LuUtensils} />
           <div>
             <h2 className="font-[family-name:var(--font-ui)] text-md font-semibold text-[var(--color-ink)]">
               {t('ingredientsTitle')}

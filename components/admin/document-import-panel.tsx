@@ -18,6 +18,7 @@ import type {
   Localised,
 } from '@/lib/types';
 import { LuCheckCheck, LuCloudUpload, LuLoaderCircle, LuWandSparkles } from 'react-icons/lu';
+import { IconTile } from '@/components/ui/icon-tile';
 
 const MAX_BYTES = 20 * 1024 * 1024;
 const ACCEPTED_MIME = new Set([
@@ -156,12 +157,7 @@ export function DocumentImportPanel({
   return (
     <section className="space-y-4 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-6">
       <header className="flex items-start gap-3 border-b border-[var(--color-line)] pb-3">
-        <span
-          aria-hidden="true"
-          className="flex size-tap-admin shrink-0 items-center justify-center rounded-lg bg-[var(--color-panel)] text-lg text-[var(--color-ink-2)]"
-        >
-          <LuWandSparkles />
-        </span>
+        <IconTile size="md" icon={LuWandSparkles} />
         <div className="min-w-0">
           <h3 className="text-md font-semibold tracking-snug text-[var(--color-ink)]">{t('title')}</h3>
           <p className="mt-0.5 text-sm text-[var(--color-ink-2)]">{t('body')}</p>

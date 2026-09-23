@@ -58,6 +58,7 @@ import {
   ACCESS_STATIONS,
   ACCESS_EMPLOYEES,
 } from './access-data';
+import { IconTile } from '@/components/ui/icon-tile';
 
 interface NewProcedureFormProps {
   locale: string;
@@ -1525,9 +1526,7 @@ export function NewProcedureForm({
               {/* 5. Final actions — Publish, Assign, Save draft. */}
               <div className="rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-5">
                 <div className="flex items-start gap-3">
-                  <span className="flex size-tap-admin shrink-0 items-center justify-center rounded-lg bg-[var(--color-panel)] text-[var(--color-ink-2)]">
-                    <Icon icon="ri-rocket-2-line" className="text-lg" />
-                  </span>
+                  <IconTile size="md" icon="ri-rocket-2-line" />
                   <div className="flex-1">
                     <h3 className="font-[family-name:var(--font-ui)] text-md font-semibold text-[var(--color-ink)]">
                       Ready to go live?
@@ -1932,9 +1931,7 @@ function ReviewCard({
   return (
     <div className="rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-5 shadow-e1">
       <header className="mb-3 flex items-center gap-3">
-        <span className="flex size-tap-admin shrink-0 items-center justify-center rounded-lg bg-[var(--color-panel)] text-[var(--color-ink-2)] text-lg">
-          <Icon icon={icon} />
-        </span>
+        <IconTile size="md" icon={icon} />
         <span className="flex-1">
           {eyebrow && (
             <span className="block text-sm font-semibold text-[var(--color-brand-700)]">

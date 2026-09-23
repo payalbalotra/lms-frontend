@@ -77,7 +77,7 @@ export function StatStrip({ stats }: { stats: Stat[] }): React.ReactElement {
       {stats.map((s) => (
         <li
           key={s.label}
-          className="flex min-w-0 flex-col rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-4 shadow-e1 sm:p-5"
+          className="flex min-w-0 flex-col gap-2 rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-4 py-3 shadow-e1 sm:px-5 sm:py-4"
         >
           {/* The icon sits on the label, not in a grey tile of its own: four cards
               each carrying an identical rounded tile is the shape that makes a
@@ -85,56 +85,54 @@ export function StatStrip({ stats }: { stats: Stat[] }): React.ReactElement {
           <span className="flex items-center gap-2 text-sm font-semibold text-[var(--color-ink-2)]">
             <Icon icon={s.icon} className="text-base text-[var(--color-ink-3)]" />
             {s.label}
-          </span>
-          {/* Number and note share a line, so a card reads as one sentence — "7,
-              two added this week" — rather than a figure with a caption parked
-              under it. Common baseline; the note drops under the number only when
-              the card is too narrow to hold both. */}
-          {/* A share reads as a ring with the figure inside it; a count reads as the
-              figure with its note beside it. Two shapes, because they are two
-              different kinds of number. */}
-          {/* Ring over note on a phone, side by side from sm up. In a two-column
-              grid at 390px the card is 168px wide: a 72px ring, a 16px gap and a
-              line that must not break left the row 53px wider than its column,
-              and the page scrolled sideways. */}
-          {s.meter ? (
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <Meter value={s.meter.value} total={s.meter.total} tone={s.meter.tone} size={64} stroke={7} label={s.value} />
-              <span className="min-w-0 text-sm leading-meta text-[var(--color-ink-2)]">{s.note}</span>
-            </div>
-          ) : (
-          <div className="mt-4 flex items-center gap-4">
-            <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-3 gap-y-1">
-            {/* A tile with nothing to count says so in words. An em dash standing
-                where the number goes reads as a value that failed to load, and
-                beside the note it reads as a strikethrough. */}
-            {s.value ? (
-            <span
-              className={`font-[family-name:var(--font-display)] text-2xl font-bold leading-display tracking-tight ${
-                s.tone === 'muted' ? 'text-[var(--color-ink-3)]' : 'text-[var(--color-ink)]'
-              }`}
-            >
-              {s.value}
-            </span>
+            {/* How full, as a mark on the label's line. Beside the figure it took
+                the room the note needed and pushed it onto a second line, so this
+                card came out taller than the three beside it. */}
+            {s.meter ? (
+              <span className="ml-auto">
+                <Meter value={s.meter.value} total={s.meter.total} tone={s.meter.tone} size={20} stroke={3} />
+              </span>
             ) : null}
-            <span
-              className={`flex min-w-0 flex-1 items-baseline gap-1 leading-meta ${
-                s.value ? 'text-sm' : 'text-md'
-              } ${
-                s.tone === 'caution'
-                  ? 'font-semibold text-[var(--color-warn-ink)]'
-                  : s.tone === 'up'
-                    ? 'font-semibold text-[var(--color-ink)]'
-                    : 'text-[var(--color-ink-2)]'
-              }`}
-            >
-              {s.tone === 'caution' ? <span aria-hidden="true" className="mr-1 size-2 shrink-0 -translate-y-0.5 rounded-full bg-[var(--color-warn)]" /> : null}
-              {s.tone === 'up' ? <LuArrowUp aria-hidden="true" className="shrink-0" /> : null}
-              {s.note}
-            </span>
+          </span>
+          {/* One shape for all four. The share used to be a 64px ring with the
+              figure inside it, and the grid stretched the other three cards to
+              that ring's height, so every card carried a band of empty white. A
+              share is now a figure like the counts, with a small ring on the label
+              line saying how full -- the same height as its neighbours.
+              Number and note share a baseline, so a card reads as one sentence
+              ("5, none added this week"); the note drops under the number only
+              when the card is too narrow to hold both. */}
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-3 gap-y-1">
+              {/* A tile with nothing to count says so in words. An em dash standing
+                  where the number goes reads as a value that failed to load, and
+                  beside the note it reads as a strikethrough. */}
+              {s.value ? (
+                <span
+                  className={`font-[family-name:var(--font-display)] text-xl font-bold leading-display tracking-tight ${
+                    s.tone === 'muted' ? 'text-[var(--color-ink-3)]' : 'text-[var(--color-ink)]'
+                  }`}
+                >
+                  {s.value}
+                </span>
+              ) : null}
+              <span
+                className={`flex min-w-0 items-baseline gap-1 leading-meta ${s.value ? 'text-sm' : 'text-md'} ${
+                  s.tone === 'caution'
+                    ? 'font-semibold text-[var(--color-warn-ink)]'
+                    : s.tone === 'up'
+                      ? 'font-semibold text-[var(--color-ink)]'
+                      : 'text-[var(--color-ink-2)]'
+                }`}
+              >
+                {s.tone === 'caution' ? (
+                  <span aria-hidden="true" className="mr-1 size-2 shrink-0 -translate-y-0.5 rounded-full bg-[var(--color-warn)]" />
+                ) : null}
+                {s.tone === 'up' ? <LuArrowUp aria-hidden="true" className="shrink-0" /> : null}
+                {s.note}
+              </span>
             </div>
           </div>
-          )}
         </li>
       ))}
     </ul>

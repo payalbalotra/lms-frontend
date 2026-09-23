@@ -12,6 +12,7 @@ import { Icon } from '@/components/ui/icon';
 import { RowActions } from '@/components/ui/row-actions';
 import { StatusPill } from '@/components/ui/status-pill';
 import { getQuizById } from '@/lib/api';
+import { IconTile } from '@/components/ui/icon-tile';
 
 interface TrainingCourseExplorerProps {
   locale: string;
@@ -153,12 +154,7 @@ export function TrainingCourseExplorer({ locale, rows }: TrainingCourseExplorerP
                 className="group flex flex-col justify-between gap-4 px-4 py-5 transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:bg-[var(--color-wash)] md:flex-row md:items-center"
               >
                 <div className="flex min-w-0 flex-1 items-start gap-4">
-                  <span
-                    aria-hidden="true"
-                    className="flex size-12 shrink-0 items-center justify-center rounded-[var(--radius-lg)] bg-[var(--color-panel)] text-lg text-[var(--color-ink-2)]"
-                  >
-                    <Icon icon={LuGraduationCap} />
-                  </span>
+                  <IconTile size="lg" icon={LuGraduationCap} />
 
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">

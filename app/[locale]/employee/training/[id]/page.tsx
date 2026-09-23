@@ -16,6 +16,7 @@ import { TabBar } from '@/components/employee/tab-bar';
 import { BlockRenderer } from '@/components/doc/block-renderer';
 import { QuizReader } from '@/components/doc/quiz-reader';
 import { Icon } from '@/components/ui/icon';
+import { IconTile } from '@/components/ui/icon-tile';
 
 interface PageProps {
   params: Promise<{ locale: string; id: string }>;
@@ -173,12 +174,7 @@ export default async function EmployeeTrainingCoursePage({
                       href={`/${locale}/procedures/${s.id}`}
                       className="flex min-h-tap items-center gap-3 px-4 py-3 transition-colors hover:bg-[var(--color-wash)]"
                     >
-                      <span
-                        aria-hidden="true"
-                        className="inline-flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-panel)] text-[var(--color-ink-2)]"
-                      >
-                        <LuBookOpen aria-hidden="true" className="text-md" />
-                      </span>
+                      <IconTile size="md" icon={LuBookOpen} />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-md font-semibold text-[var(--color-ink)]">
                           {(isEs ? s.titleEs || s.titleEn : s.titleEn || s.titleEs) || s.slug}

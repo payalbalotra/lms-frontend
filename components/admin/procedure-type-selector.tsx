@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
-import { LuBrush, LuBuilding2, LuFileText, LuUtensils } from 'react-icons/lu';
+import { LuBrush, LuBuilding2, LuCheck, LuFileText, LuUtensils } from 'react-icons/lu';
 import { Icon } from '@/components/ui/icon';
 import type { IconType } from 'react-icons';
 
@@ -76,7 +76,7 @@ export function ProcedureTypeSelector({
             >
               {isSelected && (
                 <span className="absolute top-2 right-2 flex size-4 items-center justify-center rounded-full bg-[var(--color-brand-600)] text-sm text-white">
-                  ✓
+                  <LuCheck aria-hidden="true" />
                 </span>
               )}
               <div

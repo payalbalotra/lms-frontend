@@ -209,7 +209,14 @@ export function CategoryGrid({
                   <span className="min-w-0 flex-1">
                     {locale === 'es' ? c.nameEs || c.nameEn : c.nameEn || c.nameEs}
                   </span>
-                  {n > 0 ? <span className="shrink-0 font-normal text-[var(--color-ink-2)]">{n}</span> : null}
+                  {/* An empty category shows no figure. The number is for the eye; the
+                      sr-only line below says it once for a screen reader, which read
+                      it twice when this was not hidden from it. */}
+                  {n > 0 ? (
+                    <span aria-hidden="true" className="shrink-0 font-normal text-[var(--color-ink-2)]">
+                      {n}
+                    </span>
+                  ) : null}
                   <span className="sr-only">{countLabel(n)}</span>
                 </Link>
               </li>

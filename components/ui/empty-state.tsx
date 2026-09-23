@@ -1,6 +1,7 @@
 import * as React from 'react';
 import type { IconType } from 'react-icons';
 import { Icon } from '@/components/ui/icon';
+import { IconTile } from '@/components/ui/icon-tile';
 
 /**
  * A place where something will be, and is not yet.
@@ -45,12 +46,7 @@ export function EmptyState({
       ].join(' ')}
     >
       {icon ? (
-        <span
-          aria-hidden="true"
-          className="flex size-12 items-center justify-center rounded-full bg-[var(--color-wash)] text-xl text-[var(--color-ink-3)]"
-        >
-          <Icon icon={icon} />
-        </span>
+        <IconTile size="lg" icon={icon} tone="quiet" shape="circle" />
       ) : null}
 
       <div className="space-y-1">

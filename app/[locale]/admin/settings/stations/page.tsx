@@ -10,6 +10,7 @@ import {
 import type { Location, Station } from '@/lib/types';
 import { StationsManager } from './stations-manager';
 import { FilterChips } from '@/components/ui/filter-chips';
+import { LuArrowRight } from 'react-icons/lu';
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -69,9 +70,10 @@ export default async function StationsSettingsPage({
         </p>
         <Link
           href={`/${locale}/admin/settings/locations`}
-          className="text-sm font-semibold text-[var(--color-brand-700)] underline-offset-4 hover:underline"
+          className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--color-brand-700)] underline-offset-4 hover:underline"
         >
-          {t('navLocations')} →
+          {t('navLocations')}
+          <LuArrowRight aria-hidden="true" />
         </Link>
       </div>
     );
