@@ -47,7 +47,7 @@ interface ProcedureViewClientProps {
     ctlUpdated: string;
     ctlStatus: string;
     ctlLanguages: string;
-    tabAsk: string;
+    tabHome: string;
     tabProcedures: string;
     tabTraining: string;
     tabSoon: string;
@@ -361,7 +361,7 @@ export function ProcedureViewClient({
           locale={locale}
           active="procedures"
           labels={{
-            ask: labels.tabAsk,
+            home: labels.tabHome,
             procedures: labels.tabProcedures,
             training: labels.tabTraining,
             soon: labels.tabSoon,

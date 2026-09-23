@@ -91,14 +91,40 @@ export default async function EmployeeTrainingPage({
     return (isEs ? c.purposeEs || c.purposeEn : c.purposeEn || c.purposeEs) || '';
   };
 
-  const due = rows.filter((r) => r.effectiveStatus === 'due');
-  const inProgress = rows.filter((r) => r.effectiveStatus === 'in_progress');
-  const complete = rows.filter((r) => r.effectiveStatus === 'complete');
-  const overdue = rows.filter((r) => r.effectiveStatus === 'overdue');
-
-  // "Now" as the cook sees it = overdue + due. Overdue rides in the same
-  // section so the cook only has to look in one place for "what to do now".
-  const active = [...overdue, ...due];
+  const continueRows: TrainingAssignmentRow[] = [];
+  const assignedRows: TrainingAssignmentRow[] = [];
+  const complete: TrainingAssignmentRow[] = [];
+  const DUE_SOON_DAYS = 3;
+  for (const r of rows) {
+    if (r.effectiveStatus === 'complete') {
+      complete.push(r);
+      continue;
+    }
+    if (
+      r.effectiveStatus === 'overdue' ||
+      r.effectiveStatus === 'in_progress'
+    ) {
+      continueRows.push(r);
+      continue;
+    }
+    // status === 'due': split between "Continue" (due within the next 3 days,
+    // also surfaced on Home's Training section) and "Assigned" (the longer bag).
+    const days = daysFromNow(r.assignment.dueAt, now);
+    if (days <= DUE_SOON_DAYS) continueRows.push(r);
+    else assignedRows.push(r);
+  }
+  // Continue sorts by urgency: overdue first, then earliest dueAt, then in-progress.
+  continueRows.sort((a, b) => {
+    const rank = (s: TrainingAssignmentStatus): number =>
+      s === 'overdue' ? 0 : s === 'due' ? 1 : 2;
+    const ra = rank(a.effectiveStatus);
+    const rb = rank(b.effectiveStatus);
+    if (ra !== rb) return ra - rb;
+    return new Date(a.assignment.dueAt).getTime() - new Date(b.assignment.dueAt).getTime();
+  });
+  assignedRows.sort(
+    (a, b) => new Date(a.assignment.dueAt).getTime() - new Date(b.assignment.dueAt).getTime(),
+  );
 
   const empty = rows.length === 0;
 
@@ -118,11 +144,11 @@ export default async function EmployeeTrainingPage({
           <EmptyState icon={LuGraduationCap} title={t('emptyHeading')} body={t('emptyBody')} />
         ) : (
           <>
-            {active.length > 0 ? (
+            {continueRows.length > 0 ? (
               <TrainingSection
-                title={t('sectionDue')}
-                countLabel={t('countSummary', { count: active.length })}
-                rows={active}
+                title={t('sectionContinue')}
+                countLabel={t('countSummary', { count: continueRows.length })}
+                rows={continueRows}
                 titleOf={titleOf}
                 purposeOf={purposeOf}
                 locale={locale}
@@ -131,11 +157,11 @@ export default async function EmployeeTrainingPage({
               />
             ) : null}
 
-            {inProgress.length > 0 ? (
+            {assignedRows.length > 0 ? (
               <TrainingSection
-                title={t('sectionInProgress')}
-                countLabel={t('countSummary', { count: inProgress.length })}
-                rows={inProgress}
+                title={t('sectionAssigned')}
+                countLabel={t('countSummary', { count: assignedRows.length })}
+                rows={assignedRows}
                 titleOf={titleOf}
                 purposeOf={purposeOf}
                 locale={locale}
@@ -164,7 +190,7 @@ export default async function EmployeeTrainingPage({
         locale={locale}
         active="training"
         labels={{
-          ask: t('tabAsk'),
+          home: t('tabHome'),
           procedures: t('tabProcedures'),
           training: t('tabTraining'),
           soon: t('tabSoon'),

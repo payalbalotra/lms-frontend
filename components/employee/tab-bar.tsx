@@ -1,8 +1,8 @@
 import * as React from 'react';
 import Link from 'next/link';
-import { LuBookOpen, LuGraduationCap, LuSearch } from 'react-icons/lu';
+import { LuBookOpen, LuGraduationCap, LuHouse } from 'react-icons/lu';
 
-export type EmployeeTab = 'ask' | 'procedures' | 'training';
+export type EmployeeTab = 'home' | 'procedures' | 'training';
 
 /**
  * The cook's navigation, as designed in /employee-home.html: three tabs, fixed to
@@ -20,10 +20,10 @@ export function TabBar({
 }: {
   locale: string;
   active: EmployeeTab;
-  labels: { ask: string; procedures: string; training: string; soon: string; nav: string };
+  labels: { home: string; procedures: string; training: string; soon: string; nav: string };
 }): React.ReactElement {
-  const tabs: { key: EmployeeTab; href?: string; icon: typeof LuSearch; label: string; soon?: boolean }[] = [
-    { key: 'ask', href: `/${locale}/employee/assigned`, icon: LuSearch, label: labels.ask },
+  const tabs: { key: EmployeeTab; href?: string; icon: typeof LuHouse; label: string; soon?: boolean }[] = [
+    { key: 'home', href: `/${locale}/employee/home`, icon: LuHouse, label: labels.home },
     { key: 'procedures', href: `/${locale}/procedures`, icon: LuBookOpen, label: labels.procedures },
     { key: 'training', href: `/${locale}/employee/training`, icon: LuGraduationCap, label: labels.training },
   ];

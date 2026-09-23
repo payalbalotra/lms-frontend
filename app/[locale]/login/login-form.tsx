@@ -42,7 +42,7 @@ export function LoginForm({ locale }: LoginFormProps): React.ReactElement {
         if (res.employee.role === 'admin') {
           router.replace(`/${locale}/admin/library`);
         } else {
-          router.replace(`/${locale}/employee/assigned`);
+          router.replace(`/${locale}/employee/home`);
         }
         router.refresh();
       } catch (err) {
