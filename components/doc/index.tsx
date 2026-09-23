@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { ALLERGEN_LABELS, type AllergenKey } from '@/lib/allergens';
-import { LuArrowLeft, LuArrowLeftRight, LuBadgeCheck, LuCheck, LuChevronDown, LuChevronRight, LuCircleAlert, LuDownload, LuEllipsisVertical, LuFocus, LuImage, LuLightbulb, LuLock, LuMessageSquare, LuPlay, LuPrinter, LuTestTube, LuTriangleAlert, LuUtensils, LuWrench, LuX } from 'react-icons/lu';
+import { LuArrowLeft, LuArrowLeftRight, LuBadgeCheck, LuCheck, LuChevronDown, LuChevronRight, LuCircleAlert, LuDownload, LuEllipsisVertical, LuFocus, LuImage, LuLightbulb, LuLock, LuMessageSquare, LuPlay, LuTestTube, LuTriangleAlert, LuUtensils, LuWrench, LuX } from 'react-icons/lu';
 import { Icon, iconByName } from '@/components/ui/icon';
 import type { IconType } from 'react-icons';
 
@@ -732,13 +732,20 @@ export function Chapters({ rows }: { rows: ChapterRow[] }) {
    Foot of every document
    ---------------------------------------------------------------- */
 
+/** The Print with QR code action was removed: stations print from the wall
+ *  display, not from a procedure-detail page, and the footer now carries
+ *  a single low-prominence "Report a problem" surface. The neutral panel
+ *  background (rather than ghost) gives it just enough weight to be a
+ *  recognised target on employee phones without competing with the
+ *  surrounding doc chrome. */
 export function DocActs() {
   return (
     <div className="doc-acts">
-      <button className="btn btn-secondary btn-lg" onClick={() => window.print()}>
-        <LuPrinter aria-hidden="true" className="i" /> Print with QR code
-      </button>
-      <button className="btn btn-ghost btn-lg">
+      <button
+        type="button"
+        className="btn btn-neutral btn-lg"
+        aria-label="Report a problem with this procedure"
+      >
         <LuMessageSquare aria-hidden="true" className="i" /> Report a problem
       </button>
     </div>

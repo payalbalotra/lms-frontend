@@ -8,6 +8,7 @@ import { listCategories, listProcedures } from '@/lib/api';
 import { getCategoryIcon } from '@/lib/category-icons';
 import { Icon } from '@/components/ui/icon';
 import type { Category, Procedure } from '@/lib/types';
+import { withAs, type ViewAs } from '@/lib/view-as';
 import { LuSearch } from 'react-icons/lu';
 import { ProcedureRow } from '@/components/employee/procedure-row';
 import { allergenWords, factsOf } from '@/app/[locale]/employee/assigned/components/procedure-facts';
@@ -20,6 +21,8 @@ interface ProceduresClientListProps {
   locationId: string;
   locale: string;
   readsSpanish: boolean;
+  /** Forwarded to each row's href so the chosen chrome rides along navigations. */
+  viewAs: ViewAs | null;
 }
 
 export function ProceduresClientList({
@@ -30,6 +33,7 @@ export function ProceduresClientList({
   locationId,
   locale,
   readsSpanish,
+  viewAs,
 }: ProceduresClientListProps): React.ReactElement {
   // Translations must be resolved inside the client: next-intl's translation
   // object contains function values for interpolated keys, and those cannot be
@@ -171,7 +175,7 @@ export function ProceduresClientList({
             return (
               <li key={p.id}>
                 <ProcedureRow
-                  href={`/${locale}/procedures/${p.slug}`}
+                  href={withAs(`/${locale}/procedures/${p.slug}`, viewAs)}
                   cover={cover}
                   category={p.category}
                   title={titleOf(p)}

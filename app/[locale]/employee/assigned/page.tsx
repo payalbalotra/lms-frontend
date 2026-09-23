@@ -6,6 +6,7 @@ import { ApiException, fetchMe, listCategories, listProcedures, listRoles, listS
 import type { Category, Procedure } from '@/lib/types';
 import { Ask, CategoryGrid, ProcedureRows, WhoBar } from './components/EmployeeHome';
 import { allergenWords, factsOf } from './components/procedure-facts';
+import { withAs } from '@/lib/view-as';
 import { TabBar } from '@/components/employee/tab-bar';
 
 /**
@@ -104,7 +105,7 @@ export default async function EmployeeHomePage({ params }: PageProps): Promise<R
     .filter((p) => !fresh.some((f) => f.id === p.id) && !changed.some((c) => c.id === p.id))
     .sort((a, b) => titleOf(a).localeCompare(titleOf(b), locale));
 
-  const allLink = { href: `/${locale}/procedures`, label: t('browseAll') };
+  const allLink = { href: withAs(`/${locale}/procedures`, 'employee'), label: t('browseAll') };
   const readsSpanish = employee.languagePref === 'es';
   const isEs = locale === 'es';
   const withWords = (f: ReturnType<typeof factsOf>) => ({
@@ -147,6 +148,7 @@ export default async function EmployeeHomePage({ params }: PageProps): Promise<R
           countOf={(c) => published.filter((p) => p.category?.id === c.id).length}
           countLabel={(n) => t('categoryCount', { count: n })}
           empty={t('categoriesEmpty')}
+          viewAs="employee"
         />
 
         {/* A heading over nothing is a heading a cook has to read to learn there
@@ -161,6 +163,7 @@ export default async function EmployeeHomePage({ params }: PageProps): Promise<R
             rows={fresh.map((p) => row(p, `${categoryName(p.category)} · ${daysAgo(p.createdAt)}`))}
             flagLabels={flagLabels}
             empty={t('newEmpty')}
+            viewAs="employee"
           />
         ) : null}
 
@@ -172,6 +175,7 @@ export default async function EmployeeHomePage({ params }: PageProps): Promise<R
             rows={changed.map((p) => row(p, `${categoryName(p.category)} · ${t('changedAgo', { when: daysAgo(p.updatedAt) })}`))}
             flagLabels={flagLabels}
             empty={t('newEmpty')}
+            viewAs="employee"
           />
         ) : null}
 
@@ -183,6 +187,7 @@ export default async function EmployeeHomePage({ params }: PageProps): Promise<R
             rows={rest.map((p) => row(p, categoryName(p.category)))}
             flagLabels={flagLabels}
             empty={t('restEmpty')}
+            viewAs="employee"
           />
         ) : null}
 

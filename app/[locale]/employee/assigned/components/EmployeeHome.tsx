@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { getCategoryIcon } from '@/lib/category-icons';
 import { Icon } from '@/components/ui/icon';
 import type { Category, Procedure } from '@/lib/types';
+import { withAs, type ViewAs } from '@/lib/view-as';
 import { LuArrowRight, LuChevronRight, LuSearch } from 'react-icons/lu';
 import { ProcedureRow, type FlagLabels, type ProcedureFlags } from '@/components/employee/procedure-row';
 
@@ -116,6 +117,7 @@ export function ProcedureRows({
   rows,
   flagLabels,
   empty,
+  viewAs = null,
 }: {
   locale: string;
   heading: string;
@@ -129,6 +131,8 @@ export function ProcedureRows({
   }[];
   flagLabels: FlagLabels;
   empty: string;
+  /** Carried into each row's href so the chrome survives the navigation. */
+  viewAs?: ViewAs | null;
 }): React.ReactElement {
   return (
     <section className="mt-12">
@@ -140,7 +144,7 @@ export function ProcedureRows({
           {rows.map(({ procedure, cover, title, meta, flags }) => (
             <li key={procedure.id}>
               <ProcedureRow
-                href={`/${locale}/procedures/${procedure.slug}`}
+                href={withAs(`/${locale}/procedures/${procedure.slug}`, viewAs)}
                 cover={cover}
                 category={procedure.category}
                 title={title}
@@ -164,6 +168,7 @@ export function CategoryGrid({
   countOf,
   countLabel,
   empty,
+  viewAs = null,
 }: {
   locale: string;
   heading: string;
@@ -172,6 +177,8 @@ export function CategoryGrid({
   countOf: (c: Category) => number;
   countLabel: (n: number) => string;
   empty: string;
+  /** Carried into each chip's href so the chrome survives the navigation. */
+  viewAs?: ViewAs | null;
 }): React.ReactElement {
   return (
     <section className="mt-12">
@@ -188,7 +195,7 @@ export function CategoryGrid({
             return (
               <li key={c.id}>
                 <Link
-                  href={`/${locale}/procedures?category=${encodeURIComponent(c.slug)}`}
+                  href={withAs(`/${locale}/procedures?category=${encodeURIComponent(c.slug)}`, viewAs)}
                   className={`flex min-h-tap w-full items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold leading-heading transition-colors duration-[var(--dur)] ease-[var(--ease)] ${
                     n === 0
                       ? 'bg-[var(--color-panel)] text-[var(--color-ink-3)]'

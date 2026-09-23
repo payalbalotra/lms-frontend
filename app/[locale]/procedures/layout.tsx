@@ -4,16 +4,23 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { setRequestLocale } from 'next-intl/server';
 import { ApiException, fetchMe, listLocations, logout } from '@/lib/api';
+import { readViewAs } from '@/lib/view-as-server';
 import { AdminShell } from '@/app/[locale]/admin/admin-shell';
 
 /**
  * Procedures routes are shared between admin and employee (both link here from
  * their own surfaces), so they live outside both the /admin and /employee
- * sub-trees. This layout picks the right shell by role: admins get the
- * `AdminShell` (sidebar + sticky top bar) so they keep the library nav
- * context; employees get the bare page and rely on the per-page `TabBar` they
- * already render. The pages themselves stay role-aware and skip the
- * `TabBar` when the role is admin.
+ * sub-trees. Procedures are reading content — every viewer gets the focused
+ * phone-shaped reading chrome by default, so admins reading a procedure don't
+ * end up inside a desktop `AdminShell` for a one-column document.
+ *
+ * `?as=admin` opts into the `AdminShell` (sidebar + sticky top bar) when an
+ * admin explicitly wants the library nav context while reading. The demo seed
+ * always resolves as admin, but the chrome here is driven by the override,
+ * not the session, so both surfaces work pre-login. The proxy copies the
+ * query value into `x-lms-view-as` request headers (see `proxy.ts`);
+ * layouts don't receive searchParams, so we read it back from headers here.
+ * See `lib/view-as`.
  *
  * Force per-request SSR — the cookie-based auth check has to run on the
  * server, and a cached build-time redirect would log every user out.
@@ -44,8 +51,19 @@ export default async function ProceduresLayout({ children, params }: ProceduresL
     redirect(`/${locale}/login`);
   }
 
-  if (employee.role !== 'admin') {
-    // Employees keep the page as-is — the per-page `TabBar` is their chrome.
+  // View-as override: `?as=admin` swaps the shell in for this request. We
+  // still use `employee` (the real session) for fetching data, but the
+  // chrome decision follows the override and defaults to employee — these
+  // pages are reading content, and a logged-in admin clicking a procedure
+  // from /admin/library should land in the focused reading view, not inside
+  // a second AdminShell. Read from headers because layouts don't get
+  // searchParams; the proxy injects the header (see proxy.ts).
+  const viewOverride = await readViewAs();
+  const effectiveRole = viewOverride ?? 'employee';
+
+  if (effectiveRole !== 'admin') {
+    // Employees (or admins masquerading as employees via ?as=employee) keep
+    // the page as-is — the per-page `TabBar` is their chrome.
     return <>{children}</>;
   }
 
@@ -70,7 +88,7 @@ export default async function ProceduresLayout({ children, params }: ProceduresL
   return (
     <AdminShell
       locale={locale}
-      employee={{ id: employee.id, name: employee.name, role: employee.role }}
+      employee={{ id: employee.id, name: employee.name, role: effectiveRole }}
       workspace={workspace}
       signOutAction={signOut}
     >
