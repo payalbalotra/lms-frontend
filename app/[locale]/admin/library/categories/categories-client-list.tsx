@@ -151,7 +151,11 @@ function CategoryCard({
       className={cn(
         'group flex flex-col justify-between rounded-[var(--radius-lg)] cursor-pointer h-full min-h-[110px]',
         'border border-[var(--color-line-2)] bg-[var(--color-surface)] p-4 shadow-2xs transition-all',
-        'hover:border-[var(--color-ring)] hover:shadow-e1',
+        // A card is content on the ground, so hover lifts it away from the ground:
+        // the edge darkens and it rises a step. Filling it with wash sank it into
+        // the page (1.08:1), and a brand border made it look like the selected
+        // nav item beside it.
+        'hover:border-[var(--color-line-hover)] hover:shadow-e1',
         archivedChipLabel ? 'bg-[var(--color-wash)] opacity-75' : undefined,
       )}
     >
@@ -159,12 +163,12 @@ function CategoryCard({
         <div className="flex items-start gap-3 min-w-0">
           <span
             aria-hidden="true"
-            className="flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-panel)] text-[var(--color-ink-2)] text-lg transition-colors group-hover:bg-[var(--color-brand-tint)] group-hover:text-[var(--color-brand-700)]"
+            className="flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-panel)] text-[var(--color-ink-2)] text-lg transition-colors group-hover:text-[var(--color-ink)]"
           >
             <Icon icon={getCategoryIcon(category)} />
           </span>
           <div className="min-w-0 flex-1 pt-0.5">
-            <h3 className="truncate text-sm font-semibold text-[var(--color-ink)] group-hover:text-[var(--color-brand-700)]">
+            <h3 className="truncate text-sm font-semibold text-[var(--color-ink)]">
               {primaryName}
             </h3>
             {secondaryName && secondaryName !== primaryName ? (
@@ -185,7 +189,7 @@ function CategoryCard({
           {isEs ? (subcategories.length === 1 ? 'subcategoría' : 'subcategorías') : (subcategories.length === 1 ? 'subcategory' : 'subcategories')}
           {totalProcedures > 0 && ` · ${totalProcedures} ${isEs ? 'procedimientos' : 'procedures'}`}
         </span>
-        <span className="text-[var(--color-brand-700)] group-hover:translate-x-0.5 transition-transform">
+        <span className="text-[var(--color-ink-3)] group-hover:translate-x-0.5 transition-transform">
           →
         </span>
       </div>

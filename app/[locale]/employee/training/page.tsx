@@ -223,7 +223,7 @@ function TrainingSection({
               >
                 <span
                   aria-hidden="true"
-                  className="inline-flex size-12 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-brand-tint)] text-[var(--color-brand-700)]"
+                  className="inline-flex size-12 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-panel)] text-[var(--color-ink-2)]"
                 >
                   <LuGraduationCap aria-hidden="true" className="text-xl" />
                 </span>

@@ -47,6 +47,7 @@
   --color-line: var(--line);
   --color-line-2: var(--line-2);
   --color-line-3: var(--line-3);
+  --color-line-hover: var(--line-hover);
 
   /* Aliases used by components/ui/*. Each points at a canonical token. */
   --color-background: var(--bg);

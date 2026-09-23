@@ -262,7 +262,7 @@ function InsertAfterButton({
           'flex size-8 items-center justify-center rounded-md transition-all',
           ghost
             ? 'text-[var(--color-ink-3)] opacity-30 hover:opacity-100 hover:bg-[var(--color-wash)] hover:text-[var(--color-ink-2)]'
-            : 'bg-[var(--color-surface)] text-[var(--color-ink-2)] ring-1 ring-[var(--color-line-2)] shadow-e1 hover:bg-[var(--color-brand-tint)] hover:text-[var(--color-brand-700)] hover:ring-[var(--color-ring)]',
+            : 'bg-[var(--color-surface)] text-[var(--color-ink-2)] ring-1 ring-[var(--color-line-2)] shadow-e1 hover:bg-[var(--color-panel)] hover:text-[var(--color-ink)] hover:ring-[var(--color-line-3)]',
         )}
       >
         <Icon icon="ri-add-line" className="text-lg" />
@@ -286,7 +286,7 @@ function InsertAfterButton({
                 onInsert(opt.kind);
                 setOpen(false);
               }}
-              className="flex w-full items-center gap-3 rounded-[var(--radius-sm)] px-3 py-2 text-left text-sm text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:text-[var(--color-brand-700)] transition-colors"
+              className="flex w-full items-center gap-3 rounded-[var(--radius-sm)] px-3 py-2 text-left text-sm text-[var(--color-ink)] hover:bg-[var(--color-wash)] transition-colors"
             >
               <Icon icon={opt.icon} className="text-base text-[var(--color-ink-2)]" />
               <span className="font-medium">{opt.label}</span>
@@ -409,7 +409,7 @@ function TextBody({
                 key={opt.kind}
                 type="button"
                 onClick={() => handleSlashSelect(opt.kind)}
-                className="flex w-full items-center gap-3 rounded-[var(--radius-sm)] px-3 py-2 text-left text-sm text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:text-[var(--color-brand-700)] transition-colors"
+                className="flex w-full items-center gap-3 rounded-[var(--radius-sm)] px-3 py-2 text-left text-sm text-[var(--color-ink)] hover:bg-[var(--color-wash)] transition-colors"
               >
                 <Icon icon={opt.icon} className="text-base text-[var(--color-ink-2)]" />
                 <span className="font-medium">{opt.label}</span>
@@ -503,7 +503,7 @@ function MethodBody({
       <ol className="space-y-2">
         {block.steps.map((step, i) => (
           <li key={step.id ?? i} className="flex gap-3">
-            <span className="mt-2 inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand-tint)] font-mono text-sm font-semibold text-[var(--color-brand-700)]">
+            <span className="mt-2 inline-flex size-6 shrink-0 items-center justify-center rounded-full border-2 border-[var(--color-line-2)] bg-[var(--color-surface)] font-mono text-sm font-semibold text-[var(--color-ink)]">
               {String(i + 1).padStart(2, '0')}
             </span>
             <div className="flex-1 space-y-2">
@@ -577,7 +577,7 @@ function RecipeSummaryBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock,
   return (
     <div className="space-y-3 pt-1">
       <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-wash)] p-3">
-        <Icon icon="ri-restaurant-line" className="text-2xl text-[var(--color-brand-700)]" />
+        <Icon icon="ri-restaurant-line" className="text-2xl text-[var(--color-ink-3)]" />
         <div className="flex-1 text-sm">
           <div className="font-semibold text-[var(--color-ink)]">Recipe block</div>
           <div className="text-[var(--color-ink-2)]">
@@ -703,7 +703,7 @@ function ImageBody({ block, onPatch, lang }: BodyProps<Extract<ProcedureBlock, {
             const f = e.dataTransfer.files?.[0];
             if (f) void startUpload(f);
           }}
-          className="flex w-full flex-col items-center justify-center gap-1 rounded-[var(--radius-md)] border border-dashed border-[var(--color-line-3)] bg-[var(--color-wash)] px-4 py-6 text-sm text-[var(--color-ink-2)] hover:border-[var(--color-ring)] hover:bg-[var(--color-brand-tint)]"
+          className="flex w-full flex-col items-center justify-center gap-1 rounded-[var(--radius-md)] border border-dashed border-[var(--color-line-3)] bg-[var(--color-wash)] px-4 py-6 text-sm text-[var(--color-ink-2)] hover:bg-[var(--color-panel)]"
         >
           <Icon icon="ri-image-add-line" className="text-2xl text-[var(--color-ink-3)]" />
           <span className="font-medium">Drop image, or click to browse</span>
@@ -829,7 +829,7 @@ function VideoBody({ block, onPatch, lang }: BodyProps<Extract<ProcedureBlock, {
               const f = e.dataTransfer.files?.[0];
               if (f) void startUpload(f);
             }}
-            className="flex w-full flex-col items-center justify-center gap-1 rounded-[var(--radius-md)] border border-dashed border-[var(--color-line-3)] bg-[var(--color-wash)] px-4 py-5 text-sm text-[var(--color-ink-2)] hover:border-[var(--color-ring)] hover:bg-[var(--color-brand-tint)]"
+            className="flex w-full flex-col items-center justify-center gap-1 rounded-[var(--radius-md)] border border-dashed border-[var(--color-line-3)] bg-[var(--color-wash)] px-4 py-5 text-sm text-[var(--color-ink-2)] hover:bg-[var(--color-panel)]"
           >
             <Icon icon="ri-video-add-line" className="text-2xl text-[var(--color-ink-3)]" />
             <span className="font-medium">Drop video, or click to upload</span>
@@ -903,7 +903,7 @@ function AttachmentBody({ block, onPatch, lang }: BodyProps<Extract<ProcedureBlo
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-wash)] px-3 py-2">
-        <Icon icon="ri-attachment-line" className="text-lg text-[var(--color-brand-700)]" />
+        <Icon icon="ri-attachment-line" className="text-lg text-[var(--color-ink-2)]" />
         <Input
           type="url"
           value={block.href}
@@ -1023,7 +1023,7 @@ function TableBody({
                   aria-label="Add column"
                   title="Add column"
                   onClick={addColumn}
-                  className="mx-auto flex size-8 items-center justify-center rounded text-[var(--color-ink-2)] hover:bg-[var(--color-brand-tint)] hover:text-[var(--color-brand-700)] transition-colors"
+                  className="mx-auto flex size-8 items-center justify-center rounded text-[var(--color-ink-2)] hover:bg-[var(--color-panel)] hover:text-[var(--color-ink)] transition-colors"
                 >
                   <Icon icon="ri-add-line" className="text-base font-semibold" />
                 </button>
@@ -1083,7 +1083,7 @@ function TableBody({
                   type="button"
                   onClick={addRow}
                   title="Add row"
-                  className="inline-flex items-center gap-2 rounded px-2 py-1 text-sm font-semibold text-[var(--color-ink-2)] hover:bg-[var(--color-brand-tint)] hover:text-[var(--color-brand-700)] transition-colors"
+                  className="inline-flex items-center gap-2 rounded px-2 py-1 text-sm font-semibold text-[var(--color-ink-2)] hover:bg-[var(--color-panel)] hover:text-[var(--color-ink)] transition-colors"
                 >
                   <Icon icon="ri-add-line" className="text-sm" />
                   <span>Add row</span>
@@ -1095,7 +1095,7 @@ function TableBody({
                   aria-label="Add row"
                   title="Add row"
                   onClick={addRow}
-                  className="mx-auto flex size-8 items-center justify-center rounded text-[var(--color-ink-2)] hover:bg-[var(--color-brand-tint)] hover:text-[var(--color-brand-700)] transition-colors"
+                  className="mx-auto flex size-8 items-center justify-center rounded text-[var(--color-ink-2)] hover:bg-[var(--color-panel)] hover:text-[var(--color-ink)] transition-colors"
                 >
                   <Icon icon="ri-add-line" className="text-base font-semibold" />
                 </button>
@@ -1231,7 +1231,7 @@ function ChecklistBody({
       <button
         type="button"
         onClick={addItem}
-        className="inline-flex items-center gap-1.5 rounded px-2 py-1 text-xs font-semibold text-[var(--color-brand-600)] hover:bg-[var(--color-brand-tint)] hover:text-[var(--color-brand-700)] transition-colors mt-1"
+        className="inline-flex items-center gap-1.5 rounded px-2 py-1 text-xs font-semibold text-[var(--color-brand-600)] hover:bg-[var(--color-panel)] hover:text-[var(--color-brand-700)] transition-colors mt-1"
       >
         <Icon icon="ri-add-line" className="text-sm" />
         <span>{lang === 'en' ? 'Add checklist item' : 'Agregar elemento'}</span>
@@ -1401,7 +1401,7 @@ function EmptyState({ onAdd }: { onAdd: (kind: ProcedureBlockKind) => void }): R
   return (
     <div className="space-y-4 rounded-[var(--radius-lg)] border border-dashed border-[var(--color-line-2)] bg-[var(--color-surface)] p-8">
       <div className="flex items-start gap-3">
-        <div className="flex size-tap-admin shrink-0 items-center justify-center rounded-lg bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] text-lg">
+        <div className="flex size-tap-admin shrink-0 items-center justify-center rounded-lg bg-[var(--color-panel)] text-[var(--color-ink-2)] text-lg">
           <Icon icon="ri-file-text-line" />
         </div>
         <div>
@@ -1431,9 +1431,9 @@ function EmptyState({ onAdd }: { onAdd: (kind: ProcedureBlockKind) => void }): R
             key={opt.kind}
             type="button"
             onClick={() => onAdd(opt.kind)}
-            className="group flex items-start gap-3 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-3 text-left transition-colors hover:border-[var(--color-ring)] hover:bg-[var(--color-wash)]"
+            className="group flex items-start gap-3 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-3 text-left transition-colors hover:border-[var(--color-line-3)] hover:bg-[var(--color-wash)]"
           >
-            <Icon icon={opt.icon} className="mt-0.5 text-lg text-[var(--color-ink-2)] group-hover:text-[var(--color-brand-700)]" />
+            <Icon icon={opt.icon} className="mt-0.5 text-lg text-[var(--color-ink-2)] group-hover:text-[var(--color-ink)]" />
             <span className="min-w-0">
               <span className="block text-sm font-semibold text-[var(--color-ink)]">{opt.label}</span>
               <span className="block text-sm text-[var(--color-ink-2)]">{opt.hint}</span>

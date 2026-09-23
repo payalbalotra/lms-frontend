@@ -235,18 +235,18 @@ export function SubcategoryDetailClient({
               className={cn(
                 'group flex items-center justify-between rounded-[var(--radius-lg)] border border-[var(--color-line-2)]',
                 'bg-[var(--color-surface)] p-3.5 shadow-2xs transition-all cursor-pointer',
-                'hover:border-[var(--color-ring)] hover:shadow-e1 gap-3'
+                'hover:border-[var(--color-line-hover)] hover:shadow-e1 gap-3'
               )}
             >
               <div className="flex items-center gap-3 min-w-0">
                 <span
                   aria-hidden="true"
-                  className="flex size-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-panel)] text-[var(--color-ink-2)] text-base transition-colors group-hover:bg-[var(--color-brand-tint)] group-hover:text-[var(--color-brand-700)]"
+                  className="flex size-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-panel)] text-[var(--color-ink-2)] text-base transition-colors group-hover:text-[var(--color-ink)]"
                 >
                   <LuFileText />
                 </span>
                 <div className="min-w-0">
-                  <h3 className="truncate text-sm font-semibold text-[var(--color-ink)] group-hover:text-[var(--color-brand-700)]">
+                  <h3 className="truncate text-sm font-semibold text-[var(--color-ink)]">
                     {proc.titleEn}
                   </h3>
                   <p className="truncate text-[11px] text-[var(--color-ink-3)] font-normal">

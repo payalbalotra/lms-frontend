@@ -181,16 +181,16 @@ export function PopoverItem({
       type="button"
       role="menuitem"
       onClick={onClick}
-      className="group flex w-full items-center justify-between gap-3 rounded-[var(--radius-md)] px-3 py-2 text-left transition-colors hover:bg-[var(--color-brand-tint)] focus-visible:bg-[var(--color-brand-tint)] focus-visible:outline-none"
+      className="group flex w-full items-center justify-between gap-3 rounded-[var(--radius-md)] px-3 py-2 text-left transition-colors hover:bg-[var(--color-panel)] focus-visible:bg-[var(--color-brand-tint)] focus-visible:outline-none"
     >
       <div className="flex items-center gap-3 min-w-0">
         {icon && (
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-wash)] text-[var(--color-ink-2)] transition-colors group-hover:bg-[var(--color-brand-tint)] group-hover:text-[var(--color-brand-700)]">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-wash)] text-[var(--color-ink-2)] transition-colors group-hover:bg-[var(--color-panel)] group-hover:text-[var(--color-ink)]">
             <Icon icon={icon} className="text-base" />
           </div>
         )}
         <div className="min-w-0">
-          <div className="text-sm font-semibold text-[var(--color-ink)] group-hover:text-[var(--color-brand-700)]">
+          <div className="text-sm font-semibold text-[var(--color-ink)]">
             {label}
           </div>
           {description && (
@@ -200,7 +200,7 @@ export function PopoverItem({
           )}
         </div>
       </div>
-      <LuChevronRight aria-hidden="true" className="shrink-0 text-base text-[var(--color-ink-3)] transition-transform group-hover:text-[var(--color-brand-700)]" />
+      <LuChevronRight aria-hidden="true" className="shrink-0 text-base text-[var(--color-ink-3)] transition-transform group-hover:text-[var(--color-ink)]" />
     </button>
   );
 }

@@ -1272,7 +1272,7 @@ export function LibraryProcedureExplorer({
 
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <h4 className="min-w-0 truncate text-base font-semibold leading-heading text-[var(--color-ink)] transition-colors group-hover:text-[var(--color-brand-700)]">
+                      <h4 className="min-w-0 truncate text-base font-semibold leading-heading text-[var(--color-ink)] transition-colors">
                         {title}
                       </h4>
                       <StatusPill tone={p.status === 'published' ? 'ok' : 'neutral'} withDot>
@@ -1329,7 +1329,7 @@ export function LibraryProcedureExplorer({
             return (
               <div
                 key={p.id}
-                className="group relative flex flex-col justify-between rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-4 transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:bg-[var(--color-wash)]"
+                className="group relative flex flex-col justify-between rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-4 transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:border-[var(--color-line-hover)] hover:shadow-e1"
               >
                 <div className="space-y-3">
                   <div className="flex items-start justify-between gap-2">
@@ -1349,7 +1349,7 @@ export function LibraryProcedureExplorer({
 
                   <div className="space-y-1">
                     <span className="text-sm font-semibold text-[var(--color-ink-3)] block">{catName}</span>
-                    <h4 className="line-clamp-2 text-base font-semibold leading-heading text-[var(--color-ink)] transition-colors group-hover:text-[var(--color-brand-700)]">
+                    <h4 className="line-clamp-2 text-base font-semibold leading-heading text-[var(--color-ink)] transition-colors">
                       {title}
                     </h4>
                     {purpose && (

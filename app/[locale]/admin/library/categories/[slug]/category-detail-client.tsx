@@ -446,7 +446,7 @@ export function CategoryDetailClient({
                               e.stopPropagation();
                               setStationPickerSub(sub);
                             }}
-                            className="cursor-pointer inline-flex min-w-[36px] h-6 items-center justify-center px-2.5 text-[11px] font-semibold tracking-[0.02em] leading-none rounded-md bg-[var(--color-panel-2)] text-[var(--color-ink)] border border-[var(--color-line-2)] shadow-2xs hover:bg-[var(--color-brand-tint)] hover:text-[var(--color-brand-700)] transition-colors"
+                            className="cursor-pointer inline-flex min-w-[36px] h-6 items-center justify-center px-2.5 text-[11px] font-semibold tracking-[0.02em] leading-none rounded-md bg-[var(--color-panel-2)] text-[var(--color-ink)] border border-[var(--color-line-2)] shadow-2xs hover:bg-[var(--color-panel)] transition-colors"
                           >
                             {code}
                           </span>
@@ -569,7 +569,7 @@ export function CategoryDetailClient({
                               {proc.station !== 'General' && (
                                 <StatusPill
                                   tone="info"
-                                  className="bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] border border-[var(--color-brand-600)]/20 hidden sm:inline-flex"
+                                  className="hidden sm:inline-flex"
                                 >
                                   {proc.station}
                                 </StatusPill>
@@ -876,9 +876,9 @@ function AddProcedureModal({
                       </span>
                     </div>
                     {proc.station !== 'General' && (
-                      <span className="inline-flex h-6 items-center justify-center px-2.5 text-[11px] font-semibold tracking-[0.02em] leading-none rounded-md bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] border border-[var(--color-brand-600)]/20 hidden sm:inline-flex shrink-0">
-                        {proc.station.replace(/^st-/, '').toUpperCase()}
-                      </span>
+                      <StatusPill tone="neutral">
+                        {proc.station.replace(/^st-/, '')}
+                      </StatusPill>
                     )}
                   </label>
                 );
@@ -970,7 +970,6 @@ function AddProcedureModal({
             const selected = draftCatalog.filter((p) => selectedIds.has(p.id));
             onAddExisting(selected);
           }}
-          className="px-4 text-xs font-semibold shadow-e1"
         >
           {isEs
             ? `Añadir ${selectedIds.size > 0 ? `(${selectedIds.size})` : ''}`
@@ -1069,14 +1068,13 @@ function StationPickerModal({
       </div>
 
       <div className="flex items-center justify-end gap-2.5 border-t border-[var(--color-line)] bg-[var(--color-wash)] px-5 py-3">
-        <Button type="button" variant="neutral" onClick={onCancel} className="rounded-full px-4 text-xs font-semibold">
+        <Button type="button" variant="neutral" onClick={onCancel}>
           {isEs ? 'Cancelar' : 'Cancel'}
         </Button>
         <Button
           type="button"
           variant="primary"
           onClick={() => onSave(selected)}
-          className="rounded-full bg-[var(--color-brand-600)] hover:bg-[var(--color-brand-hover)] text-white px-4 text-xs font-semibold shadow-e1"
         >
           {isEs ? 'Guardar estaciones' : 'Save stations'}
         </Button>
@@ -1300,14 +1298,13 @@ function SubcategoryForm({
 
       {/* Footer */}
       <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-[var(--color-line)] bg-[var(--color-wash)]">
-        <Button type="button" variant="neutral" onClick={onCancel} className="px-4 text-xs font-semibold">
+        <Button type="button" variant="neutral" onClick={onCancel}>
           {isEs ? 'Cancelar' : 'Cancel'}
         </Button>
         <Button
           type="submit"
           variant="primary"
           disabled={!canSubmit}
-          className="px-4 text-xs font-semibold shadow-e1"
         >
           {isEs ? 'Crear' : 'Create'}
         </Button>

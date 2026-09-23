@@ -1378,7 +1378,7 @@ export function NewProcedureForm({
                   {activePurpose || '(No purpose provided yet — go back to Details to add one.)'}
                 </p>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <Chip tone="brand" icon="ri-bar-chart-2-line">
+                  <Chip tone="wash" icon="ri-bar-chart-2-line">
                     {blocks.length} block{blocks.length === 1 ? '' : 's'}
                   </Chip>
                   <Chip tone="wash" icon="ri-flag-line">
@@ -1480,7 +1480,7 @@ export function NewProcedureForm({
                           key={emp.id}
                           className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2"
                         >
-                          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand-tint)] text-sm font-semibold text-[var(--color-brand-700)]">
+                          <span className="flex size-8 shrink-0 items-center justify-center rounded-full border-2 border-[var(--color-line-2)] bg-[var(--color-surface)] text-sm font-semibold text-[var(--color-ink)]">
                             {emp.initials}
                           </span>
                           <span className="min-w-0 flex-1">
@@ -1523,9 +1523,9 @@ export function NewProcedureForm({
               )}
 
               {/* 5. Final actions — Publish, Assign, Save draft. */}
-              <div className="rounded-[var(--radius-lg)] border border-[var(--color-brand-tint-2)] bg-[var(--color-brand-tint)] p-5 shadow-e1">
+              <div className="rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-5">
                 <div className="flex items-start gap-3">
-                  <span className="flex size-tap-admin shrink-0 items-center justify-center rounded-lg bg-[var(--color-brand-600)] text-white">
+                  <span className="flex size-tap-admin shrink-0 items-center justify-center rounded-lg bg-[var(--color-panel)] text-[var(--color-ink-2)]">
                     <Icon icon="ri-rocket-2-line" className="text-lg" />
                   </span>
                   <div className="flex-1">
@@ -1539,27 +1539,10 @@ export function NewProcedureForm({
                     </p>
                   </div>
                 </div>
+                {/* The bar at the foot of the page carries Publish and Save draft
+                    on every step, this one included. A second pair here made the
+                    review step the one screen with two primaries. */}
                 <div className="mt-4 flex flex-wrap items-center gap-3">
-                  <Button
-                    type="button"
-                    variant="primary"
-                    size="default"
-                    disabled={isPending}
-                    onClick={() => void submit('published')}
-                    className="gap-2"
-                  >
-                    <Icon icon="ri-send-plane-fill" />
-                    {isPending ? tForm('publishing') : 'Publish & assign'}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="default"
-                    disabled={isPending}
-                    onClick={() => void submit('draft')}
-                  >
-                    Save as draft
-                  </Button>
                   <button
                     type="button"
                     onClick={() => {
@@ -1949,7 +1932,7 @@ function ReviewCard({
   return (
     <div className="rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-5 shadow-e1">
       <header className="mb-3 flex items-center gap-3">
-        <span className="flex size-tap-admin shrink-0 items-center justify-center rounded-lg bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] text-lg">
+        <span className="flex size-tap-admin shrink-0 items-center justify-center rounded-lg bg-[var(--color-panel)] text-[var(--color-ink-2)] text-lg">
           <Icon icon={icon} />
         </span>
         <span className="flex-1">
@@ -1999,7 +1982,7 @@ function ReviewChipRow({
               key={opt.id}
               className="inline-flex items-center gap-1 rounded-full border border-[var(--color-line-2)] bg-[var(--color-wash)] px-3 py-1 text-sm font-medium text-[var(--color-ink)]"
             >
-              {opt.icon && <Icon icon={opt.icon} className="text-sm text-[var(--color-brand-700)]" />}
+              {opt.icon && <Icon icon={opt.icon} className="text-sm text-[var(--color-ink-2)]" />}
               <span>{opt.label}</span>
               {opt.sub && (
                 <span className="text-[var(--color-ink-3)]">{opt.sub}</span>

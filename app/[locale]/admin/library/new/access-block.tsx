@@ -207,7 +207,7 @@ export function AccessBlock({
               'group relative flex items-center gap-2 rounded-[var(--radius-md)] border border-dashed px-3 py-2 text-left transition-all min-h-10',
               allSelected
                 ? 'border-[var(--color-brand-600)] bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] shadow-e1 ring-2 ring-[var(--color-brand-tint-2)]'
-                : 'border-[var(--color-line-3)] bg-[var(--color-wash)] text-[var(--color-ink-2)] hover:bg-[var(--color-surface)] hover:border-[var(--color-ring)] hover:text-[var(--color-brand-700)]',
+                : 'border-[var(--color-line-3)] bg-[var(--color-wash)] text-[var(--color-ink-2)] hover:bg-[var(--color-surface)] hover:text-[var(--color-ink)]',
               disabled && 'cursor-not-allowed hover:bg-[var(--color-wash)] hover:border-[var(--color-line-3)] hover:text-[var(--color-ink-2)]',
             )}
           >
@@ -248,7 +248,7 @@ export function AccessBlock({
             type="button"
             onClick={() => setShowAll((prev) => !prev)}
             disabled={disabled}
-            className="col-span-full inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] border border-dashed border-[var(--color-line-3)] bg-[var(--color-wash)] px-3 py-2 text-sm font-semibold text-[var(--color-ink-2)] transition-colors hover:border-[var(--color-ring)] hover:bg-[var(--color-surface)] hover:text-[var(--color-brand-700)] disabled:cursor-not-allowed disabled:opacity-60"
+            className="col-span-full inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] border border-dashed border-[var(--color-line-3)] bg-[var(--color-wash)] px-3 py-2 text-sm font-semibold text-[var(--color-ink-2)] transition-colors hover:bg-[var(--color-surface)] hover:text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Icon icon={showAll ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line'} className="text-base" />
             {showAll

@@ -104,7 +104,7 @@ export function AccessScreen({
     <div className="space-y-8">
       {/* Page-level heading */}
       <header className="flex items-start gap-3">
-        <div className="flex size-tap-admin shrink-0 items-center justify-center rounded-lg bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] text-lg">
+        <div className="flex size-tap-admin shrink-0 items-center justify-center rounded-lg bg-[var(--color-panel)] text-[var(--color-ink-2)] text-lg">
           <Icon icon="ri-shield-user-line" />
         </div>
         <div>

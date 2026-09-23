@@ -421,7 +421,6 @@ function CategoryForm({
           type="submit"
           variant="primary"
           disabled={!canSubmit}
-          className="rounded-full bg-[var(--color-brand-600)] hover:bg-[var(--color-brand-hover)] text-white px-4 text-xs font-semibold shadow-e1"
         >
           {mode === 'create' ? (isEs ? 'Crear' : 'Create') : saveLabel}
         </Button>

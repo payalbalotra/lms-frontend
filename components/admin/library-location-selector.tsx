@@ -572,7 +572,7 @@ function StationScopePanel({
                     'ml-auto inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors',
                     suggestionApplied
                       ? 'text-[var(--color-ink-3)] cursor-default'
-                      : 'text-[var(--color-brand-700)] hover:bg-[var(--color-brand-tint)]',
+                      : 'text-[var(--color-brand-700)] hover:bg-[var(--color-panel)]',
                   )}
                 >
                   {suggestionApplied && <LuCheck aria-hidden="true" className="text-xs" />}

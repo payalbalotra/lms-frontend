@@ -1947,7 +1947,7 @@ function ChecklistEditor({
             variant="ghost"
             size="sm"
             onClick={addItem}
-            className="gap-1 text-[var(--color-brand-600)] hover:text-[var(--color-brand-700)] hover:bg-[var(--color-brand-tint)]"
+            className="gap-1 text-[var(--color-brand-600)] hover:text-[var(--color-brand-700)] hover:bg-[var(--color-panel)]"
           >
             <LuPlus aria-hidden="true" className="text-xs" />
             {t('checklist.addItem')}

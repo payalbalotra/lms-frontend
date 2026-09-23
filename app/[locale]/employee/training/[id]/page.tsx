@@ -147,7 +147,7 @@ export default async function EmployeeTrainingCoursePage({
             return quiz && quiz.attached && quiz.questions.length > 0 ? (
             <section className="space-y-4">
               <header className="flex items-center gap-2">
-                <Icon icon={LuGraduationCap} className="text-xl text-[var(--color-brand-700)]" aria-hidden="true" />
+                <Icon icon={LuGraduationCap} className="text-xl text-[var(--color-ink-2)]" aria-hidden="true" />
                 <h2 className="font-[family-name:var(--font-ui)] text-lg font-semibold text-[var(--color-ink)]">
                   {t('quizHeading')}
                 </h2>
@@ -160,7 +160,7 @@ export default async function EmployeeTrainingCoursePage({
           {linkedSops.length > 0 ? (
             <section className="space-y-3">
               <header className="flex items-center gap-2">
-                <Icon icon={LuBookOpen} className="text-xl text-[var(--color-brand-700)]" aria-hidden="true" />
+                <Icon icon={LuBookOpen} className="text-xl text-[var(--color-ink-2)]" aria-hidden="true" />
                 <h2 className="font-[family-name:var(--font-ui)] text-lg font-semibold text-[var(--color-ink)]">
                   {t('linkedSopsHeading')}
                 </h2>
@@ -198,9 +198,9 @@ export default async function EmployeeTrainingCoursePage({
           ) : null}
 
           {course.acknowledgement ? (
-            <section className="space-y-3 rounded-[var(--radius-lg)] border border-[var(--color-brand-600)]/30 bg-[var(--color-brand-tint)]/40 p-5">
+            <section className="space-y-3 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-5">
               <header className="flex items-center gap-2">
-                <Icon icon={LuSignature} className="text-xl text-[var(--color-brand-700)]" aria-hidden="true" />
+                <Icon icon={LuSignature} className="text-xl text-[var(--color-ink-2)]" aria-hidden="true" />
                 <h2 className="font-[family-name:var(--font-ui)] text-lg font-semibold text-[var(--color-ink)]">
                   {t('ackHeading', { version: course.acknowledgement.versionLabel })}
                 </h2>

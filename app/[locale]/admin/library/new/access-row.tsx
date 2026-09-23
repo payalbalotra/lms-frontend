@@ -66,7 +66,7 @@ export function AccessRow({
         <div className="flex min-w-0 items-center gap-3">
           <span
             aria-hidden="true"
-            className="flex size-8 shrink-0 items-center justify-center rounded-md bg-[var(--color-brand-tint)] text-[var(--color-brand-700)]"
+            className="flex size-8 shrink-0 items-center justify-center rounded-md bg-[var(--color-panel)] text-[var(--color-ink-2)]"
           >
             <Icon icon={icon} className="text-base" />
           </span>

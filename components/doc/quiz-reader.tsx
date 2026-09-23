@@ -56,7 +56,7 @@ export function QuizReader({ quiz, locale }: QuizReaderProps): React.ReactElemen
                 aria-expanded={isOpen}
                 className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-[var(--color-wash)]"
               >
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand-tint)] text-sm font-semibold text-[var(--color-brand-700)]">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-full border-2 border-[var(--color-line-2)] bg-[var(--color-surface)] text-sm font-semibold text-[var(--color-ink)]">
                   {i + 1}
                 </span>
                 <span className="flex-1 text-sm font-semibold text-[var(--color-ink)]">

@@ -203,7 +203,7 @@ function Thumb({ src, icon, initials, tint }: { src?: string; icon?: IconType; i
     <span
       aria-hidden="true"
       className={`flex size-12 shrink-0 items-center justify-center rounded-[var(--radius-md)] ${
-        tint ? 'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)]' : 'bg-[var(--color-panel)] text-[var(--color-ink-2)]'
+        'bg-[var(--color-panel)] text-[var(--color-ink-2)]'
       }`}
     >
       <Icon icon={icon ?? LuFileText} className="text-lg" />

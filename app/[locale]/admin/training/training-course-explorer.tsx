@@ -162,7 +162,7 @@ export function TrainingCourseExplorer({ locale, rows }: TrainingCourseExplorerP
 
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <h4 className="min-w-0 truncate text-base font-semibold leading-heading text-[var(--color-ink)] transition-colors group-hover:text-[var(--color-brand-700)]">
+                      <h4 className="min-w-0 truncate text-base font-semibold leading-heading text-[var(--color-ink)] transition-colors">
                         {title}
                       </h4>
                       <StatusPill tone={isDraft ? 'neutral' : 'ok'} withDot>

@@ -201,6 +201,7 @@ export function LocationsManager({
                             <div className="flex justify-end gap-2">
                               <Button
                                 size="sm"
+                                variant="secondary"
                                 disabled={isPending || !editingName.trim()}
                                 onClick={() => saveEdit(l)}
                               >

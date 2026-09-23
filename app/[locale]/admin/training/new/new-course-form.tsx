@@ -516,7 +516,7 @@ function LinkedSopsEditor({
                       'inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold transition-colors',
                       already
                         ? 'cursor-not-allowed bg-[var(--color-panel)] text-[var(--color-ink-3)]'
-                        : 'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] hover:bg-[var(--color-brand-tint-2)]',
+                        : 'bg-[var(--color-panel)] text-[var(--color-ink)] hover:bg-[var(--color-panel-2)]',
                     )}
                   >
                     {already ? (
@@ -686,7 +686,7 @@ function CourseBlockList({
                 key={kind}
                 type="button"
                 onClick={() => add(kind)}
-                className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2 text-xs font-semibold text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-ring)] transition-colors"
+                className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2 text-xs font-semibold text-[var(--color-ink)] hover:bg-[var(--color-wash)] hover:border-[var(--color-line-3)] transition-colors"
               >
                 <Icon icon={meta.icon} className="text-sm text-[var(--color-ink-2)]" />
                 {meta.label}

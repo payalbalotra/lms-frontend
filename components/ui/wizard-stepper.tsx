@@ -64,7 +64,7 @@ export function WizardStepper({
                           ? 'scale-105 bg-[var(--color-brand-600)] text-white ring-4 ring-[var(--color-brand-tint)]'
                           : isCompleted
                             ? 'bg-[var(--color-panel)] text-[var(--color-brand-700)]'
-                            : 'border border-[var(--color-line-3)] bg-[var(--color-surface)] text-[var(--color-ink-3)] group-hover:border-[var(--color-ring)]',
+                            : 'border border-[var(--color-line-3)] bg-[var(--color-surface)] text-[var(--color-ink-3)]',
                       )}
                     >
                       {isCompleted ? <LuCheck aria-hidden="true" className="text-sm font-semibold" /> : step.num}

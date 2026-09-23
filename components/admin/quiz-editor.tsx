@@ -149,7 +149,7 @@ export function QuizEditor({ value, onChange, isSaving }: QuizEditorProps): Reac
             className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)]"
           >
             <header className="flex items-start gap-3 border-b border-[var(--color-line)] bg-[var(--color-wash)] px-4 py-3">
-              <span className="mt-2 flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand-tint)] text-sm font-bold text-[var(--color-brand-700)]">
+              <span className="mt-2 flex size-8 shrink-0 items-center justify-center rounded-full border-2 border-[var(--color-line-2)] bg-[var(--color-surface)] text-sm font-bold text-[var(--color-ink)]">
                 {qi + 1}
               </span>
               <div className="flex-1 space-y-1">
@@ -238,7 +238,7 @@ export function QuizEditor({ value, onChange, isSaving }: QuizEditorProps): Reac
                     type="button"
                     onClick={() => addChoice(qi)}
                     disabled={isSaving}
-                    className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-[var(--color-brand-700)] hover:bg-[var(--color-brand-tint)] disabled:opacity-50"
+                    className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-[var(--color-brand-700)] hover:bg-[var(--color-panel)] disabled:opacity-50"
                   >
                     <LuPlus className="size-4" aria-hidden="true" />
                     {t('addOption')}
@@ -254,7 +254,7 @@ export function QuizEditor({ value, onChange, isSaving }: QuizEditorProps): Reac
         type="button"
         onClick={addQuestion}
         disabled={isSaving}
-        className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-lg)] border-2 border-dashed border-[var(--color-line-2)] bg-[var(--color-surface)] py-3 text-sm font-semibold text-[var(--color-ink-2)] transition-colors hover:border-[var(--color-ring)] hover:bg-[var(--color-brand-tint)] hover:text-[var(--color-brand-700)] disabled:opacity-50"
+        className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-lg)] border-2 border-dashed border-[var(--color-line-2)] bg-[var(--color-surface)] py-3 text-sm font-semibold text-[var(--color-ink-2)] transition-colors hover:border-[var(--color-line-3)] hover:bg-[var(--color-panel)] hover:text-[var(--color-ink)] disabled:opacity-50"
       >
         <LuPlus className="size-4" aria-hidden="true" />
         {t('addQuestion')}

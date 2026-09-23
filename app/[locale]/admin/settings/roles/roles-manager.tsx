@@ -244,6 +244,7 @@ export function RolesManager({
                             <div className="flex justify-end gap-2">
                               <Button
                                 size="sm"
+                                variant="secondary"
                                 disabled={isPending || !editingForm.name}
                                 onClick={() => saveEdit(r)}
                               >
