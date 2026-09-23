@@ -248,21 +248,29 @@ function CategoryForm({
     onErrorChange(null);
     onPendingChange(true);
 
+    // Only one of EN / ES is required. Whichever is filled wins; the other
+    // falls back to the filled one so the persisted record always has both
+    // populated and the reader side (EN-first, ES-first) still works.
+    const trimmedEn = nameEn.trim();
+    const trimmedEs = nameEs.trim();
+    const finalEn = trimmedEn || trimmedEs;
+    const finalEs = trimmedEs || trimmedEn;
+
     try {
       if (mode === 'create') {
         if (!locationId) throw new Error('Missing locationId');
         await createMutation.mutateAsync({
           locationId,
-          nameEn: nameEn.trim(),
-          nameEs: nameEs.trim() || nameEn.trim(),
+          nameEn: finalEn,
+          nameEs: finalEs,
           icon,
         });
       } else if (category) {
         await updateMutation.mutateAsync({
           id: category.id,
           input: {
-            nameEn: nameEn.trim(),
-            nameEs: nameEs.trim() || nameEn.trim(),
+            nameEn: finalEn,
+            nameEs: finalEs,
             icon,
           },
         });
@@ -275,7 +283,10 @@ function CategoryForm({
     }
   }
 
-  const canSubmit = !pending && nameEn.trim().length > 0;
+  // Either name is enough — Spanish is optional, English is optional, but at
+  // least one has to be filled before the user can save.
+  const canSubmit =
+    !pending && (nameEn.trim().length > 0 || nameEs.trim().length > 0);
   const currentIconObj = AVAILABLE_ICONS.find((i) => i.id === icon) ?? AVAILABLE_ICONS[0];
   const CurrentIconComp = currentIconObj.icon;
 
@@ -283,12 +294,12 @@ function CategoryForm({
     <form onSubmit={onSubmit} className="flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-[var(--color-line)] p-5 pb-3">
-        <div className="flex items-center gap-2.5">
-          <span className="flex size-9 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-panel)] text-[var(--color-ink-2)] text-base border border-[var(--color-line-2)]">
-            <LuFolder />
+        <div className="flex items-start gap-2.5">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-panel)] text-[var(--color-ink-2)] text-base border border-[var(--color-line-2)]">
+            <CurrentIconComp />
           </span>
           <div>
-            <h2 className="font-[family-name:var(--font-display)] text-lg font-bold tracking-tight text-[var(--color-ink)]">
+            <h2 className="font-[family-name:var(--font-display)] text-lg font-bold leading-tight tracking-tight text-[var(--color-ink)]">
               {mode === 'create'
                 ? isEs
                   ? 'Crear categoría'
@@ -297,7 +308,7 @@ function CategoryForm({
                   ? 'Editar categoría'
                   : 'Edit category'}
             </h2>
-            <p className="text-xs text-[var(--color-ink-3)]">
+            <p className="mt-1 text-xs text-[var(--color-ink-3)]">
               {isEs
                 ? 'Agrega una categoría para organizar tus procedimientos.'
                 : 'Add a category to organize your procedures in the library.'}
@@ -320,15 +331,13 @@ function CategoryForm({
         {/* Name (English) */}
         <div className="space-y-1">
           <Label htmlFor="cat-name-en" className="text-xs font-semibold text-[var(--color-ink)]">
-            {isEs ? 'Nombre (Inglés)' : 'Name (English)'}{' '}
-            <span className="text-[var(--color-bad)]">*</span>
+            {isEs ? 'Nombre (Inglés)' : 'Name (English)'}
           </Label>
           <Input
             id="cat-name-en"
             value={nameEn}
             onChange={(e) => setNameEn(e.target.value)}
             placeholder="e.g. Food Safety"
-            required
             autoFocus
             className="h-9 text-xs"
           />
@@ -337,17 +346,20 @@ function CategoryForm({
         {/* Name (Spanish) */}
         <div className="space-y-1">
           <Label htmlFor="cat-name-es" className="text-xs font-semibold text-[var(--color-ink)]">
-            {isEs ? 'Nombre (Español)' : 'Name (Spanish)'}{' '}
-            <span className="text-[var(--color-bad)]">*</span>
+            {isEs ? 'Nombre (Español)' : 'Name (Spanish)'}
           </Label>
           <Input
             id="cat-name-es"
             value={nameEs}
             onChange={(e) => setNameEs(e.target.value)}
             placeholder="e.g. Seguridad Alimentaria"
-            required
             className="h-9 text-xs"
           />
+          <p className="text-[11px] text-[var(--color-ink-3)]">
+            {isEs
+              ? 'Al menos uno de los dos nombres es obligatorio.'
+              : 'At least one of the two names is required.'}
+          </p>
         </div>
 
         {/* Icon Selection */}

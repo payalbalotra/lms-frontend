@@ -1,58 +1,55 @@
-import { apiClient } from '../api-client';
-import { LIBRARY_ENDPOINTS } from './endpoints';
-import type { Procedure, CreateProcedureInput, ProcedureFilterOptions } from './types';
+/**
+ * Library data layer.
+ *
+ * Mirrors the previous axios-backed shape (`fetchProcedures`,
+ * `fetchProcedureById`, `createProcedure`, `updateProcedure`,
+ * `archiveProcedure`) but routes every call through the localStorage mock
+ * store in `lib/api.ts`. Nothing in the wizard imports this module yet;
+ * keeping it shaped like the eventual real API means the wizard can adopt
+ * it later by swapping the imports.
+ *
+ * `updateProcedure` and `archiveProcedure` aren't implemented in the mock
+ * yet — they throw a clear error so accidental adoption surfaces the gap
+ * instead of silently writing through to a partial store.
+ */
+
+import {
+  listProcedures as mockListProcedures,
+  createProcedure as mockCreateProcedure,
+  getProcedureBySlug as mockGetProcedureBySlug,
+} from '@/lib/api';
+import type { Procedure, CreateProcedureInput } from '@/lib/types';
+import type { ProcedureFilterOptions } from './types';
 
 export async function fetchProcedures(
-  options: ProcedureFilterOptions = {},
-  isAdmin = false
+  _options: ProcedureFilterOptions = {},
+  _isAdmin = false
 ): Promise<{ procedures: Procedure[]; total?: number }> {
-  const endpoint = isAdmin
-    ? LIBRARY_ENDPOINTS.LIST_ADMIN
-    : LIBRARY_ENDPOINTS.LIST_PUBLIC;
-
-  const response = await apiClient.get<{ procedures: Procedure[]; total?: number }>(
-    endpoint,
-    { params: options }
-  );
-  return response.data;
+  const { procedures } = await mockListProcedures({});
+  return { procedures, total: procedures.length };
 }
 
 export async function fetchProcedureById(
   id: string,
-  isAdmin = false
+  _isAdmin = false
 ): Promise<Procedure> {
-  const endpoint = isAdmin
-    ? LIBRARY_ENDPOINTS.GET_ADMIN(id)
-    : LIBRARY_ENDPOINTS.GET_PUBLIC(id);
-
-  const response = await apiClient.get<{ procedure: Procedure }>(endpoint);
-  return response.data.procedure;
+  const { procedure } = await mockGetProcedureBySlug(id);
+  if (!procedure) throw new Error(`Procedure not found: ${id}`);
+  return procedure;
 }
 
-export async function createProcedure(
-  input: CreateProcedureInput
-): Promise<Procedure> {
-  const response = await apiClient.post<{ procedure: Procedure }>(
-    LIBRARY_ENDPOINTS.CREATE,
-    input
-  );
-  return response.data.procedure;
+export async function createProcedure(input: CreateProcedureInput): Promise<Procedure> {
+  const { procedure } = await mockCreateProcedure(input);
+  return procedure;
 }
 
 export async function updateProcedure(
-  id: string,
-  input: Partial<CreateProcedureInput>
+  _id: string,
+  _input: Partial<CreateProcedureInput>
 ): Promise<Procedure> {
-  const response = await apiClient.patch<{ procedure: Procedure }>(
-    LIBRARY_ENDPOINTS.UPDATE(id),
-    input
-  );
-  return response.data.procedure;
+  throw new Error('updateProcedure: not implemented in mock store');
 }
 
-export async function archiveProcedure(id: string): Promise<Procedure> {
-  const response = await apiClient.post<{ procedure: Procedure }>(
-    LIBRARY_ENDPOINTS.ARCHIVE(id)
-  );
-  return response.data.procedure;
+export async function archiveProcedure(_id: string): Promise<Procedure> {
+  throw new Error('archiveProcedure: not implemented in mock store');
 }

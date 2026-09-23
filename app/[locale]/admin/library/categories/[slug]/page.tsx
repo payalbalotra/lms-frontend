@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { notFound } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { setRequestLocale } from 'next-intl/server';
 import { listCategories, listLocations, ApiException, fetchMe } from '@/lib/api';
@@ -55,10 +54,11 @@ export default async function AdminCategoryDetailPage({
     }
   }
 
-  const category = categories.find((c) => c.slug === slug);
-  if (!category) {
-    notFound();
-  }
+  // Server-side we only know about the seed categories — anything created
+  // through the Create Category modal lives in the client mock store. Don't
+  // bounce the user with a 404 when their freshly-created category isn't on
+  // the server; pass `null` and let the client resolve it from localStorage.
+  const category = categories.find((c) => c.slug === slug) ?? null;
 
-  return <CategoryDetailClient category={category} locale={locale} />;
+  return <CategoryDetailClient initialCategory={category} slug={slug} locale={locale} />;
 }

@@ -1,8 +1,15 @@
 'use client';
 
+// Role-aware chrome: when the viewer is an admin the surrounding AdminShell
+// (see /procedures/layout.tsx) already provides the sidebar + sticky top bar,
+// so the page skips the employee `<TabBar>` and swaps the sticky `<DocBar>`
+// for an inline "back" link above the article. Employees get the full DocBar
+// and bottom TabBar unchanged.
+
 import * as React from 'react';
 import Link from 'next/link';
-import { getProcedureBySlug, getQuizById } from '@/lib/api';
+import { useRouter } from 'next/navigation';
+import { getProcedureBySlug, getQuizById, updateQuiz } from '@/lib/api';
 import type { Employee, Procedure, ProcedureBlock } from '@/lib/types';
 import { BlockRenderer, findAllergen } from '@/components/doc/block-renderer';
 import { QuizAttachBanner, QuizReader } from '@/components/doc/quiz-reader';
@@ -87,15 +94,16 @@ export function ProcedureViewClient({
   const handleAttach = React.useCallback(async () => {
     if (!proc || !proc.quizId) return;
     const quiz = getQuizById(proc.quizId);
-    if (!quiz) return;
+    if (!quiz || quiz.attached) return;
     setIsAttaching(true);
     try {
-      // Quiz is now in the centralised table — the read side resolves
-      // `quizId` to its quiz row via `getQuizById` on every render. The
-      // attach toggle mutation lands in a follow-up slice (it currently
-      // only updates local state; the backend will own the write).
-      const next = { ...proc, quizId: proc.quizId };
-      setProc(next);
+      // Flip the quiz's attached flag in the mock store. The read side
+      // resolves `procedure.quizId` to its quiz row on every render, so
+      // bumping the procedure's `updatedAt` here forces a re-render and
+      // the new flag is picked up next tick. The backend will replace
+      // this with a PATCH on `/api/admin/quizzes/:id`.
+      await updateQuiz(proc.quizId, { attached: true });
+      setProc({ ...proc, updatedAt: new Date().toISOString() });
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('lms_procedures_updated'));
       }
@@ -104,7 +112,34 @@ export function ProcedureViewClient({
     }
   }, [proc]);
 
-  const backHref = employee.role === 'admin' ? `/${locale}/admin/library` : `/${locale}/procedures`;
+  // Back navigation: when the user navigates *forward* to a procedure
+  // (e.g. from a category detail page), the previous URL is in
+  // `document.referrer`. Returning via `router.back()` preserves scroll
+  // position and any in-flight filter state on the source page.
+  // Deep links (new tab, shared URL) have no referrer — fall back to
+  // the role-specific landing.
+  const router = useRouter();
+  const fallbackHref = employee.role === 'admin'
+    ? `/${locale}/admin/library`
+    : `/${locale}/procedures`;
+  const [hasReferrer, setHasReferrer] = React.useState(false);
+  React.useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const ref = document.referrer;
+    if (!ref) return;
+    try {
+      const url = new URL(ref);
+      // Same-origin only — a foreign referrer (search engine, share link
+      // opened externally) should not hijack the back button.
+      if (url.origin === window.location.origin) setHasReferrer(true);
+    } catch {
+      // Malformed referrer — leave hasReferrer false and use the fallback.
+    }
+  }, []);
+  const onBack = React.useCallback(() => {
+    router.back();
+  }, [router]);
+  const backHref = fallbackHref;
 
   if (isLoading) {
     return (
@@ -179,8 +214,18 @@ export function ProcedureViewClient({
   const quizVisible = Boolean(quiz && (quiz.attached || proc.attachedToTraining));
   const showAttachBanner = quizExists && !quizVisible && employee.role === 'admin';
 
+  // Admins come in through the AdminShell (see /procedures/layout.tsx) which
+  // already supplies the surrounding chrome (sidebar + sticky top bar). They
+  // do not need the employee `<TabBar>`; padding matches the shell's main
+  // column so the doc sits flush rather than reserving space for a bar that
+  // isn't there.
+  const isAdmin = employee.role === 'admin';
+  const wrapperClass = isAdmin
+    ? 'min-h-screen bg-[var(--color-bg)]'
+    : 'min-h-screen bg-[var(--color-bg)] pb-20';
+
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] pb-20">
+    <div className={wrapperClass}>
       {showAttachBanner && !bannerDismissed ? (
         <div className="mx-auto w-full max-w-doc px-4 pt-6 sm:px-6">
           <QuizAttachBanner
@@ -192,12 +237,37 @@ export function ProcedureViewClient({
       ) : null}
       <article className="doc">
         <DocBehaviour />
-        <DocBar
-          backHref={backHref}
-          backLabel={labels.back}
-          title={title || 'Untitled Procedure'}
-          category={categoryLabel}
-        />
+        {/* The sticky DocBar carries the per-page chrome (back, where, more)
+            for cooks reading on a phone. Inside the AdminShell the shell's own
+            sticky top bar already serves as the surrounding chrome, so we
+            swap the DocBar for an inline "back" link that sits above the
+            article — the same shape other admin detail pages use to climb
+            back out to the list. */}
+        {isAdmin ? (
+          <div className="px-4 pt-6 sm:px-6">
+            <Link
+              href={backHref}
+              onClick={(e) => {
+                if (hasReferrer) {
+                  e.preventDefault();
+                  onBack();
+                }
+              }}
+              className="inline-flex min-h-tap-admin items-center gap-2 text-sm font-semibold text-[var(--color-ink-2)] hover:text-[var(--color-ink)]"
+            >
+              <LuArrowLeft aria-hidden="true" />
+              {labels.back}
+            </Link>
+          </div>
+        ) : (
+          <DocBar
+            backHref={backHref}
+            backLabel={labels.back}
+            onBack={hasReferrer ? onBack : undefined}
+            title={title || 'Untitled Procedure'}
+            category={categoryLabel}
+          />
+        )}
 
         {cover ? <Cover src={cover.src} alt={cover.alt} /> : null}
 
@@ -259,17 +329,19 @@ export function ProcedureViewClient({
         />
       </article>
 
-      <TabBar
-        locale={locale}
-        active="procedures"
-        labels={{
-          ask: labels.tabAsk,
-          procedures: labels.tabProcedures,
-          training: labels.tabTraining,
-          soon: labels.tabSoon,
-          nav: labels.tabsNav,
-        }}
-      />
+      {isAdmin ? null : (
+        <TabBar
+          locale={locale}
+          active="procedures"
+          labels={{
+            ask: labels.tabAsk,
+            procedures: labels.tabProcedures,
+            training: labels.tabTraining,
+            soon: labels.tabSoon,
+            nav: labels.tabsNav,
+          }}
+        />
+      )}
     </div>
   );
 }

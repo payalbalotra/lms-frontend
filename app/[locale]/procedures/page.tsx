@@ -55,9 +55,17 @@ export default async function ProceduresPage({ params, searchParams }: PageProps
   const readsSpanish = employee.languagePref === 'es';
   const backHref = employee.role === 'admin' ? `/${locale}/admin/library` : `/${locale}/employee/assigned`;
 
+  // Admins land here inside `AdminShell` (see /procedures/layout.tsx) which
+  // owns the page padding — keep this page flush and skip the employee
+  // `<TabBar>` so we don't stack a phone bar under the desktop sidebar.
+  const isAdmin = employee.role === 'admin';
+  const mainClass = isAdmin
+    ? 'mx-auto w-full max-w-doc px-4 pt-6 sm:px-6 sm:pt-8'
+    : 'mx-auto w-full max-w-doc px-4 pb-20 pt-6 sm:px-6 sm:pt-8';
+
   return (
     <>
-      <main className="mx-auto w-full max-w-doc px-4 pb-20 pt-6 sm:px-6 sm:pt-8">
+      <main className={mainClass}>
         <Link
           href={backHref}
           className="inline-flex min-h-tap items-center gap-2 text-base font-semibold text-[var(--color-ink-2)]"
@@ -81,17 +89,19 @@ export default async function ProceduresPage({ params, searchParams }: PageProps
         />
       </main>
 
-      <TabBar
-        locale={locale}
-        active="procedures"
-        labels={{
-          ask: t('tabAsk'),
-          procedures: t('tabProcedures'),
-          training: t('tabTraining'),
-          soon: t('tabSoon'),
-          nav: t('tabsNav'),
-        }}
-      />
+      {isAdmin ? null : (
+        <TabBar
+          locale={locale}
+          active="procedures"
+          labels={{
+            ask: t('tabAsk'),
+            procedures: t('tabProcedures'),
+            training: t('tabTraining'),
+            soon: t('tabSoon'),
+            nav: t('tabsNav'),
+          }}
+        />
+      )}
     </>
   );
 }

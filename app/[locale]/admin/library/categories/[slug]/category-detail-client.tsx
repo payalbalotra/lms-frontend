@@ -29,7 +29,13 @@ import {
 } from 'react-icons/lu';
 
 interface CategoryDetailClientProps {
-  category: Category;
+  /** The category the server saw. `null` when the category exists only in the
+   *  client mock store (e.g. just-created via the Create Category modal —
+   *  the backend is not running, so the server fetch misses it). */
+  initialCategory: Category | null;
+  /** The slug from the URL — used to look the category up client-side when
+   *  the server didn't find it. */
+  slug: string;
   locale: string;
 }
 
@@ -40,6 +46,22 @@ const DEFAULT_STATIONS = [
   { id: 'stn-prep', code: 'Prep Kitchen', description: 'Prep & Cold Station' },
   { id: 'stn-dish', code: 'Dishwasher', description: 'Sanitation & Dish' },
 ];
+
+/** Subcategories store station ids (`stn-gm`, `st-grill`, …). The row
+ *  badges surface the human-readable `code` instead — the raw id is a
+ *  meaningless slug for the manager. The `EXISTING_PROCEDURES` catalog
+ *  uses the Access step's `st-` ids, so we map both prefixes. Falls back
+ *  to the input so an unknown id still renders rather than blowing up
+ *  the row. */
+const STATION_CODE_BY_ID: Record<string, string> = Object.fromEntries(
+  DEFAULT_STATIONS.flatMap((s) => [
+    [s.id, s.code],
+    [s.id.replace(/^stn-/, 'st-'), s.code],
+  ]),
+);
+function stationCode(id: string): string {
+  return STATION_CODE_BY_ID[id] ?? id;
+}
 
 /** Library-wide catalog of procedures already created in the system. The
  *  Add Procedure modal surfaces this list so the manager can pick one or
@@ -164,19 +186,57 @@ function getSubcategoryIcon(slug: string, index: number) {
 }
 
 export function CategoryDetailClient({
-  category: initialCategory,
+  initialCategory,
+  slug,
   locale,
 }: CategoryDetailClientProps): React.ReactElement {
   const router = useRouter();
   const isEs = locale === 'es';
-  const [category, setCategory] = React.useState<Category>(initialCategory);
+  const [category, setCategory] = React.useState<Category | null>(initialCategory);
+  const [isResolving, setIsResolving] = React.useState<boolean>(initialCategory === null);
+  const [notFound, setNotFound] = React.useState<boolean>(false);
   const [addSubOpen, setAddSubOpen] = React.useState(false);
   const [editingSub, setEditingSub] = React.useState<Subcategory | null>(null);
 
+  // Categories created through the modal are stored in the client mock
+  // store; the server's seed fetch can't see them. On mount, if the server
+  // didn't hand us a category, ask the mock store directly.
+  React.useEffect(() => {
+    if (initialCategory !== null) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { listCategories } = await import('@/lib/api');
+        // locationId is not needed client-side — the mock store is location-
+        // agnostic in the demo.
+        const { categories } = await listCategories('loc-main');
+        const match = categories.find((c) => c.slug === slug);
+        if (cancelled) return;
+        if (match) {
+          setCategory(match);
+          setNotFound(false);
+        } else {
+          setNotFound(true);
+        }
+      } catch {
+        if (!cancelled) setNotFound(true);
+      } finally {
+        if (!cancelled) setIsResolving(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [initialCategory, slug]);
+
   // State for the single expanded subcategory (accordion). One open at a time —
   // multi-expand fragments the manager's focus and turns the panel into a list.
+  // `initialCategory` is nullable on first render (the server may not have seen
+  // a category created only in the client mock store); the lazy initializer
+  // short-circuits to `null` in that case and the first real expanded sub is
+  // decided after the client-side resolve lands.
   const [expandedSubSlug, setExpandedSubSlug] = React.useState<string | null>(() => {
-    return initialCategory.subcategories?.[0]?.slug ?? null;
+    return initialCategory?.subcategories?.[0]?.slug ?? null;
   });
 
   const toggleExpand = (subSlug: string) => {
@@ -184,7 +244,11 @@ export function CategoryDetailClient({
   };
 
   const updateMutation = useUpdateCategory();
-  const subcategories = category.subcategories ?? [];
+  // `category` is `Category | null` while the client-side resolve is in flight
+  // (the server only knows about seed categories — anything created through
+  // the modal lives in localStorage). Loading + not-found states are rendered
+  // before any code below touches `category.subcategories` / `category.id`.
+  const subcategories = category?.subcategories ?? [];
   const totalProcedures = subcategories.length > 0 ? subcategories.length * 5 + 4 : 0;
 
   // Procedures the manager has linked into a subcategory via the "Add
@@ -204,6 +268,12 @@ export function CategoryDetailClient({
     isStationSpecific: boolean;
     stations?: string[];
   }) {
+    // The mutation is only ever invoked from inside the main panel render —
+    // by that point the loading / not-found guards above have already
+    // narrowed `category` to non-null. Re-check here so strict TypeScript
+    // narrows `category.id` inside the closure without a non-null assertion.
+    if (!category) return;
+    const targetCategory = category;
     const updatedSubs = [...subcategories];
     if (editingSub) {
       const idx = updatedSubs.findIndex((s) => s.id === editingSub.id || s.slug === editingSub.slug);
@@ -230,7 +300,7 @@ export function CategoryDetailClient({
 
     try {
       await updateMutation.mutateAsync({
-        id: category.id,
+        id: targetCategory.id,
         input: {
           subcategories: updatedSubs.map((s) => ({
             nameEn: s.nameEn,
@@ -239,7 +309,7 @@ export function CategoryDetailClient({
           })),
         },
       });
-      setCategory((prev) => ({ ...prev, subcategories: updatedSubs }));
+      setCategory((prev) => (prev ? { ...prev, subcategories: updatedSubs } : prev));
     } catch {
       // Optimistic state preserved
     }
@@ -248,6 +318,8 @@ export function CategoryDetailClient({
   const [stationPickerSub, setStationPickerSub] = React.useState<Subcategory | null>(null);
 
   async function handleSaveStations(subToUpdate: Subcategory, selectedStations: string[]) {
+    if (!category) return;
+    const targetCategory = category;
     const updatedSubs = subcategories.map((s) =>
       s.id === subToUpdate.id || s.slug === subToUpdate.slug
         ? { ...s, stations: selectedStations, isStationSpecific: true }
@@ -256,7 +328,7 @@ export function CategoryDetailClient({
 
     try {
       await updateMutation.mutateAsync({
-        id: category.id,
+        id: targetCategory.id,
         input: {
           subcategories: updatedSubs.map((s) => ({
             nameEn: s.nameEn,
@@ -265,10 +337,81 @@ export function CategoryDetailClient({
           })),
         },
       });
-      setCategory((prev) => ({ ...prev, subcategories: updatedSubs }));
+      setCategory((prev) => (prev ? { ...prev, subcategories: updatedSubs } : prev));
     } catch {
       // Optimistic state preserved
     }
+  }
+
+  // Loading: the server's seed fetch missed (only client mock store has it),
+  // and the client-side resolve is still running. Show a quiet pulse so the
+  // user doesn't think the link was broken.
+  if (isResolving) {
+    return (
+      <div className="mx-auto max-w-5xl pb-12">
+        <nav
+          aria-label="Breadcrumb"
+          className="flex items-center gap-1.5 pt-6 text-xs text-[var(--color-ink-3)] font-medium"
+        >
+          <Link
+            href={`/${locale}/admin/library/categories`}
+            className="hover:text-[var(--color-ink)] transition-colors flex items-center gap-1"
+          >
+            <LuArrowLeft className="text-sm" />
+            <span>{isEs ? 'Categorías' : 'Categories'}</span>
+          </Link>
+        </nav>
+        <div
+          role="status"
+          aria-live="polite"
+          className="mt-4 flex flex-col items-center justify-center rounded-[var(--radius-lg)] border border-dashed border-[var(--color-line-2)] bg-[var(--color-surface)] p-12 text-center"
+        >
+          <p className="text-sm font-medium text-[var(--color-ink-2)] animate-pulse">
+            {isEs ? 'Cargando categoría…' : 'Loading category…'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Not found: the mock store also doesn't have a category with this slug —
+  // either the row was deleted or the user opened a stale link. Mirror the
+  // 404 shape on /procedures/[id] but keep it inside the admin shell chrome
+  // (no full-page takeover) so the sidebar remains usable.
+  if (!category || notFound) {
+    return (
+      <div className="mx-auto max-w-5xl pb-12">
+        <nav
+          aria-label="Breadcrumb"
+          className="flex items-center gap-1.5 pt-6 text-xs text-[var(--color-ink-3)] font-medium"
+        >
+          <Link
+            href={`/${locale}/admin/library/categories`}
+            className="hover:text-[var(--color-ink)] transition-colors flex items-center gap-1"
+          >
+            <LuArrowLeft className="text-sm" />
+            <span>{isEs ? 'Categorías' : 'Categories'}</span>
+          </Link>
+        </nav>
+        <div className="mt-4 flex flex-col items-center justify-center rounded-[var(--radius-lg)] border border-dashed border-[var(--color-line-2)] bg-[var(--color-surface)] p-12 text-center">
+          <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight text-[var(--color-ink)]">
+            {isEs ? 'Categoría no encontrada' : 'Category not found'}
+          </h1>
+          <p className="mt-2 max-w-md text-sm text-[var(--color-ink-2)]">
+            {isEs
+              ? 'La categoría solicitada no existe o fue eliminada.'
+              : 'The requested category does not exist or has been removed.'}
+          </p>
+          <Link
+            href={`/${locale}/admin/library/categories`}
+            className="mt-6 inline-flex min-h-tap-admin items-center gap-2 rounded-full bg-[var(--color-brand-600)] px-5 py-2.5 text-sm font-semibold text-white shadow-e1 hover:bg-[var(--color-brand-hover)]"
+          >
+            <LuArrowLeft aria-hidden="true" />
+            {isEs ? 'Volver a Categorías' : 'Back to Categories'}
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -448,7 +591,7 @@ export function CategoryDetailClient({
                             }}
                             className="cursor-pointer inline-flex min-w-[36px] h-6 items-center justify-center px-2.5 text-[11px] font-semibold tracking-[0.02em] leading-none rounded-md bg-[var(--color-panel-2)] text-[var(--color-ink)] border border-[var(--color-line-2)] shadow-2xs hover:bg-[var(--color-brand-tint)] hover:text-[var(--color-brand-700)] transition-colors"
                           >
-                            {code}
+                            {stationCode(code)}
                           </span>
                         ))}
                         {hiddenStationCount > 0 && (
@@ -571,7 +714,7 @@ export function CategoryDetailClient({
                                   tone="info"
                                   className="bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] border border-[var(--color-brand-600)]/20 hidden sm:inline-flex"
                                 >
-                                  {proc.station}
+                                  {stationCode(proc.station)}
                                 </StatusPill>
                               )}
                               <span className="hidden md:inline-flex items-center gap-1 text-xs text-[var(--color-ink-3)] font-medium">

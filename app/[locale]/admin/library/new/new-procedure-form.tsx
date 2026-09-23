@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
+import { StatusPill } from '@/components/ui/status-pill';
 import { PageHeader } from '@/components/admin/page-header';
 import { FilterChips } from '@/components/ui/filter-chips';
 import { SegmentedControl } from '@/components/ui/segmented-control';
@@ -1095,17 +1096,11 @@ export function NewProcedureForm({
       ];
 
   const completedCount = sections.filter((s) => s.completed).length;
-  // Total selections across all four access dimensions — drives the
-  // access card eyebrow on Review. Tier contributes 1 when picked.
-  const accessCount =
-    accessSelections.locations.size +
-    (accessTier ? 1 : 0) +
-    accessSelections.jobRoles.size +
-    accessSelections.stations.size;
   const activeCategory = categories.find((c) => c.id === categoryId);
   const categoryLabel = activeCategory
     ? (locale === 'es' ? activeCategory.nameEs : activeCategory.nameEn)
     : 'Recipes';
+  const isEs = locale === 'es';
 
   const activeTitle = titleLang === 'en' ? titleEn : titleEs;
   const activePurpose = purposeLang === 'en' ? purposeEn : purposeEs;
@@ -1362,19 +1357,19 @@ export function NewProcedureForm({
             id="proc-review"
             icon="ri-checkbox-circle-line"
             title="Review & finish"
-            subtitle="Confirm the procedure, who can see it, and where it goes."
+            subtitle="Confirm the procedure, where it falls in the library, and who gets it."
           >
-            <div className="space-y-5">
-              {/* 1. Procedure — what this document is. */}
+            <div className="space-y-6">
+              {/* 1. Procedure preview — what this document is. */}
               <ReviewCard
                 icon="ri-file-text-line"
                 title="Procedure"
                 eyebrow={`${categoryLabel} · ${isRecipeMode ? 'Recipe' : 'Procedure'}`}
               >
-                <h3 className="text-lg font-semibold tracking-snug text-[var(--color-ink)]">
+                <h3 className="font-[family-name:var(--font-display)] text-lg font-semibold tracking-snug text-[var(--color-ink)]">
                   {activeTitle || '(Untitled procedure)'}
                 </h3>
-                <p className="mt-1 text-base leading-body text-[var(--color-ink-2)]">
+                <p className="mt-1 text-sm leading-body text-[var(--color-ink-2)]">
                   {activePurpose || '(No purpose provided yet — go back to Details to add one.)'}
                 </p>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -1404,73 +1399,151 @@ export function NewProcedureForm({
                 </div>
               </ReviewCard>
 
-              {/* 2. Access — who can see this. Drawn from the Access tab.
-                    The eyebrow swaps between "Public (visible to everyone)"
-                    and the scoped count so the manager can confirm their
-                    intent at a glance before publishing. */}
+              {/* 2. Where it falls — the categories → subcategories → stations
+                    chain the procedure lands in. This is the "where in the
+                    library does this live" answer, in the order the manager
+                    picked them on step 1 + step 4. */}
               <ReviewCard
-                icon="ri-shield-user-line"
-                title="Access"
-                eyebrow={
-                  accessLevel === 'everyone'
-                    ? tAccess('reviewPublicBadge')
-                    : (() => {
-                        const groups =
-                          ['locations', 'jobRoles', 'stations'].filter(
-                            (k) =>
-                              accessSelections[k as 'locations' | 'jobRoles' | 'stations'].size > 0,
-                          ).length + (accessTier ? 1 : 0);
-                        return `${accessCount} selected across ${groups} dimension${groups === 1 ? '' : 's'}`;
-                      })()
-                }
-              >
-                {/* Locations */}
-                <ReviewChipRow
-                  icon="ri-map-pin-line"
-                  label="Locations"
-                  items={ACCESS_LOCATIONS.filter((o) => accessSelections.locations.has(o.id))}
-                  emptyText="No locations selected — open to everyone"
-                />
-
-                {/* Access level (single-select tier) */}
-                <ReviewChipRow
-                  icon="ri-shield-user-line"
-                  label="Access level"
-                  items={
-                    accessTier
-                      ? ACCESS_TIER_ROLES.filter((o) => o.id === accessTier)
-                      : []
+                icon="ri-route-line"
+                title="Where it falls"
+                eyebrow={(() => {
+                  const catCount = accessSelections.categories.size;
+                  const subCount = accessSelections.subcategories.size;
+                  const staCount = accessSelections.stations.size;
+                  if (catCount === 0 && subCount === 0 && staCount === 0) {
+                    return 'Not placed — go back to Access to pick a location';
                   }
-                  emptyText="No tier picked — no access level filter"
-                />
+                  const parts: string[] = [];
+                  if (catCount) parts.push(`${catCount} categor${catCount === 1 ? 'y' : 'ies'}`);
+                  if (subCount) parts.push(`${subCount} subcategor${subCount === 1 ? 'y' : 'ies'}`);
+                  if (staCount) parts.push(`${staCount} station${staCount === 1 ? '' : 's'}`);
+                  return parts.join(' · ');
+                })()}
+              >
+                {/* Categories — each card expands to its subcategories, then
+                    to the stations scoped under that subcategory. The manager
+                    can verify the chain at a glance before publishing. */}
+                {accessSelections.categories.size === 0 ? (
+                  <p className="text-sm italic text-[var(--color-ink-3)]">
+                    No library category picked — the procedure won't appear in any subcategory list.
+                  </p>
+                ) : (
+                  <ul className="space-y-3">
+                    {sourceCategories
+                      .filter((c) => accessSelections.categories.has(c.id))
+                      .map((cat) => {
+                        const subsInCat = (cat.subcategories ?? []).filter((s) =>
+                          accessSelections.subcategories.has(s.id),
+                        );
+                        return (
+                          <li
+                            key={cat.id}
+                            className="rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-4"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[var(--color-brand-tint)] text-[var(--color-brand-700)]">
+                                <Icon icon={cat.icon ?? 'ri-folder-line'} className="text-base" />
+                              </span>
+                              <span className="font-[family-name:var(--font-ui)] text-sm font-semibold text-[var(--color-ink)]">
+                                {isEs ? cat.nameEs : cat.nameEn}
+                              </span>
+                              <span className="ml-auto text-xs font-medium text-[var(--color-ink-3)]">
+                                {subsInCat.length} subcategor{subsInCat.length === 1 ? 'y' : 'ies'}
+                              </span>
+                            </div>
+                            {subsInCat.length === 0 ? (
+                              <p className="mt-2 pl-9 text-sm italic text-[var(--color-ink-3)]">
+                                No subcategory picked under this category.
+                              </p>
+                            ) : (
+                              <ul className="mt-2 space-y-2 pl-9">
+                                {subsInCat.map((s) => {
+                                  // Stations are flat — they aren't nested
+                                  // under a specific subcategory in this
+                                  // model. Surface the station-scope chip on
+                                  // each row so the manager can see whether
+                                  // the subcategory is scoped to specific
+                                  // stations or applies everywhere.
+                                  const isStnSpecific = s.isStationSpecific;
+                                  return (
+                                    <li
+                                      key={s.id}
+                                      className="flex items-center gap-2 text-sm"
+                                    >
+                                      <Icon
+                                        icon="ri-arrow-right-s-line"
+                                        className="text-sm text-[var(--color-ink-3)]"
+                                      />
+                                      <span className="font-medium text-[var(--color-ink)]">
+                                        {isEs ? s.nameEs : s.nameEn}
+                                      </span>
+                                      {isStnSpecific && accessSelections.stations.size > 0 && (
+                                        <span className="ml-auto inline-flex flex-wrap items-center gap-1">
+                                          {Array.from(accessSelections.stations).map((sid) => (
+                                            <StatusPill
+                                              key={sid}
+                                              tone="info"
+                                              className="bg-[var(--color-brand-tint)] text-[var(--color-brand-700)]"
+                                            >
+                                              {accessStationCode(sid)}
+                                            </StatusPill>
+                                          ))}
+                                        </span>
+                                      )}
+                                    </li>
+                                  );
+                                })}
+                              </ul>
+                            )}
+                          </li>
+                        );
+                      })}
+                  </ul>
+                )}
 
-                {/* Job roles */}
-                <ReviewChipRow
-                  icon="ri-knife-line"
-                  label="Job role"
-                  items={ACCESS_JOB_ROLES.filter((o) => accessSelections.jobRoles.has(o.id))}
-                  emptyText="No job roles picked"
-                />
-
-                {/* Stations */}
-                <ReviewChipRow
-                  icon="ri-store-2-line"
-                  label="Stations"
-                  items={ACCESS_STATIONS.filter((o) => accessSelections.stations.has(o.id))}
-                  emptyText="No stations selected — applies everywhere"
-                />
+                {/* Station scope — only when a station-specific subcategory
+                    is selected, this card surfaces the picked stations on
+                    their own so the manager can confirm the scope. */}
+                {accessSelections.stations.size > 0 && (
+                  <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[var(--color-line)] pt-4">
+                    <Icon icon="ri-store-2-line" className="text-sm text-[var(--color-ink-3)]" />
+                    <span className="text-sm font-semibold text-[var(--color-ink-2)]">
+                      Station scope
+                    </span>
+                    <span className="text-xs text-[var(--color-ink-3)]">
+                      {accessSelections.stations.size} station
+                      {accessSelections.stations.size === 1 ? '' : 's'} selected
+                    </span>
+                    <div className="ml-auto flex flex-wrap items-center gap-2">
+                      {Array.from(accessSelections.stations).map((sid) => (
+                        <StatusPill
+                          key={sid}
+                          tone="info"
+                          className="bg-[var(--color-brand-tint)] text-[var(--color-brand-700)]"
+                        >
+                          {accessStationCode(sid)}
+                        </StatusPill>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </ReviewCard>
 
-              {/* 3. Assignees — specific employees pulled in. Drawn from the Access tab. */}
+              {/* 3. People — assignees pulled in by name. Drawn from the Access
+                    step's employee picker. */}
               <ReviewCard
                 icon="ri-team-line"
-                title="Assignees"
-                eyebrow={`${accessSelections.employees.size} employee${accessSelections.employees.size === 1 ? '' : 's'}`}
+                title="People assigned"
+                eyebrow={
+                  accessSelections.employees.size === 0
+                    ? 'No assignees'
+                    : `${accessSelections.employees.size} employee${accessSelections.employees.size === 1 ? '' : 's'}`
+                }
               >
                 {accessSelections.employees.size === 0 ? (
                   <p className="text-sm italic text-[var(--color-ink-3)]">
-                    No employees assigned yet. Procedure will still be visible
-                    to anyone matching the access ranges above.
+                    No specific people assigned. The procedure will still be
+                    visible to anyone who matches the categories + stations above.
                   </p>
                 ) : (
                   <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -1522,20 +1595,21 @@ export function NewProcedureForm({
                 </ReviewCard>
               )}
 
-              {/* 5. Final actions — Publish, Assign, Save draft. */}
+              {/* 5. Final actions — Publish, Save draft. */}
               <div className="rounded-[var(--radius-lg)] border border-[var(--color-brand-tint-2)] bg-[var(--color-brand-tint)] p-5 shadow-e1">
                 <div className="flex items-start gap-3">
                   <span className="flex size-tap-admin shrink-0 items-center justify-center rounded-lg bg-[var(--color-brand-600)] text-white">
                     <Icon icon="ri-rocket-2-line" className="text-lg" />
                   </span>
                   <div className="flex-1">
-                    <h3 className="font-[family-name:var(--font-ui)] text-md font-semibold text-[var(--color-ink)]">
+                    <h3 className="font-[family-name:var(--font-display)] text-md font-semibold tracking-snug text-[var(--color-ink)]">
                       Ready to go live?
                     </h3>
                     <p className="mt-0.5 text-sm text-[var(--color-ink-2)]">
-                      Publishing makes this procedure visible to everyone in the
-                      selected access ranges and notifies assignees. Saving as a
-                      draft keeps it private until you're ready.
+                      Publishing makes this procedure visible to everyone in
+                      the picked categories and stations, and notifies
+                      assignees. Saving as a draft keeps it private until
+                      you're ready.
                     </p>
                   </div>
                 </div>
@@ -1560,25 +1634,12 @@ export function NewProcedureForm({
                   >
                     Save as draft
                   </Button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      // No-op stub: re-sends the notification digest to assignees
-                      // once the procedure is published. Wired through here so
-                      // the manager has a one-click "nudge" without republishing.
-                      setIsDirty(true);
-                    }}
-                    className="ml-auto inline-flex items-center gap-2 rounded-md px-2 py-1 text-sm font-semibold text-[var(--color-ink-2)] hover:bg-[var(--color-panel)] hover:text-[var(--color-ink)]"
-                  >
-                    <Icon icon="ri-notification-3-line" />
-                    Notify assignees
-                  </button>
                 </div>
                 <p className="mt-3 text-sm text-[var(--color-ink-2)]">
                   <Icon icon="ri-information-line" className="mr-1 align-text-bottom" />
                   {accessSelections.employees.size > 0
                     ? `${accessSelections.employees.size} employee${accessSelections.employees.size === 1 ? '' : 's'} will be notified when published.`
-                    : 'No assignees selected — only people in the access ranges above will see this.'}
+                    : 'No assignees selected — only people in the picked categories and stations will see this.'}
                 </p>
               </div>
             </div>
@@ -1897,13 +1958,6 @@ export function NewProcedureForm({
 // stays self-contained — the Review step is the only place that needs them.
 // ---------------------------------------------------------------------------
 
-interface AccessOption {
-  id: string;
-  label: string;
-  sub?: string;
-  icon?: string;
-}
-
 /** Single labelled chip — used to surface counts (block count, clearance,
  *  ingredient count) without burying the underlying data. */
 function Chip({
@@ -1968,46 +2022,12 @@ function ReviewCard({
   );
 }
 
-/** A small icon + label + chips-or-empty row inside a ReviewCard. Used for
- *  the locations / roles / stations lists — same shape across the three
- *  so the manager can scan once. */
-function ReviewChipRow({
-  icon,
-  label,
-  items,
-  emptyText,
-}: {
-  icon: string;
-  label: string;
-  items: AccessOption[];
-  emptyText: string;
-}): React.ReactElement {
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2 text-sm font-semibold text-[var(--color-ink-3)]">
-        <Icon icon={icon} className="text-sm" />
-        <span>{label}</span>
-        <span className="text-[var(--color-ink-3)]">·</span>
-        <span className="text-[var(--color-ink-3)]">{items.length}</span>
-      </div>
-      {items.length === 0 ? (
-        <p className="text-sm italic text-[var(--color-ink-3)]">{emptyText}</p>
-      ) : (
-        <div className="flex flex-wrap gap-2">
-          {items.map((opt) => (
-            <span
-              key={opt.id}
-              className="inline-flex items-center gap-1 rounded-full border border-[var(--color-line-2)] bg-[var(--color-wash)] px-3 py-1 text-sm font-medium text-[var(--color-ink)]"
-            >
-              {opt.icon && <Icon icon={opt.icon} className="text-sm text-[var(--color-brand-700)]" />}
-              <span>{opt.label}</span>
-              {opt.sub && (
-                <span className="text-[var(--color-ink-3)]">{opt.sub}</span>
-              )}
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+/** Translate an Access step station id (`st-gm`, `st-grill`, …) to the
+ *  human-readable code shown to the manager. Falls back to the input
+ *  so an unknown id still renders rather than blowing up the row. */
+const ACCESS_STATION_CODE_BY_ID: Record<string, string> = Object.fromEntries(
+  ACCESS_STATIONS.map((s) => [s.id, s.label]),
+);
+function accessStationCode(id: string): string {
+  return ACCESS_STATION_CODE_BY_ID[id] ?? id;
 }
