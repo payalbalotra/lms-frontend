@@ -146,7 +146,7 @@ export function MultiSelectChips({
                   aria-label={`Remove ${opt.label}`}
                   onClick={() => handleRemove(opt.value)}
                   disabled={disabled}
-                  className="-mr-1 ml-1 inline-flex size-5 shrink-0 items-center justify-center rounded-full text-[var(--color-brand-700)] transition-colors hover:bg-[var(--color-brand-tint-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] disabled:opacity-50"
+                  className="-mr-1 ml-1 inline-flex size-5 shrink-0 items-center justify-center rounded-full text-[var(--color-brand-700)] transition-colors hover:bg-[var(--color-panel)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] disabled:opacity-50"
                 >
                   <LuX className="text-sm" aria-hidden="true" />
                 </button>

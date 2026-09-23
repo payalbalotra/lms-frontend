@@ -38,6 +38,11 @@
                             everything around it. A control is now identified by its white fill on the
                             pale ground, its icon and its placeholder, and it announces itself properly
                             the moment it matters: focus keeps the full brand border and tint ring. */
+  --line-hover: #a9a69c;  /* the edge of a card under the pointer. A card is content on the ground,
+                            so its hover lifts away from the ground rather than sinking into it:
+                            filling it with wash made it the ground's own colour (1.08:1). This is
+                            2.44:1 on the card, 1.76x its resting edge. line-3 cannot do this job in
+                            light, where it equals line-2. */
 
   /* Brand. One colour, for action and selection. */
   --brand:        #eb5940;  /* the site's own terracotta. Progress fill on dark surfaces, hover rules. Not for text on white: 3.5:1 */
@@ -215,6 +220,7 @@
   --line:     #36342d;
   --line-2:   #403e35;
   --line-3:   #89847a;
+  --line-hover: #66625a;   /* 2.49:1 on the card, 1.77x its resting edge: the same step as light */
 
   /* 11-12 · text. Not #fff — a pure white on a dark ground smears on OLED and
      is the second thing Material tells you not to do. */
@@ -284,6 +290,7 @@
     --line:     #36342d;
     --line-2:   #403e35;
     --line-3:   #89847a;
+    --line-hover: #66625a;   /* 2.49:1 on the card, 1.77x its resting edge: the same step as light */
 
     /* 11-12 · text. Not #fff — a pure white on a dark ground smears on OLED and
        is the second thing Material tells you not to do. */

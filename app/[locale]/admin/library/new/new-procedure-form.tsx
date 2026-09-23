@@ -59,6 +59,7 @@ import {
   ACCESS_STATIONS,
   ACCESS_EMPLOYEES,
 } from './access-data';
+import { IconTile } from '@/components/ui/icon-tile';
 
 interface NewProcedureFormProps {
   locale: string;
@@ -1373,7 +1374,7 @@ export function NewProcedureForm({
                   {activePurpose || '(No purpose provided yet — go back to Details to add one.)'}
                 </p>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <Chip tone="brand" icon="ri-bar-chart-2-line">
+                  <Chip tone="wash" icon="ri-bar-chart-2-line">
                     {blocks.length} block{blocks.length === 1 ? '' : 's'}
                   </Chip>
                   <Chip tone="wash" icon="ri-flag-line">
@@ -1553,7 +1554,7 @@ export function NewProcedureForm({
                           key={emp.id}
                           className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2"
                         >
-                          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand-tint)] text-sm font-semibold text-[var(--color-brand-700)]">
+                          <span className="flex size-8 shrink-0 items-center justify-center rounded-full border-2 border-[var(--color-line-2)] bg-[var(--color-surface)] text-sm font-semibold text-[var(--color-ink)]">
                             {emp.initials}
                           </span>
                           <span className="min-w-0 flex-1">
@@ -1595,45 +1596,25 @@ export function NewProcedureForm({
                 </ReviewCard>
               )}
 
-              {/* 5. Final actions — Publish, Save draft. */}
-              <div className="rounded-[var(--radius-lg)] border border-[var(--color-brand-tint-2)] bg-[var(--color-brand-tint)] p-5 shadow-e1">
+              {/* 5. Final actions — Publish and assign, Save draft. The
+                    bottom-of-page sticky bar carries the actual buttons so the
+                    Review step stays free of competing primaries; this card
+                    just narrates what the Publish-and-assign action does. */}
+              <div className="rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-5">
                 <div className="flex items-start gap-3">
-                  <span className="flex size-tap-admin shrink-0 items-center justify-center rounded-lg bg-[var(--color-brand-600)] text-white">
-                    <Icon icon="ri-rocket-2-line" className="text-lg" />
-                  </span>
+                  <IconTile size="md" icon="ri-rocket-2-line" />
                   <div className="flex-1">
                     <h3 className="font-[family-name:var(--font-display)] text-md font-semibold tracking-snug text-[var(--color-ink)]">
                       Ready to go live?
                     </h3>
                     <p className="mt-0.5 text-sm text-[var(--color-ink-2)]">
-                      Publishing makes this procedure visible to everyone in
-                      the picked categories and stations, and notifies
-                      assignees. Saving as a draft keeps it private until
-                      you're ready.
+                      Publish and assign saves the procedure to the library,
+                      drops it into every picked category / subcategory /
+                      station, notifies the assignees you picked, and lands
+                      you back on the full Procedures list. Save draft keeps
+                      it private until you're ready.
                     </p>
                   </div>
-                </div>
-                <div className="mt-4 flex flex-wrap items-center gap-3">
-                  <Button
-                    type="button"
-                    variant="primary"
-                    size="default"
-                    disabled={isPending}
-                    onClick={() => void submit('published')}
-                    className="gap-2"
-                  >
-                    <Icon icon="ri-send-plane-fill" />
-                    {isPending ? tForm('publishing') : 'Publish & assign'}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="default"
-                    disabled={isPending}
-                    onClick={() => void submit('draft')}
-                  >
-                    Save as draft
-                  </Button>
                 </div>
                 <p className="mt-3 text-sm text-[var(--color-ink-2)]">
                   <Icon icon="ri-information-line" className="mr-1 align-text-bottom" />
@@ -2003,9 +1984,7 @@ function ReviewCard({
   return (
     <div className="rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-5 shadow-e1">
       <header className="mb-3 flex items-center gap-3">
-        <span className="flex size-tap-admin shrink-0 items-center justify-center rounded-lg bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] text-lg">
-          <Icon icon={icon} />
-        </span>
+        <IconTile size="md" icon={icon} />
         <span className="flex-1">
           {eyebrow && (
             <span className="block text-sm font-semibold text-[var(--color-brand-700)]">

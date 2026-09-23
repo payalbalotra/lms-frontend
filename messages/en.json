@@ -578,7 +578,7 @@
           "add": "Add",
           "remove": "Remove",
           "saveDraft": "Save draft",
-          "publish": "Publish",
+          "publish": "Publish and assign",
           "publishing": "Publishing…",
           "draftLabel": "Draft",
           "unsavedLabel": "Unsaved changes",

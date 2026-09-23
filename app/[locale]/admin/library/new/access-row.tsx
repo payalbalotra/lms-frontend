@@ -26,6 +26,7 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 import { Icon } from '@/components/ui/icon';
+import { IconTile } from '@/components/ui/icon-tile';
 
 export interface AccessRowProps {
   icon: string;
@@ -64,12 +65,7 @@ export function AccessRow({
     >
       <div className="flex items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
-          <span
-            aria-hidden="true"
-            className="flex size-8 shrink-0 items-center justify-center rounded-md bg-[var(--color-brand-tint)] text-[var(--color-brand-700)]"
-          >
-            <Icon icon={icon} className="text-base" />
-          </span>
+          <IconTile size="sm" icon={icon} />
           <h3 className="text-sm font-semibold text-[var(--color-ink)]">
             {title}
           </h3>

@@ -16,6 +16,7 @@ import { TabBar } from '@/components/employee/tab-bar';
 import { BlockRenderer } from '@/components/doc/block-renderer';
 import { QuizReader } from '@/components/doc/quiz-reader';
 import { Icon } from '@/components/ui/icon';
+import { IconTile } from '@/components/ui/icon-tile';
 
 interface PageProps {
   params: Promise<{ locale: string; id: string }>;
@@ -147,7 +148,7 @@ export default async function EmployeeTrainingCoursePage({
             return quiz && quiz.attached && quiz.questions.length > 0 ? (
             <section className="space-y-4">
               <header className="flex items-center gap-2">
-                <Icon icon={LuGraduationCap} className="text-xl text-[var(--color-brand-700)]" aria-hidden="true" />
+                <Icon icon={LuGraduationCap} className="text-xl text-[var(--color-ink-2)]" aria-hidden="true" />
                 <h2 className="font-[family-name:var(--font-ui)] text-lg font-semibold text-[var(--color-ink)]">
                   {t('quizHeading')}
                 </h2>
@@ -160,7 +161,7 @@ export default async function EmployeeTrainingCoursePage({
           {linkedSops.length > 0 ? (
             <section className="space-y-3">
               <header className="flex items-center gap-2">
-                <Icon icon={LuBookOpen} className="text-xl text-[var(--color-brand-700)]" aria-hidden="true" />
+                <Icon icon={LuBookOpen} className="text-xl text-[var(--color-ink-2)]" aria-hidden="true" />
                 <h2 className="font-[family-name:var(--font-ui)] text-lg font-semibold text-[var(--color-ink)]">
                   {t('linkedSopsHeading')}
                 </h2>
@@ -173,12 +174,7 @@ export default async function EmployeeTrainingCoursePage({
                       href={`/${locale}/procedures/${s.id}`}
                       className="flex min-h-tap items-center gap-3 px-4 py-3 transition-colors hover:bg-[var(--color-wash)]"
                     >
-                      <span
-                        aria-hidden="true"
-                        className="inline-flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-panel)] text-[var(--color-ink-2)]"
-                      >
-                        <LuBookOpen aria-hidden="true" className="text-md" />
-                      </span>
+                      <IconTile size="md" icon={LuBookOpen} />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-md font-semibold text-[var(--color-ink)]">
                           {(isEs ? s.titleEs || s.titleEn : s.titleEn || s.titleEs) || s.slug}
@@ -198,9 +194,9 @@ export default async function EmployeeTrainingCoursePage({
           ) : null}
 
           {course.acknowledgement ? (
-            <section className="space-y-3 rounded-[var(--radius-lg)] border border-[var(--color-brand-600)]/30 bg-[var(--color-brand-tint)]/40 p-5">
+            <section className="space-y-3 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-5">
               <header className="flex items-center gap-2">
-                <Icon icon={LuSignature} className="text-xl text-[var(--color-brand-700)]" aria-hidden="true" />
+                <Icon icon={LuSignature} className="text-xl text-[var(--color-ink-2)]" aria-hidden="true" />
                 <h2 className="font-[family-name:var(--font-ui)] text-lg font-semibold text-[var(--color-ink)]">
                   {t('ackHeading', { version: course.acknowledgement.versionLabel })}
                 </h2>

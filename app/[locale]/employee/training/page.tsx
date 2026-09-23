@@ -13,6 +13,7 @@ import {
 } from '@/lib/mock-training';
 import type { TrainingAssignmentRow, TrainingAssignmentStatus } from '@/lib/types';
 import { TabBar } from '@/components/employee/tab-bar';
+import { IconTile } from '@/components/ui/icon-tile';
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -221,12 +222,7 @@ function TrainingSection({
                 href={`/${locale}/employee/training/${r.course.id}`}
                 className="flex min-h-tap items-center gap-3 px-4 py-3 transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:bg-[var(--color-wash)]"
               >
-                <span
-                  aria-hidden="true"
-                  className="inline-flex size-12 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-brand-tint)] text-[var(--color-brand-700)]"
-                >
-                  <LuGraduationCap aria-hidden="true" className="text-xl" />
-                </span>
+                <IconTile size="lg" icon={LuGraduationCap} />
                 <div className="min-w-0 flex-1 space-y-0.5">
                   <p className="truncate text-md font-semibold leading-heading text-[var(--color-ink)]">
                     {titleOf(r)}

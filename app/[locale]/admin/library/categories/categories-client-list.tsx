@@ -7,9 +7,11 @@ import { getCategoryIcon } from '@/lib/category-icons';
 import type { Category } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { CategoryActions } from './category-actions';
-import { LuFolders, LuSearch, LuX } from 'react-icons/lu';
+import { LuArrowRight, LuFolders, LuSearch, LuX } from 'react-icons/lu';
 import { Icon } from '@/components/ui/icon';
 import { StatusPill } from '@/components/ui/status-pill';
+import { IconTile } from '@/components/ui/icon-tile';
+import { EmptyState } from '@/components/ui/empty-state';
 
 interface CategoriesClientListProps {
   initialCategories: Category[];
@@ -104,8 +106,8 @@ export function CategoriesClientList({
 
       {archived.length > 0 ? (
         <section className="space-y-3 pt-3" aria-labelledby="archived-heading">
-          <h2 id="archived-heading" className="text-xs font-semibold text-[var(--color-ink-3)] uppercase tracking-wider">
-            {isEs ? 'Categorías archivadas' : 'Archived Categories'}
+          <h2 id="archived-heading" className="text-sm font-semibold text-[var(--color-ink-2)]">
+            {isEs ? 'Categorías archivadas' : 'Archived categories'}
           </h2>
           <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {archived.map((c) => (
@@ -151,24 +153,23 @@ function CategoryCard({
       className={cn(
         'group flex flex-col justify-between rounded-[var(--radius-lg)] cursor-pointer h-full min-h-[110px]',
         'border border-[var(--color-line-2)] bg-[var(--color-surface)] p-4 shadow-2xs transition-all',
-        'hover:border-[var(--color-ring)] hover:shadow-e1',
+        // A card is content on the ground, so hover lifts it away from the ground:
+        // the edge darkens and it rises a step. Filling it with wash sank it into
+        // the page (1.08:1), and a brand border made it look like the selected
+        // nav item beside it.
+        'hover:border-[var(--color-line-hover)] hover:shadow-e1',
         archivedChipLabel ? 'bg-[var(--color-wash)] opacity-75' : undefined,
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3 min-w-0">
-          <span
-            aria-hidden="true"
-            className="flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-panel)] text-[var(--color-ink-2)] text-lg transition-colors group-hover:bg-[var(--color-brand-tint)] group-hover:text-[var(--color-brand-700)]"
-          >
-            <Icon icon={getCategoryIcon(category)} />
-          </span>
+          <IconTile size="md" icon={getCategoryIcon(category)} className="group-hover:text-[var(--color-ink)]" />
           <div className="min-w-0 flex-1 pt-0.5">
-            <h3 className="truncate text-sm font-semibold text-[var(--color-ink)] group-hover:text-[var(--color-brand-700)]">
+            <h3 className="truncate text-sm font-semibold text-[var(--color-ink)]">
               {primaryName}
             </h3>
             {secondaryName && secondaryName !== primaryName ? (
-              <p className="truncate text-xs text-[var(--color-ink-3)] font-normal">{secondaryName}</p>
+              <p className="truncate text-sm text-[var(--color-ink-3)]">{secondaryName}</p>
             ) : null}
           </div>
         </div>
@@ -179,36 +180,18 @@ function CategoryCard({
         </div>
       </div>
 
-      <div className="flex items-center justify-between pt-3 mt-3 border-t border-[var(--color-line)] text-xs text-[var(--color-ink-3)] font-medium">
+      <div className="flex items-center justify-between pt-3 mt-3 border-t border-[var(--color-line)] text-sm leading-meta text-[var(--color-ink-3)]">
         <span>
           {subcategories.length}{' '}
           {isEs ? (subcategories.length === 1 ? 'subcategoría' : 'subcategorías') : (subcategories.length === 1 ? 'subcategory' : 'subcategories')}
           {totalProcedures > 0 && ` · ${totalProcedures} ${isEs ? 'procedimientos' : 'procedures'}`}
         </span>
-        <span className="text-[var(--color-brand-700)] group-hover:translate-x-0.5 transition-transform">
-          →
-        </span>
+        <LuArrowRight aria-hidden="true" className="text-[var(--color-ink-3)] transition-transform group-hover:translate-x-0.5" />
       </div>
     </article>
   );
 }
 
 function EmptyCategories({ heading }: { heading: string }): React.ReactElement {
-  return (
-    <article
-      className={cn(
-        'flex flex-col items-center gap-3 rounded-[var(--radius-lg)]',
-        'border border-dashed border-[var(--color-line-2)] bg-[var(--color-surface)]',
-        'px-6 py-12 text-center',
-      )}
-    >
-      <span
-        aria-hidden="true"
-        className="inline-flex size-10 items-center justify-center rounded-[var(--radius-pill)] bg-[var(--color-panel)] text-[var(--color-ink-2)]"
-      >
-        <LuFolders className="text-xl" />
-      </span>
-      <h2 className="text-sm font-semibold text-[var(--color-ink)]">{heading}</h2>
-    </article>
-  );
+  return <EmptyState icon={LuFolders} title={heading} />;
 }

@@ -10,14 +10,8 @@ import { Icon } from '@/components/ui/icon';
 import { RowActions } from '@/components/ui/row-actions';
 import { getCategoryIcon } from '@/lib/category-icons';
 import { cn } from '@/lib/utils';
-import {
-  LuArrowLeft,
-  LuChevronRight,
-  LuFileText,
-  LuPlus,
-  LuSearch,
-  LuClock,
-} from 'react-icons/lu';
+import { LuArrowLeft, LuChevronLeft, LuChevronRight, LuClock, LuFileText, LuPlus, LuSearch } from 'react-icons/lu';
+import { IconTile } from '@/components/ui/icon-tile';
 
 interface SubcategoryDetailClientProps {
   category: Category;
@@ -120,12 +114,7 @@ export function SubcategoryDetailClient({
       {/* Subcategory Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--color-line)] pb-4">
         <div className="flex items-start gap-3">
-          <span
-            aria-hidden="true"
-            className="flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-panel)] text-[var(--color-ink-2)] text-xl border border-[var(--color-line-2)] mt-0.5"
-          >
-            <Icon icon={getCategoryIcon(category)} />
-          </span>
+          <IconTile size="md" icon={getCategoryIcon(category)} />
           <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="font-[family-name:var(--font-display)] text-xl font-bold tracking-tight text-[var(--color-ink)]">
@@ -235,18 +224,13 @@ export function SubcategoryDetailClient({
               className={cn(
                 'group flex items-center justify-between rounded-[var(--radius-lg)] border border-[var(--color-line-2)]',
                 'bg-[var(--color-surface)] p-3.5 shadow-2xs transition-all cursor-pointer',
-                'hover:border-[var(--color-ring)] hover:shadow-e1 gap-3'
+                'hover:border-[var(--color-line-hover)] hover:shadow-e1 gap-3'
               )}
             >
               <div className="flex items-center gap-3 min-w-0">
-                <span
-                  aria-hidden="true"
-                  className="flex size-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-panel)] text-[var(--color-ink-2)] text-base transition-colors group-hover:bg-[var(--color-brand-tint)] group-hover:text-[var(--color-brand-700)]"
-                >
-                  <LuFileText />
-                </span>
+                <IconTile size="md" icon={LuFileText} className="group-hover:text-[var(--color-ink)]" />
                 <div className="min-w-0">
-                  <h3 className="truncate text-sm font-semibold text-[var(--color-ink)] group-hover:text-[var(--color-brand-700)]">
+                  <h3 className="truncate text-sm font-semibold text-[var(--color-ink)]">
                     {proc.titleEn}
                   </h3>
                   <p className="truncate text-[11px] text-[var(--color-ink-3)] font-normal">
@@ -289,21 +273,23 @@ export function SubcategoryDetailClient({
         </span>
         <div className="flex items-center gap-1.5">
           <button
+            aria-label="Previous page"
             type="button"
             disabled
             className="px-2 py-0.5 rounded border border-[var(--color-line-2)] opacity-40 cursor-not-allowed text-xs"
           >
-            ‹
+            <LuChevronLeft aria-hidden="true" />
           </button>
           <span className="px-2 py-0.5 rounded bg-[var(--color-panel)] font-bold text-[var(--color-ink)] text-xs">
             1
           </span>
           <button
+            aria-label="Next page"
             type="button"
             disabled
             className="px-2 py-0.5 rounded border border-[var(--color-line-2)] opacity-40 cursor-not-allowed text-xs"
           >
-            ›
+            <LuChevronRight aria-hidden="true" />
           </button>
         </div>
       </div>

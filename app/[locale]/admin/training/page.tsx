@@ -39,7 +39,7 @@ export default async function AdminTrainingPage({ params }: PageProps): Promise<
           body={t('emptyBody')}
           action={
             <Link href={`/${locale}/admin/training/new`}>
-              <Button icon={LuPlus}>{t('newCourse')}</Button>
+              <Button variant="secondary" icon={LuPlus}>{t('newCourse')}</Button>
             </Link>
           }
         />

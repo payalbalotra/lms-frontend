@@ -290,7 +290,7 @@ export function AssignForm({
                         key={id}
                         className="flex items-center gap-2 rounded-md bg-[var(--color-wash)] px-2 py-1 text-xs"
                       >
-                        <Icon icon={LuUserPlus} className="text-xs text-[var(--color-brand-700)]" />
+                        <Icon icon={LuUserPlus} className="text-xs text-[var(--color-ink-3)]" />
                         <span className="truncate text-[var(--color-ink)]">{e.name}</span>
                       </li>
                     );

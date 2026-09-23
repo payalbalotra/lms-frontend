@@ -63,7 +63,7 @@ export default async function EmployeeLayout({ children, params }: EmployeeLayou
           {employee.role === 'admin' ? (
             <Link
               href={`/${locale}/admin`}
-              className="inline-flex min-h-tap items-center gap-1 whitespace-nowrap px-2 text-sm font-medium text-[var(--color-ink-2)] hover:text-[var(--color-brand-600)]"
+              className="inline-flex min-h-tap items-center gap-1 whitespace-nowrap px-2 text-sm font-medium text-[var(--color-ink-2)] hover:text-[var(--color-ink)]"
             >
               {tCommon('admin')}
               {/* The same mark the admin bar uses on the link back here. */}

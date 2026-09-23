@@ -162,7 +162,7 @@ export function CustomSelect({
       >
         <div className="flex items-center gap-2 min-w-0">
           {(selectedOption?.icon || leadingIcon) && (
-            <Icon icon={(selectedOption?.icon ?? leadingIcon)!} className={cn(size === 'sm' ? 'text-sm' : 'text-base', 'text-[var(--color-brand-700)] shrink-0')} />
+            <Icon icon={(selectedOption?.icon ?? leadingIcon)!} className={cn(size === 'sm' ? 'text-sm' : 'text-base', 'text-[var(--color-ink-2)] shrink-0')} />
           )}
           <span className="truncate font-medium">
             {selectedOption ? selectedOption.label : placeholder}

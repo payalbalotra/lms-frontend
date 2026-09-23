@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { Button } from '@/components/ui/button';
-import { Modal } from '@/components/ui/modal';
+import { Modal, ModalBody, ModalFooter, ModalHeader } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RowActions, type RowActionItem } from '@/components/ui/row-actions';
@@ -29,6 +29,7 @@ import {
   LuX,
   LuChevronDown,
 } from 'react-icons/lu';
+import { IconTile } from '@/components/ui/icon-tile';
 
 const AVAILABLE_ICONS = [
   { id: 'LuFolder', label: 'Folder', icon: LuFolder },
@@ -339,7 +340,6 @@ function CategoryForm({
             onChange={(e) => setNameEn(e.target.value)}
             placeholder="e.g. Food Safety"
             autoFocus
-            className="h-9 text-xs"
           />
         </div>
 
@@ -362,28 +362,24 @@ function CategoryForm({
           </p>
         </div>
 
-        {/* Icon Selection */}
-        <div className="space-y-1 pt-1">
-          <Label className="text-xs font-semibold text-[var(--color-ink)] block">
-            {isEs ? 'Icono' : 'Icon'}
-          </Label>
-          <div className="flex items-center gap-2.5">
-            <span className="flex size-9 items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)] text-base">
-              <CurrentIconComp />
-            </span>
+        <div className="space-y-1.5">
+          <Label htmlFor="cat-icon-toggle">{isEs ? 'Icono' : 'Icon'}</Label>
+          <div className="flex items-center gap-3">
+            <IconTile size="md" icon={CurrentIconComp} />
             <Button
+              id="cat-icon-toggle"
               type="button"
               variant="neutral"
+              icon={LuChevronDown}
+              aria-expanded={showIconPicker}
               onClick={() => setShowIconPicker(!showIconPicker)}
-              className="text-xs px-3 py-1.5 rounded-[var(--radius-md)] border border-[var(--color-line)]"
             >
-              <span>{isEs ? 'Elegir icono' : 'Choose icon'}</span>
-              <LuChevronDown className="text-xs ml-1" />
+              {isEs ? 'Elegir icono' : 'Choose icon'}
             </Button>
           </div>
 
           {showIconPicker && (
-            <div className="grid grid-cols-5 gap-1.5 p-2.5 mt-2 rounded-[var(--radius-md)] border border-[var(--color-line)] bg-[var(--color-wash)]">
+            <div className="mt-2 grid grid-cols-4 gap-2 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-wash)] p-2">
               {AVAILABLE_ICONS.map((item) => {
                 const isSelected = icon === item.id;
                 const IconComponent = item.icon;
@@ -391,19 +387,21 @@ function CategoryForm({
                   <button
                     key={item.id}
                     type="button"
+                    title={item.label}
+                    aria-pressed={isSelected}
                     onClick={() => {
                       setIcon(item.id);
                       setShowIconPicker(false);
                     }}
                     className={cn(
-                      'flex flex-col items-center gap-1 rounded-[var(--radius-md)] border p-1.5 text-xs transition-all',
+                      'flex flex-col items-center gap-1 rounded-[var(--radius-md)] border p-2 text-sm transition-colors',
                       isSelected
-                        ? 'border-[var(--color-brand-600)] bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] font-semibold'
-                        : 'border-[var(--color-line)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:bg-[var(--color-panel)]'
+                        ? 'border-[var(--color-ring)] bg-[var(--color-brand-tint)] font-semibold text-[var(--color-brand-700)]'
+                        : 'border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:bg-[var(--color-panel)]',
                     )}
                   >
-                    <IconComponent className="text-base" />
-                    <span className="truncate w-full text-center text-[10px]">{item.label}</span>
+                    <IconComponent aria-hidden="true" className="text-lg" />
+                    <span className="w-full truncate text-center">{item.label}</span>
                   </button>
                 );
               })}
@@ -412,32 +410,23 @@ function CategoryForm({
         </div>
 
         {error && (
-          <p role="alert" className="rounded-[var(--radius-md)] bg-[var(--color-bad-tint)] px-3 py-1.5 text-xs font-medium text-[var(--color-bad)]">
+          <p
+            role="alert"
+            className="rounded-[var(--radius-md)] bg-[var(--color-bad-tint)] px-3 py-2 text-sm font-medium text-[var(--color-bad)]"
+          >
             {error}
           </p>
         )}
       </div>
 
-      {/* Footer */}
-      <div className="flex items-center justify-end gap-2.5 border-t border-[var(--color-line)] bg-[var(--color-wash)] px-5 py-3">
-        <Button
-          type="button"
-          variant="neutral"
-          onClick={onCancel}
-          disabled={pending}
-          className="rounded-full px-4 text-xs font-semibold"
-        >
+      <ModalFooter>
+        <Button type="button" variant="neutral" onClick={onCancel} disabled={pending}>
           {cancelLabel}
         </Button>
-        <Button
-          type="submit"
-          variant="primary"
-          disabled={!canSubmit}
-          className="rounded-full bg-[var(--color-brand-600)] hover:bg-[var(--color-brand-hover)] text-white px-4 text-xs font-semibold shadow-e1"
-        >
+        <Button type="submit" variant="primary" disabled={!canSubmit}>
           {mode === 'create' ? (isEs ? 'Crear' : 'Create') : saveLabel}
         </Button>
-      </div>
+      </ModalFooter>
     </form>
   );
 }

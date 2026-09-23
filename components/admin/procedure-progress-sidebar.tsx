@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import type { ProcedureTypeId } from './procedure-type-selector';
+import { LuCheck } from 'react-icons/lu';
 
 interface ProgressSidebarProps {
   completedCount: number;
@@ -69,7 +70,7 @@ export function ProcedureProgressSidebar({
             <li key={sec.key} className="flex items-center gap-3">
               {sec.completed ? (
                 <span className="flex size-4 items-center justify-center rounded-full bg-[var(--color-ok-fill)] text-white text-sm font-bold">
-                  ✓
+                  <LuCheck aria-hidden="true" />
                 </span>
               ) : (
                 <span className="size-4 rounded-full border border-[var(--color-line-3)]" />

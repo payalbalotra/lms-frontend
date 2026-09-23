@@ -23,6 +23,7 @@ import { AccessAssignBlock } from './access-assign-block';
 import { ACCESS_STATIONS, type AccessOption } from './access-data';
 import { Icon } from '@/components/ui/icon';
 import type { Category, Subcategory } from '@/lib/types';
+import { IconTile } from '@/components/ui/icon-tile';
 
 interface AccessScreenProps {
   selectedStations: Set<string>;
@@ -104,9 +105,7 @@ export function AccessScreen({
     <div className="space-y-8">
       {/* Page-level heading */}
       <header className="flex items-start gap-3">
-        <div className="flex size-tap-admin shrink-0 items-center justify-center rounded-lg bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] text-lg">
-          <Icon icon="ri-shield-user-line" />
-        </div>
+        <IconTile size="md" icon="ri-shield-user-line" />
         <div>
           <p className="text-sm font-semibold uppercase text-[var(--color-ink-3)]">
             {tAccess('accessEyebrow')}

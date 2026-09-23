@@ -833,12 +833,13 @@ function RecipeEditor({
                     >
                       <span>{tag}</span>
                       <button
+                        aria-label={`Remove ${tag}`}
                         type="button"
                         onClick={() => removeCustom(tag)}
                         className="hover:text-[var(--color-bad)] font-semibold ml-0.5"
                         title={`Remove ${tag}`}
                       >
-                        ✕
+                        <LuX aria-hidden="true" />
                       </button>
                     </span>
                   ))}
@@ -1947,7 +1948,7 @@ function ChecklistEditor({
             variant="ghost"
             size="sm"
             onClick={addItem}
-            className="gap-1 text-[var(--color-brand-600)] hover:text-[var(--color-brand-700)] hover:bg-[var(--color-brand-tint)]"
+            className="gap-1 text-[var(--color-brand-600)] hover:text-[var(--color-brand-700)] hover:bg-[var(--color-panel)]"
           >
             <LuPlus aria-hidden="true" className="text-xs" />
             {t('checklist.addItem')}

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { getCategoryIcon } from '@/lib/category-icons';
 import type { Category, Subcategory } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Modal } from '@/components/ui/modal';
+import { Modal, ModalBody, ModalFooter, ModalHeader } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Icon } from '@/components/ui/icon';
@@ -14,19 +14,10 @@ import { RowActions } from '@/components/ui/row-actions';
 import { StatusPill } from '@/components/ui/status-pill';
 import { cn } from '@/lib/utils';
 import { useUpdateCategory } from '@/services/categories/hooks';
-import {
-  LuArrowLeft,
-  LuChevronRight,
-  LuFileText,
-  LuPlus,
-  LuX,
-  LuShieldCheck,
-  LuLink,
-  LuTag,
-  LuShieldAlert,
-  LuSparkles,
-  LuClock,
-} from 'react-icons/lu';
+import { LuArrowLeft, LuChevronRight, LuClock, LuFileText, LuLink, LuPlus, LuSearch, LuShieldAlert, LuShieldCheck, LuSparkles, LuTag, LuX } from 'react-icons/lu';
+import { IconTile } from '@/components/ui/icon-tile';
+import { EmptyState } from '@/components/ui/empty-state';
+import { PageHeader } from '@/components/admin/page-header';
 
 interface CategoryDetailClientProps {
   /** The category the server saw. `null` when the category exists only in the
@@ -414,69 +405,49 @@ export function CategoryDetailClient({
     );
   }
 
+  const subWord = isEs
+    ? subcategories.length === 1
+      ? 'subcategoría'
+      : 'subcategorías'
+    : subcategories.length === 1
+      ? 'subcategory'
+      : 'subcategories';
+  const countLine =
+    `${subcategories.length} ${subWord}` +
+    (totalProcedures > 0 ? ` · ${totalProcedures} ${isEs ? 'procedimientos' : 'procedures'}` : '');
+
   return (
-    <div className="mx-auto max-w-page space-y-4 pb-12">
-      {/* Breadcrumb Navigation */}
-      <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-[var(--color-ink-3)] font-medium">
-        <Link
-          href={`/${locale}/admin/library/categories`}
-          className="hover:text-[var(--color-ink)] transition-colors flex items-center gap-1"
-        >
-          <LuArrowLeft className="text-sm" />
-          <span>{isEs ? 'Categorías' : 'Categories'}</span>
-        </Link>
-        <LuChevronRight className="text-[10px] text-[var(--color-ink-3)]" />
-        <span className="text-[var(--color-ink)] font-semibold">
-          {isEs ? category.nameEs : category.nameEn}
-        </span>
-      </nav>
-
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--color-line)] pb-4">
-        <div className="flex items-center gap-3 min-w-0">
-          <span
-            aria-hidden="true"
-            className="flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-panel)] text-[var(--color-ink-2)] text-xl border border-[var(--color-line-2)]"
+    <div className="mx-auto max-w-page space-y-6">
+      {/* The header every admin page wears. The eyebrow is the list this came
+          from and the way back to it; the breadcrumb, the back arrow and the
+          icon beside the title said the same place three more times. */}
+      <PageHeader
+        eyebrow={isEs ? 'Categorías' : 'Categories'}
+        eyebrowHref={`/${locale}/admin/library/categories`}
+        title={isEs ? category.nameEs : category.nameEn}
+        subtitle={countLine}
+        actions={
+          <Button
+            icon={LuPlus}
+            onClick={() => {
+              setEditingSub(null);
+              setAddSubOpen(true);
+            }}
           >
-            <Icon icon={getCategoryIcon(category)} />
-          </span>
-          <div>
-            <h1 className="font-[family-name:var(--font-display)] text-xl font-bold tracking-tight text-[var(--color-ink)]">
-              {isEs ? category.nameEs : category.nameEn}
-            </h1>
-            <p className="text-xs text-[var(--color-ink-3)] font-medium">
-              {subcategories.length}{' '}
-              {isEs ? (subcategories.length === 1 ? 'subcategoría' : 'subcategorías') : (subcategories.length === 1 ? 'subcategory' : 'subcategories')}
-              {totalProcedures > 0 && ` · ${totalProcedures} ${isEs ? 'procedimientos' : 'procedures'}`}
-            </p>
-          </div>
-        </div>
-
-        <Button
-          variant="primary"
-          onClick={() => {
-            setEditingSub(null);
-            setAddSubOpen(true);
-          }}
-          className="shrink-0 font-semibold shadow-2xs"
-        >
-          <LuPlus className="text-base" />
-          <span>{isEs ? 'Añadir subcategoría' : 'Add subcategory'}</span>
-        </Button>
-      </div>
-
-      {/* Subcategories List */}
-      {subcategories.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-[var(--radius-lg)] border border-dashed border-[var(--color-line-2)] bg-[var(--color-surface)] p-10 text-center">
-          <p className="text-xs text-[var(--color-ink-2)] mb-3">
-            {isEs
-              ? 'Esta categoría aún no tiene subcategorías.'
-              : 'This category does not have subcategories yet.'}
-          </p>
-          <Button variant="neutral" icon={LuPlus} onClick={() => setAddSubOpen(true)} className="text-xs">
-            {isEs ? 'Crear la primera subcategoría' : 'Create first subcategory'}
+            {isEs ? 'Añadir subcategoría' : 'Add subcategory'}
           </Button>
-        </div>
+        }
+      />
+
+      {subcategories.length === 0 ? (
+        <EmptyState
+          title={isEs ? 'Esta categoría aún no tiene subcategorías.' : 'This category does not have subcategories yet.'}
+          action={
+            <Button variant="secondary" icon={LuPlus} onClick={() => setAddSubOpen(true)}>
+              {isEs ? 'Crear la primera subcategoría' : 'Create first subcategory'}
+            </Button>
+          }
+        />
       ) : (
         <div className="space-y-3">
           {subcategories.map((sub, index) => {
@@ -518,7 +489,12 @@ export function CategoryDetailClient({
               ...fixtures.filter((p) => !seen.has(p.id)),
             ];
 
-            const stationCodes = sub.stations ?? (isGeneral ? [] : ['GM', 'Grill', 'Expo']);
+            // Subcategory records can store either form (the live fixtures
+            // ship `stn-gm`/`st-grill`, the seed stories ship `GM`/`Grill`),
+            // and the Access modal round-trips them as codes — normalise
+            // through `stationCode` so the badge text always lands on the
+            // human-readable form the manager expects.
+            const stationCodes = (sub.stations ?? (isGeneral ? [] : ['GM', 'Grill', 'Expo'])).map(stationCode);
             const visibleStations = stationCodes.slice(0, 3);
             const hiddenStationCount = stationCodes.length - visibleStations.length;
             const procedureLabel = isEs ? 'procedimientos' : 'procedures';
@@ -526,10 +502,7 @@ export function CategoryDetailClient({
             return (
               <div
                 key={sub.id || sub.slug}
-                className={cn(
-                  'rounded-[var(--radius-lg)] border bg-[var(--color-surface)] shadow-2xs overflow-hidden transition-colors',
-                  isExpanded ? 'border-[var(--color-line-2)]' : 'border-[var(--color-line-2)]',
-                )}
+                className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] shadow-2xs"
               >
                 {/* Subcategory Row Header — div with role=button so the RowActions
                     button can live inside without nesting <button> in <button>. */}
@@ -548,71 +521,50 @@ export function CategoryDetailClient({
                   }}
                   className={cn(
                     'flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-3 text-left transition-colors',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-inset',
-                    isExpanded
-                      ? 'bg-[var(--color-wash)]'
-                      : 'hover:bg-[var(--color-wash)]',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-ring)]',
+                    isExpanded ? 'bg-[var(--color-wash)]' : 'hover:bg-[var(--color-wash)]',
                   )}
                 >
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <span
-                      aria-hidden="true"
-                      className="flex size-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-panel)] text-[var(--color-ink-2)] text-base"
-                    >
-                      <SubIcon />
-                    </span>
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <IconTile size="md" icon={SubIcon} />
 
                     <div className="min-w-0">
                       <div className="flex items-baseline gap-2">
-                        <h2 className="text-base font-semibold tracking-tight text-[var(--color-ink)] truncate">
+                        <h2 className="truncate text-base font-semibold text-[var(--color-ink)]">
                           {isEs ? sub.nameEs : sub.nameEn}
                         </h2>
                         {sub.nameEs !== sub.nameEn && (
-                          <span className="text-xs text-[var(--color-ink-3)] font-normal truncate hidden sm:inline">
+                          <span className="hidden truncate text-sm text-[var(--color-ink-3)] sm:inline">
                             ({isEs ? sub.nameEn : sub.nameEs})
                           </span>
                         )}
                       </div>
-                      <p className="mt-0.5 text-xs text-[var(--color-ink-3)] truncate">
+                      <p className="mt-0.5 truncate text-sm leading-meta text-[var(--color-ink-3)]">
                         {procedures.length} {procedureLabel}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3.5 sm:gap-4 shrink-0 pl-3">
-                    {!isExpanded && !isGeneral && visibleStations.length > 0 && (
-                      <div className="hidden sm:flex items-center gap-2 flex-wrap mr-1">
-                        {visibleStations.map((code) => (
-                          <span
-                            key={code}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setStationPickerSub(sub);
-                            }}
-                            className="cursor-pointer inline-flex min-w-[36px] h-6 items-center justify-center px-2.5 text-[11px] font-semibold tracking-[0.02em] leading-none rounded-md bg-[var(--color-panel-2)] text-[var(--color-ink)] border border-[var(--color-line-2)] shadow-2xs hover:bg-[var(--color-brand-tint)] hover:text-[var(--color-brand-700)] transition-colors"
-                          >
-                            {stationCode(code)}
-                          </span>
-                        ))}
-                        {hiddenStationCount > 0 && (
-                          <span
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setStationPickerSub(sub);
-                            }}
-                            className="cursor-pointer inline-flex min-w-[32px] h-6 items-center justify-center px-2 text-[11px] font-medium leading-none rounded-md bg-[var(--color-panel)] text-[var(--color-ink-3)] border border-[var(--color-line)]"
-                          >
-                            +{hiddenStationCount}
-                          </span>
+                  <div className="flex shrink-0 items-center gap-3 pl-3">
+                    {/* Where the subcategory applies, in the badge every other
+                        list uses. "General" was the word for a subcategory with no
+                        station of its own, and it did not say what it meant: it
+                        applies at every station. Changing which stations is in
+                        the menu, so the badges are labels, not buttons. */}
+                    {!isExpanded && (
+                      <div className="hidden flex-wrap items-center gap-2 sm:flex">
+                        {isGeneral ? (
+                          <StatusPill tone="neutral">{isEs ? 'Todas las estaciones' : 'All stations'}</StatusPill>
+                        ) : (
+                          <>
+                            {visibleStations.map((code) => (
+                              <StatusPill key={code} tone="neutral">
+                                {code}
+                              </StatusPill>
+                            ))}
+                            {hiddenStationCount > 0 && <StatusPill tone="neutral">+{hiddenStationCount}</StatusPill>}
+                          </>
                         )}
-                      </div>
-                    )}
-
-                    {!isExpanded && isGeneral && (
-                      <div className="hidden sm:flex items-center gap-2 flex-wrap mr-1">
-                        <span className="inline-flex h-6 items-center justify-center px-2.5 text-[11px] font-medium leading-none rounded-md bg-[var(--color-panel)] text-[var(--color-ink-2)] border border-[var(--color-line)]">
-                          {isEs ? 'General' : 'General'}
-                        </span>
                       </div>
                     )}
                     <RowActions
@@ -646,98 +598,87 @@ export function CategoryDetailClient({
                   </div>
                 </div>
 
-                {/* Expanded Inline Procedures Panel */}
+                {/* The procedures, as rows inside the card they belong to. Each
+                    was a bordered card of its own inside this one, with the same
+                    file icon and a clock on every row. */}
                 {isExpanded && (
-                  <div
-                    id={panelId}
-                    role="region"
-                    aria-labelledby={headerId}
-                    className="border-t border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3 space-y-3"
-                  >
-                    {/* Toolbar */}
-                    <div className="flex items-center justify-between gap-3 border-b border-[var(--color-line)] pb-3">
-                      <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--color-ink-3)]">
+                  <div id={panelId} role="region" aria-labelledby={headerId} className="border-t border-[var(--color-line)]">
+                    <div className="flex items-center justify-between gap-3 px-4 py-2">
+                      <h3 className="text-sm font-semibold text-[var(--color-ink-2)]">
                         {isEs ? 'Procedimientos' : 'Procedures'}
                       </h3>
-
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="sm"
+                        icon={LuPlus}
                         onClick={() => setLinkProceduresSub(sub)}
-                        className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-[var(--color-ink-2)] transition-colors hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)]"
                       >
-                        <LuPlus className="text-sm" />
-                        {isEs ? 'Add procedure' : 'Add procedure'}
-                      </button>
+                        {isEs ? 'Añadir procedimiento' : 'Add procedure'}
+                      </Button>
                     </div>
 
-                    {/* Procedure items list */}
                     {procedures.length === 0 ? (
-                      <div className="rounded-[var(--radius-md)] border border-dashed border-[var(--color-line-2)] bg-[var(--color-surface)] p-4 text-center text-xs text-[var(--color-ink-3)]">
-                        {isEs ? 'Sin procedimientos aún en esta subcategoría.' : 'No procedures added yet in this subcategory.'}
+                      <div className="px-4 pb-4">
+                        <EmptyState
+                          compact
+                          title={
+                            isEs
+                              ? 'Sin procedimientos aún en esta subcategoría.'
+                              : 'No procedures added yet in this subcategory.'
+                          }
+                        />
                       </div>
                     ) : (
-                      <div className="space-y-2">
+                      <ul className="divide-y divide-[var(--color-line)] border-t border-[var(--color-line)]">
                         {procedures.map((proc) => (
-                          <div
-                            key={proc.id}
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => router.push(`/${locale}/admin/library/${proc.slug}`)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' || e.key === ' ') {
-                                e.preventDefault();
-                                router.push(`/${locale}/admin/library/${proc.slug}`);
-                              }
-                            }}
-                            className="group flex items-center justify-between gap-4 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-4 py-3 transition-colors cursor-pointer hover:bg-[var(--color-wash)] hover:border-[var(--color-line)] min-h-12"
-                          >
-                            <div className="flex items-center gap-4 min-w-0">
-                              <span
-                                aria-hidden="true"
-                                className="flex size-7 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-panel)] text-[var(--color-ink-2)] text-sm transition-colors group-hover:text-[var(--color-ink)]"
-                              >
-                                <LuFileText />
-                              </span>
+                          <li key={proc.id}>
+                            <div
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => router.push(`/${locale}/admin/library/${proc.slug}`)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  router.push(`/${locale}/admin/library/${proc.slug}`);
+                                }
+                              }}
+                              className="flex cursor-pointer items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-[var(--color-wash)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-ring)]"
+                            >
                               <div className="min-w-0">
                                 <h4 className="truncate text-sm font-semibold text-[var(--color-ink)]">
                                   {proc.titleEn}
                                 </h4>
-                                <p className="truncate text-xs text-[var(--color-ink-3)]">
-                                  {proc.titleEs}
-                                </p>
+                                <p className="truncate text-sm text-[var(--color-ink-2)]">{proc.titleEs}</p>
+                              </div>
+
+                              <div className="flex shrink-0 items-center gap-4 pl-2" onClick={(e) => e.stopPropagation()}>
+                                {proc.station !== 'General' && (
+                                  <StatusPill tone="neutral" className="hidden sm:inline-flex">
+                                    {proc.station}
+                                  </StatusPill>
+                                )}
+                                <span className="hidden text-sm leading-meta text-[var(--color-ink-3)] md:inline">
+                                  {isEs ? proc.updatedAgoEs : proc.updatedAgoEn}
+                                </span>
+                                <RowActions
+                                  items={[
+                                    {
+                                      label: isEs ? 'Ver procedimiento' : 'View procedure',
+                                      onSelect: () => router.push(`/${locale}/admin/library/${proc.slug}`),
+                                    },
+                                    {
+                                      label: isEs ? 'Editar' : 'Edit',
+                                      onSelect: () => router.push(`/${locale}/admin/library/${proc.slug}/edit`),
+                                    },
+                                  ]}
+                                  triggerLabel={proc.titleEn}
+                                />
                               </div>
                             </div>
-
-                            <div className="flex items-center gap-4 shrink-0 pl-2" onClick={(e) => e.stopPropagation()}>
-                              {proc.station !== 'General' && (
-                                <StatusPill
-                                  tone="info"
-                                  className="bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] border border-[var(--color-brand-600)]/20 hidden sm:inline-flex"
-                                >
-                                  {stationCode(proc.station)}
-                                </StatusPill>
-                              )}
-                              <span className="hidden md:inline-flex items-center gap-1 text-xs text-[var(--color-ink-3)] font-medium">
-                                <LuClock className="text-xs" />
-                                {isEs ? proc.updatedAgoEs : proc.updatedAgoEn}
-                              </span>
-                              <RowActions
-                                items={[
-                                  {
-                                    label: isEs ? 'Ver procedimiento' : 'View procedure',
-                                    onSelect: () => router.push(`/${locale}/admin/library/${proc.slug}`),
-                                  },
-                                  {
-                                    label: isEs ? 'Editar' : 'Edit',
-                                    onSelect: () => router.push(`/${locale}/admin/library/${proc.slug}/edit`),
-                                  },
-                                ]}
-                                triggerLabel={proc.titleEn}
-                              />
-                            </div>
-                          </div>
+                          </li>
                         ))}
-                      </div>
+                      </ul>
                     )}
                   </div>
                 )}
@@ -746,7 +687,6 @@ export function CategoryDetailClient({
           })}
         </div>
       )}
-
       {/* Subcategory Add/Edit Modal */}
       <Modal open={addSubOpen} onClose={() => setAddSubOpen(false)} size="md">
         <SubcategoryForm
@@ -877,43 +817,27 @@ function AddProcedureModal({
   const canAdd = selectedIds.size > 0;
 
   return (
-    <div className="flex flex-col max-h-[80vh]">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4 border-b border-[var(--color-line)] p-5 pb-4 shrink-0">
-        <div className="flex items-start gap-3 min-w-0">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-panel)] text-[var(--color-ink-2)] text-base">
-            <LuFileText />
-          </span>
-          <div className="min-w-0">
-            <h2 className="font-[family-name:var(--font-display)] text-lg font-bold tracking-tight text-[var(--color-ink)]">
-              {isEs ? 'Añadir procedimiento' : 'Add procedure'}
-            </h2>
-            <p className="text-xs text-[var(--color-ink-3)] mt-0.5">
-              {isEs
-                ? 'Vincula uno o varios procedimientos existentes o crea uno nuevo.'
-                : 'Link one or several existing procedures, or create a new one.'}
-            </p>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={onCancel}
-          aria-label={isEs ? 'Cerrar' : 'Close'}
-          className="flex size-7 items-center justify-center rounded-md text-[var(--color-ink-3)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)]"
-        >
-          <LuX className="text-lg" />
-        </button>
-      </div>
+    <div className="flex max-h-[80vh] flex-col">
+      <ModalHeader
+        title={isEs ? 'Añadir procedimiento' : 'Add procedure'}
+        description={
+          isEs
+            ? 'Vincula uno o varios procedimientos existentes o crea uno nuevo.'
+            : 'Link one or several existing procedures, or create a new one.'
+        }
+        onClose={onCancel}
+        closeLabel={isEs ? 'Cerrar' : 'Close'}
+      />
 
-      {/* Body */}
-      <div className="flex-1 overflow-y-auto p-5 space-y-5">
-        {/* EXISTING PROCEDURES — pick to link */}
+      <ModalBody className="flex-1 overflow-y-auto">
         <section className="space-y-3">
+          {/* Only drafts can be linked, so the list says so once rather than
+              every row wearing a DRAFT badge. */}
           <div className="flex items-center justify-between gap-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-ink-3)]">
-              {isEs ? 'Procedimientos existentes' : 'Existing procedures'}
-            </p>
-            <span className="shrink-0 text-xs font-medium text-[var(--color-ink-3)]">
+            <h3 className="text-sm font-semibold text-[var(--color-ink-2)]">
+              {isEs ? 'Procedimientos en borrador' : 'Draft procedures'}
+            </h3>
+            <span className="shrink-0 text-sm leading-meta text-[var(--color-ink-3)]">
               {selectedIds.size > 0
                 ? isEs
                   ? `${selectedIds.size} seleccionado${selectedIds.size === 1 ? '' : 's'}`
@@ -924,41 +848,40 @@ function AddProcedureModal({
             </span>
           </div>
 
-          {/* Search */}
-          <div className="relative">
-            <LuFileText className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-ink-3)]" />
-            <Input
-              type="text"
+          <div className="find max-w-none" role="search">
+            <LuSearch aria-hidden="true" className="i" />
+            <label className="sr-only" htmlFor="add-procedure-search">
+              {isEs ? 'Buscar procedimientos' : 'Search procedures'}
+            </label>
+            <input
+              id="add-procedure-search"
+              type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={isEs ? 'Buscar procedimientos…' : 'Search procedures…'}
-              className="h-9 pl-9 pr-9 text-xs"
             />
-            {search && (
+            {search ? (
               <button
                 type="button"
                 onClick={() => setSearch('')}
                 aria-label={isEs ? 'Limpiar búsqueda' : 'Clear search'}
-                className="absolute right-2 top-1/2 -translate-y-1/2 flex size-6 items-center justify-center rounded-md text-[var(--color-ink-3)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)]"
+                className="shrink-0 text-[var(--color-ink-3)] hover:text-[var(--color-ink)]"
               >
-                <LuX className="text-sm" />
+                <LuX aria-hidden="true" />
               </button>
-            )}
+            ) : null}
           </div>
 
-          {/* List */}
           {filtered.length === 0 ? (
-            <div className="rounded-[var(--radius-md)] border border-dashed border-[var(--color-line-2)] bg-[var(--color-surface)] px-4 py-6 text-center text-xs text-[var(--color-ink-3)]">
-              {isEs
-                ? 'No hay procedimientos que coincidan con la búsqueda.'
-                : 'No procedures match the search.'}
-            </div>
+            <EmptyState
+              compact
+              title={isEs ? 'No hay procedimientos que coincidan con la búsqueda.' : 'No procedures match the search.'}
+            />
           ) : (
             <div
-              role="listbox"
-              aria-multiselectable="true"
-              aria-label={isEs ? 'Procedimientos existentes' : 'Existing procedures'}
-              className="max-h-[260px] overflow-y-auto rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] divide-y divide-[var(--color-line)]"
+              role="group"
+              aria-label={isEs ? 'Procedimientos en borrador' : 'Draft procedures'}
+              className="max-h-[260px] divide-y divide-[var(--color-line)] overflow-y-auto rounded-[var(--radius-md)] border border-[var(--color-line-2)]"
             >
               {filtered.map((proc) => {
                 const isChecked = selectedIds.has(proc.id);
@@ -967,11 +890,9 @@ function AddProcedureModal({
                   <label
                     key={proc.id}
                     className={cn(
-                      'flex items-center gap-3 px-4 py-3 min-h-12 cursor-pointer transition-colors',
-                      isChecked
-                        ? 'bg-[var(--color-brand-tint)]'
-                        : 'hover:bg-[var(--color-wash)]',
-                      isAlreadyLinked && 'opacity-60',
+                      'flex min-h-12 cursor-pointer items-center gap-3 px-4 py-3 transition-colors',
+                      isChecked ? 'bg-[var(--color-brand-tint)]' : 'hover:bg-[var(--color-wash)]',
+                      isAlreadyLinked && 'cursor-not-allowed opacity-60',
                     )}
                   >
                     <input
@@ -979,49 +900,17 @@ function AddProcedureModal({
                       checked={isChecked}
                       disabled={isAlreadyLinked}
                       onChange={() => toggle(proc.id)}
-                      aria-label={proc.titleEn}
                       className="size-4 shrink-0 accent-[var(--color-brand-600)] disabled:cursor-not-allowed"
                     />
-                    <span
-                      aria-hidden="true"
-                      className={cn(
-                        'flex size-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border text-sm',
-                        isChecked
-                          ? 'border-[var(--color-brand-600)] bg-[var(--color-brand-600)] text-white'
-                          : 'border-[var(--color-line-2)] bg-[var(--color-panel)] text-[var(--color-ink-2)]',
-                      )}
-                    >
-                      <LuFileText />
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center gap-2">
+                        <span className="truncate text-sm font-semibold text-[var(--color-ink)]">{proc.titleEn}</span>
+                        {isAlreadyLinked && <StatusPill tone="neutral">{isEs ? 'Vinculado' : 'Linked'}</StatusPill>}
+                      </span>
+                      <span className="block truncate text-sm text-[var(--color-ink-2)]">{proc.titleEs}</span>
                     </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="truncate text-sm font-semibold text-[var(--color-ink)]">
-                          {proc.titleEn}
-                        </span>
-                        <span
-                          className={cn(
-                            'inline-flex h-5 items-center px-2 text-[10px] font-semibold uppercase tracking-wider rounded-md border',
-                            proc.status === 'draft'
-                              ? 'bg-[var(--color-warn-tint)] text-[var(--color-warn-ink)] border-[var(--color-warn)]/30'
-                              : 'bg-[var(--color-ok-tint)] text-[var(--color-ok)] border-[var(--color-ok)]/30',
-                          )}
-                        >
-                          {proc.status === 'draft' ? (isEs ? 'Borrador' : 'Draft') : (isEs ? 'Publicado' : 'Published')}
-                        </span>
-                        {isAlreadyLinked && (
-                          <span className="inline-flex h-5 items-center px-2 text-[10px] font-semibold uppercase tracking-wider rounded-md bg-[var(--color-panel)] text-[var(--color-ink-3)] border border-[var(--color-line-2)]">
-                            {isEs ? 'Vinculado' : 'Linked'}
-                          </span>
-                        )}
-                      </div>
-                      <span className="block truncate text-xs text-[var(--color-ink-3)]">
-                        {proc.titleEs}
-                      </span>
-                    </div>
                     {proc.station !== 'General' && (
-                      <span className="inline-flex h-6 items-center justify-center px-2.5 text-[11px] font-semibold tracking-[0.02em] leading-none rounded-md bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] border border-[var(--color-brand-600)]/20 hidden sm:inline-flex shrink-0">
-                        {proc.station.replace(/^st-/, '').toUpperCase()}
-                      </span>
+                      <StatusPill tone="neutral">{proc.station.replace(/^st-/, '')}</StatusPill>
                     )}
                   </label>
                 );
@@ -1030,79 +919,34 @@ function AddProcedureModal({
           )}
         </section>
 
-        {/* Divider */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3" role="separator">
           <div className="h-px flex-1 bg-[var(--color-line)]" />
-          <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-ink-3)]">
-            {isEs ? 'O crea uno nuevo' : 'Or create a new one'}
-          </span>
+          <span className="text-sm text-[var(--color-ink-3)]">{isEs ? 'O crea uno nuevo' : 'Or create a new one'}</span>
           <div className="h-px flex-1 bg-[var(--color-line)]" />
         </div>
 
-        {/* NEW PROCEDURE — locked target summary */}
-        <section className="space-y-3">
-          <div className="space-y-3">
-            {/* Category row */}
-            <div className="space-y-1.5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-ink-3)]">
-                {isEs ? 'Categoría' : 'Category'}
-              </p>
-              <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 min-h-9">
-                <span
-                  aria-hidden="true"
-                  className="flex size-6 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-panel)] text-[var(--color-ink-2)] text-xs border border-[var(--color-line-2)]"
-                >
-                  <Icon icon={getCategoryIcon(category)} />
-                </span>
-                <span className="text-sm font-semibold text-[var(--color-ink)] truncate">
-                  {catName}
-                </span>
-              </div>
-            </div>
-
-            {/* Subcategory row */}
-            <div className="space-y-1.5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-ink-3)]">
-                {isEs ? 'Subcategoría' : 'Subcategory'}
-              </p>
-              <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 min-h-9">
-                <span
-                  aria-hidden="true"
-                  className="flex size-6 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-panel)] text-[var(--color-ink-2)] text-xs border border-[var(--color-line-2)]"
-                >
-                  <LuLink />
-                </span>
-                <span className="text-sm font-semibold text-[var(--color-ink)] truncate">
-                  {subName}
-                </span>
-              </div>
-            </div>
-          </div>
-          <p className="text-[11px] text-[var(--color-ink-3)]">
+        {/* What a new procedure starts with. It is a statement, not a form:
+            the two bordered boxes looked like fields you could change. */}
+        <section className="space-y-2">
+          <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm">
+            <dt className="text-[var(--color-ink-3)]">{isEs ? 'Categoría' : 'Category'}</dt>
+            <dd className="truncate font-semibold text-[var(--color-ink)]">{catName}</dd>
+            <dt className="text-[var(--color-ink-3)]">{isEs ? 'Subcategoría' : 'Subcategory'}</dt>
+            <dd className="truncate font-semibold text-[var(--color-ink)]">{subName}</dd>
+          </dl>
+          <p className="text-sm text-[var(--color-ink-3)]">
             {isEs
               ? `La categoría, subcategoría${sub.stations?.length ? ' y las estaciones' : ''} se rellenarán automáticamente.`
               : `Category, subcategory${sub.stations?.length ? ' and stations' : ''} will be filled in automatically.`}
           </p>
         </section>
-      </div>
+      </ModalBody>
 
-      {/* Footer */}
-      <div className="flex items-center justify-end gap-2 border-t border-[var(--color-line)] bg-[var(--color-wash)] px-5 py-3 shrink-0">
-        <Button
-          type="button"
-          variant="neutral"
-          onClick={onCancel}
-          className="px-4 text-xs font-semibold"
-        >
+      <ModalFooter>
+        <Button type="button" variant="neutral" onClick={onCancel}>
           {isEs ? 'Cancelar' : 'Cancel'}
         </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={onCreateNew}
-          className="px-4 text-xs font-semibold"
-        >
-          <LuPlus className="text-sm" />
+        <Button type="button" variant="secondary" icon={LuPlus} onClick={onCreateNew}>
           {isEs ? 'Crear nuevo' : 'Create new'}
         </Button>
         <Button
@@ -1113,13 +957,52 @@ function AddProcedureModal({
             const selected = draftCatalog.filter((p) => selectedIds.has(p.id));
             onAddExisting(selected);
           }}
-          className="px-4 text-xs font-semibold shadow-e1"
         >
           {isEs
             ? `Añadir ${selectedIds.size > 0 ? `(${selectedIds.size})` : ''}`
             : `Add ${selectedIds.size > 0 ? `(${selectedIds.size})` : ''}`}
         </Button>
-      </div>
+      </ModalFooter>
+    </div>
+  );
+}
+
+/**
+ * The stations as a checklist. The station picker and the subcategory form each
+ * drew their own -- one with a clickable <div> whose checkbox ignored the
+ * keyboard, and both printing the station code twice. A <label> around a real
+ * checkbox is clickable, focusable and toggled by Space without any handler.
+ */
+function StationChecklist({
+  selected,
+  onToggle,
+  label,
+}: {
+  selected: string[];
+  onToggle: (code: string) => void;
+  label: string;
+}): React.ReactElement {
+  return (
+    <div
+      role="group"
+      aria-label={label}
+      className="divide-y divide-[var(--color-line)] rounded-[var(--radius-md)] border border-[var(--color-line-2)]"
+    >
+      {DEFAULT_STATIONS.map((stn) => (
+        <label
+          key={stn.id}
+          className="flex min-h-tap-admin cursor-pointer items-center gap-3 px-3 py-2 transition-colors hover:bg-[var(--color-wash)]"
+        >
+          <input
+            type="checkbox"
+            checked={selected.includes(stn.code)}
+            onChange={() => onToggle(stn.code)}
+            className="size-4 shrink-0 accent-[var(--color-brand-600)]"
+          />
+          <span className="text-sm font-semibold text-[var(--color-ink)]">{stn.code}</span>
+          <span className="truncate text-sm text-[var(--color-ink-3)]">{stn.description}</span>
+        </label>
+      ))}
     </div>
   );
 }
@@ -1147,83 +1030,36 @@ function StationPickerModal({
 
   return (
     <div className="flex flex-col">
-      <div className="flex items-center justify-between border-b border-[var(--color-line)] p-5 pb-3">
-        <div>
-          <h2 className="font-[family-name:var(--font-display)] text-lg font-bold tracking-tight text-[var(--color-ink)]">
-            {isEs ? 'Vincular estaciones' : 'Link stations'}
-          </h2>
-          <p className="text-xs text-[var(--color-ink-3)] mt-0.5">
-            {isEs
-              ? `Selecciona las estaciones para "${sub.nameEs || sub.nameEn}"`
-              : `Select stations for "${sub.nameEn}"`}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="flex size-7 items-center justify-center rounded-md text-[var(--color-ink-3)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)]"
-        >
-          <LuX className="text-lg" />
-        </button>
-      </div>
+      <ModalHeader
+        title={isEs ? 'Vincular estaciones' : 'Link stations'}
+        description={
+          isEs
+            ? `Selecciona las estaciones para "${sub.nameEs || sub.nameEn}"`
+            : `Select stations for "${sub.nameEn}"`
+        }
+        onClose={onCancel}
+        closeLabel={isEs ? 'Cerrar' : 'Close'}
+      />
 
-      <div className="p-5 space-y-3">
-        <p className="text-[11px] font-semibold text-[var(--color-ink-3)] uppercase tracking-wider">
+      <ModalBody className="space-y-3">
+        <h3 className="text-sm font-semibold text-[var(--color-ink-2)]">
           {isEs ? 'Estaciones disponibles' : 'Available stations'}
-        </p>
-        <div className="space-y-2">
-          {DEFAULT_STATIONS.map((stn) => {
-            const isChecked = selected.includes(stn.code);
-            return (
-              <div
-                key={stn.id}
-                onClick={() => toggleStation(stn.code)}
-                className={cn(
-                  'flex items-center justify-between p-3 rounded-[var(--radius-md)] border cursor-pointer transition-all text-xs',
-                  isChecked
-                    ? 'border-[var(--color-brand-600)] bg-[var(--color-surface)] ring-1 ring-[var(--color-brand-600)]/20'
-                    : 'border-[var(--color-line)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:bg-[var(--color-wash)]'
-                )}
-              >
-                <div className="flex items-center gap-3">
-                  <span
-                    className={cn(
-                      'inline-flex min-w-[36px] h-6 items-center justify-center px-2.5 text-[11px] font-semibold tracking-[0.02em] leading-none rounded-md border transition-colors shadow-2xs',
-                      isChecked
-                        ? 'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] border-[var(--color-brand-600)]/30'
-                        : 'bg-[var(--color-panel-2)] text-[var(--color-ink)] border-[var(--color-line-2)]'
-                    )}
-                  >
-                    {stn.code}
-                  </span>
-                  <span className="text-xs font-semibold text-[var(--color-ink)]">{stn.code}</span>
-                  <span className="text-xs font-normal text-[var(--color-ink-3)]">{stn.description}</span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={isChecked}
-                  onChange={() => {}}
-                  className="size-4 rounded text-[var(--color-brand-600)] accent-[var(--color-brand-600)]"
-                />
-              </div>
-            );
-          })}
-        </div>
-      </div>
+        </h3>
+        <StationChecklist
+          selected={selected}
+          onToggle={toggleStation}
+          label={isEs ? 'Estaciones disponibles' : 'Available stations'}
+        />
+      </ModalBody>
 
-      <div className="flex items-center justify-end gap-2.5 border-t border-[var(--color-line)] bg-[var(--color-wash)] px-5 py-3">
-        <Button type="button" variant="neutral" onClick={onCancel} className="rounded-full px-4 text-xs font-semibold">
+      <ModalFooter>
+        <Button type="button" variant="neutral" onClick={onCancel}>
           {isEs ? 'Cancelar' : 'Cancel'}
         </Button>
-        <Button
-          type="button"
-          variant="primary"
-          onClick={() => onSave(selected)}
-          className="rounded-full bg-[var(--color-brand-600)] hover:bg-[var(--color-brand-hover)] text-white px-4 text-xs font-semibold shadow-e1"
-        >
+        <Button type="button" variant="primary" onClick={() => onSave(selected)}>
           {isEs ? 'Guardar estaciones' : 'Save stations'}
         </Button>
-      </div>
+      </ModalFooter>
     </div>
   );
 }
@@ -1273,99 +1109,70 @@ function SubcategoryForm({
       }}
       className="flex flex-col"
     >
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-[var(--color-line)] p-5 pb-4">
-        <div className="flex items-center gap-3">
-          <span className="flex size-9 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-panel)] text-[var(--color-ink-2)] text-base">
-            <LuLink />
-          </span>
-          <div>
-            <h2 className="font-[family-name:var(--font-display)] text-lg font-bold tracking-tight text-[var(--color-ink)]">
-              {editingSub
-                ? isEs
-                  ? 'Editar subcategoría'
-                  : 'Edit subcategory'
-                : isEs
-                  ? 'Crear subcategoría'
-                  : 'Create subcategory'}
-            </h2>
-            <p className="text-xs text-[var(--color-ink-3)] mt-0.5">
-              {isEs
-                ? 'Organiza procedimientos dentro de esta categoría.'
-                : 'Organize procedures within this category.'}
-            </p>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={onCancel}
-          aria-label={isEs ? 'Cerrar' : 'Close'}
-          className="flex size-7 items-center justify-center rounded-md text-[var(--color-ink-3)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)]"
-        >
-          <LuX className="text-lg" />
-        </button>
-      </div>
+      <ModalHeader
+        title={
+          editingSub
+            ? isEs
+              ? 'Editar subcategoría'
+              : 'Edit subcategory'
+            : isEs
+              ? 'Crear subcategoría'
+              : 'Create subcategory'
+        }
+        description={isEs ? 'Organiza procedimientos dentro de esta categoría.' : 'Organize procedures within this category.'}
+        onClose={onCancel}
+        closeLabel={isEs ? 'Cerrar' : 'Close'}
+      />
 
-      {/* Body */}
-      <div className="p-6 space-y-6">
-        {/* CATEGORY DETAILS */}
+      <ModalBody className="space-y-6">
         <section className="space-y-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-ink-3)]">
-            {isEs ? 'Detalles de la categoría' : 'Category details'}
-          </p>
+          <h3 className="text-sm font-semibold text-[var(--color-ink-2)]">
+            {isEs ? 'Detalles de la subcategoría' : 'Subcategory details'}
+          </h3>
 
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="sub-name-en" className="text-xs font-semibold text-[var(--color-ink)]">
-                {isEs ? 'Nombre (Inglés)' : 'Name (English)'}{' '}
-                <span className="text-[var(--color-bad)]">*</span>
-              </Label>
-              <Input
-                id="sub-name-en"
-                value={nameEn}
-                onChange={(e) => setNameEn(e.target.value.slice(0, 100))}
-                placeholder="e.g. Hygiene"
-                required
-                maxLength={100}
-                autoFocus
-                aria-invalid={nameEn.length > 0 && !enValid}
-                className="h-9 text-xs"
-              />
-              {nameEn.length > 90 && (
-                <p className="text-[11px] text-[var(--color-ink-3)]">
-                  {100 - nameEn.length} {isEs ? 'caracteres restantes' : 'characters left'}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="sub-name-es" className="text-xs font-semibold text-[var(--color-ink)]">
-                {isEs ? 'Nombre (Español)' : 'Name (Spanish)'}{' '}
-                <span className="text-xs font-normal text-[var(--color-ink-3)]">(optional)</span>
-              </Label>
-              <Input
-                id="sub-name-es"
-                value={nameEs}
-                onChange={(e) => setNameEs(e.target.value.slice(0, 100))}
-                placeholder="e.g. Higiene"
-                maxLength={100}
-                aria-invalid={nameEs.length > 0 && !esValid}
-                className="h-9 text-xs"
-              />
-              <p className="text-[11px] text-[var(--color-ink-3)]">
-                {isEs
-                  ? 'Se muestra cuando la biblioteca se ve en español.'
-                  : 'Used when the library is viewed in Spanish.'}
+          <div className="space-y-1.5">
+            <Label htmlFor="sub-name-en">
+              {isEs ? 'Nombre (Inglés)' : 'Name (English)'}{' '}
+              <span aria-hidden="true" className="text-[var(--color-bad)]">*</span>
+            </Label>
+            <Input
+              id="sub-name-en"
+              value={nameEn}
+              onChange={(e) => setNameEn(e.target.value.slice(0, 100))}
+              placeholder="e.g. Hygiene"
+              required
+              maxLength={100}
+              autoFocus
+              aria-invalid={nameEn.length > 0 && !enValid}
+            />
+            {nameEn.length > 90 && (
+              <p className="text-sm text-[var(--color-ink-3)]">
+                {100 - nameEn.length} {isEs ? 'caracteres restantes' : 'characters left'}
               </p>
-            </div>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="sub-name-es">
+              {isEs ? 'Nombre (Español)' : 'Name (Spanish)'}{' '}
+              <span className="font-normal text-[var(--color-ink-3)]">{isEs ? '(opcional)' : '(optional)'}</span>
+            </Label>
+            <Input
+              id="sub-name-es"
+              value={nameEs}
+              onChange={(e) => setNameEs(e.target.value.slice(0, 100))}
+              placeholder="e.g. Higiene"
+              maxLength={100}
+              aria-invalid={nameEs.length > 0 && !esValid}
+            />
+            <p className="text-sm text-[var(--color-ink-3)]">
+              {isEs ? 'Se muestra cuando la biblioteca se ve en español.' : 'Used when the library is viewed in Spanish.'}
+            </p>
           </div>
         </section>
 
-        {/* SCOPE */}
         <section className="space-y-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-ink-3)]">
-            {isEs ? 'Alcance' : 'Scope'}
-          </p>
+          <h3 className="text-sm font-semibold text-[var(--color-ink-2)]">{isEs ? 'Alcance' : 'Scope'}</h3>
 
           <div role="radiogroup" aria-label={isEs ? 'Alcance' : 'Scope'} className="space-y-2">
             <ScopeCard
@@ -1374,60 +1181,29 @@ function SubcategoryForm({
                 setIsStationSpecific(false);
                 setStations([]);
               }}
-              title={isEs ? 'General' : 'General'}
-              description={isEs
-                ? 'Aplica a todas las estaciones.'
-                : 'Applies to all stations.'}
-              isEs={isEs}
+              title={isEs ? 'Todas las estaciones' : 'All stations'}
+              description={isEs ? 'Se muestra en todas las estaciones.' : 'Shown at every station.'}
             />
             <ScopeCard
               checked={isStationSpecific}
               onSelect={() => setIsStationSpecific(true)}
               title={isEs ? 'Específico de estación' : 'Station-specific'}
-              description={isEs
-                ? 'Solo aparece en las estaciones seleccionadas.'
-                : 'Only appears for selected stations.'}
-              isEs={isEs}
+              description={isEs ? 'Solo aparece en las estaciones seleccionadas.' : 'Only appears for selected stations.'}
             />
           </div>
 
           {isStationSpecific && (
             <div className="space-y-3 pt-1">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-ink-3)]">
+              <h3 className="text-sm font-semibold text-[var(--color-ink-2)]">
                 {isEs ? 'Estaciones' : 'Stations'}
-                <span className="ml-1 normal-case tracking-normal text-[var(--color-bad)]">*</span>
-              </p>
-
-              <div
-                role="group"
-                aria-label={isEs ? 'Estaciones' : 'Stations'}
-                className="rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-1.5"
-              >
-                {DEFAULT_STATIONS.map((stn) => {
-                  const isChecked = stations.includes(stn.code);
-                  return (
-                    <label
-                      key={stn.id}
-                      className="flex items-center gap-3 rounded-[var(--radius-sm)] px-3 min-h-9 cursor-pointer hover:bg-[var(--color-wash)] transition-colors"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => toggleStation(stn.code)}
-                        className="size-4 shrink-0 accent-[var(--color-brand-600)]"
-                      />
-                      <span className="inline-flex w-[88px] shrink-0 items-center justify-center h-5 px-2 rounded-md text-[11px] font-semibold border border-[var(--color-line)] bg-[var(--color-panel)] text-[var(--color-ink)] leading-none">
-                        {stn.code}
-                      </span>
-                      <span className="text-xs font-normal text-[var(--color-ink-3)] truncate">
-                        {stn.description}
-                      </span>
-                    </label>
-                  );
-                })}
-              </div>
-
-              <p className="text-[11px] text-[var(--color-ink-3)]">
+                <span aria-hidden="true" className="ml-1 text-[var(--color-bad)]">*</span>
+              </h3>
+              <StationChecklist
+                selected={stations}
+                onToggle={toggleStation}
+                label={isEs ? 'Estaciones' : 'Stations'}
+              />
+              <p className="text-sm text-[var(--color-ink-3)]">
                 {stations.length === 0
                   ? isEs
                     ? 'Selecciona al menos una estación.'
@@ -1439,22 +1215,17 @@ function SubcategoryForm({
             </div>
           )}
         </section>
-      </div>
+      </ModalBody>
 
-      {/* Footer */}
-      <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-[var(--color-line)] bg-[var(--color-wash)]">
-        <Button type="button" variant="neutral" onClick={onCancel} className="px-4 text-xs font-semibold">
+      <ModalFooter>
+        <Button type="button" variant="neutral" onClick={onCancel}>
           {isEs ? 'Cancelar' : 'Cancel'}
         </Button>
-        <Button
-          type="submit"
-          variant="primary"
-          disabled={!canSubmit}
-          className="px-4 text-xs font-semibold shadow-e1"
-        >
-          {isEs ? 'Crear' : 'Create'}
+        {/* It said Create while editing an existing subcategory. */}
+        <Button type="submit" variant="primary" disabled={!canSubmit}>
+          {editingSub ? (isEs ? 'Guardar' : 'Save') : isEs ? 'Crear' : 'Create'}
         </Button>
-      </div>
+      </ModalFooter>
     </form>
   );
 }
@@ -1464,21 +1235,19 @@ function ScopeCard({
   onSelect,
   title,
   description,
-  isEs,
 }: {
   checked: boolean;
   onSelect: () => void;
   title: string;
   description: string;
-  isEs: boolean;
 }): React.ReactElement {
   return (
     <label
       className={cn(
-        'flex items-start gap-3 cursor-pointer rounded-[var(--radius-md)] border p-3 transition-colors',
+        'flex cursor-pointer items-start gap-3 rounded-[var(--radius-md)] border p-3 transition-colors',
         checked
-          ? 'border-[var(--color-brand-600)] bg-[var(--color-surface)]'
-          : 'border-[var(--color-line)] bg-[var(--color-surface)] hover:bg-[var(--color-wash)]',
+          ? 'border-[var(--color-ring)] bg-[var(--color-surface)]'
+          : 'border-[var(--color-line-2)] bg-[var(--color-surface)] hover:bg-[var(--color-wash)]',
       )}
     >
       <input
@@ -1486,31 +1255,12 @@ function ScopeCard({
         name="scope"
         checked={checked}
         onChange={onSelect}
-        aria-label={title}
-        className="sr-only"
+        className="mt-0.5 size-4 shrink-0 accent-[var(--color-brand-600)]"
       />
-      <span
-        aria-hidden="true"
-        className={cn(
-          'mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors',
-          checked
-            ? 'border-[var(--color-brand-600)] bg-[var(--color-surface)]'
-            : 'border-[var(--color-line-3)] bg-[var(--color-surface)]',
-        )}
-      >
-        {checked && <span className="size-2 rounded-full bg-[var(--color-brand-600)]" />}
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold text-[var(--color-ink)]">{title}</span>
+        <span className="mt-0.5 block text-sm text-[var(--color-ink-3)]">{description}</span>
       </span>
-      <div className="flex-1 min-w-0">
-        <span className="block text-xs font-semibold text-[var(--color-ink)]">
-          {title}
-        </span>
-        <span className="block text-[11px] text-[var(--color-ink-3)] mt-0.5">
-          {description}
-        </span>
-      </div>
-      {!isEs && checked && (
-        <span className="sr-only">{`Selected: ${title}`}</span>
-      )}
     </label>
   );
 }

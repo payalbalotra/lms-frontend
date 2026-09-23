@@ -104,12 +104,12 @@ export function ProcedureBlockList({
                 key={item.kind}
                 type="button"
                 onClick={() => addBlock(item.kind as ProcedureBlockKind)}
-                className="group flex flex-col items-center justify-center rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-4 text-center transition-all duration-[var(--dur)] hover:bg-[var(--color-wash)] hover:border-[var(--color-ring)] active:scale-95"
+                className="group flex flex-col items-center justify-center rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-4 text-center transition-all duration-[var(--dur)] hover:bg-[var(--color-wash)] hover:border-[var(--color-line-3)] active:scale-95"
               >
                 <div className={cn('mb-2 flex size-tap-admin items-center justify-center rounded-lg border text-lg transition-transform', item.color)}>
                   <Icon icon={item.icon} />
                 </div>
-                <span className="font-semibold text-sm text-[var(--color-ink)] group-hover:text-[var(--color-brand-700)]">
+                <span className="font-semibold text-sm text-[var(--color-ink)]">
                   {item.label}
                 </span>
               </button>

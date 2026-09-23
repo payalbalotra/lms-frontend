@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
-import { LuBrush, LuBuilding2, LuFileText, LuUtensils } from 'react-icons/lu';
+import { LuBrush, LuBuilding2, LuCheck, LuFileText, LuUtensils } from 'react-icons/lu';
 import { Icon } from '@/components/ui/icon';
 import type { IconType } from 'react-icons';
 
@@ -71,12 +71,12 @@ export function ProcedureTypeSelector({
                 'group relative flex flex-col items-center justify-center rounded-[var(--radius-lg)] border p-3 text-center transition-all',
                 isSelected
                   ? 'border-[var(--color-ring)] bg-[var(--color-surface)] ring-1 ring-[var(--color-ring)]'
-                  : 'border-[var(--color-line-2)] bg-[var(--color-surface)] hover:border-[var(--color-brand-tint-2)] hover:bg-[var(--color-wash)]',
+                  : 'border-[var(--color-line-2)] bg-[var(--color-surface)] hover:border-[var(--color-line-3)] hover:bg-[var(--color-wash)]',
               )}
             >
               {isSelected && (
                 <span className="absolute top-2 right-2 flex size-4 items-center justify-center rounded-full bg-[var(--color-brand-600)] text-sm text-white">
-                  ✓
+                  <LuCheck aria-hidden="true" />
                 </span>
               )}
               <div
@@ -84,7 +84,7 @@ export function ProcedureTypeSelector({
                   'mb-2 flex size-8 items-center justify-center rounded-full text-lg transition-colors',
                   isSelected
                     ? 'bg-[var(--color-panel)] text-[var(--color-ink)]'
-                    : 'bg-[var(--color-wash)] text-[var(--color-ink-2)] group-hover:text-[var(--color-brand-700)]',
+                    : 'bg-[var(--color-wash)] text-[var(--color-ink-2)] group-hover:text-[var(--color-ink)]',
                 )}
               >
                 <Icon icon={type.icon} />

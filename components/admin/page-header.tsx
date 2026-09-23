@@ -1,4 +1,5 @@
 import * as React from 'react';
+import Link from 'next/link';
 
 /**
  * The top of an admin page: where you are, what this page is, and what you can
@@ -19,12 +20,17 @@ import * as React from 'react';
  */
 export function PageHeader({
   eyebrow,
+  eyebrowHref,
   title,
   subtitle,
   actions,
 }: {
   /** Where this page sits — "Library", "People". */
   eyebrow?: string;
+  /** On a detail page the eyebrow is the list it came from, so it is the way
+      back: one link where a breadcrumb, a back arrow and a title used to say
+      the same place three times. */
+  eyebrowHref?: string;
   title: string;
   /** One line: what the page is for. */
   subtitle?: string;
@@ -33,7 +39,17 @@ export function PageHeader({
   return (
     <header className="flex flex-wrap items-start justify-between gap-4 pb-2">
       <div className="min-w-0">
-        {eyebrow ? <p className="mb-1 text-sm font-semibold text-[var(--color-ink-2)]">{eyebrow}</p> : null}
+        {eyebrow ? (
+          <p className="mb-1 text-sm font-semibold text-[var(--color-ink-2)]">
+            {eyebrowHref ? (
+              <Link href={eyebrowHref} className="underline-offset-4 hover:text-[var(--color-ink)] hover:underline">
+                {eyebrow}
+              </Link>
+            ) : (
+              eyebrow
+            )}
+          </p>
+        ) : null}
         <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold leading-display tracking-tight text-[var(--color-ink)]">
           {title}
         </h1>
