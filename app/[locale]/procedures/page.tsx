@@ -63,7 +63,7 @@ export default async function ProceduresPage({ params, searchParams }: PageProps
 
   const readsSpanish = employee.languagePref === 'es';
   const backHref = withAs(
-    effectiveRole === 'admin' ? `/${locale}/admin/library` : `/${locale}/employee/assigned`,
+    effectiveRole === 'admin' ? `/${locale}/admin/library` : `/${locale}/employee/home`,
     viewAs,
   );
 
@@ -107,7 +107,7 @@ export default async function ProceduresPage({ params, searchParams }: PageProps
           locale={locale}
           active="procedures"
           labels={{
-            ask: t('tabAsk'),
+            home: t('tabHome'),
             procedures: t('tabProcedures'),
             training: t('tabTraining'),
             soon: t('tabSoon'),

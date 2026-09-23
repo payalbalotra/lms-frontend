@@ -60,7 +60,7 @@ export default async function AdminLayout({ children, params }: AdminLayoutProps
   }
 
   if (employee.role !== 'admin') {
-    redirect(`/${locale}/employee/assigned`);
+    redirect(`/${locale}/employee/home`);
   }
 
   async function signOut(): Promise<void> {

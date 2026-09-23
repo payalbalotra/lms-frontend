@@ -328,7 +328,7 @@ export function AdminShell({
                 the same way. The sidebar footer has it too, for the phone, where
                 this bar is not shown. */}
             <Link
-              href={`/${locale}/employee/assigned`}
+              href={`/${locale}/employee/home`}
               className="inline-flex min-h-tap-admin items-center gap-1 rounded-full px-3 text-sm font-medium text-[var(--color-ink-2)] transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:bg-[var(--color-panel)] hover:text-[var(--color-ink)]"
             >
               {t('backToApp')}
@@ -467,7 +467,7 @@ function Sidebar({
           </span>
         </p>
         <Link
-          href={`/${locale}/employee/assigned`}
+          href={`/${locale}/employee/home`}
           onClick={onNavigate}
           className={cn(
             'flex min-h-10 items-center gap-3 rounded-[var(--radius-md)] px-3 py-2',

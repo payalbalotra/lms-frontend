@@ -63,7 +63,7 @@ export default async function ProcedurePage({ params }: PageProps): Promise<Reac
     ctlUpdated: t('ctlUpdated'),
     ctlStatus: t('ctlStatus'),
     ctlLanguages: t('ctlLanguages'),
-    tabAsk: t('tabAsk'),
+    tabHome: t('tabHome'),
     tabProcedures: t('tabProcedures'),
     tabTraining: t('tabTraining'),
     tabSoon: t('tabSoon'),

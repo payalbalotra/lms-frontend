@@ -237,7 +237,7 @@ export default async function EmployeeTrainingCoursePage({
         locale={locale}
         active="training"
         labels={{
-          ask: t('tabAsk'),
+          home: t('tabHome'),
           procedures: t('tabProcedures'),
           training: t('tabTraining'),
           soon: t('tabSoon'),

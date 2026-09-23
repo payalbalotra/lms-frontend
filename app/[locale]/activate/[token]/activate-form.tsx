@@ -51,7 +51,7 @@ export function ActivateForm({ locale, token, employeeName }: ActivateFormProps)
     startTransition(async () => {
       try {
         await activate({ token, code, password });
-        router.replace(`/${locale}/employee/assigned`);
+        router.replace(`/${locale}/employee/home`);
         router.refresh();
       } catch (err) {
         if (err instanceof ApiException) {

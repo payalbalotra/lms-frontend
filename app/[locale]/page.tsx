@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { fetchMe, ApiException } from '@/lib/api';
 
-// Root locale page: if signed in, send to /employee/assigned or /admin/library; otherwise to /login.
+// Root locale page: if signed in, send to /employee/home or /admin/library; otherwise to /login.
 export default async function LocaleRootPage({
   params,
 }: {
@@ -21,7 +21,7 @@ export default async function LocaleRootPage({
     if (me.employee.role === 'admin') {
       redirect(`/${locale}/admin/library`);
     } else {
-      redirect(`/${locale}/employee/assigned`);
+      redirect(`/${locale}/employee/home`);
     }
   } catch (err) {
     if (err instanceof ApiException) {

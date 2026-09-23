@@ -11,7 +11,7 @@ import type { Category, Procedure } from '@/lib/types';
 import { withAs, type ViewAs } from '@/lib/view-as';
 import { LuSearch } from 'react-icons/lu';
 import { ProcedureRow } from '@/components/employee/procedure-row';
-import { allergenWords, factsOf } from '@/app/[locale]/employee/assigned/components/procedure-facts';
+import { allergenWords, factsOf } from '@/app/[locale]/employee/home/components/procedure-facts';
 
 interface ProceduresClientListProps {
   initialCategories: Category[];
