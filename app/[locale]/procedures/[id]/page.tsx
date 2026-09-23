@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { ApiException, fetchMe, getProcedureBySlug } from '@/lib/api';
 import type { Procedure } from '@/lib/types';
+import { readViewAs } from '@/lib/view-as-server';
 import { ProcedureViewClient } from './procedure-view-client';
 
 interface PageProps {
@@ -31,6 +32,13 @@ export default async function ProcedurePage({ params }: PageProps): Promise<Reac
     if (err instanceof ApiException) redirect(`/${locale}/login`);
     throw err;
   }
+
+  // ?as= override: procedures are reading content, so the page renders in
+  // employee chrome by default. `?as=admin` opts into the admin chrome for
+  // anyone who wants the library nav context while here. The proxy injects
+  // the value as the x-lms-view-as request header. See lib/view-as.
+  const viewAs = await readViewAs();
+  const effectiveRole = viewAs ?? 'employee';
 
   let proc: Procedure | null = null;
   try {
@@ -67,6 +75,8 @@ export default async function ProcedurePage({ params }: PageProps): Promise<Reac
       slugOrId={id}
       initialProcedure={proc}
       employee={employee}
+      effectiveRole={effectiveRole}
+      viewAs={viewAs}
       locale={locale}
       labels={labels}
     />

@@ -5,12 +5,17 @@
 // so the page skips the employee `<TabBar>` and swaps the sticky `<DocBar>`
 // for an inline "back" link above the article. Employees get the full DocBar
 // and bottom TabBar unchanged.
+//
+// `effectiveRole` and `viewAs` come from the server: they reflect the
+// `?as=` query-param override on top of the real session role, so both
+// chomes can be demoed without changing the seed session. See lib/view-as.
 
 import * as React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getProcedureBySlug, getQuizById, updateQuiz } from '@/lib/api';
 import type { Employee, Procedure, ProcedureBlock } from '@/lib/types';
+import { withAs, type ViewAs } from '@/lib/view-as';
 import { BlockRenderer, findAllergen } from '@/components/doc/block-renderer';
 import { QuizAttachBanner, QuizReader } from '@/components/doc/quiz-reader';
 import { Allergen, Cover, DocActs, DocBar, DocControl, DocHead, DocPurpose, Facts } from '@/components/doc';
@@ -22,6 +27,11 @@ interface ProcedureViewClientProps {
   slugOrId: string;
   initialProcedure: Procedure | null;
   employee: Employee;
+  /** The role the page is rendering as — `?as=` override applied on top of
+   *  the session role. Drives chrome (DocBar vs inline back) and back link. */
+  effectiveRole: 'admin' | 'employee';
+  /** The active view-as override, kept so the back link can carry it forward. */
+  viewAs: ViewAs | null;
   locale: string;
   labels: {
     back: string;
@@ -56,6 +66,8 @@ export function ProcedureViewClient({
   slugOrId,
   initialProcedure,
   employee,
+  effectiveRole,
+  viewAs,
   locale,
   labels,
 }: ProcedureViewClientProps): React.ReactElement {
@@ -119,9 +131,10 @@ export function ProcedureViewClient({
   // Deep links (new tab, shared URL) have no referrer — fall back to
   // the role-specific landing.
   const router = useRouter();
-  const fallbackHref = employee.role === 'admin'
-    ? `/${locale}/admin/library`
-    : `/${locale}/procedures`;
+  const fallbackHref = withAs(
+    effectiveRole === 'admin' ? `/${locale}/admin/library` : `/${locale}/procedures`,
+    viewAs,
+  );
   const [hasReferrer, setHasReferrer] = React.useState(false);
   React.useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -141,9 +154,33 @@ export function ProcedureViewClient({
   }, [router]);
   const backHref = fallbackHref;
 
+  // Admins come in through the AdminShell (see /procedures/layout.tsx) which
+  // already supplies the surrounding chrome (sidebar + sticky top bar). They
+  // do not need the employee `<TabBar>`; padding matches the shell's main
+  // column so the doc sits flush rather than reserving space for a bar that
+  // isn't there.
+  //
+  // The admin branch sits on the bone canvas (--bg-admin, the same ground the
+  // AdminShell paints behind every admin page) so the white
+  // <article className="doc"> has something to lift off of. The employee
+  // branch keeps --bg because the phone shell already runs edge-to-edge
+  // white and the doc fills the viewport.
+  const isAdmin = effectiveRole === 'admin';
+  const wrapperClass = isAdmin
+    ? 'min-h-screen bg-[var(--color-bg-admin)]'
+    : 'min-h-screen bg-[var(--color-bg)] pb-20';
+  // Loading / 404 use the same canvas as the loaded page so they don't flash
+  // white while the procedure resolves.
+  const stageClass = isAdmin
+    ? 'flex min-h-screen items-center justify-center bg-[var(--color-bg-admin)]'
+    : 'flex min-h-screen items-center justify-center bg-[var(--color-bg)]';
+  const notFoundClass = isAdmin
+    ? 'flex min-h-screen flex-col items-center justify-center bg-[var(--color-bg-admin)] p-6 text-center'
+    : 'flex min-h-screen flex-col items-center justify-center bg-[var(--color-bg)] p-6 text-center';
+
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--color-bg)]">
+      <div className={stageClass}>
         <p className="text-sm font-medium text-[var(--color-ink-2)] animate-pulse">Loading procedure...</p>
       </div>
     );
@@ -151,7 +188,7 @@ export function ProcedureViewClient({
 
   if (notFoundState || !proc) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--color-bg)] p-6 text-center">
+      <div className={notFoundClass}>
         <div className="mx-auto max-w-card space-y-4">
           <h1 className="font-[family-name:var(--font-display)] text-3xl font-bold text-[var(--color-ink)]">
             404 — Procedure Not Found
@@ -212,17 +249,7 @@ export function ProcedureViewClient({
   const quiz = proc.quizId ? getQuizById(proc.quizId) : null;
   const quizExists = Boolean(quiz && quiz.questions.length > 0);
   const quizVisible = Boolean(quiz && (quiz.attached || proc.attachedToTraining));
-  const showAttachBanner = quizExists && !quizVisible && employee.role === 'admin';
-
-  // Admins come in through the AdminShell (see /procedures/layout.tsx) which
-  // already supplies the surrounding chrome (sidebar + sticky top bar). They
-  // do not need the employee `<TabBar>`; padding matches the shell's main
-  // column so the doc sits flush rather than reserving space for a bar that
-  // isn't there.
-  const isAdmin = employee.role === 'admin';
-  const wrapperClass = isAdmin
-    ? 'min-h-screen bg-[var(--color-bg)]'
-    : 'min-h-screen bg-[var(--color-bg)] pb-20';
+  const showAttachBanner = quizExists && !quizVisible && effectiveRole === 'admin';
 
   return (
     <div className={wrapperClass}>
