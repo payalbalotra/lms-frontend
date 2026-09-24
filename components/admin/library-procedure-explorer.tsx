@@ -4,7 +4,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { listCategories, listProcedures, setProcedureState } from '@/lib/api';
+import { deleteProcedure, listCategories, listProcedures, setProcedureState } from '@/lib/api';
 import type { Procedure, Category, ProcedureStatus } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -187,8 +187,6 @@ export function LibraryProcedureExplorer({
     const updated = await setProcedureState(id, change);
     setLiveProcedures((list) => list.map((p) => (p.id === id ? updated : p)));
   }, []);
-
-  const router = useRouter();
 
   // Filters State
   const searchParams = useSearchParams();

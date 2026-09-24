@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { setRequestLocale } from 'next-intl/server';
 import { getProcedureBySlug, listCategories, listLocations, ApiException } from '@/lib/api';
 import type { Category, Procedure } from '@/lib/types';
-import { NewProcedureForm } from '../../new/new-procedure-form';
+import { ProcedureEditor } from '@/components/admin/procedure-editor';
 
 interface PageProps {
   params: Promise<{ locale: string; id: string }>;
@@ -45,10 +45,10 @@ export default async function AdminLibraryEditPage({
 
   return (
     <div className="w-full">
-      <NewProcedureForm
+      <ProcedureEditor
         locale={locale}
         categories={categories}
-        initialProcedure={procedure}
+        initial={procedure}
       />
     </div>
   );

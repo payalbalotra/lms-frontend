@@ -13,7 +13,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { getProcedureBySlug, getQuizById, logRestrictedView, updateQuiz } from '@/lib/api';
+import { deleteProcedure, getProcedureBySlug, getQuizById, logRestrictedView, updateQuiz } from '@/lib/api';
 import type { Employee, Procedure, ProcedureBlock } from '@/lib/types';
 import { withAs, type ViewAs } from '@/lib/view-as';
 import { BlockRenderer, findAllergen } from '@/components/doc/block-renderer';

@@ -1127,8 +1127,67 @@ export async function updateProcedure(
 
   mockProcedures = [...procs];
   mockProcedures[idx] = updated;
-  setStored('procedures', mockProcedures);
+  setStored('procedures_v2', mockProcedures);
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('lms_procedures_updated'));
   return { procedure: updated };
+}
+
+export interface AccessLogEntry {
+  procedureId: string;
+  employeeId: string;
+  employeeName: string;
+  at: string;
+  device: string;
+}
+
+/** Every open of a confidential or master recipe, admins included
+ *  (PROJECT_OVERVIEW §04: "opening one is recorded in the same way as for any
+ *  other user"). Called by the reading page once it is on screen, since the
+ *  page itself is often rendered on the server. Mock: kept in the browser,
+ *  newest first, capped. */
+export function logRestrictedView(p: Procedure, viewer: Employee): void {
+  if (typeof window === 'undefined') return;
+  const log = getStored<AccessLogEntry[]>('access_log', []);
+  const entry: AccessLogEntry = {
+    procedureId: p.id,
+    employeeId: viewer.id,
+    employeeName: viewer.name,
+    at: new Date().toISOString(),
+    device: navigator.userAgent,
+  };
+  setStored('access_log', [entry, ...log].slice(0, 500));
+}
+
+export async function listAccessLog(): Promise<{ entries: AccessLogEntry[] }> {
+  return { entries: getStored<AccessLogEntry[]>('access_log', []) };
+}
+
+const CLEARANCE_RANK: Record<ClearanceLevel, number> = { general: 0, station: 1, confidential: 2, master: 3 };
+
+/**
+ * Can this person open this procedure? The backend enforces the same rule in
+ * the database (PROJECT_OVERVIEW §04: "a mistake in the interface cannot
+ * expose the wrong data"); the mock enforces it where the backend would, in
+ * the list and in the single lookup, so no screen has to remember to.
+ *
+ * Admins and managers read everything. Anyone else reads what is published,
+ * not archived, meant for them (everyone, or one of the stations, roles or
+ * people named), and within their clearance: a confidential recipe needs
+ * confidential clearance, a master recipe needs master.
+ */
+export function canRead(p: Procedure, viewer: Employee): boolean {
+  if (viewer.role === 'admin' || viewer.accessLevel === 'manager') return true;
+  if (p.status !== 'published' || p.isArchived) return false;
+  const a = p.audience;
+  if (a && a.mode === 'some') {
+    const meant =
+      a.employeeIds.includes(viewer.id) ||
+      a.stationIds.some((id) => viewer.stationIds.includes(id)) ||
+      a.roleIds.some((id) => viewer.roleIds.includes(id));
+    if (!meant) return false;
+  }
+  const needs: ClearanceLevel = p.protection === 'master' ? 'master' : p.protection === 'confidential' ? 'confidential' : 'general';
+  return CLEARANCE_RANK[viewer.clearanceLevel] >= CLEARANCE_RANK[needs];
 }
 
 export async function listProcedures(
@@ -1141,6 +1200,38 @@ export async function listProcedures(
   return { procedures: [...filtered] };
 }
 
+/** One procedure by id, for the editor. */
+export async function getProcedureById(id: string): Promise<{ procedure: Procedure }> {
+  const found = getProceduresStore().find((p) => p.id === id || p.slug === id);
+  if (!found) throw new ApiException(404, 'NOT_FOUND', 'Procedure not found');
+  return { procedure: found };
+}
+
+/** Move a procedure through its states: draft -> published -> archived, and
+ *  back. Mock: rewrites the local store. Publishing bumps the version, which
+ *  the printed QR code points at. */
+export async function setProcedureState(
+  id: string,
+  change: { status?: Procedure['status']; isArchived?: boolean },
+): Promise<Procedure> {
+  const now = new Date().toISOString();
+  mockProcedures = getProceduresStore().map((p) =>
+    p.id === id
+      ? {
+          ...p,
+          ...change,
+          updatedAt: now,
+          version: change.status === 'published' && p.status !== 'published' ? (p.version ?? 0) + 1 : p.version,
+        }
+      : p,
+  );
+  setStored('procedures_v2', mockProcedures);
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('lms_procedures_updated'));
+  const updated = mockProcedures.find((p) => p.id === id);
+  if (!updated) throw new ApiException(404, 'NOT_FOUND', 'Procedure not found');
+  return updated;
+}
+
 export async function deleteProcedure(id: string): Promise<{ ok: true }> {
   const procs = getProceduresStore();
   const next = procs.filter((p) => p.id !== id && p.slug !== id);
@@ -1148,7 +1239,8 @@ export async function deleteProcedure(id: string): Promise<{ ok: true }> {
     throw new ApiException(404, 'PROCEDURE_NOT_FOUND', `Procedure ${id} not found`);
   }
   mockProcedures = next;
-  setStored('procedures', mockProcedures);
+  setStored('procedures_v2', mockProcedures);
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('lms_procedures_updated'));
   return { ok: true };
 }
 
