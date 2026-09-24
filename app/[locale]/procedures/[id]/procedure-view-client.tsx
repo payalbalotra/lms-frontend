@@ -121,27 +121,6 @@ export function ProcedureViewClient({
     }
   }, [proc]);
 
-  // Delete modal state — admin only
-  const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
-  const [isDeleting, setIsDeleting] = React.useState(false);
-
-  const handleDelete = React.useCallback(async () => {
-    if (!proc) return;
-    setIsDeleting(true);
-    try {
-      await deleteProcedure(proc.id);
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('lms_procedures_updated'));
-      }
-      // Navigate away — the procedure no longer exists.
-      router.push(`/${locale}/admin/library`);
-      router.refresh();
-    } catch {
-      setIsDeleting(false);
-      setIsDeleteOpen(false);
-    }
-  }, [proc, locale, router]);
-
   // Back navigation: when the user navigates *forward* to a procedure
   // (e.g. from a category detail page), the previous URL is in
   // `document.referrer`. Returning via `router.back()` preserves scroll
@@ -171,6 +150,27 @@ export function ProcedureViewClient({
     router.back();
   }, [router]);
   const backHref = fallbackHref;
+
+  // Delete modal state — admin only (placed after router so the callback can use it)
+  const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false);
+
+  const handleDelete = React.useCallback(async () => {
+    if (!proc) return;
+    setIsDeleting(true);
+    try {
+      await deleteProcedure(proc.id);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('lms_procedures_updated'));
+      }
+      // Navigate away — the procedure no longer exists.
+      router.push(`/${locale}/admin/library`);
+      router.refresh();
+    } catch {
+      setIsDeleting(false);
+      setIsDeleteOpen(false);
+    }
+  }, [proc, locale, router]);
 
   // Admins come in through the AdminShell (see /procedures/layout.tsx) which
   // already supplies the surrounding chrome (sidebar + sticky top bar). They

@@ -1733,36 +1733,65 @@ export function NewProcedureForm({
                 <span>Back</span>
               </Button>
             )}
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              disabled={isPending}
-              onClick={() => void submit('draft')}
-            >
-              {tForm('saveDraft')}
-            </Button>
-            {wizardStep === 'review' ? (
-              <Button
-                type="button"
-                variant="primary"
-                size="sm"
-                disabled={isPending}
-                onClick={() => void submit('published')}
-              >
-                {isPending ? tForm('publishing') : tForm('publish')}
-              </Button>
+
+            {/* In edit mode: always show Save Changes + Publish side-by-side.
+                In create mode: show Save Draft on every step, and
+                Publish (primary) only on the Review step / Next step otherwise. */}
+            {isEditMode ? (
+              <>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  disabled={isPending}
+                  onClick={() => void submit(initialProcedure?.status ?? 'draft')}
+                >
+                  {isPending ? 'Saving…' : 'Save Changes'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  disabled={isPending}
+                  onClick={() => void submit('published')}
+                >
+                  {isPending ? tForm('publishing') : 'Publish'}
+                </Button>
+              </>
             ) : (
-              <Button
-                type="button"
-                variant="primary"
-                size="sm"
-                onClick={handleNextStep}
-                className="gap-2"
-              >
-                <span>Next step</span>
-                <LuArrowRight aria-hidden="true" className="text-sm" />
-              </Button>
+              <>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  disabled={isPending}
+                  onClick={() => void submit('draft')}
+                >
+                  {tForm('saveDraft')}
+                </Button>
+                {wizardStep === 'review' ? (
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    disabled={isPending}
+                    onClick={() => void submit('published')}
+                  >
+                    {isPending ? tForm('publishing') : tForm('publish')}
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    onClick={handleNextStep}
+                    className="gap-2"
+                  >
+                    <span>Next step</span>
+                    <LuArrowRight aria-hidden="true" className="text-sm" />
+                  </Button>
+                )}
+              </>
             )}
           </div>
         </div>
