@@ -1490,10 +1490,10 @@ dl.yield { margin: 0 0 var(--s-5); }
   position: relative; display: flex; align-items: center; gap: var(--s-2);
   width: 100%; max-width: var(--field-xl);
   min-height: var(--tap-admin); padding: 0 var(--s-3);
-  background: var(--field); border: 1px solid var(--line-3); border-radius: var(--r-md);
-  transition: border-color var(--dur) var(--ease);
+  background: var(--wash); border: 1px solid var(--line-3); border-radius: var(--r-md);
+  transition: border-color var(--dur) var(--ease), background-color var(--dur) var(--ease);
 }
-.find:focus-within { border-color: var(--brand); }
+.find:focus-within { background: var(--field); border-color: var(--brand); }
 .find > .i { color: var(--ink-2); flex-shrink: 0; }
 .find input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--ink); font: inherit; font-size: var(--t-base); min-height: var(--tap-admin); }
 .find input:focus { outline: none; }

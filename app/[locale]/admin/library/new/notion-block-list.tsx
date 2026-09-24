@@ -928,27 +928,32 @@ function AttachmentBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { 
 
 // ---- Table — real table ----
 
+const TABLE_LANGS: Array<'en' | 'es'> = ['en', 'es'];
+
 function TableBody({
   block,
   onPatch,
 }: BodyProps<Extract<ProcedureBlock, { kind: 'table' }>>): React.ReactElement {
-  const [lang, setLang] = React.useState<'en' | 'es'>('en');
-  const currentLabel = lang === 'en' ? 'EN' : 'ES';
-  const otherLabel = lang === 'en' ? 'ES' : 'EN';
-  function setHeader(j: number, l: 'en' | 'es', value: string): void {
+  const [activeLang, setActiveLang] = React.useState<'en' | 'es'>('en');
+
+  function setHeader(j: number, lang: 'en' | 'es', value: string): void {
     onPatch({
       ...block,
-      headers: block.headers.map((h, k) => (k === j ? setLoc(h, l, value) : h)),
+      headers: block.headers.map((h, k) => (k === j ? { ...h, [lang]: value } : h)),
     });
   }
-  function setCell(i: number, j: number, l: 'en' | 'es', value: string): void {
+
+  function setCell(i: number, j: number, lang: 'en' | 'es', value: string): void {
     onPatch({
       ...block,
       rows: block.rows.map((row, k) =>
-        k === i ? row.map((cell, m) => (m === j ? setLoc(cell, l, value) : cell)) : row,
+        k === i
+          ? row.map((cell, m) => (m === j ? { ...cell, [lang]: value } : cell))
+          : row,
       ),
     });
   }
+
   function addColumn(): void {
     const empty: Localised = { en: '', es: '' };
     onPatch({
@@ -957,6 +962,7 @@ function TableBody({
       rows: block.rows.map((row) => [...row, empty]),
     });
   }
+
   function removeColumn(j: number): void {
     if (block.headers.length <= 1) return;
     onPatch({
@@ -965,154 +971,191 @@ function TableBody({
       rows: block.rows.map((row) => row.filter((_, k) => k !== j)),
     });
   }
+
   function addRow(): void {
     const emptyRow: Localised[] = Array.from({ length: block.headers.length }, () => ({ en: '', es: '' }));
     onPatch({ ...block, rows: [...block.rows, emptyRow] });
   }
+
   function removeRow(i: number): void {
     if (block.rows.length <= 1) return;
     onPatch({ ...block, rows: block.rows.filter((_, k) => k !== i) });
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2.5">
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold text-[var(--color-ink-3)]">
           Table Columns & Rows
         </span>
-        <LangToggle lang={lang} onChange={setLang} />
       </div>
-      {/* Table grid — hairline borders, no badge/label */}
-      <div className="overflow-x-auto rounded-[var(--radius-md)] border border-[var(--color-line)] bg-[var(--color-surface)]">
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="border-b border-[var(--color-line)] bg-[var(--color-wash)]">
-              {block.headers.map((_, j) => {
-                const isFilledOther = otherLabel === 'ES'
-                  ? Boolean(block.headers[j]?.es?.trim())
-                  : Boolean(block.headers[j]?.en?.trim());
-                return (
-                  <th
-                    key={j}
-                    className="group relative min-w-field-xs border-r border-[var(--color-line)] p-1 text-left font-semibold text-[var(--color-ink)] last:border-r-0"
-                  >
-                    <div className="flex items-center gap-1 px-1">
-                      <input
-                        type="text"
-                        value={asLoc(block.headers[j], lang)}
-                        onChange={(e) => setHeader(j, lang, e.target.value)}
-                        placeholder={`Header ${j + 1} (${currentLabel})`}
-                        className="w-full rounded px-2 py-1 text-sm font-semibold text-[var(--color-ink)] bg-transparent placeholder:text-[var(--color-ink-3)] border border-transparent hover:border-[var(--color-line-2)] focus:border-[var(--color-ring)] focus:bg-[var(--color-surface)] focus:outline-none focus:ring-1 focus:ring-[var(--color-ring)] transition-colors"
-                      />
-                      {isFilledOther && (
-                        <span
-                          title={`${otherLabel} translation present`}
-                          className="inline-flex size-4 shrink-0 items-center justify-center text-[var(--color-ok)]"
-                        >
-                          <Icon icon="ri-check-line" className="text-sm font-semibold" />
-                        </span>
-                      )}
-                      {block.headers.length > 1 && (
-                        <button
-                          type="button"
-                          aria-label="Remove column"
-                          title="Remove column"
-                          onClick={() => removeColumn(j)}
-                          className="flex size-5 shrink-0 items-center justify-center rounded text-[var(--color-ink-3)] opacity-0 group-hover:opacity-100 hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)] transition-all"
-                        >
-                          <Icon icon="ri-close-line" className="text-sm" />
-                        </button>
-                      )}
-                    </div>
-                  </th>
-                );
-              })}
-              <th className="w-tap-admin border-b border-[var(--color-line)] bg-[var(--color-wash)] p-1 text-center">
-                <button
-                  type="button"
-                  aria-label="Add column"
-                  title="Add column"
-                  onClick={addColumn}
-                  className="mx-auto flex size-8 items-center justify-center rounded text-[var(--color-ink-2)] hover:bg-[var(--color-panel)] hover:text-[var(--color-ink)] transition-colors"
-                >
-                  <Icon icon="ri-add-line" className="text-base font-semibold" />
-                </button>
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[var(--color-line)]">
-            {block.rows.map((row, i) => (
-              <tr key={i} className="group/row transition-colors hover:bg-[var(--color-wash)]">
-                {row.map((_, j) => {
-                  const isFilledOther = otherLabel === 'ES'
-                    ? Boolean(row[j]?.es?.trim())
-                    : Boolean(row[j]?.en?.trim());
-                  return (
-                    <td
-                      key={j}
-                      className="min-w-field-xs border-r border-[var(--color-line)] p-1 align-top last:border-r-0"
-                    >
-                      <div className="flex items-center gap-1 px-1">
-                        <input
-                          type="text"
-                          value={asLoc(row[j], lang)}
-                          onChange={(e) => setCell(i, j, lang, e.target.value)}
-                          placeholder={`Cell (${currentLabel})`}
-                          className="w-full rounded px-2 py-1 text-sm text-[var(--color-ink)] bg-transparent placeholder:text-[var(--color-ink-3)] border border-transparent hover:border-[var(--color-line-2)] focus:border-[var(--color-ring)] focus:bg-[var(--color-surface)] focus:outline-none focus:ring-1 focus:ring-[var(--color-ring)] transition-colors"
-                        />
-                        {isFilledOther && (
-                          <span
-                            title={`${otherLabel} translation present`}
-                            className="inline-flex size-4 shrink-0 items-center justify-center text-[var(--color-ok)]"
+
+      <div className="space-y-2">
+        {TABLE_LANGS.map((lang) => {
+          const isActive = activeLang === lang;
+          if (isActive) {
+            return (
+              <div
+                key={lang}
+                className="w-full rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-3 shadow-[var(--e-1)] transition-all duration-200 space-y-2.5"
+              >
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-xs font-semibold text-[var(--color-ink)]">
+                    {lang === 'en' ? 'English Table' : 'Spanish Table (Español)'}
+                  </span>
+                  <span className="font-mono text-xs font-semibold text-[var(--color-ink-3)] uppercase tracking-wider">
+                    {lang.toUpperCase()}
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto rounded-[var(--radius-md)] border border-[var(--color-line)] bg-[var(--color-surface)]">
+                  <table className="w-full border-collapse text-sm">
+                    <thead>
+                      <tr className="border-b border-[var(--color-line)] bg-[var(--color-wash)]">
+                        {block.headers.map((_, j) => (
+                          <th
+                            key={j}
+                            className="group relative min-w-[160px] border-r border-[var(--color-line)] p-1 text-left font-semibold text-[var(--color-ink)] last:border-r-0"
                           >
-                            <Icon icon="ri-check-line" className="text-sm font-semibold" />
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                  );
-                })}
-                <td className="w-tap-admin p-1 text-center align-middle">
-                  {block.rows.length > 1 && (
-                    <button
-                      type="button"
-                      aria-label="Remove row"
-                      title="Remove row"
-                      onClick={() => removeRow(i)}
-                      className="mx-auto flex size-6 items-center justify-center rounded text-[var(--color-ink-3)] opacity-0 group-hover/row:opacity-100 hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)] transition-all"
-                    >
-                      <Icon icon="ri-close-line" className="text-sm" />
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-            <tr className="bg-[var(--color-wash)]">
-              <td colSpan={block.headers.length} className="p-1">
-                <button
-                  type="button"
-                  onClick={addRow}
-                  title="Add row"
-                  className="inline-flex items-center gap-2 rounded px-2 py-1 text-sm font-semibold text-[var(--color-ink-2)] hover:bg-[var(--color-panel)] hover:text-[var(--color-ink)] transition-colors"
-                >
-                  <Icon icon="ri-add-line" className="text-sm" />
-                  <span>Add row</span>
-                </button>
-              </td>
-              <td className="w-tap-admin p-1 text-center align-middle border-t border-[var(--color-line)]">
-                <button
-                  type="button"
-                  aria-label="Add row"
-                  title="Add row"
-                  onClick={addRow}
-                  className="mx-auto flex size-8 items-center justify-center rounded text-[var(--color-ink-2)] hover:bg-[var(--color-panel)] hover:text-[var(--color-ink)] transition-colors"
-                >
-                  <Icon icon="ri-add-line" className="text-base font-semibold" />
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                            <div className="flex items-center gap-1 px-1">
+                              <input
+                                type="text"
+                                value={block.headers[j]?.[lang] ?? ''}
+                                onChange={(e) => setHeader(j, lang, e.target.value)}
+                                placeholder={`Header ${j + 1} (${lang.toUpperCase()})`}
+                                className="w-full rounded px-2 py-1 text-sm font-semibold text-[var(--color-ink)] bg-transparent placeholder:text-[var(--color-ink-3)] border border-transparent hover:border-[var(--color-line-2)] focus:border-[var(--color-ring)] focus:bg-[var(--color-surface)] focus:outline-none focus:ring-1 focus:ring-[var(--color-ring)] transition-colors"
+                              />
+                              {block.headers.length > 1 && (
+                                <button
+                                  type="button"
+                                  aria-label="Remove column"
+                                  title="Remove column"
+                                  onClick={() => removeColumn(j)}
+                                  className="flex size-5 shrink-0 items-center justify-center rounded text-[var(--color-ink-3)] opacity-0 group-hover:opacity-100 hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)] transition-all"
+                                >
+                                  <Icon icon="ri-close-line" className="text-sm" />
+                                </button>
+                              )}
+                            </div>
+                          </th>
+                        ))}
+                        <th className="w-tap-admin border-b border-[var(--color-line)] bg-[var(--color-wash)] p-1 text-center align-middle">
+                          <button
+                            type="button"
+                            aria-label="Add column"
+                            title="Add column"
+                            onClick={addColumn}
+                            className="mx-auto flex size-8 items-center justify-center rounded text-[var(--color-ink-2)] hover:bg-[var(--color-panel)] hover:text-[var(--color-ink)] transition-colors"
+                          >
+                            <Icon icon="ri-add-line" className="text-base font-semibold" />
+                          </button>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[var(--color-line)]">
+                      {block.rows.map((row, i) => (
+                        <tr key={i} className="group/row transition-colors hover:bg-[var(--color-wash)]/40">
+                          {row.map((_, j) => (
+                            <td
+                              key={j}
+                              className="min-w-[160px] border-r border-[var(--color-line)] p-1 align-top last:border-r-0"
+                            >
+                              <div className="flex items-center gap-1 px-1">
+                                <input
+                                  type="text"
+                                  value={row[j]?.[lang] ?? ''}
+                                  onChange={(e) => setCell(i, j, lang, e.target.value)}
+                                  placeholder={`Cell (${lang.toUpperCase()})`}
+                                  className="w-full rounded px-2 py-1 text-sm text-[var(--color-ink)] bg-transparent placeholder:text-[var(--color-ink-3)] border border-transparent hover:border-[var(--color-line-2)] focus:border-[var(--color-ring)] focus:bg-[var(--color-surface)] focus:outline-none focus:ring-1 focus:ring-[var(--color-ring)] transition-colors"
+                                />
+                              </div>
+                            </td>
+                          ))}
+                          <td className="w-tap-admin p-1 text-center align-middle">
+                            {block.rows.length > 1 && (
+                              <button
+                                type="button"
+                                aria-label="Remove row"
+                                title="Remove row"
+                                onClick={() => removeRow(i)}
+                                className="mx-auto flex size-6 items-center justify-center rounded text-[var(--color-ink-3)] opacity-0 group-hover/row:opacity-100 hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)] transition-all"
+                              >
+                                <Icon icon="ri-close-line" className="text-sm" />
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                      <tr className="bg-[var(--color-wash)]">
+                        <td colSpan={block.headers.length} className="p-1">
+                          <button
+                            type="button"
+                            onClick={addRow}
+                            title="Add row"
+                            className="inline-flex items-center gap-2 rounded px-2 py-1 text-sm font-semibold text-[var(--color-ink-2)] hover:bg-[var(--color-panel)] hover:text-[var(--color-ink)] transition-colors"
+                          >
+                            <Icon icon="ri-add-line" className="text-sm" />
+                            <span>Add row</span>
+                          </button>
+                        </td>
+                        <td className="w-tap-admin p-1 text-center align-middle border-t border-[var(--color-line)]">
+                          <button
+                            type="button"
+                            aria-label="Add row"
+                            title="Add row"
+                            onClick={addRow}
+                            className="mx-auto flex size-8 items-center justify-center rounded text-[var(--color-ink-2)] hover:bg-[var(--color-panel)] hover:text-[var(--color-ink)] transition-colors"
+                          >
+                            <Icon icon="ri-add-line" className="text-base font-semibold" />
+                          </button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          }
+
+          // Inactive language card: collapsed slim preview matching user sketch
+          return (
+            <div
+              key={lang}
+              role="button"
+              tabIndex={0}
+              onClick={() => setActiveLang(lang)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setActiveLang(lang);
+                }
+              }}
+              className="group relative w-[94%] max-w-full cursor-pointer rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-wash)] p-3 transition-all duration-200 hover:border-[var(--color-line-2)] hover:bg-[var(--color-panel)]"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 overflow-hidden text-sm">
+                  <span className="shrink-0 text-xs font-semibold text-[var(--color-ink-2)]">
+                    {lang === 'en' ? 'English Table' : 'Spanish Table (Español)'}
+                  </span>
+                  <span className="shrink-0 text-xs text-[var(--color-ink-3)]">·</span>
+                  <div className="flex items-center gap-1.5 overflow-hidden">
+                    {block.headers.map((h, k) => (
+                      <span
+                        key={k}
+                        className="truncate rounded border border-[var(--color-line-2)] bg-[var(--color-surface)] px-2 py-0.5 text-xs text-[var(--color-ink-2)] max-w-[140px]"
+                      >
+                        {h[lang]?.trim() || `Header ${k + 1}`}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <span className="shrink-0 font-mono text-xs font-semibold text-[var(--color-ink-3)] uppercase tracking-wider">
+                  {lang.toUpperCase()}
+                </span>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -1257,52 +1300,6 @@ function ChecklistBody({
 const bodyTextareaCls =
   'flex w-full resize-none rounded-[var(--radius-md)] border border-transparent bg-transparent px-3 py-2 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] transition-colors hover:border-[var(--color-line-2)] hover:bg-[var(--color-surface)] focus:border-[var(--color-ring)] focus:bg-[var(--color-surface)] focus:outline-none';
 
-function LangToggle({
-  lang,
-  onChange,
-}: {
-  lang: 'en' | 'es';
-  onChange: (next: 'en' | 'es') => void;
-}): React.ReactElement {
-  return (
-    <div
-      role="tablist"
-      aria-label="Language"
-      className="inline-flex rounded-md border border-[var(--color-line-2)] bg-[var(--color-wash)] p-0.5 text-sm font-semibold shadow-e1"
-    >
-      <button
-        type="button"
-        role="tab"
-        aria-checked={lang === 'en'}
-        aria-selected={lang === 'en'}
-        onClick={() => onChange('en')}
-        className={cn(
-          'rounded-[var(--radius-sm)] px-3 py-1 transition-colors',
-          lang === 'en'
-            ? 'bg-[var(--color-surface)] text-[var(--color-brand-700)] shadow-e1 ring-1 ring-[var(--color-ring)]'
-            : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
-        )}
-      >
-        EN
-      </button>
-      <button
-        type="button"
-        role="tab"
-        aria-checked={lang === 'es'}
-        aria-selected={lang === 'es'}
-        onClick={() => onChange('es')}
-        className={cn(
-          'rounded-[var(--radius-sm)] px-3 py-1 transition-colors',
-          lang === 'es'
-            ? 'bg-[var(--color-surface)] text-[var(--color-brand-700)] shadow-e1 ring-1 ring-[var(--color-ring)]'
-            : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
-        )}
-      >
-        ES
-      </button>
-    </div>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Empty state — a clean "press / for blocks" surface. No 8-card grid.

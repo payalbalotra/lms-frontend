@@ -59,10 +59,6 @@ export default async function AdminLayout({ children, params }: AdminLayoutProps
     workspace = '';
   }
 
-  if (employee.role !== 'admin') {
-    redirect(`/${locale}/employee/home`);
-  }
-
   async function signOut(): Promise<void> {
     'use server';
     await logout();

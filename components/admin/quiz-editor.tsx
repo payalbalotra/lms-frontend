@@ -49,9 +49,16 @@ interface QuizEditorProps {
   value: ProcedureQuiz | null;
   onChange: (next: ProcedureQuiz | null) => void;
   isSaving?: boolean;
+  /**
+   * Hide the editor's own <h2> and description. Use this when the editor
+   * sits inside a parent card (e.g. the procedure wizard's FormSection)
+   * that already supplies a title and subtitle — otherwise "Quiz" appears
+   * twice and the description shows up below its own heading.
+   */
+  hideHeader?: boolean;
 }
 
-export function QuizEditor({ value, onChange, isSaving }: QuizEditorProps): React.ReactElement {
+export function QuizEditor({ value, onChange, isSaving, hideHeader }: QuizEditorProps): React.ReactElement {
   const t = useTranslations('admin.library.new.quiz');
 
   // Local working copy. Seeded once from `value` (or a blank single-question
@@ -116,12 +123,14 @@ export function QuizEditor({ value, onChange, isSaving }: QuizEditorProps): Reac
 
   return (
     <div className="space-y-6">
-      <header className="space-y-1">
-        <h2 className="font-[family-name:var(--font-display)] text-[length:var(--text-xl)] font-bold tracking-tight text-[var(--color-ink)]">
-          {t('title')}
-        </h2>
-        <p className="text-sm text-[var(--color-ink-2)]">{t('description')}</p>
-      </header>
+      {hideHeader ? null : (
+        <header className="space-y-1">
+          <h2 className="font-[family-name:var(--font-display)] text-[length:var(--text-xl)] font-bold tracking-tight text-[var(--color-ink)]">
+            {t('title')}
+          </h2>
+          <p className="text-sm text-[var(--color-ink-2)]">{t('description')}</p>
+        </header>
+      )}
 
       {/* Attach toggle — the admin's primary control over visibility. */}
       <div className="flex items-start gap-3 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-4">
