@@ -943,6 +943,51 @@ export async function createProcedure(input: CreateProcedureInput): Promise<{ pr
   return { procedure: newProc };
 }
 
+export type UpdateProcedureInput = Partial<Omit<CreateProcedureInput, 'titleEn'>> & {
+  titleEn?: string;
+};
+
+export async function updateProcedure(
+  id: string,
+  patch: UpdateProcedureInput,
+): Promise<{ procedure: Procedure }> {
+  const procs = getProceduresStore();
+  const idx = procs.findIndex((p) => p.id === id || p.slug === id);
+  if (idx === -1) {
+    throw new ApiException(404, 'PROCEDURE_NOT_FOUND', `Procedure ${id} not found`);
+  }
+  const existing = procs[idx];
+
+  // Resolve category from the patch (if provided)
+  const cats = getCategoriesStore();
+  const cat = patch.categoryId != null
+    ? (cats.find((c) => c.id === patch.categoryId) ?? existing.category)
+    : existing.category;
+
+  const updated: Procedure = {
+    ...existing,
+    ...(patch.titleEn != null && { titleEn: patch.titleEn }),
+    ...(patch.titleEs != null && { titleEs: patch.titleEs }),
+    ...(patch.purposeEn != null && { purposeEn: patch.purposeEn }),
+    ...(patch.purposeEs != null && { purposeEs: patch.purposeEs }),
+    ...(patch.categoryId != null && { category: cat }),
+    ...(patch.subcategoryId !== undefined && { subcategoryId: patch.subcategoryId }),
+    ...(patch.stationScope !== undefined && { stationScope: patch.stationScope }),
+    ...(patch.status != null && { status: patch.status }),
+    ...(patch.bodyEn != null && { bodyEn: patch.bodyEn }),
+    ...(patch.bodyEs != null && { bodyEs: patch.bodyEs }),
+    ...(patch.quizId !== undefined && { quizId: patch.quizId }),
+    ...(patch.linkedTrainingId !== undefined && { linkedTrainingId: patch.linkedTrainingId }),
+    ...(patch.quizMode != null && { quizMode: patch.quizMode as ProcedureQuizMode }),
+    updatedAt: new Date().toISOString(),
+  };
+
+  mockProcedures = [...procs];
+  mockProcedures[idx] = updated;
+  setStored('procedures', mockProcedures);
+  return { procedure: updated };
+}
+
 export async function listProcedures(
   filter: { status?: Procedure['status'] } = {},
   _cookieHeader?: string,
@@ -950,6 +995,17 @@ export async function listProcedures(
   const procs = getProceduresStore();
   const filtered = filter.status ? procs.filter((p) => p.status === filter.status) : procs;
   return { procedures: [...filtered] };
+}
+
+export async function deleteProcedure(id: string): Promise<{ ok: true }> {
+  const procs = getProceduresStore();
+  const next = procs.filter((p) => p.id !== id && p.slug !== id);
+  if (next.length === procs.length) {
+    throw new ApiException(404, 'PROCEDURE_NOT_FOUND', `Procedure ${id} not found`);
+  }
+  mockProcedures = next;
+  setStored('procedures', mockProcedures);
+  return { ok: true };
 }
 
 // ----------------------------------------------------------------------------

@@ -17,7 +17,8 @@ import { CustomSelect } from '@/components/ui/custom-select';
 import { Drawer } from '@/components/ui/drawer';
 import { QuizEditor } from '@/components/admin/quiz-editor';
 import { cn } from '@/lib/utils';
-import { createProcedure, createQuiz, listCategories, listStations, ApiException } from '@/lib/api';
+import { createProcedure, updateProcedure, createQuiz, listCategories, listStations, ApiException } from '@/lib/api';
+import type { Procedure } from '@/lib/types';
 import { getCategoryIcon } from '@/lib/category-icons';
 import type {
   Category,
@@ -64,6 +65,9 @@ import { IconTile } from '@/components/ui/icon-tile';
 interface NewProcedureFormProps {
   locale: string;
   categories: Category[];
+  /** When provided the form runs in edit mode: all fields are pre-filled
+   *  and saving calls `updateProcedure` instead of `createProcedure`. */
+  initialProcedure?: Procedure;
 }
 
 export type ClearanceTier = 'general' | 'station' | 'confidential' | 'master';
@@ -462,7 +466,9 @@ function formatSavedTime(d: Date, locale: string): string {
 export function NewProcedureForm({
   locale,
   categories,
+  initialProcedure,
 }: NewProcedureFormProps): React.ReactElement {
+  const isEditMode = Boolean(initialProcedure);
   const tNav = useTranslations('admin.library.new');
   const tCats = useTranslations('employee.dashboard');
   const tForm = useTranslations('admin.library.new.form');
@@ -540,19 +546,35 @@ export function NewProcedureForm({
   const initialType = React.useMemo(() => deriveTypeFromCategory(initialCat), [initialCat]);
 
   const [wizardStep, setWizardStep] = useState<WizardStepId>('details');
-  const [categoryId, setCategoryId] = useState<string>(() => initialCat?.id ?? DEFAULT_CATEGORIES[0].id);
-  const [subcategoryId, setSubcategoryId] = useState<string | null>(initialSubId);
+  const [categoryId, setCategoryId] = useState<string>(
+    () => initialProcedure?.category?.id ?? initialCat?.id ?? DEFAULT_CATEGORIES[0].id
+  );
+  const [subcategoryId, setSubcategoryId] = useState<string | null>(
+    () => initialProcedure?.subcategoryId ?? initialSubId
+  );
   // Library location — station scope. Default to 'all' for general
   // subcategories; the LibraryLocationPicker snaps the mode to 'specific'
   // when the chosen subcategory is `isStationSpecific`.
   const [stationScopeMode, setStationScopeMode] = useState<StationScopeMode>(
-    () => (urlPreFill?.accessStationIds?.length ? 'specific' : 'all'),
+    () => {
+      if (initialProcedure?.stationScope?.mode === 'specific') return 'specific';
+      if (urlPreFill?.accessStationIds?.length) return 'specific';
+      return 'all';
+    },
   );
   const [selectedStationIds, setSelectedStationIds] = useState<Set<string>>(
-    () => new Set(urlPreFill?.accessStationIds ?? []),
+    () => {
+      if (initialProcedure?.stationScope?.stationIds?.length) {
+        return new Set(initialProcedure.stationScope.stationIds);
+      }
+      return new Set(urlPreFill?.accessStationIds ?? []);
+    },
   );
   const [stations, setStations] = useState<Station[]>([]);
-  const [procedureType, setProcedureType] = useState<ProcedureTypeId>(() => initialType);
+  const [procedureType, setProcedureType] = useState<ProcedureTypeId>(() => {
+    if (initialProcedure?.category) return deriveTypeFromCategory(initialProcedure.category as Category);
+    return initialType;
+  });
   const isRecipeMode = procedureType === 'recipe';
   // Stations used by the library-location picker's station-scope panel.
   // Only loaded once — the picker is the only consumer, and the modal-free
@@ -574,14 +596,16 @@ export function NewProcedureForm({
   // Stations are loaded by the LibraryLocationPicker mount effect above;
   // no category-count labels here — the new picker doesn't print per-card
   // counts (the design dropped them in favour of the subcategory count).
-  const [titleEn, setTitleEn] = useState('');
-  const [titleEs, setTitleEs] = useState('');
+  const [titleEn, setTitleEn] = useState(() => initialProcedure?.titleEn ?? '');
+  const [titleEs, setTitleEs] = useState(() => initialProcedure?.titleEs ?? '');
   const [titleLang, setTitleLang] = useState<'en' | 'es'>('en');
-  const [purposeEn, setPurposeEn] = useState('');
-  const [purposeEs, setPurposeEs] = useState('');
+  const [purposeEn, setPurposeEn] = useState(() => initialProcedure?.purposeEn ?? '');
+  const [purposeEs, setPurposeEs] = useState(() => initialProcedure?.purposeEs ?? '');
   const [purposeLang, setPurposeLang] = useState<'en' | 'es'>('en');
   const [clearanceLevel, setClearanceLevel] = useState<ClearanceTier | null>(null);
-  const [blocks, setBlocksRaw] = useState<ProcedureBlock[]>([]);
+  const [blocks, setBlocksRaw] = useState<ProcedureBlock[]>(
+    () => initialProcedure?.bodyEn?.blocks ?? []
+  );
   // Quiz authored in the wizard's Quiz step. `null` means the step was
   // skipped (no questions authored yet); an object with `attached: false`
   // means the manager authored but chose not to attach. On save, a
@@ -592,8 +616,12 @@ export function NewProcedureForm({
   // training course this SOP feeds into (null = standalone SOP). The
   // wizard's UI for these is the next slice (F2.5b); defaults hold
   // the type contract working in the meantime.
-  const [linkedTrainingId, setLinkedTrainingId] = useState<string | null>(null);
-  const [quizMode, setQuizMode] = useState<ProcedureQuizMode>('training');
+  const [linkedTrainingId, setLinkedTrainingId] = useState<string | null>(
+    () => initialProcedure?.linkedTrainingId ?? null
+  );
+  const [quizMode, setQuizMode] = useState<ProcedureQuizMode>(
+    () => initialProcedure?.quizMode ?? 'training'
+  );
 
   // Access selections live in the wizard so the Review step can render
   // them. Tier is single-select (Manager or Employee are mutually
@@ -1033,21 +1061,43 @@ export function NewProcedureForm({
           };
         }
 
-        await createProcedure({
-          titleEn: titleEn.trim() || titleEs.trim(),
-          titleEs: titleEs.trim() || titleEn.trim(),
-          categoryId: categoryId.length > 0 ? categoryId : null,
-          subcategoryId: subcategoryId,
-          stationScope: stationScopePayload,
-          purposeEn: purposeEn.trim() || purposeEs.trim(),
-          purposeEs: purposeEs.trim() || purposeEn.trim(),
-          status,
-          bodyEn: body,
-          bodyEs: body,
-          quizId,
-          linkedTrainingId,
-          quizMode,
-        });
+        if (isEditMode && initialProcedure) {
+          await updateProcedure(initialProcedure.id, {
+            titleEn: titleEn.trim() || titleEs.trim(),
+            titleEs: titleEs.trim() || titleEn.trim(),
+            categoryId: categoryId.length > 0 ? categoryId : null,
+            subcategoryId: subcategoryId,
+            stationScope: stationScopePayload,
+            purposeEn: purposeEn.trim() || purposeEs.trim(),
+            purposeEs: purposeEs.trim() || purposeEn.trim(),
+            status,
+            bodyEn: body,
+            bodyEs: body,
+            quizId: quizId ?? initialProcedure.quizId,
+            linkedTrainingId,
+            quizMode,
+          });
+        } else {
+          await createProcedure({
+            titleEn: titleEn.trim() || titleEs.trim(),
+            titleEs: titleEs.trim() || titleEn.trim(),
+            categoryId: categoryId.length > 0 ? categoryId : null,
+            subcategoryId: subcategoryId,
+            stationScope: stationScopePayload,
+            purposeEn: purposeEn.trim() || purposeEs.trim(),
+            purposeEs: purposeEs.trim() || purposeEn.trim(),
+            status,
+            bodyEn: body,
+            bodyEs: body,
+            quizId,
+            linkedTrainingId,
+            quizMode,
+          });
+        }
+        // Notify other tabs / components that procedures changed.
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('lms_procedures_updated'));
+        }
         setLastSavedAt(new Date());
         setIsDirty(false);
         router.push(`/${locale}/admin/library`);
@@ -1120,8 +1170,12 @@ export function NewProcedureForm({
           the crumb row. One header, like every other admin page, with the
           actions in it. */}
       <PageHeader
-        title={tTitles(procedureType as never)}
-        subtitle={tTitles(`${procedureType}Subtitle` as never)}
+        title={isEditMode ? 'Edit SOP' : tTitles(procedureType as never)}
+        subtitle={
+          isEditMode
+            ? (initialProcedure?.titleEn || initialProcedure?.titleEs || 'Edit procedure details')
+            : tTitles(`${procedureType}Subtitle` as never)
+        }
         actions={
           <>
             <Button type="button" variant="surface" onClick={() => setIsPreviewOpen(true)} icon={LuEye}>

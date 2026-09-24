@@ -13,7 +13,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { getProcedureBySlug, getQuizById, updateQuiz } from '@/lib/api';
+import { getProcedureBySlug, getQuizById, updateQuiz, deleteProcedure } from '@/lib/api';
 import type { Employee, Procedure, ProcedureBlock } from '@/lib/types';
 import { withAs, type ViewAs } from '@/lib/view-as';
 import { BlockRenderer, findAllergen } from '@/components/doc/block-renderer';
@@ -21,7 +21,9 @@ import { QuizAttachBanner, QuizReader } from '@/components/doc/quiz-reader';
 import { Allergen, Cover, DocActs, DocBar, DocControl, DocHead, DocPurpose, Facts } from '@/components/doc';
 import { DocBehaviour } from '@/components/doc/doc-behaviour';
 import { TabBar } from '@/components/employee/tab-bar';
-import { LuArrowLeft } from 'react-icons/lu';
+import { LuArrowLeft, LuPencil, LuTrash2 } from 'react-icons/lu';
+import { Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui/modal';
+import { Button } from '@/components/ui/button';
 
 interface ProcedureViewClientProps {
   slugOrId: string;
@@ -109,11 +111,6 @@ export function ProcedureViewClient({
     if (!quiz || quiz.attached) return;
     setIsAttaching(true);
     try {
-      // Flip the quiz's attached flag in the mock store. The read side
-      // resolves `procedure.quizId` to its quiz row on every render, so
-      // bumping the procedure's `updatedAt` here forces a re-render and
-      // the new flag is picked up next tick. The backend will replace
-      // this with a PATCH on `/api/admin/quizzes/:id`.
       await updateQuiz(proc.quizId, { attached: true });
       setProc({ ...proc, updatedAt: new Date().toISOString() });
       if (typeof window !== 'undefined') {
@@ -123,6 +120,27 @@ export function ProcedureViewClient({
       setIsAttaching(false);
     }
   }, [proc]);
+
+  // Delete modal state — admin only
+  const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false);
+
+  const handleDelete = React.useCallback(async () => {
+    if (!proc) return;
+    setIsDeleting(true);
+    try {
+      await deleteProcedure(proc.id);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('lms_procedures_updated'));
+      }
+      // Navigate away — the procedure no longer exists.
+      router.push(`/${locale}/admin/library`);
+      router.refresh();
+    } catch {
+      setIsDeleting(false);
+      setIsDeleteOpen(false);
+    }
+  }, [proc, locale, router]);
 
   // Back navigation: when the user navigates *forward* to a procedure
   // (e.g. from a category detail page), the previous URL is in
@@ -253,6 +271,47 @@ export function ProcedureViewClient({
 
   return (
     <div className={wrapperClass}>
+      {/* Delete confirmation modal — admin only */}
+      <Modal
+        open={isDeleteOpen}
+        onClose={() => setIsDeleteOpen(false)}
+        title="Delete procedure"
+        size="sm"
+      >
+        <ModalHeader
+          title="Delete procedure"
+          description="This action cannot be undone."
+          onClose={() => setIsDeleteOpen(false)}
+        />
+        <ModalBody>
+          <p className="text-sm text-[var(--color-ink-2)]">
+            Are you sure you want to permanently delete{' '}
+            <strong className="text-[var(--color-ink)]">
+              {proc.titleEn || proc.titleEs}
+            </strong>
+            ? This procedure will be removed from the library and cannot be recovered.
+          </p>
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            type="button"
+            variant="neutral"
+            onClick={() => setIsDeleteOpen(false)}
+            disabled={isDeleting}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={handleDelete}
+            disabled={isDeleting}
+          >
+            {isDeleting ? 'Deleting…' : 'Delete procedure'}
+          </Button>
+        </ModalFooter>
+      </Modal>
+
       {showAttachBanner && !bannerDismissed ? (
         <div className="mx-auto w-full max-w-doc px-4 pt-6 sm:px-6">
           <QuizAttachBanner
@@ -271,7 +330,7 @@ export function ProcedureViewClient({
             article — the same shape other admin detail pages use to climb
             back out to the list. */}
         {isAdmin ? (
-          <div className="px-4 pt-6 sm:px-6">
+          <div className="flex items-center justify-between gap-4 px-4 pt-6 sm:px-6">
             <Link
               href={backHref}
               onClick={(e) => {
@@ -285,6 +344,24 @@ export function ProcedureViewClient({
               <LuArrowLeft aria-hidden="true" />
               {labels.back}
             </Link>
+            {/* Admin action buttons: Edit + Delete */}
+            <div className="flex items-center gap-2">
+              <Link
+                href={`/${locale}/admin/library/${proc.slug}/edit`}
+                className="inline-flex min-h-tap-admin items-center gap-2 rounded-full bg-[var(--color-brand-600)] px-4 text-sm font-semibold text-white shadow-e1 hover:bg-[var(--color-brand-hover)] transition-colors duration-[var(--dur)]"
+              >
+                <LuPencil aria-hidden="true" className="text-xs" />
+                Edit SOP
+              </Link>
+              <button
+                type="button"
+                onClick={() => setIsDeleteOpen(true)}
+                className="inline-flex min-h-tap-admin items-center gap-2 rounded-full border border-[var(--color-bad)] px-4 text-sm font-semibold text-[var(--color-bad)] hover:bg-[var(--color-bad-tint)] transition-colors duration-[var(--dur)]"
+              >
+                <LuTrash2 aria-hidden="true" className="text-xs" />
+                Delete
+              </button>
+            </div>
           </div>
         ) : (
           <DocBar

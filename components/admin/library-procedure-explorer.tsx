@@ -2,9 +2,10 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { listCategories, listProcedures } from '@/lib/api';
+import { listCategories, listProcedures, deleteProcedure } from '@/lib/api';
 import type { Procedure, Category, ProcedureStatus } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +18,7 @@ import {
   LuBuilding2,
   LuCircleCheck,
   LuClock,
+  LuEye,
   LuFilePen,
   LuFileSearch,
   LuFileText,
@@ -27,10 +29,12 @@ import {
   LuLayers,
   LuLayoutGrid,
   LuListChecks,
+  LuPencil,
   LuRefreshCw,
   LuSearch,
   LuShieldAlert,
   LuStore,
+  LuTrash2,
   LuTruck,
   LuUtensils,
   LuWrench,
@@ -42,6 +46,7 @@ import { StatusPill } from '@/components/ui/status-pill';
 import { FilterChips } from '@/components/ui/filter-chips';
 import { IconTile } from '@/components/ui/icon-tile';
 import { EmptyState } from '@/components/ui/empty-state';
+import { RowActions } from '@/components/ui/row-actions';
 
 interface LibraryProcedureExplorerProps {
   procedures: Procedure[];
@@ -791,6 +796,7 @@ export function LibraryProcedureExplorer({
   locale,
 }: LibraryProcedureExplorerProps): React.ReactElement {
   const isEs = locale === 'es';
+  const router = useRouter();
 
   const [liveCategories, setLiveCategories] = React.useState<Category[]>(categories ?? []);
   const [liveProcedures, setLiveProcedures] = React.useState<Procedure[]>(procedures ?? []);
@@ -1075,6 +1081,28 @@ export function LibraryProcedureExplorer({
   const validCurrentPage = Math.min(currentPage, totalPages);
   const startIndex = (validCurrentPage - 1) * pageSize;
   const paginatedProcedures = filteredProcedures.slice(startIndex, startIndex + pageSize);
+
+  /** Remove the procedure from state immediately (optimistic) then persist. */
+  const handleDelete = React.useCallback(
+    async (id: string): Promise<void> => {
+      // Optimistic removal — update local state first so the UI responds instantly.
+      setLiveProcedures((prev) => prev.filter((p) => p.id !== id && p.slug !== id));
+      try {
+        await deleteProcedure(id);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('lms_procedures_updated'));
+        }
+        router.refresh();
+      } catch {
+        // On failure, re-sync from the store (syncData re-runs on the storage event).
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('storage'));
+        }
+      }
+    },
+    [router],
+  );
+
   return (
     <div className="space-y-6">
       {/* The categories, as filters, on their own row. The count in each pill
@@ -1291,13 +1319,30 @@ export function LibraryProcedureExplorer({
                   </div>
                 </div>
 
-                <div className="flex shrink-0 items-center self-start md:self-center">
+                <div className="flex shrink-0 items-center gap-2 self-start md:self-center">
                   <Link href={`/${locale}/procedures/${p.slug}`}>
                     <Button variant="neutral" size="sm" className="gap-2 font-semibold">
                       <span>{isEs ? 'Ver' : 'View'}</span>
                       <LuArrowRight aria-hidden="true" className="text-sm" />
                     </Button>
                   </Link>
+                  <RowActions
+                    triggerLabel={isEs ? `Acciones para ${title}` : `Actions for ${title}`}
+                    items={[
+                      {
+                        label: isEs ? 'Editar' : 'Edit',
+                        icon: LuPencil,
+                        onSelect: () => router.push(`/${locale}/admin/library/${p.slug}/edit`),
+                      },
+                      {
+                        label: isEs ? 'Eliminar procedimiento' : 'Delete procedure',
+                        icon: LuTrash2,
+                        destructive: true,
+                        confirmLabel: isEs ? 'Eliminar' : 'Delete',
+                        onSelect: () => handleDelete(p.id),
+                      },
+                    ]}
+                  />
                 </div>
               </li>
             );
@@ -1348,12 +1393,31 @@ export function LibraryProcedureExplorer({
                       year: 'numeric',
                     })}
                   </span>
-                  <Link href={`/${locale}/procedures/${p.slug}`}>
-                    <Button variant="neutral" size="sm" className="gap-2 font-semibold">
-                      <span>{isEs ? 'Ver' : 'View'}</span>
-                      <LuArrowRight aria-hidden="true" className="text-sm" />
-                    </Button>
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    <Link href={`/${locale}/procedures/${p.slug}`}>
+                      <Button variant="neutral" size="sm" className="gap-1 font-semibold">
+                        <LuEye aria-hidden="true" className="text-sm" />
+                        <span>{isEs ? 'Ver' : 'View'}</span>
+                      </Button>
+                    </Link>
+                    <RowActions
+                      triggerLabel={isEs ? `Acciones para ${title}` : `Actions for ${title}`}
+                      items={[
+                        {
+                          label: isEs ? 'Editar' : 'Edit',
+                          icon: LuPencil,
+                          onSelect: () => router.push(`/${locale}/admin/library/${p.slug}/edit`),
+                        },
+                        {
+                          label: isEs ? 'Eliminar procedimiento' : 'Delete procedure',
+                          icon: LuTrash2,
+                          destructive: true,
+                          confirmLabel: isEs ? 'Eliminar' : 'Delete',
+                          onSelect: () => handleDelete(p.id),
+                        },
+                      ]}
+                    />
+                  </div>
                 </div>
               </div>
             );
