@@ -2,12 +2,14 @@ import * as React from 'react';
 import Link from 'next/link';
 import { getCategoryIcon } from '@/lib/category-icons';
 import type { Procedure } from '@/lib/types';
-import { categoryName, coverOf, titleOf, type AttentionGroup, type AttentionItem } from './home-data';
-import { LuArrowRight, LuArrowUp, LuCalendar, LuCheck, LuChevronRight, LuFileText, LuPencil, LuPlus } from 'react-icons/lu';
+import { categoryName, coverOf, titleOf, type AttentionGroup, type AttentionItem, type TrainingPerson, type TrainingSummary } from './home-data';
+import { LuArrowRight, LuArrowUp, LuCalendar, LuCheck, LuChevronRight, LuFileText, LuPencil } from 'react-icons/lu';
+import { Avatar } from '@/components/ui/avatar';
 import { Icon } from '@/components/ui/icon';
 import { Meter } from '@/components/ui/meter';
 import { CountBadge, StatusPill } from '@/components/ui/status-pill';
 import { Button, buttonClassName } from '@/components/ui/button';
+import { PersonTrainingRow } from './PersonTrainingRow';
 import type { IconType } from 'react-icons';
 
 /*
@@ -65,20 +67,24 @@ export interface Stat {
   /** Both halves must be real. A tile with nothing to measure gets no ring. */
   meter?: { value: number; total: number; tone?: 'ok' | 'warn' };
   /** up: something was added. caution: something is waiting on the manager.
-   *  muted: nothing to count yet. */
-  tone?: 'up' | 'caution' | 'muted';
+   *  bad: something is late. muted: nothing to count yet. */
+  tone?: 'up' | 'caution' | 'bad' | 'muted';
+  /** The page the number is about: a card is the way to it. */
+  href: string;
 }
 
-/** Four numbers, each on its own white card with its icon. Read, not clicked:
- *  the lists they count are one step away in the sidebar and in the rows below. */
+/** Four numbers the owner acts on, each on its own card: how trained the team
+ *  is, who is late, who has not joined, and what the library is missing. Each
+ *  card opens the page its number is about. */
 export function StatStrip({ stats }: { stats: Stat[] }): React.ReactElement {
   return (
     <ul className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
       {stats.map((s) => (
-        <li
-          key={s.label}
-          className="flex min-w-0 flex-col gap-2 rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-4 py-3 shadow-e1 sm:px-5 sm:py-4"
-        >
+        <li key={s.label} className="min-w-0">
+          <Link
+            href={s.href}
+            className="flex h-full min-w-0 flex-col gap-2 rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-4 py-3 shadow-e1 transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:border-[var(--color-line-hover)] sm:px-5 sm:py-4"
+          >
           {/* The icon sits on the label, not in a grey tile of its own: four cards
               each carrying an identical rounded tile is the shape that makes a
               dashboard read as generated rather than designed. */}
@@ -118,7 +124,9 @@ export function StatStrip({ stats }: { stats: Stat[] }): React.ReactElement {
               ) : null}
               <span
                 className={`flex min-w-0 items-baseline gap-1 leading-meta ${s.value ? 'text-sm' : 'text-md'} ${
-                  s.tone === 'caution'
+                  s.tone === 'bad'
+                    ? 'font-semibold text-[var(--color-bad)]'
+                    : s.tone === 'caution'
                     ? 'font-semibold text-[var(--color-warn-ink)]'
                     : s.tone === 'up'
                       ? 'font-semibold text-[var(--color-ink)]'
@@ -133,74 +141,154 @@ export function StatStrip({ stats }: { stats: Stat[] }): React.ReactElement {
               </span>
             </div>
           </div>
+          </Link>
         </li>
       ))}
     </ul>
   );
 }
 
-/* --------------------------------------------------------------- resume -- */
+/* -------------------------------------------------------------- training -- */
 
-/** Where you left off, as one line under the numbers: impossible to miss, and no
- *  bigger than the thing it points at. */
-export function ResumeLine({
-  procedure,
-  locale,
-  label,
-  meta,
-  cta,
+/**
+ * The team's training, first on the page. The owner's question is not how
+ * much content exists but whether people are trained and who to chase today,
+ * so this replaced the four count cards (procedures, drafts, people, and a
+ * training figure that was a hard-coded sample).
+ *
+ * Two groups in the same shape as "Needs attention" -- a dot, a title, a count
+ * -- so the page has one way of saying "these need you". The group carries the
+ * status; the rows are people, once each, with the date in plain text. A pill
+ * on every row made seven red and yellow badges that all shouted at once.
+ */
+export function TeamTraining({
+  summary,
+  heading,
+  progress,
+  seeAll,
+  groups,
+  dueLabel,
+  more,
+  remind,
+  person,
+  empty,
 }: {
-  procedure: Procedure;
-  locale: string;
-  label: string;
-  meta: string;
-  cta: string;
+  summary: TrainingSummary;
+  heading: string;
+  progress: string;
+  seeAll: { href: string; label: string };
+  groups: { overdue: string; dueThisWeek: string };
+  dueLabel: (person: TrainingPerson, overdue: boolean) => string;
+  more: (count: number) => string;
+  remind: { label: string; sent: string };
+  person: { open: string; close: string };
+  empty: { title: string; body: string };
 }): React.ReactElement {
-  const cover = coverOf(procedure, locale);
-  return (
-    <Link
-      href={`/${locale}/procedures/${procedure.slug}`}
-      className="group flex items-center gap-4 rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-4 shadow-e1 sm:px-6"
-    >
-      <Thumb src={cover?.src} icon={procedure.category ? getCategoryIcon(procedure.category) : LuPencil} tint />
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold text-[var(--color-brand-700)]">{label}</span>
-        <span className="block truncate text-md font-semibold leading-heading text-[var(--color-ink)]">{titleOf(procedure, locale)}</span>
-        <span className="block text-sm text-[var(--color-ink-2)]">{meta}</span>
-      </span>
-      {/* The one peach control on the admin home, and the one with an arrow: the
-          arrow belongs to resumption, which the research says has to be
-          impossible to miss. A row action that borrowed either would be claiming
-          to be this.
+  const sections = [
+    { key: 'overdue', title: groups.overdue, people: summary.overdue, overdue: true },
+    { key: 'week', title: groups.dueThisWeek, people: summary.dueThisWeek, overdue: false },
+  ].filter((s) => s.people.length > 0);
+  // Two a group on the home; the count says how many there are, and the rest
+  // are one link away. Every name made the card the length of the page.
+  const SHOWN = 2;
 
-          Written out rather than built from the shared button class: that class
-          sets inline-flex, this control is hidden below sm, and which of the two
-          wins would depend on CSS order. */}
-      <span className={`${buttonClassName({ variant: 'secondary' })} hidden shrink-0 font-semibold sm:inline-flex`}>
-        {cta}
-        <LuArrowRight aria-hidden="true" />
-      </span>
-      <LuChevronRight aria-hidden="true" className="text-lg text-[var(--color-ink-3)] sm:hidden" />
-    </Link>
+  return (
+    <section
+      aria-labelledby="training-h"
+      className="rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-4 py-5 shadow-e1 sm:px-6 sm:py-6"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <h2 id="training-h" className="text-lg font-semibold leading-heading tracking-snug text-[var(--color-ink)]">
+          {heading}
+        </h2>
+        <Link
+          href={seeAll.href}
+          className="inline-flex min-h-tap-admin shrink-0 items-center gap-1 text-sm font-semibold text-[var(--color-ink-2)] hover:text-[var(--color-ink)]"
+        >
+          {seeAll.label}
+          <LuChevronRight aria-hidden="true" />
+        </Link>
+      </div>
+      {/* Under the heading row, not inside it: beside the link it had a third
+          of a phone's width and broke over three lines. */}
+      {summary.total ? (
+        <p className="mt-1 flex items-center gap-2 text-sm text-[var(--color-ink-2)]">
+          <Meter value={summary.complete} total={summary.total} size={16} stroke={3} />
+          {progress}
+        </p>
+      ) : null}
+
+      {sections.length === 0 ? (
+        <p className="mt-5 flex items-start gap-3">
+          <span aria-hidden="true" className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-ok-tint)] text-[var(--color-ok)]">
+            <LuCheck />
+          </span>
+          <span>
+            <span className="block font-semibold text-[var(--color-ink)]">{empty.title}</span>
+            <span className="block text-[var(--color-ink-2)]">{empty.body}</span>
+          </span>
+        </p>
+      ) : (
+        sections.map((s, i) => (
+          <div key={s.key} className={i === 0 ? 'mt-5' : 'mt-2 border-t border-[var(--color-line)] pt-5'}>
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--color-ink-2)]">
+              <span aria-hidden="true" className={`size-2 rounded-full ${s.overdue ? TONE_DOT.bad : TONE_DOT.warn}`} />
+              {s.title}
+              <CountBadge tone={s.overdue ? 'bad' : 'warn'}>{s.people.length}</CountBadge>
+            </h3>
+            <ul className="mt-1">
+              {s.people.slice(0, SHOWN).map((p) => (
+                <PersonTrainingRow
+                  key={p.key}
+                  name={p.name}
+                  initials={p.initials}
+                  courses={p.courses.join(' · ')}
+                  due={dueLabel(p, s.overdue)}
+                  overdue={s.overdue}
+                  trainings={p.trainings.map((l) => ({
+                    key: l.key,
+                    course: l.course,
+                    href: l.href,
+                    label: l.label,
+                    tone: l.state === 'overdue' ? 'bad' : l.state === 'complete' ? 'ok' : 'neutral',
+                  }))}
+                  labels={{ open: person.open, close: person.close, remind: remind.label, reminded: remind.sent }}
+                />
+              ))}
+            </ul>
+            {s.people.length > SHOWN ? (
+              <Link
+                href={seeAll.href}
+                className="mt-1 inline-flex min-h-tap-admin items-center gap-1 text-sm font-semibold text-[var(--color-ink-2)] hover:text-[var(--color-ink)]"
+              >
+                {more(s.people.length - SHOWN)}
+                <LuChevronRight aria-hidden="true" />
+              </Link>
+            ) : null}
+          </div>
+        ))
+      )}
+    </section>
   );
 }
 
-function Thumb({ src, icon, initials, tint }: { src?: string; icon?: IconType; initials?: string; tint?: boolean }): React.ReactElement {
+function Thumb({ src, icon, initials, small }: { src?: string; icon?: IconType; initials?: string; tint?: boolean; small?: boolean }): React.ReactElement {
   if (src) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={src} alt="" className="size-12 shrink-0 rounded-[var(--radius-md)] object-cover" />;
-  }
-  if (initials) {
+    // Covers are posters: a title across the top and a light margin round the
+    // edge. At 48px the whole poster read as a small picture in a pale frame, so
+    // the thumbnail crops in on the middle of it, where the subject is.
     return (
-      <span aria-hidden="true" className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[var(--color-panel)] font-semibold text-[var(--color-ink)]">
-        {initials}
+      <span className={`${small ? 'size-10' : 'size-12'} shrink-0 overflow-hidden rounded-[var(--radius-md)]`}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={src} alt="" className="size-full origin-[50%_60%] scale-[1.6] object-cover" />
       </span>
     );
   }
+  if (initials) return <Avatar initials={initials} size={small ? 'sm' : 'md'} />;
   return (
     <span
       aria-hidden="true"
-      className={`flex size-12 shrink-0 items-center justify-center rounded-[var(--radius-md)] ${
+      className={`flex ${small ? 'size-10' : 'size-12'} shrink-0 items-center justify-center rounded-[var(--radius-md)] ${
         'bg-[var(--color-panel)] text-[var(--color-ink-2)]'
       }`}
     >
@@ -235,18 +323,18 @@ const TONE_DOT: Record<GroupCopy['tone'], string> = {
  */
 function AttentionRow({ item, action }: { item: AttentionItem; action: string }): React.ReactElement {
   return (
-    <li className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-[var(--color-line)] py-4 last:border-b-0">
-      <Thumb src={item.image?.src} icon={item.icon} initials={item.initials} />
+    // The same row as Team training's: 40px mark, 16px name, one meta line.
+    <li className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-[var(--color-line)] py-3 last:border-b-0">
+      <Thumb src={item.image?.src} icon={item.icon} initials={item.initials} small />
       <div className="min-w-0 flex-1 basis-[var(--field-md)]">
-        <p className="text-md font-semibold leading-heading text-[var(--color-ink)]">{item.title}</p>
-        <p className="mt-1 text-sm leading-meta text-[var(--color-ink-2)]">{item.meta.join(' · ')}</p>
+        <p className="font-semibold text-[var(--color-ink)]">{item.title}</p>
+        <p className="text-sm leading-meta text-[var(--color-ink-2)]">{item.meta.join(' · ')}</p>
       </div>
-      <Link href={item.href} className="ml-16 sm:ml-0">
+      <Link href={item.href} className="ml-14 sm:ml-0">
         <Button
           type="button"
           variant="neutral"
           size="sm"
-          icon={item.kind === 'emptyCategory' ? LuPlus : undefined}
         >
           {action}
           <span className="sr-only">: {item.title}</span>
@@ -319,6 +407,11 @@ export function AttentionList({
 
 /* ---------------------------------------------------------------- recent -- */
 
+/**
+ * The library at a glance, with its photographs: the one part of the home that
+ * shows the restaurant rather than a to-do list. Last on the page, because
+ * nothing in it asks anything of the manager.
+ */
 export function RecentProcedures({
   locale,
   heading,
@@ -343,10 +436,10 @@ export function RecentProcedures({
         </h2>
         <Link
           href={`/${locale}/admin/library`}
-          className="inline-flex min-h-tap-admin items-center gap-1 text-sm font-semibold text-[var(--color-brand-700)] hover:text-[var(--color-brand-600)]"
+          className="inline-flex min-h-tap-admin shrink-0 items-center gap-1 text-sm font-semibold text-[var(--color-ink-2)] hover:text-[var(--color-ink)]"
         >
           {seeAll}
-          <LuArrowRight aria-hidden="true" />
+          <LuChevronRight aria-hidden="true" />
         </Link>
       </div>
       <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

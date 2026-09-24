@@ -194,11 +194,16 @@ function BlockRow({
         isDragging && 'opacity-60 z-dropdown bg-[var(--color-wash)] border-[var(--color-line-2)]',
       )}
     >
-      {/* Unified hover toolbar: drag · EN|ES · options menu — hidden at rest */}
+      {/* Unified toolbar: drag, EN|ES, options menu. Hidden at rest under a
+          mouse, shown on hover and while the block is being edited. A phone has
+          no hover, so there it always shows: hidden, it left an empty band
+          above every block and the block menu could never be opened. */}
       <div
         className={cn(
           'mb-1 flex items-center gap-1 transition-opacity duration-[var(--dur)]',
-          showToolbar ? 'opacity-100' : 'opacity-0 pointer-events-none',
+          showToolbar
+            ? 'opacity-100'
+            : 'pointer-events-none opacity-0 group-focus-within:pointer-events-auto group-focus-within:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100',
         )}
       >
         {/* Drag handle */}
@@ -476,9 +481,10 @@ function HeadingBody({
 }
 
 function headingCls(level: 1 | 2 | 3): string {
-  if (level === 1) return 'font-[family-name:var(--font-display)] text-2xl font-semibold tracking-tight';
-  if (level === 2) return 'font-[family-name:var(--font-display)] text-xl font-semibold tracking-tight';
-  return 'text-lg font-semibold tracking-tight';
+  // Phone first: at 390px the desktop sizes ran the title past the field.
+  if (level === 1) return 'text-lg font-semibold tracking-tight sm:font-[family-name:var(--font-display)] sm:text-2xl';
+  if (level === 2) return 'text-md font-semibold tracking-tight sm:font-[family-name:var(--font-display)] sm:text-xl';
+  return 'text-base font-semibold tracking-tight sm:text-lg';
 }
 
 // ---- Method (numbered steps) ----
@@ -1382,8 +1388,8 @@ function EmptyState({ onAdd }: { onAdd: (kind: ProcedureBlockKind) => void }): R
             Start writing
           </h3>
           <p className="mt-0.5 text-sm text-[var(--color-ink-2)]">
-            Pick a starting block. Each block stays loose — you can rearrange,
-            duplicate, or remove from the row menu.
+            Pick a starting block. You can move, copy or remove any block later
+            from its menu.
           </p>
         </div>
       </div>
@@ -1476,7 +1482,9 @@ export function NotionBlockList({ blocks, onChange }: NotionBlockListProps): Rea
   }
 
   return (
-    <div className="space-y-1 pl-8 sm:pl-10">
+    // No gutter on a phone: the toolbar sits inside each row there, and the
+    // 32px it kept cut the image toolbar's Remove button off the edge.
+    <div className="space-y-1 sm:pl-10">
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
           {blocks.map((block, i) => (

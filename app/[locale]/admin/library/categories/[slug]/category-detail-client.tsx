@@ -339,68 +339,43 @@ export function CategoryDetailClient({
   // user doesn't think the link was broken.
   if (isResolving) {
     return (
-      <div className="mx-auto max-w-5xl pb-12">
-        <nav
-          aria-label="Breadcrumb"
-          className="flex items-center gap-1.5 pt-6 text-xs text-[var(--color-ink-3)] font-medium"
-        >
-          <Link
-            href={`/${locale}/admin/library/categories`}
-            className="hover:text-[var(--color-ink)] transition-colors flex items-center gap-1"
-          >
-            <LuArrowLeft className="text-sm" />
-            <span>{isEs ? 'Categorías' : 'Categories'}</span>
-          </Link>
-        </nav>
-        <div
-          role="status"
-          aria-live="polite"
-          className="mt-4 flex flex-col items-center justify-center rounded-[var(--radius-lg)] border border-dashed border-[var(--color-line-2)] bg-[var(--color-surface)] p-12 text-center"
-        >
-          <p className="text-sm font-medium text-[var(--color-ink-2)] animate-pulse">
-            {isEs ? 'Cargando categoría…' : 'Loading category…'}
-          </p>
+      <div className="mx-auto max-w-page space-y-6">
+        {/* The same header the page will have, so nothing jumps when it lands;
+            the title is the only thing not known yet. */}
+        <PageHeader
+          eyebrow={isEs ? 'Categorías' : 'Categories'}
+          eyebrowHref={`/${locale}/admin/library/categories`}
+          title={isEs ? 'Cargando categoría…' : 'Loading category…'}
+        />
+        <div role="status" aria-live="polite" className="animate-pulse">
+          <EmptyState compact title={isEs ? 'Cargando categoría…' : 'Loading category…'} />
         </div>
       </div>
     );
   }
 
   // Not found: the mock store also doesn't have a category with this slug —
-  // either the row was deleted or the user opened a stale link. Mirror the
-  // 404 shape on /procedures/[id] but keep it inside the admin shell chrome
-  // (no full-page takeover) so the sidebar remains usable.
+  // either the row was deleted or the user opened a stale link. It stays inside
+  // the admin shell so the sidebar remains usable, and wears the page header
+  // every admin page wears rather than a breadcrumb and a hand-built button.
   if (!category || notFound) {
     return (
-      <div className="mx-auto max-w-5xl pb-12">
-        <nav
-          aria-label="Breadcrumb"
-          className="flex items-center gap-1.5 pt-6 text-xs text-[var(--color-ink-3)] font-medium"
-        >
-          <Link
-            href={`/${locale}/admin/library/categories`}
-            className="hover:text-[var(--color-ink)] transition-colors flex items-center gap-1"
-          >
-            <LuArrowLeft className="text-sm" />
-            <span>{isEs ? 'Categorías' : 'Categories'}</span>
-          </Link>
-        </nav>
-        <div className="mt-4 flex flex-col items-center justify-center rounded-[var(--radius-lg)] border border-dashed border-[var(--color-line-2)] bg-[var(--color-surface)] p-12 text-center">
-          <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight text-[var(--color-ink)]">
-            {isEs ? 'Categoría no encontrada' : 'Category not found'}
-          </h1>
-          <p className="mt-2 max-w-md text-sm text-[var(--color-ink-2)]">
-            {isEs
+      <div className="mx-auto max-w-page space-y-6">
+        <PageHeader
+          eyebrow={isEs ? 'Categorías' : 'Categories'}
+          eyebrowHref={`/${locale}/admin/library/categories`}
+          title={isEs ? 'Categoría no encontrada' : 'Category not found'}
+          subtitle={
+            isEs
               ? 'La categoría solicitada no existe o fue eliminada.'
-              : 'The requested category does not exist or has been removed.'}
-          </p>
-          <Link
-            href={`/${locale}/admin/library/categories`}
-            className="mt-6 inline-flex min-h-tap-admin items-center gap-2 rounded-full bg-[var(--color-brand-600)] px-5 py-2.5 text-sm font-semibold text-white shadow-e1 hover:bg-[var(--color-brand-hover)]"
-          >
-            <LuArrowLeft aria-hidden="true" />
-            {isEs ? 'Volver a Categorías' : 'Back to Categories'}
-          </Link>
-        </div>
+              : 'The requested category does not exist or has been removed.'
+          }
+          actions={
+            <Link href={`/${locale}/admin/library/categories`}>
+              <Button variant="secondary">{isEs ? 'Volver a categorías' : 'Back to categories'}</Button>
+            </Link>
+          }
+        />
       </div>
     );
   }

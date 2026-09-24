@@ -36,6 +36,9 @@ export interface Employee {
   clearanceLevel: ClearanceLevel;
   role: EmployeeRole;
   languagePref: LanguagePref;
+  /** When the account was made. The employee home counts a new hire's first
+   *  weeks from it. */
+  createdAt?: string;
 }
 
 export interface Role {
@@ -329,6 +332,20 @@ export type ProcedureQuizMode = 'training' | 'always';
  *  station-specific subcategory. Mirrors the rule in the categories
  *  editor where a station-specific subcategory enforces at least one
  *  station when authored. */
+/** Who can open a procedure. Everyone is the default and the usual case
+ *  (PROJECT_OVERVIEW §02: "open to all employees by default. Restriction is a
+ *  deliberate choice"). "some" admits anyone matching one of the lists. */
+export interface ProcedureAudience {
+  mode: 'everyone' | 'some';
+  stationIds: string[];
+  roleIds: string[];
+  employeeIds: string[];
+}
+
+/** How closely a document is guarded. Confidential and master recipes carry
+ *  the reader's watermark and log every view (§02 Recipe Confidentiality). */
+export type ProcedureProtection = 'standard' | 'confidential' | 'master';
+
 export interface ProcedureStationScope {
   mode: 'all' | 'specific';
   stationIds: string[];
@@ -370,6 +387,10 @@ export interface Procedure {
    *  Archived procedures stay visible in the admin library under an
    *  opt-in filter for audit; the cook-side reader hides them. */
   isArchived?: boolean;
+  /** Who can open it. Absent means everyone. */
+  audience?: ProcedureAudience | null;
+  /** Absent means standard. */
+  protection?: ProcedureProtection;
   /** FK to the training course this SOP feeds into. `null` means the SOP
    *  is standalone — it is not part of any training plan and the employee
    *  only ever sees it via the library search. When non-null the linked
@@ -436,6 +457,10 @@ export interface CreateProcedureInput {
    *  sets this explicitly — archive is a separate admin action (⋯ kebab
    *  → Archive → modal confirm). */
   isArchived?: boolean;
+  /** Who can open it. Absent means everyone. */
+  audience?: ProcedureAudience | null;
+  /** Absent means standard. */
+  protection?: ProcedureProtection;
   /** Training course this SOP feeds into. `null` / omitted means
    *  standalone — no training plan attached. The wizard's Training &
    *  Quiz step captures this; leaving it unset is the default. */

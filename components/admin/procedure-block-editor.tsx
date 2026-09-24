@@ -545,7 +545,7 @@ function StepRow({
               <p className="flex items-center gap-2 text-sm text-[var(--color-ink-2)]">
                 <span className="spinner" aria-hidden="true" />
                 {tComp('video.uploading')}
-                {upload.fileName ? ` — ${upload.fileName}` : ''}
+                {upload.fileName ? ` · ${upload.fileName}` : ''}
               </p>
             )}
             {upload.state === 'failed' && upload.error && (
@@ -1333,7 +1333,7 @@ function ImageEditor({
           <span className="pill-progress">
             <span className="spinner" aria-hidden="true" />
             {t('image.uploading')}
-            {upload.fileName ? ` — ${upload.fileName}` : ''}
+            {upload.fileName ? ` · ${upload.fileName}` : ''}
           </span>
         </div>
       ) : upload.state === 'failed' ? (
@@ -1574,7 +1574,7 @@ function VideoEditor({
           <span className="pill-progress">
             <span className="spinner" aria-hidden="true" />
             {t('video.uploading')}
-            {upload.fileName ? ` — ${upload.fileName}` : ''}
+            {upload.fileName ? ` · ${upload.fileName}` : ''}
           </span>
         </div>
       ) : upload.state === 'failed' ? (

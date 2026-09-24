@@ -365,6 +365,12 @@ h1,h2,h3,h4,h5 { margin: 0; line-height: var(--lh-heading); text-wrap: balance; 
   border: 3px solid transparent; background-clip: content-box;
 }
 ::-webkit-scrollbar-thumb:hover { background: var(--line-3); background-clip: content-box; }
+/* A row of chips that scrolls sideways on a phone. The scrollbar under it is
+   chrome under chrome; the chip cut off at the edge already says there is more.
+   From sm up the row wraps instead, so nothing is cut off and nothing scrolls. */
+.chip-rail { scrollbar-width: none; }
+.chip-rail::-webkit-scrollbar { display: none; }
+
 ::-webkit-scrollbar-corner { background: transparent; }
 /* A panel that scrolls keeps its gutter reserved, so content does not jump by
    10px the moment a list grows past its box. */

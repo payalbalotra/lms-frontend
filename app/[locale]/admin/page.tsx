@@ -4,31 +4,34 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import {
   ApiException,
   fetchMe,
-  listCategories,
   listEmployees,
   listLocations,
   listProcedures,
   listRoles,
   listStations,
 } from '@/lib/api';
-import type { AdminEmployee, Category, Procedure, Role, Station } from '@/lib/types';
+import type { AdminEmployee, Procedure, Role, Station } from '@/lib/types';
+import { findMockEmployee, getCourseById, listTrainingAssignments } from '@/lib/mock-training';
 import {
   buildAttention,
+  buildTrainingSummary,
+  missingSpanish,
   recentProcedures,
   relativeDays,
   resumeDraft,
+  titleOf,
   type AttentionGroup,
 } from './components/home/home-data';
 import {
   AttentionList,
   HomeHeader,
   RecentProcedures,
-  ResumeLine,
   StatStrip,
+  TeamTraining,
   type GroupCopy,
   type Stat,
 } from './components/home/HomeSections';
-import { LuFilePen, LuFileText, LuGraduationCap, LuPlus, LuUpload, LuUsers } from 'react-icons/lu';
+import { LuBookOpen, LuClock, LuGraduationCap, LuPlus, LuUsers } from 'react-icons/lu';
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -37,9 +40,12 @@ interface PageProps {
 export const dynamic = 'force-dynamic';
 
 /**
- * The manager's home answers one question first: does anything need me? Then
- * where did I leave off, and what changed. Every count on it comes from the
- * API; a section with nothing real to say is left out rather than filled.
+ * The manager's home answers one question first: does anything need me? The
+ * team's training leads, because that is what the owner is accountable for;
+ * then the content chores (invites, missing Spanish, drafts) and the draft they
+ * left open. Counts of how much content exists, empty categories and a recent
+ * list the library already shows were removed: none of them asked anything of
+ * the manager.
  */
 export default async function AdminHomePage({ params }: PageProps): Promise<React.ReactElement> {
   const { locale } = await params;
@@ -55,7 +61,6 @@ export default async function AdminHomePage({ params }: PageProps): Promise<Reac
   let meId: string | null = null;
   let employees: AdminEmployee[] = [];
   let procedures: Procedure[] = [];
-  let categories: Category[] = [];
   let roles: Role[] = [];
   let stations: Station[] = [];
 
@@ -65,10 +70,9 @@ export default async function AdminHomePage({ params }: PageProps): Promise<Reac
     const { locations } = await listLocations(cookieHeader);
     const location = locations.find((l) => l.id === me.employee.locationId) ?? locations[0];
     const locationId = location?.id ?? me.employee.locationId;
-    [{ employees }, { procedures }, { categories }, { roles }, { stations }] = await Promise.all([
+    [{ employees }, { procedures }, { roles }, { stations }] = await Promise.all([
       listEmployees({ status: 'all' }, cookieHeader),
       listProcedures({}, cookieHeader),
-      listCategories(locationId, {}, cookieHeader),
       listRoles(cookieHeader),
       listStations(locationId, cookieHeader),
     ]);
@@ -78,7 +82,7 @@ export default async function AdminHomePage({ params }: PageProps): Promise<Reac
   }
 
   const now = Date.now();
-  const nameById = new Map(employees.map((e) => [e.id, e.name]));
+  const resume = resumeDraft(procedures, meId);
 
   const groups = buildAttention({
     locale,
@@ -86,9 +90,9 @@ export default async function AdminHomePage({ params }: PageProps): Promise<Reac
     meId,
     employees,
     procedures,
-    categories,
     roles,
     stations,
+    resume,
     t: {
       inviteTitle: (name) => t('inviteTitle', { name }),
       invitedAgo: (when) => t('invitedAgo', { when }),
@@ -97,104 +101,135 @@ export default async function AdminHomePage({ params }: PageProps): Promise<Reac
       spanishReaders: (count) => t('spanishReaders', { count }),
       editedAgo: (when, name) => (name ? t('editedAgoBy', { when, name }) : t('editedAgo', { when })),
       noSpanishYet: t('noSpanishYet'),
-      emptyCategoryTitle: (name) => t('emptyCategoryTitle', { name }),
-      emptyCategoryMeta: t('emptyCategoryMeta'),
+      resumeMeta: (when) => t('resumeMeta', { when }),
       uncategorised: t('uncategorised'),
     },
   });
 
-  const total = groups.reduce((n, g) => n + g.items.length, 0);
+  // Training comes from the same mock selectors the Training page reads until
+  // the training API lands; swap these three calls for it then.
+  // One name per person: the employee list first, the training mock's own
+  // list for anyone it has that the API does not.
+  const nameById = new Map(employees.map((e) => [e.id, e.name]));
+  const employeeName = (id: string): string | null => nameById.get(id) ?? findMockEmployee(id)?.name ?? null;
+  const courseTitle = (id: string): string | null => {
+    const c = getCourseById(id);
+    return c ? titleOf(c, locale) : null;
+  };
+  const training = buildTrainingSummary({
+    assignments: listTrainingAssignments(),
+    now,
+    locale,
+    courseTitle,
+    employeeName,
+    lineLabel: (state, at) => {
+      const when = relativeDays(at, locale, now);
+      if (state === 'complete') return t('training.doneAgo', { when });
+      return t(state === 'overdue' ? 'training.wasDue' : 'training.due', { when });
+    },
+  });
 
+  // Four numbers the owner can act on; each card opens its page.
+  const active = employees.filter((e) => e.status === 'active').length;
+  const invited = employees.filter((e) => e.status === 'pending').length;
+  const live = procedures.filter((p) => p.status === 'published' && !p.isArchived);
+  const drafts = procedures.filter((p) => p.status === 'draft' && !p.isArchived).length;
+  const noSpanish = live.filter((p) => missingSpanish(p)).length;
+  const trainedPct = training.total ? Math.round((training.complete / training.total) * 100) : 0;
+  const stats: Stat[] = [
+    {
+      label: t('stat.training'),
+      icon: LuGraduationCap,
+      value: `${trainedPct}%`,
+      note: t('stat.trainingNote', { done: training.complete, total: training.total }),
+      meter: training.total ? { value: training.complete, total: training.total } : undefined,
+      href: `/${locale}/admin/training`,
+    },
+    {
+      label: t('stat.overdue'),
+      icon: LuClock,
+      value: String(training.overdue.length),
+      note: t('stat.overdueNote', { count: training.overdue.length }),
+      tone: training.overdue.length ? 'bad' : undefined,
+      href: `/${locale}/admin/training`,
+    },
+    {
+      label: t('stat.team'),
+      icon: LuUsers,
+      value: String(active),
+      note: invited ? t('stat.teamInvited', { count: invited }) : t('stat.teamAllJoined'),
+      tone: invited ? 'caution' : undefined,
+      href: `/${locale}/admin/employees`,
+    },
+    {
+      label: t('stat.library'),
+      icon: LuBookOpen,
+      value: String(live.length),
+      note:
+        drafts || noSpanish
+          ? [drafts ? t('stat.libraryDrafts', { count: drafts }) : null, noSpanish ? t('stat.libraryNoSpanish', { count: noSpanish }) : null]
+              .filter(Boolean)
+              .join(' · ')
+          : t('stat.libraryClear'),
+      tone: drafts || noSpanish ? 'caution' : undefined,
+      href: `/${locale}/admin/library`,
+    },
+  ];
+
+  const total = training.overdueCount + groups.reduce((n, g) => n + g.items.length, 0);
   const dateLabel = new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long' }).format(now);
-  const resume = resumeDraft(procedures, meId);
 
   const groupCopy: Record<AttentionGroup['kind'], GroupCopy> = {
     invite: { title: t('group.invite.title'), action: t('group.invite.action'), tone: 'warn' },
     spanish: { title: t('group.spanish.title'), action: t('group.spanish.action'), tone: 'bad' },
+    resume: { title: t('resumeEyebrow'), action: t('resumeCta'), tone: 'ink' },
     draft: { title: t('group.draft.title'), action: t('group.draft.action'), tone: 'ink' },
-    emptyCategory: { title: t('group.emptyCategory.title'), action: t('group.emptyCategory.action'), tone: 'ink' },
   };
 
-  const active = employees.filter((e) => e.status === 'active');
-  const invited = employees.filter((e) => e.status === 'pending').length;
-  const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
-  const newThisWeek = (iso: string): boolean => new Date(iso).getTime() >= weekAgo;
-  const drafts = procedures.filter((p) => p.status === 'draft').length;
-  const addedProcedures = procedures.filter((p) => newThisWeek(p.createdAt)).length;
-  const joinedPeople = active.filter((e) => newThisWeek(e.createdAt)).length;
-
-  // Training has no data behind it until the training module exists. The figure
-  // and the ring below are placeholders for the demo — swap TRAINING_DEMO for the
-  // real completion rate, and drop `stat.trainingSample` from the messages, the
-  // moment the module lands.
-  const TRAINING_DEMO = { done: 34, total: 48 };
-  const stats: Stat[] = [
-    {
-      label: t('stat.procedures'),
-      icon: LuFileText,
-      value: String(procedures.length),
-      note: addedProcedures ? t('stat.proceduresNew', { count: addedProcedures }) : t('stat.proceduresNoneNew'),
-      tone: addedProcedures ? 'up' : undefined,
-    },
-    {
-      label: t('stat.drafts'),
-      icon: LuFilePen,
-      value: String(drafts),
-      note: drafts ? t('stat.draftsWaiting') : t('stat.draftsNone'),
-      tone: drafts ? 'caution' : undefined,
-    },
-    {
-      label: t('stat.people'),
-      icon: LuUsers,
-      value: String(active.length),
-      note: invited ? t('stat.peopleInvited', { count: invited }) : joinedPeople ? t('stat.peopleNew', { count: joinedPeople }) : t('stat.peopleSteady'),
-      tone: invited ? 'caution' : joinedPeople ? 'up' : undefined,
-    },
-    {
-      label: t('stat.training'),
-      icon: LuGraduationCap,
-      value: `${Math.round((TRAINING_DEMO.done / TRAINING_DEMO.total) * 100)}%`,
-      note: t('stat.trainingSample', { done: TRAINING_DEMO.done, total: TRAINING_DEMO.total }),
-      meter: { value: TRAINING_DEMO.done, total: TRAINING_DEMO.total },
-    },
-  ];
-
   return (
-    <div className="mx-auto max-w-page space-y-10 pb-12">
-      <div className="space-y-8">
-        <HomeHeader
-          place={dateLabel}
-          headline={total === 0 ? t('headlineClear') : t('headline', { count: total })}
-          actions={[
-            { href: `/${locale}/admin/library/new`, label: t('actionCreate'), icon: LuPlus, primary: true },
-            { href: `/${locale}/admin/library/new`, label: t('actionImport'), icon: LuUpload },
-          ]}
-        />
-        <StatStrip stats={stats} />
-        {resume ? (
-          <ResumeLine
-            procedure={resume}
-            locale={locale}
-            label={t('resumeEyebrow')}
-            meta={t('resumeMeta', { when: relativeDays(resume.updatedAt, locale, now) })}
-            cta={t('resumeCta')}
-          />
-        ) : null}
-      </div>
-
-      <AttentionList
-        heading={t('attentionHeading')}
-        groups={groups}
-        copy={groupCopy}
-        empty={{ title: t('clearTitle'), body: t('clearBody') }}
+    <div className="mx-auto max-w-page space-y-8 pb-12">
+      {/* One way in to making content. "Import document" was a second button to
+          the same page, where the choice between typing and importing is made. */}
+      <HomeHeader
+        place={dateLabel}
+        headline={total === 0 ? t('headlineClear') : t('headline', { count: total })}
+        actions={[{ href: `/${locale}/admin/library/new`, label: t('actionCreate'), icon: LuPlus, primary: true }]}
       />
 
-      <div>
+      <StatStrip stats={stats} />
+
+      <TeamTraining
+        summary={training}
+        heading={t('training.heading')}
+        progress={t('training.complete', { done: training.complete, total: training.total })}
+        seeAll={{ href: `/${locale}/admin/training`, label: t('training.seeAll') }}
+        groups={{ overdue: t('training.overdue'), dueThisWeek: t('training.dueThisWeek') }}
+        dueLabel={(p, overdue) =>
+          t(overdue ? 'training.wasDue' : 'training.due', { when: relativeDays(p.dueAt, locale, now) })
+        }
+        more={(count) => t('training.more', { count })}
+        remind={{ label: t('training.remind'), sent: t('training.reminded') }}
+        person={{ open: t('training.openPerson'), close: t('training.close') }}
+        empty={{ title: t('training.clearTitle'), body: t('training.clearBody') }}
+      />
+
+      {/* With nothing in it, the card was a large box saying so. The headline
+          already says whether anything needs the manager. */}
+      {groups.length > 0 ? (
+        <AttentionList
+          heading={t('attentionHeading')}
+          groups={groups}
+          copy={groupCopy}
+          empty={{ title: t('clearTitle'), body: t('clearBody') }}
+        />
+      ) : null}
+
+      {/* The library's latest, with its photographs, across the page. */}
         <RecentProcedures
           locale={locale}
           heading={t('recentHeading')}
           seeAll={t('recentSeeAll')}
-          procedures={recentProcedures(procedures)}
+          procedures={recentProcedures(procedures, 3)}
           statusLabel={(p) => (p.status === 'draft' ? t('statusDraft') : t('statusPublished'))}
           metaFor={(p) => {
             const when = relativeDays(p.updatedAt, locale, now);
@@ -202,7 +237,6 @@ export default async function AdminHomePage({ params }: PageProps): Promise<Reac
             return name ? t('updatedAgoBy', { when, name }) : t('updatedAgo', { when });
           }}
         />
-      </div>
     </div>
   );
 }

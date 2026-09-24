@@ -182,7 +182,123 @@ export function StationsManager({
   const isEditOpen = editingStation !== null;
 
   return (
-    <>
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button
+          icon={LuPlus}
+          onClick={() => {
+            resetCreate();
+            setCreateOpen(true);
+          }}
+        >
+          {t('stationsCreateHeading')}
+        </Button>
+      </div>
+
+      {editError ? (
+        <p role="alert" className="text-sm text-[var(--color-bad)]">
+          {editError}
+        </p>
+      ) : null}
+
+      <Card>
+        <CardContent className="p-0">
+          {initialStations.length === 0 ? (
+            <p className="px-6 py-8 text-center text-sm text-[var(--color-muted-foreground)]">
+              {t('stationsEmpty')}
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="atable">
+                <thead>
+                  <tr>
+                    <th>{t('thStationsName')}</th>
+                    <th>{t('thStationsStatus')}</th>
+                    <th>
+                      <span className="sr-only">{t('thActions')}</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {initialStations.map((s) => {
+                    const isEditing = editingId === s.id && editingForm !== null;
+                    return (
+                      <tr
+                        key={s.id}
+                      >
+                        <td>
+                          {isEditing ? (
+                            <Input
+                              value={editingForm.name}
+                              onChange={(e) =>
+                                setEditingForm({ ...editingForm, name: e.target.value })
+                              }
+                              maxLength={120}
+                              disabled={isPending}
+                            />
+                          ) : (
+                            s.name
+                          )}
+                        </td>
+                        <td>
+                          {isEditing ? (
+                            <label className="flex items-center gap-2 text-sm">
+                              <input
+                                type="checkbox"
+                                checked={editingForm.isArchived}
+                                onChange={(e) =>
+                                  setEditingForm({
+                                    ...editingForm,
+                                    isArchived: e.target.checked,
+                                  })
+                                }
+                                disabled={isPending}
+                              />
+                              {t('stationArchivedBadge')}
+                            </label>
+                          ) : (
+                            <StatusPill tone={s.isArchived ? 'neutral' : 'ok'}>
+                              {s.isArchived ? t('stationArchivedBadge') : t('stationActiveBadge')}
+                            </StatusPill>
+                          )}
+                        </td>
+                        <td>
+                          {isEditing ? (
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                disabled={isPending || !editingForm.name}
+                                onClick={() => saveEdit(s)}
+                              >
+                                {t('actionsSave')}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="neutral"
+                                disabled={isPending}
+                                onClick={cancelEdit}
+                              >
+                                {t('actionsCancel')}
+                              </Button>
+                            </div>
+                          ) : (
+                            <RowActions
+                              items={rowItemsFor(s)}
+                              triggerLabel={`${t('rowActionsLabel')}: ${s.name}`}
+                            />
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <Drawer
         open={isCreateOpen}
         onClose={closeDrawer}

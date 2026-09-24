@@ -42,8 +42,15 @@ import { cn } from '@/lib/utils';
 const NOTE_KINDS: ProcedureNoteKind[] = ['warn', 'tip', 'alt', 'equip', 'allergen'];
 
 const LABELS = {
-  en: { yieldTitle: 'Yield', method: 'Method', steps: (n: number) => `${n} steps`, batch: 'Batch', attachments: 'Attachments' },
-  es: { yieldTitle: 'Rendimiento', method: 'Método', steps: (n: number) => `${n} pasos`, batch: 'Lote', attachments: 'Archivos adjuntos' },
+  en: {
+    yieldTitle: 'Yield', method: 'Method', steps: (n: number) => `${n} steps`, batch: 'Batch', attachments: 'Attachments',
+    notes: { warn: 'Warning', tip: 'Tip', alt: 'Alternative', equip: 'Equipment', allergen: 'Allergen' },
+  },
+  es: {
+    yieldTitle: 'Rendimiento', method: 'Método', steps: (n: number) => `${n} pasos`, batch: 'Lote', attachments: 'Archivos adjuntos',
+    // The note label was always English, so a Spanish page said "Warning".
+    notes: { warn: 'Atención', tip: 'Consejo', alt: 'Alternativa', equip: 'Equipo', allergen: 'Alérgeno' },
+  },
 } as const;
 
 function pickText(value: Localised, locale: 'en' | 'es'): string {
@@ -162,7 +169,7 @@ export function BlockRenderer({
         const kind: ProcedureNoteKind = NOTE_KINDS.includes(block.severity as ProcedureNoteKind)
           ? (block.severity as ProcedureNoteKind)
           : 'warn';
-        add(key, <NoteBlock kind={kind}>{pickText(block.body, locale)}</NoteBlock>);
+        add(key, <NoteBlock kind={kind} label={t.notes[kind as keyof typeof t.notes]}>{pickText(block.body, locale)}</NoteBlock>);
         return;
       }
       case 'image': {

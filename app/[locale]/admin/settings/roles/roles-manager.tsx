@@ -165,7 +165,126 @@ export function RolesManager({
   const isEditOpen = editingRole !== null;
 
   return (
-    <>
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button
+          icon={LuPlus}
+          onClick={() => {
+            resetCreate();
+            setCreateOpen(true);
+          }}
+        >
+          {t('rolesCreateHeading')}
+        </Button>
+      </div>
+
+      {editError ? (
+        <p role="alert" className="text-sm text-[var(--color-bad)]">
+          {editError}
+        </p>
+      ) : null}
+
+      <Card>
+        <CardContent className="p-0">
+          {initialRoles.length === 0 ? (
+            <p className="px-6 py-8 text-center text-sm text-[var(--color-muted-foreground)]">
+              {t('rolesEmpty')}
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="atable">
+                <thead>
+                  <tr>
+                    <th>{t('thRolesName')}</th>
+                    <th>{t('thRolesClearance')}</th>
+                    <th>
+                      <span className="sr-only">{t('thActions')}</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {initialRoles.map((r) => {
+                    const isEditing = editingId === r.id && editingForm !== null;
+                    return (
+                      <tr
+                        key={r.id}
+                      >
+                        <td>
+                          {isEditing ? (
+                            <Input
+                              value={editingForm.name}
+                              onChange={(e) =>
+                                setEditingForm({
+                                  ...editingForm,
+                                  name: e.target.value,
+                                })
+                              }
+                              maxLength={120}
+                              disabled={isPending}
+                            />
+                          ) : (
+                            r.name
+                          )}
+                        </td>
+                        <td>
+                          {isEditing ? (
+                            <Select
+                              value={editingForm.clearanceLevel}
+                              onChange={(e) =>
+                                setEditingForm({
+                                  ...editingForm,
+                                  clearanceLevel: e.target.value as ClearanceLevel,
+                                })
+                              }
+                              disabled={isPending}
+                              className="h-tap-admin w-auto px-2"
+                            >
+                              <option value="general">general</option>
+                              <option value="station">station</option>
+                              <option value="confidential">confidential</option>
+                              <option value="master">master</option>
+                            </Select>
+                          ) : (
+                            r.clearanceLevel
+                          )}
+                        </td>
+                        <td>
+                          {isEditing ? (
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                disabled={isPending || !editingForm.name}
+                                onClick={() => saveEdit(r)}
+                              >
+                                {t('actionsSave')}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="neutral"
+                                disabled={isPending}
+                                onClick={cancelEdit}
+                              >
+                                {t('actionsCancel')}
+                              </Button>
+                            </div>
+                          ) : (
+                            <RowActions
+                              items={rowItemsFor(r)}
+                              triggerLabel={`${t('rowActionsLabel')}: ${r.name}`}
+                            />
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <Drawer
         open={isCreateOpen}
         onClose={closeDrawer}

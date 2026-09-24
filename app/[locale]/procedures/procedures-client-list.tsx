@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { fold } from '@/lib/utils';
+import { queryWords, scoreProcedure } from '@/lib/procedure-search';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { listCategories, listProcedures } from '@/lib/api';
@@ -23,6 +23,8 @@ interface ProceduresClientListProps {
   readsSpanish: boolean;
   /** Forwarded to each row's href so the chosen chrome rides along navigations. */
   viewAs: ViewAs | null;
+  /** The reader's station: its own procedures lead the list. */
+  stationId?: string | null;
 }
 
 export function ProceduresClientList({
@@ -34,6 +36,7 @@ export function ProceduresClientList({
   locale,
   readsSpanish,
   viewAs,
+  stationId,
 }: ProceduresClientListProps): React.ReactElement {
   // Translations must be resolved inside the client: next-intl's translation
   // object contains function values for interpolated keys, and those cannot be
@@ -93,7 +96,6 @@ export function ProceduresClientList({
 
   const isEs = locale === 'es';
   const titleOf = (p: Procedure): string => (isEs ? p.titleEs || p.titleEn : p.titleEn || p.titleEs);
-  const purposeOf = (p: Procedure): string => (isEs ? p.purposeEs || p.purposeEn : p.purposeEn || p.purposeEs);
   const nameOf = (c: Category): string => (isEs ? c.nameEs || c.nameEn : c.nameEn || c.nameEs);
 
   const coverOf = (p: Procedure): string | undefined => {
@@ -103,12 +105,29 @@ export function ProceduresClientList({
     return undefined;
   };
 
-  const needle = fold(query.trim());
-  const results = procedures
-    .filter((p) => p.status === 'published')
+  // A question, not a title: matched word by word through everything a
+  // procedure says, best answers first (see lib/procedure-search).
+  // With no question, the reader's own station leads, then A to Z.
+  const words = queryWords(query);
+  const mine = (p: Procedure): number =>
+    stationId &&
+    ((p.stationScope?.mode === 'specific' && p.stationScope.stationIds.includes(stationId)) ||
+      (p.audience?.mode === 'some' && p.audience.stationIds.includes(stationId)))
+      ? 1
+      : 0;
+  const published = procedures.filter((p) => p.status === 'published' && !p.isArchived);
+  const results = published
     .filter((p) => (activeCategory ? p.category?.slug === activeCategory : true))
-    .filter((p) => (needle ? fold(`${titleOf(p)} ${purposeOf(p)} ${p.slug}`).includes(needle) : true))
-    .sort((a, b) => titleOf(a).localeCompare(titleOf(b), locale));
+    .map((p) => ({ p, score: scoreProcedure(p, words) }))
+    .filter((r) => r.score > 0)
+    .sort(
+      (a, b) =>
+        b.score - a.score || mine(b.p) - mine(a.p) || titleOf(a.p).localeCompare(titleOf(b.p), locale),
+    )
+    .map((r) => r.p);
+  // Only the categories that hold something this person can read: an empty
+  // chip was a tap that led to an empty list.
+  const usedCategories = new Set(published.map((p) => p.category?.slug).filter(Boolean));
 
   const chip =
     'inline-flex min-h-tap items-center gap-2 rounded-full px-4 text-base font-semibold whitespace-nowrap cursor-pointer';
@@ -120,7 +139,7 @@ export function ProceduresClientList({
         <label htmlFor="q-client" className="sr-only">
           {labels.searchLabel}
         </label>
-        <div className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--color-line-3)] bg-[var(--color-surface)] px-4 py-2 transition-colors duration-[var(--dur)] ease-[var(--ease)] focus-within:border-[var(--color-ring)] focus-within:outline focus-within:outline-2 focus-within:outline-[var(--color-brand-tint-2)]">
+        <div className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--color-line-3)] bg-[var(--color-surface)] px-4 py-2 transition-colors duration-[var(--dur)] ease-[var(--ease)] focus-within:border-[var(--color-ring)] focus-within:outline focus-within:outline-2 focus-within:outline-[var(--color-ring)]">
           <LuSearch aria-hidden="true" className="text-lg text-[var(--color-ink-2)]" />
           <input
             id="q-client"
@@ -134,8 +153,8 @@ export function ProceduresClientList({
       </div>
 
       {/* Categories Bar */}
-      <div className="-mx-4 mt-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-        <div className="flex gap-2">
+      <div className="chip-rail -mx-4 mt-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0">
+        <div className="flex gap-2 sm:flex-wrap">
           <button
             type="button"
             onClick={() => setActiveCategory('')}
@@ -144,7 +163,7 @@ export function ProceduresClientList({
             {labels.all}
           </button>
           {categories
-            .filter((c) => !c.isArchived)
+            .filter((c) => !c.isArchived && usedCategories.has(c.slug))
             .map((c) => {
               const on = activeCategory === c.slug;
               return (

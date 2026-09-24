@@ -8,8 +8,6 @@ import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from '@/components/ui/card';
 import { EmployeesClientTable } from './employees-client-table';
 import type { AdminEmployee, EmployeeStatus } from '@/lib/types';
@@ -63,9 +61,6 @@ export default async function AdminEmployeesPage({
     if (err instanceof ApiException) {
       return (
         <Card className="mx-auto max-w-narrow">
-          <CardHeader>
-            <CardTitle>—</CardTitle>
-          </CardHeader>
           <CardContent>
             <p role="alert" className="text-sm text-[var(--color-bad)]">
               {err.code}

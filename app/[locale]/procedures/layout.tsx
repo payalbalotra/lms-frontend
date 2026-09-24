@@ -2,10 +2,11 @@ import type { ReactNode } from 'react';
 import * as React from 'react';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
-import { setRequestLocale } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { ApiException, fetchMe, listLocations, logout } from '@/lib/api';
 import { readViewAs } from '@/lib/view-as-server';
 import { AdminShell } from '@/app/[locale]/admin/admin-shell';
+import { EmployeeTopBar } from '@/components/employee/employee-top-bar';
 
 /**
  * Procedures routes are shared between admin and employee (both link here from
@@ -61,10 +62,37 @@ export default async function ProceduresLayout({ children, params }: ProceduresL
   const viewOverride = await readViewAs();
   const effectiveRole = viewOverride ?? 'employee';
 
+  async function signOut(): Promise<void> {
+    'use server';
+    await logout();
+    redirect(`/${locale}/login`);
+  }
+
   if (effectiveRole !== 'admin') {
-    // Employees (or admins masquerading as employees via ?as=employee) keep
-    // the page as-is — the per-page `TabBar` is their chrome.
-    return <>{children}</>;
+    // Employees (or admins masquerading as employees via ?as=employee) get the
+    // same top bar the /employee pages wear, with the per-page `TabBar` below.
+    // Without it a cook reading a procedure had no theme switch and no way to
+    // sign out, on the pages they spend the longest on.
+    const t = await getTranslations('employee');
+    const tCommon = await getTranslations('app');
+    return (
+      <div className="flex min-h-screen flex-col bg-[var(--color-bg)]">
+        <EmployeeTopBar
+          locale={locale}
+          name={employee.name}
+          isAdmin={employee.role === 'admin'}
+          signOutAction={signOut}
+          labels={{
+            signedInAs: t('signedInAs', { name: employee.name }),
+            signOut: t('signOut'),
+            admin: tCommon('admin'),
+            toDark: tCommon('themeToDark'),
+            toLight: tCommon('themeToLight'),
+          }}
+        />
+        <div className="flex-1">{children}</div>
+      </div>
+    );
   }
 
   // Workspace name for the sidebar brand block. A failure here shouldn't
@@ -77,12 +105,6 @@ export default async function ProceduresLayout({ children, params }: ProceduresL
       (locations.find((l) => l.id === employee.locationId) ?? locations[0])?.name ?? '';
   } catch {
     workspace = '';
-  }
-
-  async function signOut(): Promise<void> {
-    'use server';
-    await logout();
-    redirect(`/${locale}/login`);
   }
 
   return (

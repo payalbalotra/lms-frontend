@@ -112,10 +112,10 @@ export function EmployeesClientTable({
                         </div>
                       </td>
                       <td className="font-mono text-[var(--color-ink-2)]">
-                        {e.employeeCode ?? '—'}
+                        {e.employeeCode ?? ''}
                       </td>
                       <td className="text-[var(--color-ink-2)]">
-                        {e.locationName ?? '—'}
+                        {e.locationName ?? ''}
                       </td>
                       <td className="text-[var(--color-ink-2)]">{e.clearanceLevel}</td>
                       <td>

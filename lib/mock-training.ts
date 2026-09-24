@@ -21,10 +21,11 @@ export interface MockEmployee {
 
 export const mockTrainingEmployees: MockEmployee[] = [
   { id: 'emp-001', name: 'Marisol Ruiz', station: 'Cold prep' },
-  { id: 'emp-002', name: 'Carlos Gomez', station: 'Grill' },
-  { id: 'emp-003', name: 'Maria Santos', station: 'Prep' },
+  { id: 'emp-cook', name: 'Carlos Gomez', station: 'Grill' },
+  { id: 'emp-prep', name: 'Maria Santos', station: 'Prep' },
   { id: 'emp-004', name: 'Hiro Watanabe', station: 'Grill' },
-  { id: 'emp-005', name: 'Chef Raúl Medina', station: 'Saucier' },
+  { id: 'emp-006', name: 'Ana López', station: 'Dishwasher' },
+  { id: 'emp-admin', name: 'Chef Raúl Medina', station: 'Saucier' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -83,6 +84,24 @@ const blockMethod = (id: string, steps: ProcedureMethodStep[]): ProcedureBlock =
 // content is the literal copy, not a runtime translation).
 // ---------------------------------------------------------------------------
 
+// What every new hire reads on day one (PROJECT_OVERVIEW §03 Onboarding:
+// culture, uniform, employee conduct).
+const welcomeBody: ProcedureBody = {
+  blocks: [
+    blockHeading('wl-h', 1, 'Welcome to Alimentaria', 'Bienvenido a Alimentaria'),
+    blockText(
+      'wl-intro',
+      'How we work here: clean, on time, and we tell each other. Ask the chef on duty whenever you are not sure.',
+      'Así trabajamos aquí: limpios, puntuales y comunicándonos. Pregunta al chef de turno siempre que tengas dudas.',
+    ),
+    blockMethod('wl-method', [
+      step('wl-s1', 'Arrive ten minutes before your shift, in a clean uniform.', 'Llega diez minutos antes de tu turno, con el uniforme limpio.'),
+      step('wl-s2', 'Tie your hair back and cover it. No jewellery except a plain band.', 'Recógete y cúbrete el cabello. Sin joyas salvo una argolla lisa.'),
+      step('wl-s3', 'Tell the chef on duty before you leave your station.', 'Avisa al chef de turno antes de dejar tu estación.'),
+    ]),
+  ],
+};
+
 const handwashingBody: ProcedureBody = {
   blocks: [
     blockHeading(
@@ -93,7 +112,7 @@ const handwashingBody: ProcedureBody = {
     ),
     blockText(
       'hw-intro',
-      'Hands are washed at handwash sinks only — never at prep sinks or over food. Wash on station entry, after raw protein, after touching your face, after the bin, and after any non-food task.',
+      'Hands are washed at handwash sinks only, never at prep sinks or over food. Wash on station entry, after raw protein, after touching your face, after the bin, and after any non-food task.',
       'Las manos se lavan exclusivamente en los lavamanos del personal. Lávese al entrar a la estación, después de tocar proteína cruda, después de tocarse la cara, después del bote de basura y tras cualquier tarea ajena a la comida.',
     ),
     blockWarning(
@@ -114,7 +133,7 @@ const handwashingBody: ProcedureBody = {
 
 const knifeSteps: ProcedureMethodStep[] = [
   step('kn-s1', 'Place the knife in the rack with the blade facing back, never edge-out over a counter.', 'Coloque el cuchillo en la rejilla con el filo hacia atrás; nunca sobresalga del mostrador.'),
-  step('kn-s2', 'Carry a knife blade-down at your side, point straight ahead — never running.', 'Transporte el cuchillo con el filo hacia abajo a su costado, punta al frente — nunca corra.'),
+  step('kn-s2', 'Carry a knife blade-down at your side, point straight ahead. Never run.', 'Transporte el cuchillo con el filo hacia abajo a su costado, punta al frente. Nunca corra.'),
   step('kn-s3', 'Pass a knife handle-first; announce "Knife behind you" before letting go.', 'Pase el cuchillo por el mango; diga "Cuchillo detrás de usted" antes de soltarlo.', true),
   step('kn-s4', 'If you drop a knife, step back. Do not try to catch it.', 'Si se le cae un cuchillo, dé un paso atrás. No intente atraparlo.', true),
   step('kn-s5', 'Cut on a stable board with a damp towel underneath; never cut toward your other hand.', 'Corte sobre una tabla estable con un paño húmedo debajo; nunca corte hacia la otra mano.'),
@@ -131,8 +150,8 @@ const knifeSafetyBody: ProcedureBody = {
     blockWarning(
       'kn-warn',
       'warn',
-      'A wet board is a slipping board. The damp towel under the board is not optional — it is the rule.',
-      'Una tabla mojada es una tabla que resbala. El paño húmedo bajo la tabla no es opcional — es la regla.',
+      'A wet board is a slipping board. The damp towel under the board is not optional. It is the rule.',
+      'Una tabla mojada es una tabla que resbala. El paño húmedo bajo la tabla no es opcional. Es la regla.',
     ),
     blockMethod('kn-method', knifeSteps),
   ],
@@ -147,11 +166,11 @@ const allergenSteps: ProcedureMethodStep[] = [
 
 const allergenBody: ProcedureBody = {
   blocks: [
-    blockHeading('al-h', 1, 'Allergen awareness — front of house', 'Conocimiento de alérgenos — sala'),
+    blockHeading('al-h', 1, 'Allergen awareness: front of house', 'Conocimiento de alérgenos: sala'),
     blockText(
       'al-intro',
-      'Every allergen ticket is the customer telling us they could be hospitalised by a wrong ingredient. Nine allergens, one shared kitchen — mistake-proofing is the job.',
-      'Cada comanda con alérgenos es el cliente diciéndonos que una ingrediente equivocada podría hospitalizarlo. Nueve alérgenos, una sola cocina — el trabajo es a prueba de errores.',
+      'Every allergen ticket is the customer telling us they could be hospitalised by a wrong ingredient. Nine allergens, one shared kitchen. Mistake-proofing is the job.',
+      'Cada comanda con alérgenos es el cliente diciéndonos que una ingrediente equivocada podría hospitalizarlo. Nueve alérgenos, una sola cocina. El trabajo es a prueba de errores.',
     ),
     blockWarning(
       'al-warn',
@@ -180,8 +199,8 @@ const handwashingAck: ProcedureAcknowledgement = {
 const knifeAck: ProcedureAcknowledgement = {
   versionLabel: 'v2026.08',
   statement: {
-    en: 'I will follow the five knife-safety rules — carry, pass, drop, board, and never-cut-toward — every shift.',
-    es: 'Seguiré las cinco reglas de seguridad con cuchillo — transporte, entrega, caída, tabla y nunca-cortar-hacia — en cada turno.',
+    en: 'I will follow the five knife-safety rules (carry, pass, drop, board, and never-cut-toward) every shift.',
+    es: 'Seguiré las cinco reglas de seguridad con cuchillo (transporte, entrega, caída, tabla y nunca-cortar-hacia) en cada turno.',
   },
 };
 
@@ -205,14 +224,14 @@ const lettuceWashBody: ProcedureBody = {
       step('lw-s1', 'Fill the wash sink with cold water and a chlorine tablet (50 ppm).', 'Llene el lavabo con agua fría y una pastilla de cloro (50 ppm).'),
       step('lw-s2', 'Submerge leaves for 90 s, agitating gently.', 'Sumerja las hojas durante 90 segundos, agitando con cuidado.'),
       step('lw-s3', 'Rinse twice in clean cold water.', 'Enjuague dos veces en agua fría limpia.'),
-      step('lw-s4', 'Spin dry in the salad spinner — three short bursts, not one long one.', 'Seque en la centrifugadora — tres ciclos cortos, no uno largo.', true),
+      step('lw-s4', 'Spin dry in the salad spinner: three short bursts, not one long one.', 'Seque en la centrifugadora: tres ciclos cortos, no uno largo.', true),
     ]),
   ],
 };
 
 const pastaWaterBody: ProcedureBody = {
   blocks: [
-    blockHeading('pw-h', 1, 'Pasta water — salinity & temperature', 'Agua de pasta — salinidad y temperatura'),
+    blockHeading('pw-h', 1, 'Pasta water: salinity & temperature', 'Agua de pasta: salinidad y temperatura'),
     blockWarning(
       'pw-warn',
       'warn',
@@ -221,7 +240,7 @@ const pastaWaterBody: ProcedureBody = {
     ),
     blockMethod('pw-method', [
       step('pw-s1', 'Bring 4 L of water to a rolling boil per 500 g of dry pasta.', 'Lleve 4 L de agua a hervor fuerte por cada 500 g de pasta seca.'),
-      step('pw-s2', 'Add 40 g of sea salt — that is the 1 % mark.', 'Añada 40 g de sal de mar — esa es la marca del 1 %.', true),
+      step('pw-s2', 'Add 40 g of sea salt. That is the 1 % mark.', 'Añada 40 g de sal de mar. Esa es la marca del 1 %.', true),
       step('pw-s3', 'Verify with the salinity refractometer; reject under 1.0 %.', 'Verifique con el refractómetro de salinidad; rechace bajo 1.0 %.'),
     ]),
   ],
@@ -242,7 +261,7 @@ const knifeSharpeningBody: ProcedureBody = {
   blocks: [
     blockHeading('ks-h', 1, 'Knife sharpening & honing', 'Afilado y mantenimiento de cuchillo'),
     blockMethod('ks-method', [
-      step('ks-s1', 'Hone on the rod before every shift — 5 passes each side, 20°.', 'Afile en la varilla antes de cada turno — 5 pasadas por lado, 20°.'),
+      step('ks-s1', 'Hone on the rod before every shift: 5 passes each side, 20°.', 'Afile en la varilla antes de cada turno: 5 pasadas por lado, 20°.'),
       step('ks-s2', 'Whetstone once a week or when the hone no longer brings the edge back.', 'Piedra de afilar una vez por semana o cuando la varilla ya no recupere el filo.', true),
       step('ks-s3', 'Strop on leather after whetstoning.', 'Asiente en cuero después de la piedra.'),
     ]),
@@ -255,7 +274,7 @@ const stockRotationBody: ProcedureBody = {
     blockMethod('sr-method', [
       step('sr-s1', 'Label every container with prep date and use-by date.', 'Etiquete cada recipiente con fecha de preparación y fecha de uso.'),
       step('sr-s2', 'New stock goes to the back; older stock moves to the front.', 'El stock nuevo va atrás; el más viejo pasa al frente.'),
-      step('sr-s3', 'Discard anything past its use-by date — no exceptions.', 'Deseche cualquier producto pasada su fecha de uso — sin excepciones.', true),
+      step('sr-s3', 'Discard anything past its use-by date. No exceptions.', 'Deseche cualquier producto pasada su fecha de uso. Sin excepciones.', true),
     ]),
   ],
 };
@@ -280,8 +299,8 @@ export const mockSops: Procedure[] = [
   {
     id: 'sop-002',
     slug: 'pasta-water-salinity',
-    titleEn: 'Pasta water — salinity & temperature',
-    titleEs: 'Agua de pasta — salinidad y temperatura',
+    titleEn: 'Pasta water: salinity & temperature',
+    titleEs: 'Agua de pasta: salinidad y temperatura',
     purposeEn: 'The 1 % salt rule and the rolling-boil rule, with salinity verification.',
     purposeEs: 'La regla del 1 % de sal y la regla del hervor fuerte, con verificación de salinidad.',
     category: { id: 'cat-pasta', slug: 'pasta', nameEn: 'Pasta', nameEs: 'Pasta', isArchived: false },
@@ -330,8 +349,8 @@ export const mockSops: Procedure[] = [
     slug: 'stock-rotation-fifo',
     titleEn: 'Stock rotation (FIFO)',
     titleEs: 'Rotación de stock (PEPS)',
-    purposeEn: 'Label, rotate, and discard — the three rules of FIFO.',
-    purposeEs: 'Etiquetar, rotar y desechar — las tres reglas del PEPS.',
+    purposeEn: 'Label, rotate, and discard: the three rules of FIFO.',
+    purposeEs: 'Etiquetar, rotar y desechar: las tres reglas del PEPS.',
     category: { id: 'cat-stock', slug: 'stock', nameEn: 'Stock', nameEs: 'Inventario', isArchived: false },
     status: 'published',
     stationScope: { mode: 'all', stationIds: [] },
@@ -349,14 +368,34 @@ export const mockSops: Procedure[] = [
 
 export const mockTrainingCourses: Procedure[] = [
   {
+    id: 'course-004',
+    slug: 'welcome-to-alimentaria',
+    titleEn: 'Welcome to Alimentaria',
+    titleEs: 'Bienvenido a Alimentaria',
+    purposeEn: 'Day one: how we work, the uniform, and who to ask.',
+    purposeEs: 'Primer día: cómo trabajamos, el uniforme y a quién preguntar.',
+    category: null,
+    status: 'published',
+    bodyEn: welcomeBody,
+    bodyEs: welcomeBody,
+    createdBy: 'admin-001',
+    createdAt: '2026-08-01T08:00:00Z',
+    updatedAt: '2026-08-01T08:00:00Z',
+    quizId: null,
+    linkedTrainingId: null,
+    quizMode: 'training',
+    attachedToTraining: true,
+    linkedSops: [],
+  },
+  {
     id: 'course-001',
     slug: 'handwashing-glove-protocol',
     titleEn: 'Handwashing & glove protocol',
     titleEs: 'Protocolo de lavado de manos y guantes',
     purposeEn:
-      'A short onboarding course on when and how to wash hands and change gloves — the rest of food safety depends on this being right.',
+      'A short onboarding course on when and how to wash hands and change gloves. The rest of food safety depends on this being right.',
     purposeEs:
-      'Curso corto de inducción sobre cuándo y cómo lavarse las manos y cambiar guantes — el resto de la seguridad alimentaria depende de hacerlo bien.',
+      'Curso corto de inducción sobre cuándo y cómo lavarse las manos y cambiar guantes. El resto de la seguridad alimentaria depende de hacerlo bien.',
     category: null,
     status: 'published',
     bodyEn: handwashingBody,
@@ -368,7 +407,8 @@ export const mockTrainingCourses: Procedure[] = [
     linkedTrainingId: null,
     quizMode: 'training',
     attachedToTraining: true,
-    linkedSops: ['sop-001', 'sop-004'],
+    // Library procedures, so the links open what the cook can actually read.
+    linkedSops: ['proc-handwashing', 'proc-cleaning'],
     acknowledgement: handwashingAck,
   },
   {
@@ -391,14 +431,14 @@ export const mockTrainingCourses: Procedure[] = [
     linkedTrainingId: null,
     quizMode: 'training',
     attachedToTraining: true,
-    linkedSops: ['sop-004'],
+    linkedSops: [],
     acknowledgement: knifeAck,
   },
   {
     id: 'course-003',
     slug: 'allergen-awareness-foh',
-    titleEn: 'Allergen awareness — FOH',
-    titleEs: 'Conocimiento de alérgenos — sala',
+    titleEn: 'Allergen awareness (FOH)',
+    titleEs: 'Conocimiento de alérgenos: sala',
     purposeEn:
       'Regulated training for every front-of-house and prep-line cook. Quiz must pass before any allergen-ticket exposure.',
     purposeEs:
@@ -439,9 +479,9 @@ export const mockTrainingAssignments: TrainingAssignment[] = [
   {
     id: 'ta-002',
     courseId: 'course-002',
-    employeeId: 'emp-002',
+    employeeId: 'emp-cook',
     assignedAt: '2026-09-08T08:00:00Z',
-    dueAt: '2026-09-22T08:00:00Z',
+    dueAt: '2026-09-28T08:00:00Z',
     status: 'in_progress',
     completedStepIds: ['kn-s1', 'kn-s2', 'kn-s3'],
     quizPassedAt: null,
@@ -450,7 +490,7 @@ export const mockTrainingAssignments: TrainingAssignment[] = [
   {
     id: 'ta-003',
     courseId: 'course-002',
-    employeeId: 'emp-003',
+    employeeId: 'emp-prep',
     assignedAt: '2026-09-01T08:00:00Z',
     dueAt: '2026-09-15T08:00:00Z',
     status: 'complete',
@@ -461,7 +501,7 @@ export const mockTrainingAssignments: TrainingAssignment[] = [
   {
     id: 'ta-004',
     courseId: 'course-003',
-    employeeId: 'emp-003',
+    employeeId: 'emp-prep',
     assignedAt: '2026-09-18T08:00:00Z',
     dueAt: '2026-09-23T08:00:00Z',
     status: 'due',
@@ -483,7 +523,7 @@ export const mockTrainingAssignments: TrainingAssignment[] = [
   {
     id: 'ta-006',
     courseId: 'course-003',
-    employeeId: 'emp-005',
+    employeeId: 'emp-admin',
     assignedAt: '2026-08-20T08:00:00Z',
     dueAt: '2026-09-10T08:00:00Z',
     status: 'complete',
@@ -494,7 +534,7 @@ export const mockTrainingAssignments: TrainingAssignment[] = [
   {
     id: 'ta-007',
     courseId: 'course-001',
-    employeeId: 'emp-005',
+    employeeId: 'emp-admin',
     assignedAt: '2026-09-19T08:00:00Z',
     dueAt: '2026-09-26T08:00:00Z',
     status: 'in_progress',
@@ -505,7 +545,7 @@ export const mockTrainingAssignments: TrainingAssignment[] = [
   {
     id: 'ta-009',
     courseId: 'course-002',
-    employeeId: 'emp-005',
+    employeeId: 'emp-admin',
     assignedAt: '2026-09-15T08:00:00Z',
     dueAt: '2026-09-29T08:00:00Z',
     status: 'due',
@@ -516,7 +556,7 @@ export const mockTrainingAssignments: TrainingAssignment[] = [
   {
     id: 'ta-010',
     courseId: 'course-003',
-    employeeId: 'emp-005',
+    employeeId: 'emp-admin',
     assignedAt: '2026-09-10T08:00:00Z',
     dueAt: '2026-10-05T08:00:00Z',
     status: 'due',
@@ -527,10 +567,55 @@ export const mockTrainingAssignments: TrainingAssignment[] = [
   {
     id: 'ta-008',
     courseId: 'course-001',
-    employeeId: 'emp-002',
+    employeeId: 'emp-cook',
     assignedAt: '2026-09-15T08:00:00Z',
     dueAt: '2026-09-29T08:00:00Z',
     status: 'in_progress',
+    completedStepIds: [],
+    quizPassedAt: null,
+    acknowledgedAt: null,
+  },
+  // Ana joined on the 21st: her first-week programme, assigned on day one.
+  {
+    id: 'ta-011',
+    courseId: 'course-004',
+    employeeId: 'emp-006',
+    assignedAt: '2026-09-21T08:00:00Z',
+    dueAt: '2026-09-22T08:00:00Z',
+    status: 'complete',
+    completedStepIds: ['wl-s1', 'wl-s2', 'wl-s3'],
+    quizPassedAt: null,
+    acknowledgedAt: '2026-09-21T10:30:00Z',
+  },
+  {
+    id: 'ta-012',
+    courseId: 'course-001',
+    employeeId: 'emp-006',
+    assignedAt: '2026-09-21T08:00:00Z',
+    dueAt: '2026-09-26T08:00:00Z',
+    status: 'in_progress',
+    completedStepIds: ['hw-s1', 'hw-s2'],
+    quizPassedAt: null,
+    acknowledgedAt: null,
+  },
+  {
+    id: 'ta-013',
+    courseId: 'course-002',
+    employeeId: 'emp-006',
+    assignedAt: '2026-09-21T08:00:00Z',
+    dueAt: '2026-09-30T08:00:00Z',
+    status: 'due',
+    completedStepIds: [],
+    quizPassedAt: null,
+    acknowledgedAt: null,
+  },
+  {
+    id: 'ta-014',
+    courseId: 'course-003',
+    employeeId: 'emp-006',
+    assignedAt: '2026-09-21T08:00:00Z',
+    dueAt: '2026-10-05T08:00:00Z',
+    status: 'due',
     completedStepIds: [],
     quizPassedAt: null,
     acknowledgedAt: null,
@@ -629,4 +714,37 @@ export function listLinkedSops(course: Procedure): Procedure[] {
   return course.linkedSops
     .map((id) => byId.get(id))
     .filter((s): s is Procedure => Boolean(s));
+}
+
+/** Mark an assignment finished. Mock: changes the in-memory record the pages
+ *  read, so Home, the Training tab and the admin side all see it until the dev
+ *  server restarts. The backend will record date, score, attempts and the
+ *  content version (PROJECT_OVERVIEW §02). */
+export function completeAssignment(assignmentId: string, at: Date = new Date()): TrainingAssignment | null {
+  const a = mockTrainingAssignments.find((x) => x.id === assignmentId);
+  if (!a) return null;
+  a.status = 'complete';
+  a.acknowledgedAt = a.acknowledgedAt ?? at.toISOString();
+  return a;
+}
+
+/** The steps a course asks the reader through: all its "Steps" blocks
+ *  together, the ones the reader ticks off. What "2 of 5 steps" counts. */
+export function courseStepCount(course: Procedure): number {
+  const blocks = course.bodyEn.blocks.length ? course.bodyEn.blocks : course.bodyEs.blocks;
+  return blocks.reduce((n, b) => n + (b.kind === 'method' ? b.steps.length : 0), 0);
+}
+
+/** Tick or untick one step of a course. Mock: the in-memory record, like
+ *  completeAssignment. A first tick moves a course from "not started" to "in
+ *  progress". */
+export function toggleAssignmentStep(assignmentId: string, stepId: string, done: boolean): TrainingAssignment | null {
+  const a = mockTrainingAssignments.find((x) => x.id === assignmentId);
+  if (!a || a.status === 'complete') return a ?? null;
+  const set = new Set(a.completedStepIds);
+  if (done) set.add(stepId);
+  else set.delete(stepId);
+  a.completedStepIds = [...set];
+  if (a.completedStepIds.length > 0 && a.status === 'due') a.status = 'in_progress';
+  return a;
 }

@@ -113,7 +113,7 @@ export function CategoryActions({ category }: CategoryActionsProps): React.React
     <>
       <RowActions
         items={items}
-        triggerLabel={`${tCommon('rowActionsLabel')} — ${category.nameEn}`}
+        triggerLabel={`${tCommon('rowActionsLabel')}: ${category.nameEn}`}
         className={pending ? 'pointer-events-none opacity-50' : undefined}
       />
       {error ? (
@@ -293,47 +293,36 @@ function CategoryForm({
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-[var(--color-line)] p-5 pb-3">
-        <div className="flex items-start gap-2.5">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-panel)] text-[var(--color-ink-2)] text-base border border-[var(--color-line-2)]">
-            <CurrentIconComp />
-          </span>
-          <div>
-            <h2 className="font-[family-name:var(--font-display)] text-lg font-bold leading-tight tracking-tight text-[var(--color-ink)]">
-              {mode === 'create'
-                ? isEs
-                  ? 'Crear categoría'
-                  : 'Create category'
-                : isEs
-                  ? 'Editar categoría'
-                  : 'Edit category'}
-            </h2>
-            <p className="mt-1 text-xs text-[var(--color-ink-3)]">
-              {isEs
-                ? 'Agrega una categoría para organizar tus procedimientos.'
-                : 'Add a category to organize your procedures in the library.'}
-            </p>
-          </div>
-        </div>
+      <ModalHeader
+        title={
+          mode === 'create'
+            ? isEs
+              ? 'Crear categoría'
+              : 'Create category'
+            : isEs
+              ? 'Editar categoría'
+              : 'Edit category'
+        }
+        description={
+          mode === 'create'
+            ? isEs
+              ? 'Agrega una categoría para organizar tus procedimientos.'
+              : 'Add a category to organize your procedures in the library.'
+            : isEs
+              ? 'Cambia su nombre o su icono.'
+              : 'Change its name or its icon.'
+        }
+        onClose={onCancel}
+        closeLabel={isEs ? 'Cerrar' : 'Close'}
+      />
 
-        <button
-          type="button"
-          onClick={onCancel}
-          aria-label="Close"
-          className="flex size-7 items-center justify-center rounded-md text-[var(--color-ink-3)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)] transition-colors"
-        >
-          <LuX aria-hidden="true" className="text-lg" />
-        </button>
-      </div>
-
-      {/* Form Body */}
-      <div className="p-5 space-y-3.5">
-        {/* Name (English) */}
-        <div className="space-y-1">
-          <Label htmlFor="cat-name-en" className="text-xs font-semibold text-[var(--color-ink)]">
-            {isEs ? 'Nombre (Inglés)' : 'Name (English)'}
-          </Label>
+      {/* The header draws no icon: the chosen one is previewed beside Choose
+          icon below, and a second copy in the header was the same mark twice. */}
+      <ModalBody className="space-y-4">
+        {/* Either name is enough; neither field is marked required on its own,
+            and the line under them says so once. */}
+        <div className="space-y-1.5">
+          <Label htmlFor="cat-name-en">{isEs ? 'Nombre (Inglés)' : 'Name (English)'}</Label>
           <Input
             id="cat-name-en"
             value={nameEn}
@@ -343,19 +332,15 @@ function CategoryForm({
           />
         </div>
 
-        {/* Name (Spanish) */}
-        <div className="space-y-1">
-          <Label htmlFor="cat-name-es" className="text-xs font-semibold text-[var(--color-ink)]">
-            {isEs ? 'Nombre (Español)' : 'Name (Spanish)'}
-          </Label>
+        <div className="space-y-1.5">
+          <Label htmlFor="cat-name-es">{isEs ? 'Nombre (Español)' : 'Name (Spanish)'}</Label>
           <Input
             id="cat-name-es"
             value={nameEs}
             onChange={(e) => setNameEs(e.target.value)}
             placeholder="e.g. Seguridad Alimentaria"
-            className="h-9 text-xs"
           />
-          <p className="text-[11px] text-[var(--color-ink-3)]">
+          <p className="text-sm text-[var(--color-ink-3)]">
             {isEs
               ? 'Al menos uno de los dos nombres es obligatorio.'
               : 'At least one of the two names is required.'}
@@ -417,7 +402,7 @@ function CategoryForm({
             {error}
           </p>
         )}
-      </div>
+      </ModalBody>
 
       <ModalFooter>
         <Button type="button" variant="neutral" onClick={onCancel} disabled={pending}>

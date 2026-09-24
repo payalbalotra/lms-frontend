@@ -42,7 +42,8 @@ export function LoginForm({ locale }: LoginFormProps): React.ReactElement {
         if (res.employee.role === 'admin') {
           router.replace(`/${locale}/admin/library`);
         } else {
-          router.replace(`/${locale}/employee/home`);
+          // Their own language, whatever the login page was showing.
+          router.replace(`/${res.employee.languagePref || locale}/employee/home`);
         }
         router.refresh();
       } catch (err) {

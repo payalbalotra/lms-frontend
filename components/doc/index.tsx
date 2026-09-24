@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { ALLERGEN_LABELS, type AllergenKey } from '@/lib/allergens';
-import { LuArrowLeft, LuArrowLeftRight, LuBadgeCheck, LuCheck, LuChevronDown, LuChevronRight, LuCircleAlert, LuDownload, LuEllipsisVertical, LuFocus, LuImage, LuLightbulb, LuLock, LuMessageSquare, LuPlay, LuTestTube, LuTriangleAlert, LuUtensils, LuWrench, LuX } from 'react-icons/lu';
+import { LuArrowLeft, LuArrowLeftRight, LuBadgeCheck, LuCheck, LuChevronDown, LuChevronRight, LuCircleAlert, LuDownload, LuFocus, LuImage, LuLightbulb, LuLock, LuPlay, LuTestTube, LuTriangleAlert, LuUtensils, LuWrench, LuX } from 'react-icons/lu';
 import { Icon, iconByName } from '@/components/ui/icon';
 import type { IconType } from 'react-icons';
 
@@ -31,6 +31,7 @@ export function DocBar({
   title,
   category,
   onBack,
+  action,
 }: {
   backHref: string;
   backLabel: string;
@@ -41,6 +42,9 @@ export function DocBar({
    *  (e.g. opened from a category detail page) return to the previous
    *  page rather than a hard-coded landing. */
   onBack?: () => void;
+  /** The one thing to do with the page, on the bar's right: printing it for
+   *  the station. It replaced a "More options" button that opened nothing. */
+  action?: { label: string; icon: IconType; onClick: () => void };
 }) {
   return (
     <div className="doc-bar" id="bar">
@@ -66,9 +70,12 @@ export function DocBar({
         <b>{title}</b>
         <span>{category}</span>
       </div>
-      <button className="btn btn-ghost btn-icon btn-lg" aria-label="More options">
-        <LuEllipsisVertical aria-hidden="true" className="i" />
-      </button>
+      {action ? (
+        <button type="button" className="btn btn-ghost btn-lg" onClick={action.onClick}>
+          <action.icon aria-hidden="true" className="i" />
+          {action.label}
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -100,17 +107,21 @@ export function DocHead({
   title,
   withCover = true,
 }: {
-  /** Icon name, not the component: this crosses the server/client boundary. */
-  icon: string;
+  /** Icon name, not the component: this crosses the server/client boundary.
+   *  Absent, no tile: without a photo it was a large empty square above the
+   *  title that said nothing the category line does not. */
+  icon?: string;
   category: string;
   title: React.ReactNode;
   withCover?: boolean;
 }) {
   return (
-    <header className="doc-head">
-      <div className="doc-icon">
-        <Icon icon={iconByName(icon)} className="i" />
-      </div>
+    <header className={icon ? 'doc-head' : 'doc-head pt-6'}>
+      {icon ? (
+        <div className="doc-icon">
+          <Icon icon={iconByName(icon)} className="i" />
+        </div>
+      ) : null}
       <div className="doc-crumb">{category}</div>
       <h1 className="doc-title display">{title}</h1>
       {!withCover && <div className="qr print-only"><span className="code">QR</span></div>}
@@ -684,7 +695,7 @@ export function IngredientsTable({
             </th>
             {columns.map((j) => (
               <td key={factors[j]} className={cn('num', j === selectedIndex && !isBase && 'adj')}>
-                {ing.amounts[j] ?? '—'}
+                {ing.amounts[j] ?? ''}
               </td>
             ))}
           </tr>
@@ -738,20 +749,6 @@ export function Chapters({ rows }: { rows: ChapterRow[] }) {
  *  background (rather than ghost) gives it just enough weight to be a
  *  recognised target on employee phones without competing with the
  *  surrounding doc chrome. */
-export function DocActs() {
-  return (
-    <div className="doc-acts">
-      <button
-        type="button"
-        className="btn btn-neutral btn-lg"
-        aria-label="Report a problem with this procedure"
-      >
-        <LuMessageSquare aria-hidden="true" className="i" /> Report a problem
-      </button>
-    </div>
-  );
-}
-
 export type DocControlEntry = { label: string; value: React.ReactNode };
 
 /** Document control <details>. Ships open by default — survives without JS. */
