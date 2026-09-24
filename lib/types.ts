@@ -542,63 +542,8 @@ export interface TrainingAssignmentRow {
 }
 
 // ============================================================================
-// AI extraction — mirror of services/extracted-procedure-schema.ts (frontend
-// camelCase). Used by the wizard's DocumentImportPanel preview card so the
-// manager can accept or reject each block before applying.
+// AI extraction types lived here while the document-import wizard shipped.
+// The "Import a document" entry points in the UI are gone — the underlying
+// Gemini extraction pipeline is not part of this build — and the types are
+// reintroduced with that slice.
 // ============================================================================
-
-export type ExtractedBlock =
-  | { kind: 'text'; body: Localised }
-  | { kind: 'heading'; level: 1 | 2 | 3; text: Localised }
-  | {
-      kind: 'method';
-      steps: { body: Localised }[];
-    }
-  | {
-      kind: 'warning';
-      severity: ProcedureNoteKind;
-      body: Localised;
-    }
-  | {
-      kind: 'table';
-      headers: Localised[];
-      rows: Localised[][];
-    }
-  | {
-      kind: 'recipe';
-      audience?: string;
-      /** `scales` marks the yield numbers the batch control multiplies: a batch
-       *  weight doubles, a portion size and a cooking time do not. Without it on
-       *  the way in, the flag cannot survive a round trip and the control moves
-       *  the ingredient column while the yield sits still. */
-      yieldItems?: { label: string; value: string; unit?: string; scales?: boolean }[];
-      ingredients?: {
-        name: string;
-        unit?: string;
-        amounts: string[];
-      }[];
-      steps?: { body: Localised }[];
-    };
-
-export interface ExtractedRecipe {
-  audience?: string;
-  yieldItems?: { label: string; value: string; unit?: string }[];
-  ingredients?: {
-    name: string;
-    unit?: string;
-    amounts: string[];
-  }[];
-  steps?: { body: Localised }[];
-  allergenSummary?: string;
-}
-
-export interface ExtractedProcedure {
-  title?: Localised;
-  purpose?: Localised;
-  blocks?: ExtractedBlock[];
-  recipe?: ExtractedRecipe;
-  extractedLanguage: 'en' | 'es';
-  notes?: string;
-}
-
-export type ImportProcedureType = 'recipe' | 'station' | 'cleaning' | 'general';

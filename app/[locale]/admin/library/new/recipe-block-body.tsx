@@ -29,6 +29,7 @@ import { Label } from '@/components/ui/label';
 import { CustomSelect } from '@/components/ui/custom-select';
 import { Icon } from '@/components/ui/icon';
 import { RowActions } from '@/components/ui/row-actions';
+import { BilingualInput } from '@/components/ui/bilingual-input';
 import { cn } from '@/lib/utils';
 import { ALLERGEN_KEYS, type AllergenKey } from '@/lib/allergens';
 import { nextStepId } from '@/lib/procedure-blocks';
@@ -45,7 +46,7 @@ type RecipeBlock = Extract<ProcedureBlock, { kind: 'recipe' }>;
 interface RecipeBlockBodyProps {
   block: RecipeBlock;
   onPatch: (next: RecipeBlock) => void;
-  lang: 'en' | 'es';
+  lang?: 'en' | 'es';
 }
 
 // ---------------------------------------------------------------------------
@@ -229,12 +230,11 @@ function RecipeIngredients({
 function RecipeStepList({
   steps,
   onChange,
-  lang,
   labels,
 }: {
   steps: ProcedureMethodStep[];
   onChange: (next: ProcedureMethodStep[]) => void;
-  lang: 'en' | 'es';
+  lang?: 'en' | 'es';
   labels: { title: string; add: string };
 }): React.ReactElement {
   const update = (idx: number, next: ProcedureMethodStep): void => {
@@ -260,28 +260,26 @@ function RecipeStepList({
           + {labels.add}
         </Button>
       </div>
-      <ol className="space-y-2">
+      <ol className="space-y-3">
         {steps.map((step, i) => (
-          <li key={step.id ?? i} className="flex gap-3">
+          <li key={step.id ?? i} className="flex gap-3 items-start">
             <span className="mt-2 inline-flex size-6 shrink-0 items-center justify-center rounded-full border-2 border-[var(--color-line-2)] bg-[var(--color-surface)] font-mono text-sm font-semibold text-[var(--color-ink)]">
               {String(i + 1).padStart(2, '0')}
             </span>
-            <div className="flex-1 space-y-2">
-              <textarea
-                value={asLoc(step.body, lang)}
-                onChange={(e) =>
-                  update(i, { ...step, body: setLoc(step.body, lang, e.target.value) })
+            <div className="flex-1 space-y-1">
+              <BilingualInput
+                value={step.body}
+                onChange={(val) =>
+                  update(i, { ...step, body: val })
                 }
-                placeholder={
-                  lang === 'en'
-                    ? 'Describe this step in English…'
-                    : 'Describe este paso en español…'
-                }
-                rows={2}
-                className={bodyTextareaCls}
+                multiline
+                placeholder={{
+                  en: 'Describe this step in English…',
+                  es: 'Describe este paso en español…',
+                }}
               />
               {step.critical ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-warn-tint)] px-2 py-0.5 text-sm font-semibold uppercase text-[var(--color-warn-ink)]">
+                <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-warn-tint)] px-2 py-0.5 text-xs font-semibold uppercase text-[var(--color-warn-ink)]">
                   <Icon icon="ri-focus-3-line" />
                   Critical
                 </span>

@@ -10,8 +10,6 @@ import type {
   CreateStationInput,
   Employee,
   EmployeeStatus,
-  ExtractedProcedure,
-  ImportProcedureType,
   InviteResult,
   Location,
   Procedure,
@@ -1454,63 +1452,6 @@ export async function requestVideoUpload(
     key: `videos/${Date.now()}-${input.filename}`,
     publicUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
     expiresIn: 3600,
-  };
-}
-
-export async function requestDocumentUpload(
-  input: { filename: string; contentType: string; size: number },
-): Promise<PresignedUpload> {
-  return {
-    uploadUrl: 'mock-upload',
-    key: `docs/${Date.now()}-${input.filename}`,
-    publicUrl: `https://example.com/demo-${input.filename}`,
-    expiresIn: 3600,
-  };
-}
-
-export async function importDocument(input: {
-  publicUrl: string;
-  filename: string;
-  contentType: string;
-  procedureType: ImportProcedureType;
-}): Promise<{ extraction: ExtractedProcedure }> {
-  // Simulate Gemini AI Extraction delay
-  await new Promise((resolve) => setTimeout(resolve, 800));
-
-  const sampleTitle = input.filename.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
-  return {
-    extraction: {
-      extractedLanguage: 'en',
-      title: {
-        en: sampleTitle.charAt(0).toUpperCase() + sampleTitle.slice(1),
-        es: sampleTitle.charAt(0).toUpperCase() + sampleTitle.slice(1) + ' (ES)',
-      },
-      purpose: {
-        en: 'Imported standard operating procedure draft generated from document analysis.',
-        es: 'Borrador de procedimiento operativo estándar generado a partir del análisis del documento.',
-      },
-      blocks: [
-        {
-          kind: 'heading',
-          level: 2,
-          text: { en: 'Overview & Purpose', es: 'Descripción y Propósito' },
-        },
-        {
-          kind: 'text',
-          body: {
-            en: `Extracted key instructions from source file "${input.filename}". Review steps and critical bounds below.`,
-            es: `Instrucciones clave extraídas del archivo de origen "${input.filename}".`,
-          },
-        },
-        {
-          kind: 'method',
-          steps: [
-            { body: { en: 'Prepare equipment and verify safety area is clear.', es: 'Prepare el equipo y verifique el área.' } },
-            { body: { en: 'Check temperature / concentration requirements before operating.', es: 'Verifique los requisitos de temperatura.' } },
-          ],
-        },
-      ],
-    },
   };
 }
 

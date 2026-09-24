@@ -9,7 +9,6 @@ import {
   LuFileText,
   LuLayoutGrid,
   LuPlus,
-  LuUpload,
   LuUtensils,
 } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
@@ -19,6 +18,7 @@ import { CustomSelect } from "@/components/ui/custom-select";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { MultiSelectChips } from "@/components/ui/multi-select-chips";
 import { Drawer } from "@/components/ui/drawer";
+import { BilingualInput, type BilingualValue } from "@/components/ui/bilingual-input";
 import {
   Modal,
   ModalBody,
@@ -41,7 +41,6 @@ import {
   createProcedure,
   createQuiz,
   getQuizById,
-  importDocument,
   listCategories,
   listEmployees,
   listRoles,
@@ -53,7 +52,6 @@ import {
   buildBody,
   emptyIngredient,
   emptyYieldItems,
-  fromExtraction,
   toEditorContent,
 } from "@/lib/procedure-draft";
 import type {
@@ -147,10 +145,14 @@ export function ProcedureEditor({
     [initial],
   );
   const [lang, setLang] = React.useState<"en" | "es">(isEs ? "es" : "en");
-  const [titleEn, setTitleEn] = React.useState(initial?.titleEn ?? "");
-  const [titleEs, setTitleEs] = React.useState(initial?.titleEs ?? "");
-  const [purposeEn, setPurposeEn] = React.useState(initial?.purposeEn ?? "");
-  const [purposeEs, setPurposeEs] = React.useState(initial?.purposeEs ?? "");
+  const [title, setTitle] = React.useState<BilingualValue>({
+    en: initial?.titleEn ?? "",
+    es: initial?.titleEs ?? "",
+  });
+  const [purpose, setPurpose] = React.useState<BilingualValue>({
+    en: initial?.purposeEn ?? "",
+    es: initial?.purposeEs ?? "",
+  });
   const [categoryId, setCategoryId] = React.useState<string>(
     initial?.category?.id ?? "",
   );
@@ -186,10 +188,6 @@ export function ProcedureEditor({
 
   const [publishOpen, setPublishOpen] = React.useState(false);
   const [quizOpen, setQuizOpen] = React.useState(false);
-  // The purpose is optional: a link until someone wants it, or has one.
-  const [showPurpose, setShowPurpose] = React.useState(
-    Boolean(initial?.purposeEn || initial?.purposeEs),
-  );
   const [previewOpen, setPreviewOpen] = React.useState(false);
   const [dirty, setDirty] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -244,18 +242,18 @@ export function ProcedureEditor({
   const nameOf = (c: { nameEn: string; nameEs?: string }): string =>
     isEs ? c.nameEs || c.nameEn : c.nameEn;
 
-  const titleValue = lang === "en" ? titleEn : titleEs;
-  const purposeValue = lang === "en" ? purposeEn : purposeEs;
+  const titleValue = lang === "en" ? title.en : title.es;
+  const purposeValue = lang === "en" ? purpose.en : purpose.es;
 
   const body = React.useMemo(
     () =>
       buildBody({
         blocks,
         recipe: isRecipe
-          ? { ingredients, yieldItems, title: { en: titleEn, es: titleEs } }
+          ? { ingredients, yieldItems, title: { en: title.en, es: title.es } }
           : null,
       }),
-    [blocks, isRecipe, ingredients, yieldItems, titleEn, titleEs],
+    [blocks, isRecipe, ingredients, yieldItems, title],
   );
 
   const quizCount = quiz?.questions.length ?? 0;
@@ -276,42 +274,16 @@ export function ProcedureEditor({
   })();
 
   /* --------------------------------------------------------------- import -- */
-
-  const fileRef = React.useRef<HTMLInputElement>(null);
-  const [importing, setImporting] = React.useState<string | null>(null);
-  const [importedFrom, setImportedFrom] = React.useState<string | null>(null);
-
-  async function onImport(file: File): Promise<void> {
-    setImporting(file.name);
-    setError(null);
-    try {
-      const { extraction } = await importDocument({
-        publicUrl: "",
-        filename: file.name,
-        contentType: file.type,
-        procedureType: isRecipe ? "recipe" : "general",
-      });
-      const draft = fromExtraction(extraction);
-      setTitleEn(draft.title.en);
-      setTitleEs(draft.title.es);
-      setPurposeEn(draft.purpose.en);
-      setPurposeEs(draft.purpose.es);
-      setBlocks(draft.blocks);
-      if (draft.ingredients?.length) setIngredients(draft.ingredients);
-      setImportedFrom(file.name);
-      setDirty(true);
-    } catch {
-      setError(t("importFailed"));
-    } finally {
-      setImporting(null);
-    }
-  }
+  /* The "Import a document" button was removed: the underlying extraction
+     pipeline is not part of this build, so exposing the action would let a
+     manager upload a file to nowhere. Adding it back lands as its own slice
+     (extraction service + signed upload + wizard step) when those arrive. */
 
   /* ----------------------------------------------------------------- save -- */
 
   function save(status: "draft" | "published"): void {
     setError(null);
-    if (!titleEn.trim() && !titleEs.trim()) {
+    if (!title.en.trim() && !title.es.trim()) {
       setError(t("titleRequired"));
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
@@ -337,12 +309,12 @@ export function ProcedureEditor({
           }
         }
         const input: CreateProcedureInput = {
-          titleEn: titleEn.trim() || titleEs.trim(),
+          titleEn: title.en.trim() || title.es.trim(),
           // Left empty when nobody wrote it, so the library can say "No Spanish
           // yet" instead of passing the English off as Spanish.
-          titleEs: titleEs.trim(),
-          purposeEn: purposeEn.trim() || purposeEs.trim(),
-          purposeEs: purposeEs.trim(),
+          titleEs: title.es.trim(),
+          purposeEn: purpose.en.trim() || purpose.es.trim(),
+          purposeEs: purpose.es.trim(),
           categoryId: categoryId || null,
           subcategoryId: subcategoryId || null,
           stationScope: subcategory?.isStationSpecific
@@ -377,42 +349,14 @@ export function ProcedureEditor({
         eyebrowHref={`/${locale}/admin/library`}
         title={isEdit ? t("titleEdit") : t("titleNew")}
         actions={
-          <>
-            {isEdit ? null : (
-              <>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept=".pdf,.doc,.docx,.txt,image/*"
-                  className="sr-only"
-                  tabIndex={-1}
-                  aria-hidden="true"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) void onImport(f);
-                    e.target.value = "";
-                  }}
-                />
-                <Button
-                  type="button"
-                  variant="surface"
-                  icon={LuUpload}
-                  disabled={Boolean(importing)}
-                  onClick={() => fileRef.current?.click()}
-                >
-                  {t("import")}
-                </Button>
-              </>
-            )}
-            <Button
-              type="button"
-              variant="surface"
-              icon={LuEye}
-              onClick={() => setPreviewOpen(true)}
-            >
-              {t("preview")}
-            </Button>
-          </>
+          <Button
+            type="button"
+            variant="surface"
+            icon={LuEye}
+            onClick={() => setPreviewOpen(true)}
+          >
+            {t("preview")}
+          </Button>
         }
       />
 
@@ -425,88 +369,38 @@ export function ProcedureEditor({
             {error}
           </p>
         ) : null}
-        {importing ? (
-          <p
-            role="status"
-            className="rounded-[var(--radius-lg)] bg-[var(--color-panel)] px-4 py-3 text-[var(--color-ink-2)]"
-          >
-            {t("importing", { file: importing })}
-          </p>
-        ) : importedFrom ? (
-          <p
-            role="status"
-            className="rounded-[var(--radius-lg)] bg-[var(--color-warn-tint)] px-4 py-3 text-[var(--color-warn-ink)]"
-          >
-            {t("importedFrom", { file: importedFrom })}
-          </p>
-        ) : null}
 
         {/* ── What it is and where it lives ─────────────────────────── */}
         <FormSection
           id="proc-details"
           icon={LuFileText}
           title={t("detailsTitle")}
-          headerAction={
-            <SegmentedControl
-              label={t("language")}
-              value={lang}
-              onChange={(v) => setLang(v as "en" | "es")}
-              segments={[
-                { value: "en", label: "EN" },
-                { value: "es", label: "ES" },
-              ]}
-            />
-          }
         >
           <div className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="proc-title">{t("fieldTitle")}</Label>
-              <Input
-                id="proc-title"
-                lang={lang}
-                value={titleValue}
-                maxLength={100}
-                placeholder={t("titlePlaceholder")}
-                onChange={(e) =>
-                  edit(lang === "en" ? setTitleEn : setTitleEs)(e.target.value)
-                }
-              />
-            </div>
-            {showPurpose || purposeEn || purposeEs ? (
-              <div className="space-y-2">
-                <Label htmlFor="proc-purpose">{t("fieldPurpose")}</Label>
-                <p
-                  id="proc-purpose-hint"
-                  className="text-sm text-[var(--color-ink-2)]"
-                >
-                  {t("purposeHint")}
-                </p>
-                <Input
-                  id="proc-purpose"
-                  lang={lang}
-                  aria-describedby="proc-purpose-hint"
-                  value={purposeValue}
-                  maxLength={300}
-                  placeholder={t("purposePlaceholder")}
-                  onChange={(e) =>
-                    edit(lang === "en" ? setPurposeEn : setPurposeEs)(
-                      e.target.value,
-                    )
-                  }
-                />
-              </div>
-            ) : (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                icon={LuPlus}
-                onClick={() => setShowPurpose(true)}
-                className="-ml-2"
-              >
-                {t("addPurpose")}
-              </Button>
-            )}
+            <BilingualInput
+              label={t("fieldTitle")}
+              required
+              maxLength={100}
+              value={title}
+              onChange={(next) => edit(setTitle)(next)}
+              placeholder={{
+                en: "Enter the procedure title...",
+                es: "Ingresa el título del procedimiento...",
+              }}
+            />
+
+            <BilingualInput
+              label={t("fieldPurpose")}
+              required
+              multiline
+              maxLength={500}
+              value={purpose}
+              onChange={(next) => edit(setPurpose)(next)}
+              placeholder={{
+                en: "Enter the purpose of this procedure...",
+                es: "Ingresa el propósito de este procedimiento...",
+              }}
+            />
             <div className="grid gap-5 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label id="proc-cat-l">{t("fieldCategory")}</Label>
@@ -863,12 +757,12 @@ export function ProcedureEditor({
             ]}
           />
           <h2 className="font-[family-name:var(--font-display)] text-2xl font-bold leading-display tracking-tight text-[var(--color-ink)]">
-            {(lang === "en" ? titleEn || titleEs : titleEs || titleEn) ||
+            {(lang === "en" ? title.en || title.es : title.es || title.en) ||
               t("previewUntitled")}
           </h2>
-          {purposeValue || purposeEn ? (
+          {purpose.en || purpose.es ? (
             <p className="text-[var(--color-ink-2)]">
-              {lang === "en" ? purposeEn || purposeEs : purposeEs || purposeEn}
+              {lang === "en" ? purpose.en || purpose.es : purpose.es || purpose.en}
             </p>
           ) : null}
           {blocks.length || isRecipe ? (

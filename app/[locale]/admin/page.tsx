@@ -188,8 +188,7 @@ export default async function AdminHomePage({ params }: PageProps): Promise<Reac
 
   return (
     <div className="mx-auto max-w-page space-y-8 pb-12">
-      {/* One way in to making content. "Import document" was a second button to
-          the same page, where the choice between typing and importing is made. */}
+      {/* One way in to making content. */}
       <HomeHeader
         place={dateLabel}
         headline={total === 0 ? t('headlineClear') : t('headline', { count: total })}

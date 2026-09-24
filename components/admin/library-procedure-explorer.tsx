@@ -590,8 +590,8 @@ export function LibraryProcedureExplorer({
           title={isEs ? 'Aún no hay procedimientos' : 'No procedures yet'}
           body={
             isEs
-              ? 'Escribe el primero, o importa un documento que ya tengas.'
-              : 'Write your first one, or import a document you already have.'
+              ? 'Escribe el primero desde la plantilla.'
+              : 'Write your first one from the template.'
           }
           action={
             <Link href={`/${locale}/admin/library/new`}>

@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RowActions, type RowActionItem } from '@/components/ui/row-actions';
 import { cn } from '@/lib/utils';
+import { BilingualInput, type BilingualValue } from '@/components/ui/bilingual-input';
 import { useCreateCategory, useUpdateCategory, useArchiveCategory } from '@/services/categories/hooks';
 import type { Category } from '@/lib/types';
 import {
@@ -235,8 +236,10 @@ function CategoryForm({
   const locale = useLocale();
   const isEs = locale === 'es';
 
-  const [nameEn, setNameEn] = React.useState(category?.nameEn ?? '');
-  const [nameEs, setNameEs] = React.useState(category?.nameEs ?? '');
+  const [name, setName] = React.useState<BilingualValue>({
+    en: category?.nameEn ?? '',
+    es: category?.nameEs ?? '',
+  });
   const [icon, setIcon] = React.useState(category?.icon ?? 'LuFolder');
   const [showIconPicker, setShowIconPicker] = React.useState(false);
 
@@ -252,8 +255,8 @@ function CategoryForm({
     // Only one of EN / ES is required. Whichever is filled wins; the other
     // falls back to the filled one so the persisted record always has both
     // populated and the reader side (EN-first, ES-first) still works.
-    const trimmedEn = nameEn.trim();
-    const trimmedEs = nameEs.trim();
+    const trimmedEn = name.en.trim();
+    const trimmedEs = name.es.trim();
     const finalEn = trimmedEn || trimmedEs;
     const finalEs = trimmedEs || trimmedEn;
 
@@ -287,7 +290,7 @@ function CategoryForm({
   // Either name is enough — Spanish is optional, English is optional, but at
   // least one has to be filled before the user can save.
   const canSubmit =
-    !pending && (nameEn.trim().length > 0 || nameEs.trim().length > 0);
+    !pending && (name.en.trim().length > 0 || name.es.trim().length > 0);
   const currentIconObj = AVAILABLE_ICONS.find((i) => i.id === icon) ?? AVAILABLE_ICONS[0];
   const CurrentIconComp = currentIconObj.icon;
 
@@ -319,28 +322,19 @@ function CategoryForm({
       {/* The header draws no icon: the chosen one is previewed beside Choose
           icon below, and a second copy in the header was the same mark twice. */}
       <ModalBody className="space-y-4">
-        {/* Either name is enough; neither field is marked required on its own,
-            and the line under them says so once. */}
+        {/* Bilingual adaptive input for category name */}
         <div className="space-y-1.5">
-          <Label htmlFor="cat-name-en">{isEs ? 'Nombre (Inglés)' : 'Name (English)'}</Label>
-          <Input
-            id="cat-name-en"
-            value={nameEn}
-            onChange={(e) => setNameEn(e.target.value)}
-            placeholder="e.g. Food Safety"
-            autoFocus
+          <BilingualInput
+            label={isEs ? 'Nombre de la categoría' : 'Category name'}
+            value={name}
+            onChange={setName}
+            maxLength={100}
+            placeholder={{
+              en: 'e.g. Food Safety',
+              es: 'e.g. Seguridad Alimentaria',
+            }}
           />
-        </div>
-
-        <div className="space-y-1.5">
-          <Label htmlFor="cat-name-es">{isEs ? 'Nombre (Español)' : 'Name (Spanish)'}</Label>
-          <Input
-            id="cat-name-es"
-            value={nameEs}
-            onChange={(e) => setNameEs(e.target.value)}
-            placeholder="e.g. Seguridad Alimentaria"
-          />
-          <p className="text-sm text-[var(--color-ink-3)]">
+          <p className="text-xs text-[var(--color-ink-3)]">
             {isEs
               ? 'Al menos uno de los dos nombres es obligatorio.'
               : 'At least one of the two names is required.'}

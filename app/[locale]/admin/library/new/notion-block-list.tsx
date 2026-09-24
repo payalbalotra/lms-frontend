@@ -56,6 +56,7 @@ import type {
   ProcedureNoteKind,
 } from '@/lib/types';
 import { IconTile } from '@/components/ui/icon-tile';
+import { BilingualInput } from '@/components/ui/bilingual-input';
 import { RecipeBlockBody } from './recipe-block-body';
 
 // ---------------------------------------------------------------------------
@@ -171,8 +172,6 @@ function BlockRow({
     id: block.id,
   });
   const [isHover, setIsHover] = React.useState(false);
-  // Lang state lives here so the unified toolbar can own the EN|ES toggle
-  const [lang, setLang] = React.useState<'en' | 'es'>('en');
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -185,41 +184,53 @@ function BlockRow({
     <div
       ref={setNodeRef}
       style={style}
+      tabIndex={-1}
       onMouseEnter={() => setIsHover(true)}
       onMouseLeave={() => setIsHover(false)}
       className={cn(
-        'group rounded-lg border border-transparent py-2 pl-3 pr-3 transition-all duration-150',
-        'hover:border-[var(--color-line-2)] hover:bg-[var(--color-wash)]/60',
-        isHover && 'bg-[var(--color-wash)]/60 border-[var(--color-line-2)]',
-        isDragging && 'opacity-60 z-dropdown bg-[var(--color-wash)] border-[var(--color-line-2)]',
+        'group rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-4 transition-all duration-200 outline-none',
+        'hover:border-[var(--color-line-3)] hover:bg-[var(--color-wash)]/50',
+        'focus-within:border-[var(--color-line-3)] focus-within:bg-[var(--color-wash)] focus-within:shadow-sm',
+        isHover && 'border-[var(--color-line-3)]',
+        isDragging && 'opacity-60 z-dropdown bg-[var(--color-wash)] border-[var(--color-line-3)] shadow-e2',
       )}
     >
-      {/* Unified toolbar: drag, EN|ES, options menu. Hidden at rest under a
-          mouse, shown on hover and while the block is being edited. A phone has
-          no hover, so there it always shows: hidden, it left an empty band
-          above every block and the block menu could never be opened. */}
-      <div
-        className={cn(
-          'mb-1 flex items-center gap-1 transition-opacity duration-[var(--dur)]',
-          showToolbar
-            ? 'opacity-100'
-            : 'pointer-events-none opacity-0 group-focus-within:pointer-events-auto group-focus-within:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100',
-        )}
-      >
+      {/* Header bar: drag handle, block type badge, and options menu */}
+      <div className="mb-3 flex items-center gap-2">
         {/* Drag handle */}
         <button
           type="button"
           aria-label="Drag to reorder"
           title="Drag to reorder"
-          className="flex size-8 cursor-grab items-center justify-center rounded-md text-[var(--color-ink-3)] hover:bg-[var(--color-surface)] hover:text-[var(--color-ink-2)] active:cursor-grabbing transition-colors"
+          className="flex size-7 cursor-grab items-center justify-center rounded-md text-[var(--color-ink-3)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink-2)] active:cursor-grabbing transition-colors"
           {...attributes}
           {...listeners}
         >
           <Icon icon="ri-drag-move-2-line" className="text-base" />
         </button>
 
-        {/* Language toggle */}
-        <LangToggle lang={lang} onChange={setLang} />
+        {/* Block kind indicator badge */}
+        <span className="inline-flex items-center rounded bg-[var(--color-wash)] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--color-ink-3)] group-focus-within:bg-[var(--color-surface)] group-focus-within:text-[var(--color-ink)] group-focus-within:shadow-e1 transition-all">
+          {block.kind === 'text'
+            ? 'Text'
+            : block.kind === 'heading'
+            ? `Heading H${block.level}`
+            : block.kind === 'method'
+            ? 'Numbered steps'
+            : block.kind === 'checklist'
+            ? 'Checklist'
+            : block.kind === 'warning'
+            ? 'Callout'
+            : block.kind === 'recipe'
+            ? 'Recipe'
+            : block.kind === 'image'
+            ? 'Image'
+            : block.kind === 'video'
+            ? 'Video'
+            : block.kind === 'attachment'
+            ? 'Attachment'
+            : 'Table'}
+        </span>
 
         {/* Spacer pushes menu to the right */}
         <span className="flex-1" />
@@ -236,8 +247,8 @@ function BlockRow({
         />
       </div>
 
-      {/* Block body — lang is controlled by the toolbar above */}
-      <BlockBody block={block} onPatch={onPatch} lang={lang} onInsertAfter={onInsertAfter} />
+      {/* Block body */}
+      <BlockBody block={block} onPatch={onPatch} onInsertAfter={onInsertAfter} />
     </div>
   );
 }
@@ -316,41 +327,38 @@ function InsertAfterButton({
 type BodyProps<T extends ProcedureBlock> = {
   block: T;
   onPatch: (next: T) => void;
-  lang: 'en' | 'es';
 };
 
 function BlockBody({
   block,
   onPatch,
-  lang,
   onInsertAfter,
 }: {
   block: ProcedureBlock;
   onPatch: (next: ProcedureBlock) => void;
-  lang: 'en' | 'es';
   onInsertAfter?: (kind: ProcedureBlockKind) => void;
 }): React.ReactElement {
   switch (block.kind) {
     case 'text':
-      return <TextBody block={block} onPatch={onPatch} lang={lang} onInsertAfter={onInsertAfter} />;
+      return <TextBody block={block} onPatch={onPatch} onInsertAfter={onInsertAfter} />;
     case 'heading':
-      return <HeadingBody block={block} onPatch={onPatch} lang={lang} />;
+      return <HeadingBody block={block} onPatch={onPatch} />;
     case 'method':
-      return <MethodBody block={block} onPatch={onPatch} lang={lang} />;
+      return <MethodBody block={block} onPatch={onPatch} />;
     case 'recipe':
-      return <RecipeBlockBody block={block} onPatch={onPatch} lang={lang} />;
+      return <RecipeBlockBody block={block} onPatch={onPatch} />;
     case 'image':
-      return <ImageBody block={block} onPatch={onPatch} lang={lang} />;
+      return <ImageBody block={block} onPatch={onPatch} />;
     case 'video':
-      return <VideoBody block={block} onPatch={onPatch} lang={lang} />;
+      return <VideoBody block={block} onPatch={onPatch} />;
     case 'warning':
-      return <WarningBody block={block} onPatch={onPatch} lang={lang} />;
+      return <WarningBody block={block} onPatch={onPatch} />;
     case 'attachment':
-      return <AttachmentBody block={block} onPatch={onPatch} lang={lang} />;
+      return <AttachmentBody block={block} onPatch={onPatch} />;
     case 'table':
-      return <TableBody block={block} onPatch={onPatch} lang={lang} />;
+      return <TableBody block={block} onPatch={onPatch} />;
     case 'checklist':
-      return <ChecklistBody block={block} onPatch={onPatch} lang={lang} />;
+      return <ChecklistBody block={block} onPatch={onPatch} />;
     default:
       return <></>;
   }
@@ -375,39 +383,48 @@ const SLASH_BLOCK_OPTIONS: { kind: ProcedureBlockKind; label: string; icon: stri
 function TextBody({
   block,
   onPatch,
-  lang,
   onInsertAfter,
 }: BodyProps<Extract<ProcedureBlock, { kind: 'text' }>> & {
   onInsertAfter?: (kind: ProcedureBlockKind) => void;
 }): React.ReactElement {
   const [slashOpen, setSlashOpen] = React.useState(false);
-  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
-
-  const value = asLoc(block.body, lang);
-
-  function handleChange(e: React.ChangeEvent<HTMLTextAreaElement>): void {
-    const v = e.target.value;
-    if (v === '/' && value === '') {
-      setSlashOpen(true);
-      return;
-    }
-    onPatch({ ...block, body: setLoc(block.body, lang, v) });
-  }
 
   function handleSlashSelect(kind: ProcedureBlockKind): void {
     setSlashOpen(false);
     onInsertAfter?.(kind);
   }
 
+  function handleInputKeyDown(
+    e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>,
+    _lang: 'en' | 'es',
+  ): void {
+    if (e.key === '/' && !e.currentTarget.value) {
+      e.preventDefault();
+      setSlashOpen(true);
+    }
+  }
+
   return (
     <div className="relative">
-      <textarea
-        ref={textareaRef}
-        value={value}
-        onChange={handleChange}
-        placeholder={lang === 'en' ? 'Type something… (or / for blocks)' : 'Escribe algo… (o / para bloques)'}
-        rows={3}
-        className={bodyTextareaCls}
+      <BilingualInput
+        value={block.body}
+        onChange={(val) => {
+          if (val.en === '/' && !block.body?.en) {
+            setSlashOpen(true);
+            return;
+          }
+          if (val.es === '/' && !block.body?.es) {
+            setSlashOpen(true);
+            return;
+          }
+          onPatch({ ...block, body: val });
+        }}
+        multiline
+        placeholder={{
+          en: 'Type something… (or / for blocks)',
+          es: 'Escribe algo… (o / para bloques)',
+        }}
+        onInputKeyDown={handleInputKeyDown}
       />
       {slashOpen && (
         <div
@@ -447,13 +464,11 @@ function TextBody({
 function HeadingBody({
   block,
   onPatch,
-  lang,
 }: BodyProps<Extract<ProcedureBlock, { kind: 'heading' }>>): React.ReactElement {
-  const value = asLoc(block.text, lang);
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-start gap-2">
       {/* Heading level selector — always visible, compact */}
-      <div className="w-16 shrink-0">
+      <div className="w-16 shrink-0 pt-1">
         <CustomSelect
           size="sm"
           value={String(block.level)}
@@ -465,17 +480,18 @@ function HeadingBody({
           ]}
         />
       </div>
-      <Input
-        value={value}
-        onChange={(e) => onPatch({ ...block, text: setLoc(block.text, lang, e.target.value) })}
-        placeholder={lang === 'en' ? 'Section title' : 'Título de la sección'}
-        className={cn(
-          'border-transparent bg-transparent shadow-none flex-1',
-          headingCls(block.level),
-          'px-2',
-          'focus:border-[var(--color-ring)] focus:bg-[var(--color-surface)] focus:ring-0',
-        )}
-      />
+      <div className="flex-1">
+        <BilingualInput
+          value={block.text}
+          onChange={(val) => onPatch({ ...block, text: val })}
+          placeholder={{
+            en: 'Section title (English)…',
+            es: 'Título de la sección (Español)…',
+          }}
+          className="bli--heading"
+          inputClassName={headingCls(block.level)}
+        />
+      </div>
     </div>
   );
 }
@@ -492,7 +508,6 @@ function headingCls(level: 1 | 2 | 3): string {
 function MethodBody({
   block,
   onPatch,
-  lang,
 }: BodyProps<Extract<ProcedureBlock, { kind: 'method' }>>): React.ReactElement {
   const update = (idx: number, next: ProcedureMethodStep): void => {
     onPatch({ ...block, steps: block.steps.map((s, i) => (i === idx ? next : s)) });
@@ -512,26 +527,24 @@ function MethodBody({
 
   return (
     <div className="space-y-2">
-      <ol className="space-y-2">
+      <ol className="space-y-3">
         {block.steps.map((step, i) => (
-          <li key={step.id ?? i} className="flex gap-3">
+          <li key={step.id ?? i} className="flex gap-3 items-start">
             <span className="mt-2 inline-flex size-6 shrink-0 items-center justify-center rounded-full border-2 border-[var(--color-line-2)] bg-[var(--color-surface)] font-mono text-sm font-semibold text-[var(--color-ink)]">
               {String(i + 1).padStart(2, '0')}
             </span>
-            <div className="flex-1 space-y-2">
-              <textarea
-                value={asLoc(step.body, lang)}
-                onChange={(e) => update(i, { ...step, body: setLoc(step.body, lang, e.target.value) })}
-                placeholder={
-                  lang === 'en'
-                    ? 'Describe this step in English…'
-                    : 'Describe este paso en español…'
-                }
-                rows={2}
-                className={bodyTextareaCls}
+            <div className="flex-1 space-y-1">
+              <BilingualInput
+                value={step.body}
+                onChange={(val) => update(i, { ...step, body: val })}
+                multiline
+                placeholder={{
+                  en: 'Describe this step in English…',
+                  es: 'Describe este paso en español…',
+                }}
               />
               {step.critical && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-warn-tint)] px-2 py-0.5 text-sm font-semibold uppercase text-[var(--color-warn-ink)]">
+                <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-warn-tint)] px-2 py-0.5 text-xs font-semibold uppercase text-[var(--color-warn-ink)]">
                   <Icon icon="ri-focus-3-line" />
                   Critical
                 </span>
@@ -583,7 +596,7 @@ function StepRowMenu({
 
 // ---- Image ----
 
-function ImageBody({ block, onPatch, lang }: BodyProps<Extract<ProcedureBlock, { kind: 'image' }>>): React.ReactElement {
+function ImageBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind: 'image' }>>): React.ReactElement {
   const [upload, setUpload] = React.useState<{ state: 'idle' | 'uploading' | 'failed'; error?: string }>({ state: 'idle' });
   const fileRef = React.useRef<HTMLInputElement>(null);
 
@@ -692,13 +705,16 @@ function ImageBody({ block, onPatch, lang }: BodyProps<Extract<ProcedureBlock, {
         </button>
       )}
       <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleFile} className="hidden" />
-      {/* Caption — uses parent lang from toolbar */}
-      <textarea
-        value={asOpt(block.caption, lang) ?? ''}
-        onChange={(e) => onPatch({ ...block, caption: setOpt(block.caption, lang, e.target.value) })}
-        placeholder={lang === 'en' ? 'Optional caption' : 'Pie de foto opcional'}
-        rows={2}
-        className={bodyTextareaCls}
+      {/* Caption — bilingual */}
+      <BilingualInput
+        value={{ en: block.caption?.en ?? '', es: block.caption?.es ?? '' }}
+        onChange={(val) => onPatch({ ...block, caption: val })}
+        multiline
+        size="compact"
+        placeholder={{
+          en: 'Optional caption (English)…',
+          es: 'Pie de foto opcional (Español)…',
+        }}
       />
     </div>
   );
@@ -706,7 +722,7 @@ function ImageBody({ block, onPatch, lang }: BodyProps<Extract<ProcedureBlock, {
 
 // ---- Video ----
 
-function VideoBody({ block, onPatch, lang }: BodyProps<Extract<ProcedureBlock, { kind: 'video' }>>): React.ReactElement {
+function VideoBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind: 'video' }>>): React.ReactElement {
   const [upload, setUpload] = React.useState<{ state: 'idle' | 'uploading' | 'failed'; error?: string }>({ state: 'idle' });
   const fileRef = React.useRef<HTMLInputElement>(null);
   const videoClass = React.useMemo(() => classifyVideoUrl(block.src), [block.src]);
@@ -826,12 +842,15 @@ function VideoBody({ block, onPatch, lang }: BodyProps<Extract<ProcedureBlock, {
         </div>
       )}
       <input ref={fileRef} type="file" accept="video/mp4,video/webm,video/quicktime" onChange={handleFile} className="hidden" />
-      <textarea
-        value={asOpt(block.caption, lang) ?? ''}
-        onChange={(e) => onPatch({ ...block, caption: setOpt(block.caption, lang, e.target.value) })}
-        placeholder={lang === 'en' ? 'Optional caption' : 'Pie de foto opcional'}
-        rows={2}
-        className={bodyTextareaCls}
+      <BilingualInput
+        value={{ en: block.caption?.en ?? '', es: block.caption?.es ?? '' }}
+        onChange={(val) => onPatch({ ...block, caption: val })}
+        multiline
+        size="compact"
+        placeholder={{
+          en: 'Optional caption (English)…',
+          es: 'Pie de foto opcional (Español)…',
+        }}
       />
     </div>
   );
@@ -842,7 +861,6 @@ function VideoBody({ block, onPatch, lang }: BodyProps<Extract<ProcedureBlock, {
 function WarningBody({
   block,
   onPatch,
-  lang,
 }: BodyProps<Extract<ProcedureBlock, { kind: 'warning' }>>): React.ReactElement {
   const sevTone: Record<ProcedureNoteKind, { bg: string; text: string; icon: string }> = {
     warn: { bg: 'border-[var(--color-bad-tint)] bg-[var(--color-bad-tint)]', text: 'text-[var(--color-bad)]', icon: 'ri-error-warning-line' },
@@ -867,12 +885,14 @@ function WarningBody({
           />
         </div>
       </div>
-      <textarea
-        value={asLoc(block.body, lang)}
-        onChange={(e) => onPatch({ ...block, body: setLoc(block.body, lang, e.target.value) })}
-        placeholder={lang === 'en' ? 'Write the note in English…' : 'Escribe la nota en español…'}
-        rows={3}
-        className={cn(bodyTextareaCls, 'bg-[var(--color-surface)]')}
+      <BilingualInput
+        value={block.body}
+        onChange={(val) => onPatch({ ...block, body: val })}
+        multiline
+        placeholder={{
+          en: 'Write the note in English…',
+          es: 'Escribe la nota en español…',
+        }}
       />
     </div>
   );
@@ -880,7 +900,7 @@ function WarningBody({
 
 // ---- Attachment ----
 
-function AttachmentBody({ block, onPatch, lang }: BodyProps<Extract<ProcedureBlock, { kind: 'attachment' }>>): React.ReactElement {
+function AttachmentBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind: 'attachment' }>>): React.ReactElement {
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-wash)] px-3 py-2">
@@ -893,11 +913,14 @@ function AttachmentBody({ block, onPatch, lang }: BodyProps<Extract<ProcedureBlo
           className="flex-1 border-none bg-transparent shadow-none focus:border-none"
         />
       </div>
-      <Input
-        value={asLoc(block.title, lang)}
-        onChange={(e) => onPatch({ ...block, title: setLoc(block.title, lang, e.target.value) })}
-        placeholder={lang === 'en' ? 'e.g. HACCP checklist' : 'e.g. Lista HACCP'}
-        className="border-transparent bg-transparent shadow-none focus:border-[var(--color-ring)] focus:ring-0"
+      <BilingualInput
+        value={block.title}
+        onChange={(val) => onPatch({ ...block, title: val })}
+        size="compact"
+        placeholder={{
+          en: 'e.g. HACCP checklist (English)',
+          es: 'e.g. Lista HACCP (Español)',
+        }}
       />
     </div>
   );
@@ -908,21 +931,21 @@ function AttachmentBody({ block, onPatch, lang }: BodyProps<Extract<ProcedureBlo
 function TableBody({
   block,
   onPatch,
-  lang,
 }: BodyProps<Extract<ProcedureBlock, { kind: 'table' }>>): React.ReactElement {
+  const [lang, setLang] = React.useState<'en' | 'es'>('en');
   const currentLabel = lang === 'en' ? 'EN' : 'ES';
   const otherLabel = lang === 'en' ? 'ES' : 'EN';
-  function setHeader(j: number, lang: 'en' | 'es', value: string): void {
+  function setHeader(j: number, l: 'en' | 'es', value: string): void {
     onPatch({
       ...block,
-      headers: block.headers.map((h, k) => (k === j ? setLoc(h, lang, value) : h)),
+      headers: block.headers.map((h, k) => (k === j ? setLoc(h, l, value) : h)),
     });
   }
-  function setCell(i: number, j: number, lang: 'en' | 'es', value: string): void {
+  function setCell(i: number, j: number, l: 'en' | 'es', value: string): void {
     onPatch({
       ...block,
       rows: block.rows.map((row, k) =>
-        k === i ? row.map((cell, l) => (l === j ? setLoc(cell, lang, value) : cell)) : row,
+        k === i ? row.map((cell, m) => (m === j ? setLoc(cell, l, value) : cell)) : row,
       ),
     });
   }
@@ -952,7 +975,13 @@ function TableBody({
   }
 
   return (
-    <div>
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold text-[var(--color-ink-3)]">
+          Table Columns & Rows
+        </span>
+        <LangToggle lang={lang} onChange={setLang} />
+      </div>
       {/* Table grid — hairline borders, no badge/label */}
       <div className="overflow-x-auto rounded-[var(--radius-md)] border border-[var(--color-line)] bg-[var(--color-surface)]">
         <table className="w-full border-collapse text-sm">
@@ -1094,24 +1123,22 @@ function TableBody({
 function ChecklistBody({
   block,
   onPatch,
-  lang,
 }: BodyProps<Extract<ProcedureBlock, { kind: 'checklist' }>>): React.ReactElement {
   const items = block.items;
-  const titleValue = asOpt(block.title, lang);
 
-  function setItem(i: number, value: string): void {
+  function setItem(i: number, val: Localised): void {
     onPatch({
       ...block,
       items: items.map((it, j) =>
-        j === i ? { ...it, text: setLoc(it.text, lang, value) } : it,
+        j === i ? { ...it, text: val } : it,
       ),
     });
   }
 
-  function setTitle(value: string): void {
+  function setTitle(val: Localised): void {
     onPatch({
       ...block,
-      title: setOpt(block.title, lang, value),
+      title: val,
     });
   }
 
@@ -1137,21 +1164,23 @@ function ChecklistBody({
 
   return (
     <div className="space-y-2 py-1">
-      <input
-        type="text"
-        value={titleValue}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder={lang === 'en' ? 'Checklist title' : 'Título de la lista'}
-        className="w-full bg-transparent px-1 py-1 text-base font-semibold text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] placeholder:font-normal border-none outline-none focus:outline-none focus:ring-0 shadow-none"
+      <BilingualInput
+        value={{ en: block.title?.en ?? '', es: block.title?.es ?? '' }}
+        onChange={setTitle}
+        size="compact"
+        placeholder={{
+          en: 'Checklist title (English)…',
+          es: 'Título de la lista (Español)…',
+        }}
       />
-      <ol className="space-y-1">
+      <ol className="space-y-2">
         {items.map((it, i) => (
           <li
             key={it.id}
-            className="group/item relative flex items-center gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-[var(--color-wash)]"
+            className="group/item relative flex items-start gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-[var(--color-wash)]"
           >
             {/* Reorder arrows — visible on item hover */}
-            <div className="flex items-center opacity-0 transition-opacity group-hover/item:opacity-100">
+            <div className="flex items-center pt-2 opacity-0 transition-opacity group-hover/item:opacity-100">
               <button
                 type="button"
                 disabled={i === 0}
@@ -1177,22 +1206,26 @@ function ChecklistBody({
             {/* Checkbox tile */}
             <span
               aria-hidden="true"
-              className="flex size-4 shrink-0 items-center justify-center rounded-[3px] border border-[var(--color-line-2)] bg-[var(--color-surface)]"
+              className="mt-2.5 flex size-4 shrink-0 items-center justify-center rounded-[3px] border border-[var(--color-line-2)] bg-[var(--color-surface)]"
             />
 
             {/* Item number badge */}
-            <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-ok-tint)] font-mono text-[10px] font-bold text-[var(--color-ok)]">
+            <span className="mt-2 inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-ok-tint)] font-mono text-[10px] font-bold text-[var(--color-ok)]">
               {i + 1}
             </span>
 
-            {/* Item label input */}
-            <input
-              type="text"
-              value={asLoc(it.text, lang)}
-              onChange={(e) => setItem(i, e.target.value)}
-              placeholder={lang === 'en' ? `Item ${i + 1}` : `Elemento ${i + 1}`}
-              className="flex-1 bg-transparent px-1 py-0.5 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] border-none outline-none focus:outline-none focus:ring-0 shadow-none"
-            />
+            {/* Item label bilingual input */}
+            <div className="flex-1">
+              <BilingualInput
+                value={it.text}
+                onChange={(val) => setItem(i, val)}
+                size="compact"
+                placeholder={{
+                  en: `Item ${i + 1} (English)…`,
+                  es: `Elemento ${i + 1} (Español)…`,
+                }}
+              />
+            </div>
 
             {/* Remove item button — visible on item hover */}
             {items.length > 1 ? (
@@ -1201,7 +1234,7 @@ function ChecklistBody({
                 onClick={() => removeItem(i)}
                 aria-label="Remove item"
                 title="Remove item"
-                className="flex size-6 shrink-0 items-center justify-center rounded text-[var(--color-ink-3)] opacity-0 transition-opacity hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)] group-hover/item:opacity-100 focus:opacity-100"
+                className="mt-1 flex size-6 shrink-0 items-center justify-center rounded text-[var(--color-ink-3)] opacity-0 transition-opacity hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)] group-hover/item:opacity-100 focus:opacity-100"
               >
                 <Icon icon="ri-close-line" className="text-base" />
               </button>
@@ -1215,23 +1248,11 @@ function ChecklistBody({
         className="inline-flex items-center gap-1.5 rounded px-2 py-1 text-xs font-semibold text-[var(--color-brand-600)] hover:bg-[var(--color-panel)] hover:text-[var(--color-brand-700)] transition-colors mt-1"
       >
         <Icon icon="ri-add-line" className="text-sm" />
-        <span>{lang === 'en' ? 'Add checklist item' : 'Agregar elemento'}</span>
+        <span>Add checklist item</span>
       </button>
     </div>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Bilingual primitives — single visible language, EN/ES pill to switch.
-//
-// The previous version stacked EN above ES (two textareas per block, two
-// label rows). That doubled each block's height and pushed content off the
-// page. This version matches the rest of the codebase (see BilingualTabs
-// in procedure-block-editor.tsx): one input visible at a time, small pill
-// toggle to switch sides. Each bilingual body owns its own `lang` state so
-// the manager can be filling English in one block and Spanish in another
-// without one switch affecting the other.
-// ---------------------------------------------------------------------------
 
 const bodyTextareaCls =
   'flex w-full resize-none rounded-[var(--radius-md)] border border-transparent bg-transparent px-3 py-2 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] transition-colors hover:border-[var(--color-line-2)] hover:bg-[var(--color-surface)] focus:border-[var(--color-ring)] focus:bg-[var(--color-surface)] focus:outline-none';
@@ -1279,97 +1300,6 @@ function LangToggle({
       >
         ES
       </button>
-    </div>
-  );
-}
-
-interface BilingualInputProps {
-  lang: 'en' | 'es';
-  onLangChange: (next: 'en' | 'es') => void;
-  enValue: string;
-  esValue: string;
-  onEnChange: (next: string) => void;
-  onEsChange: (next: string) => void;
-  enPlaceholder: string;
-  esPlaceholder: string;
-  /** When true, render a textarea; otherwise a single-line input. */
-  multiline?: boolean;
-  className?: string;
-  rows?: number;
-  bgClass?: string;
-  /** Where the pill sits — top-right by default, inline-left for headings. */
-  pillPosition?: 'top-right' | 'inline';
-}
-
-function BilingualInput({
-  lang,
-  onLangChange,
-  enValue,
-  esValue,
-  onEnChange,
-  onEsChange,
-  enPlaceholder,
-  esPlaceholder,
-  multiline,
-  className,
-  rows = 2,
-  pillPosition = 'top-right',
-}: BilingualInputProps): React.ReactElement {
-  const value = lang === 'en' ? enValue : esValue;
-  const onChange = lang === 'en' ? onEnChange : onEsChange;
-  const placeholder = lang === 'en' ? enPlaceholder : esPlaceholder;
-
-  if (pillPosition === 'inline') {
-    // Pill sits left of the input — used by Heading so the level selector
-    // doesn't have to fight for space at the top.
-    return (
-      <div className={cn('flex items-center gap-2', className)}>
-        <LangToggle lang={lang} onChange={onLangChange} />
-        {multiline ? (
-          <textarea
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder={placeholder}
-            rows={rows}
-            className={cn(bodyTextareaCls, 'flex-1')}
-          />
-        ) : (
-          <Input
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder={placeholder}
-            className="flex-1 border-transparent bg-[var(--color-wash)] shadow-none focus:border-transparent focus:ring-0"
-          />
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2">
-        <LangToggle lang={lang} onChange={onLangChange} />
-      </div>
-      {multiline ? (
-        <textarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          rows={rows}
-          className={cn(bodyTextareaCls, className)}
-        />
-      ) : (
-        <Input
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          className={cn(
-            'border-transparent bg-[var(--color-wash)] shadow-none',
-            'focus:border-[var(--color-ring)] focus:ring-2 focus:ring-[var(--color-brand-tint)]',
-            className,
-          )}
-        />
-      )}
     </div>
   );
 }
@@ -1484,7 +1414,7 @@ export function NotionBlockList({ blocks, onChange }: NotionBlockListProps): Rea
   return (
     // No gutter on a phone: the toolbar sits inside each row there, and the
     // 32px it kept cut the image toolbar's Remove button off the edge.
-    <div className="space-y-1 sm:pl-10">
+    <div className="space-y-6 sm:pl-10">
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
           {blocks.map((block, i) => (
