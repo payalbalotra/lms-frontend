@@ -3,66 +3,85 @@
 import * as React from 'react';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
-import {
-  Card,
-  CardContent,
-} from '@/components/ui/card';
 import { Drawer } from '@/components/ui/drawer';
-import { RowActions, type RowActionItem } from '@/components/ui/row-actions';
 import {
   createRole,
   deleteRole,
   updateRole,
   ApiException,
 } from '@/lib/api';
-import type { ClearanceLevel, Role } from '@/lib/types';
-import { LuPencil, LuPlus, LuTrash2 } from 'react-icons/lu';
+import type { Role } from '@/lib/types';
+
+export type RolesManagerState =
+  | { mode: 'closed' }
+  | { mode: 'create' }
+  | { mode: 'edit'; entity: Role };
+
+export interface RolesManagerLabels {
+  roleCreateHeading: string;
+  roleCreate: string;
+  roleCreating: string;
+  roleCancel: string;
+  roleSave: string;
+  roleName: string;
+  roleDelete: string;
+  roleEdit: string;
+  roleErrorInUse: string;
+  drawerClose: string;
+  errorGeneric: string;
+  errorNotFound: string;
+}
 
 interface RolesManagerProps {
-  locale: string;
-  initialRoles: Role[];
+  state: RolesManagerState;
+  onStateChange: (next: RolesManagerState) => void;
+  labels: RolesManagerLabels;
 }
 
 interface CreateForm {
   name: string;
-  clearanceLevel: ClearanceLevel;
 }
 
 interface EditForm {
   name: string;
-  clearanceLevel: ClearanceLevel;
 }
 
+/**
+ * Drawer-only CRUD for roles. The page-level panel renders the chips; this
+ * component owns the create + edit drawers and the mutation calls. Roles do
+ * not have an `isArchived` state — they are deleted outright, with a
+ * `ROLE_IN_USE` error surfaced if employees still reference the role.
+ */
 export function RolesManager({
-  locale: _locale,
-  initialRoles,
+  state,
+  onStateChange,
+  labels,
 }: RolesManagerProps): React.ReactElement {
-  const t = useTranslations('admin');
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [createError, setCreateError] = useState<string | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingForm, setEditingForm] = useState<EditForm | null>(null);
-  const [createOpen, setCreateOpen] = useState(false);
-
-  const [createForm, setCreateForm] = useState<CreateForm>({
-    name: '',
-    clearanceLevel: 'general',
-  });
+  const [editForm, setEditForm] = useState<EditForm | null>(null);
+  const [createForm, setCreateForm] = useState<CreateForm>({ name: '' });
 
   function refresh(): void {
     router.refresh();
   }
 
-  function resetCreate(): void {
-    setCreateForm({ name: '', clearanceLevel: 'general' });
+  function closeDrawer(): void {
     setCreateError(null);
+    setEditError(null);
+    setEditForm(null);
+    onStateChange({ mode: 'closed' });
+  }
+
+  function startEdit(role: Role): void {
+    setEditForm({ name: role.name });
+    setEditError(null);
+    onStateChange({ mode: 'edit', entity: role });
   }
 
   function onCreate(event: React.FormEvent<HTMLFormElement>): void {
@@ -73,50 +92,44 @@ export function RolesManager({
       try {
         await createRole({
           name: createForm.name.trim(),
-          clearanceLevel: createForm.clearanceLevel,
+          // Clearance isn't surfaced in the UI yet, but the backend still
+          // requires it. Default to `general` so a freshly-invited line cook
+          // can use the app; the role table does not represent a permission
+          // tier.
+          clearanceLevel: 'general',
         });
-        resetCreate();
-        setCreateOpen(false);
+        setCreateForm({ name: '' });
+        closeDrawer();
         refresh();
       } catch (err) {
         if (err instanceof ApiException) {
           setCreateError(err.message);
         } else {
-          setCreateError(t('errorGeneric'));
+          setCreateError(labels.errorGeneric);
         }
       }
     });
   }
 
-  function startEdit(role: Role): void {
-    setEditingId(role.id);
-    setEditingForm({ name: role.name, clearanceLevel: role.clearanceLevel });
-    setEditError(null);
-  }
-
-  function cancelEdit(): void {
-    setEditingId(null);
-    setEditingForm(null);
-    setEditError(null);
-  }
-
   function saveEdit(role: Role): void {
-    if (!editingForm) return;
+    if (!editForm) return;
     setEditError(null);
     startTransition(async () => {
       try {
         await updateRole(role.id, {
-          name: editingForm.name.trim(),
-          clearanceLevel: editingForm.clearanceLevel,
+          name: editForm.name.trim(),
+          // Round-trip the existing clearance value — the field is hidden in
+          // the UI but the backend still validates it.
+          clearanceLevel: role.clearanceLevel,
         });
-        cancelEdit();
+        closeDrawer();
         refresh();
       } catch (err) {
         if (err instanceof ApiException) {
-          if (err.code === 'ROLE_NOT_FOUND') setEditError(t('errorNotFound'));
+          if (err.code === 'ROLE_NOT_FOUND') setEditError(labels.errorNotFound);
           else setEditError(err.message);
         } else {
-          setEditError(t('errorGeneric'));
+          setEditError(labels.errorGeneric);
         }
       }
     });
@@ -127,214 +140,70 @@ export function RolesManager({
     startTransition(async () => {
       try {
         await deleteRole(role.id);
+        closeDrawer();
         refresh();
       } catch (err) {
         if (err instanceof ApiException) {
-          if (err.code === 'ROLE_IN_USE') setEditError(t('rolesErrorInUse'));
+          if (err.code === 'ROLE_IN_USE') setEditError(labels.roleErrorInUse);
           else setEditError(err.message);
         } else {
-          setEditError(t('errorGeneric'));
+          setEditError(labels.errorGeneric);
         }
       }
     });
   }
 
-  function rowItemsFor(r: Role): RowActionItem[] {
-    return [
-      {
-        label: t('actionsEdit'),
-        icon: LuPencil,
-        onSelect: () => startEdit(r),
-      },
-      {
-        label: t('actionsDelete'),
-        icon: LuTrash2,
-        destructive: true,
-        onSelect: () => onDelete(r),
-      },
-    ];
-  }
+  React.useEffect(() => {
+    if (state.mode === 'edit') {
+      setEditForm({ name: state.entity.name });
+      setEditError(null);
+    }
+  }, [state]);
+
+  const editingRole = state.mode === 'edit' ? state.entity : null;
+  const isCreateOpen = state.mode === 'create';
+  const isEditOpen = editingRole !== null;
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button
-          icon={LuPlus}
-          onClick={() => {
-            resetCreate();
-            setCreateOpen(true);
-          }}
-        >
-          {t('rolesCreateHeading')}
-        </Button>
-      </div>
-
-      {editError ? (
-        <p role="alert" className="text-sm text-[var(--color-bad)]">
-          {editError}
-        </p>
-      ) : null}
-
-      <Card>
-        <CardContent className="p-0">
-          {initialRoles.length === 0 ? (
-            <p className="px-6 py-8 text-center text-sm text-[var(--color-muted-foreground)]">
-              {t('rolesEmpty')}
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="atable">
-                <thead>
-                  <tr>
-                    <th>{t('thRolesName')}</th>
-                    <th>{t('thRolesClearance')}</th>
-                    <th>
-                      <span className="sr-only">{t('thActions')}</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {initialRoles.map((r) => {
-                    const isEditing = editingId === r.id && editingForm !== null;
-                    return (
-                      <tr
-                        key={r.id}
-                      >
-                        <td>
-                          {isEditing ? (
-                            <Input
-                              value={editingForm.name}
-                              onChange={(e) =>
-                                setEditingForm({
-                                  ...editingForm,
-                                  name: e.target.value,
-                                })
-                              }
-                              maxLength={120}
-                              disabled={isPending}
-                            />
-                          ) : (
-                            r.name
-                          )}
-                        </td>
-                        <td>
-                          {isEditing ? (
-                            <Select
-                              value={editingForm.clearanceLevel}
-                              onChange={(e) =>
-                                setEditingForm({
-                                  ...editingForm,
-                                  clearanceLevel: e.target.value as ClearanceLevel,
-                                })
-                              }
-                              disabled={isPending}
-                              className="h-tap-admin w-auto px-2"
-                            >
-                              <option value="general">general</option>
-                              <option value="station">station</option>
-                              <option value="confidential">confidential</option>
-                              <option value="master">master</option>
-                            </Select>
-                          ) : (
-                            r.clearanceLevel
-                          )}
-                        </td>
-                        <td>
-                          {isEditing ? (
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                size="sm"
-                                variant="secondary"
-                                disabled={isPending || !editingForm.name}
-                                onClick={() => saveEdit(r)}
-                              >
-                                {t('actionsSave')}
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="neutral"
-                                disabled={isPending}
-                                onClick={cancelEdit}
-                              >
-                                {t('actionsCancel')}
-                              </Button>
-                            </div>
-                          ) : (
-                            <RowActions
-                              items={rowItemsFor(r)}
-                              triggerLabel={`${t('rowActionsLabel')} — ${r.name}`}
-                            />
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
+    <>
       <Drawer
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        title={t('rolesCreateHeading')}
-        closeLabel={t('drawerClose')}
+        open={isCreateOpen}
+        onClose={closeDrawer}
+        title={labels.roleCreateHeading}
+        closeLabel={labels.drawerClose}
         size="md"
         footer={
           <>
             <Button
               type="button"
               variant="neutral"
-              onClick={() => setCreateOpen(false)}
+              onClick={closeDrawer}
               disabled={isPending}
             >
-              {t('actionsCancel')}
+              {labels.roleCancel}
             </Button>
             <Button
               type="submit"
               form="create-role-form"
               disabled={isPending || !createForm.name}
             >
-              {isPending ? t('rolesCreating') : t('rolesCreate')}
+              {isPending ? labels.roleCreating : labels.roleCreate}
             </Button>
           </>
         }
       >
         <form id="create-role-form" onSubmit={onCreate} noValidate className="grid gap-4">
           <div className="grid gap-2">
-            <Label htmlFor="newRoleName">{t('rolesFieldName')}</Label>
+            <Label htmlFor="newRoleName">{labels.roleName}</Label>
             <Input
               id="newRoleName"
               required
               maxLength={120}
               value={createForm.name}
-              onChange={(e) =>
-                setCreateForm({ ...createForm, name: e.target.value })
-              }
+              onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
               disabled={isPending}
               autoFocus
             />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="newRoleClearance">{t('rolesFieldClearance')}</Label>
-            <Select
-              id="newRoleClearance"
-              value={createForm.clearanceLevel}
-              onChange={(e) =>
-                setCreateForm({
-                  ...createForm,
-                  clearanceLevel: e.target.value as ClearanceLevel,
-                })
-              }
-              disabled={isPending}
-            >
-              <option value="general">general</option>
-              <option value="station">station</option>
-              <option value="confidential">confidential</option>
-              <option value="master">master</option>
-            </Select>
           </div>
           {createError ? (
             <p role="alert" className="text-sm text-[var(--color-bad)]">
@@ -343,6 +212,69 @@ export function RolesManager({
           ) : null}
         </form>
       </Drawer>
-    </div>
+
+      <Drawer
+        open={isEditOpen}
+        onClose={closeDrawer}
+        title={editingRole?.name ?? labels.roleEdit}
+        closeLabel={labels.drawerClose}
+        size="md"
+        footer={
+          editingRole ? (
+            <>
+              <Button
+                type="button"
+                variant="neutral"
+                onClick={closeDrawer}
+                disabled={isPending}
+              >
+                {labels.roleCancel}
+              </Button>
+              <Button
+                type="button"
+                onClick={() => editingRole && saveEdit(editingRole)}
+                disabled={isPending || !editForm?.name}
+              >
+                {labels.roleSave}
+              </Button>
+            </>
+          ) : null
+        }
+      >
+        {editingRole && editForm ? (
+          <div className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="editRoleName">{labels.roleName}</Label>
+              <Input
+                id="editRoleName"
+                value={editForm.name}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                maxLength={120}
+                disabled={isPending}
+              />
+            </div>
+            {editError ? (
+              <p role="alert" className="text-sm text-[var(--color-bad)]">
+                {editError}
+              </p>
+            ) : null}
+            {/* Delete is one click deeper than edit (DESIGN.md §3.6). It
+                surfaces inside the same edit drawer so the destructive
+                action lives one level under the chip × icon, never on
+                the chip row directly. */}
+            <div className="flex justify-end border-t border-[var(--color-line)] pt-3">
+              <Button
+                type="button"
+                variant="destructive"
+                disabled={isPending}
+                onClick={() => editingRole && onDelete(editingRole)}
+              >
+                {labels.roleDelete}
+              </Button>
+            </div>
+          </div>
+        ) : null}
+      </Drawer>
+    </>
   );
 }

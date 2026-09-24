@@ -56,6 +56,7 @@ import type {
   ProcedureNoteKind,
 } from '@/lib/types';
 import { IconTile } from '@/components/ui/icon-tile';
+import { RecipeBlockBody } from './recipe-block-body';
 
 // ---------------------------------------------------------------------------
 // Localised helpers (kept local — this file is self-contained).
@@ -280,6 +281,7 @@ function InsertAfterButton({
             { kind: 'image', label: 'Photograph', icon: 'ri-image-line' },
             { kind: 'video', label: 'Video', icon: 'ri-video-line' },
             { kind: 'attachment', label: 'Attachment', icon: 'ri-attachment-line' },
+            { kind: 'recipe', label: 'Recipe', icon: 'ri-restaurant-line' },
           ] as { kind: ProcedureBlockKind; label: string; icon: string }[]).map((opt) => (
             <button
               key={opt.kind}
@@ -331,7 +333,7 @@ function BlockBody({
     case 'method':
       return <MethodBody block={block} onPatch={onPatch} lang={lang} />;
     case 'recipe':
-      return <RecipeSummaryBody block={block} onPatch={onPatch} lang={lang} />;
+      return <RecipeBlockBody block={block} onPatch={onPatch} lang={lang} />;
     case 'image':
       return <ImageBody block={block} onPatch={onPatch} lang={lang} />;
     case 'video':
@@ -362,6 +364,7 @@ const SLASH_BLOCK_OPTIONS: { kind: ProcedureBlockKind; label: string; icon: stri
   { kind: 'image', label: 'Photograph', icon: 'ri-image-line' },
   { kind: 'video', label: 'Video', icon: 'ri-video-line' },
   { kind: 'attachment', label: 'Attachment', icon: 'ri-attachment-line' },
+  { kind: 'recipe', label: 'Recipe', icon: 'ri-restaurant-line' },
 ];
 
 function TextBody({
@@ -570,37 +573,6 @@ function StepRowMenu({
     { label: 'Delete step', icon: 'ri-close-line', destructive: true, onSelect: onRemove },
   ];
   return <RowActions triggerLabel="Step actions" items={items} />;
-}
-
-// ---- Recipe — for now, summary card pointing to dedicated editor ----
-
-function RecipeSummaryBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind: 'recipe' }>>): React.ReactElement { // lang unused for recipe
-  const ingredientsCount = block.ingredients?.length ?? 0;
-  const stepsCount = block.steps?.length ?? 0;
-  return (
-    <div className="space-y-3 pt-1">
-      <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-wash)] p-3">
-        <Icon icon="ri-restaurant-line" className="text-2xl text-[var(--color-ink-3)]" />
-        <div className="flex-1 text-sm">
-          <div className="font-semibold text-[var(--color-ink)]">Recipe block</div>
-          <div className="text-[var(--color-ink-2)]">
-            {ingredientsCount} ingredient{ingredientsCount === 1 ? '' : 's'} · {stepsCount} step{stepsCount === 1 ? '' : 's'}
-          </div>
-        </div>
-        <CustomSelect
-          size="sm"
-          value=""
-          onChange={() => {
-            /* future: jump to dedicated recipe editor */
-          }}
-          options={[{ value: '', label: 'Open', icon: 'ri-arrow-right-line' }]}
-        />
-      </div>
-      <p className="text-sm italic text-[var(--color-ink-3)]">
-        Detailed recipe fields (audience, allergens, yields, factors) are edited in the full Recipe editor. This card summarises what's been added.
-      </p>
-    </div>
-  );
 }
 
 // ---- Image ----
@@ -1427,6 +1399,7 @@ function EmptyState({ onAdd }: { onAdd: (kind: ProcedureBlockKind) => void }): R
           { kind: 'image', label: 'Image', icon: 'ri-image-line', hint: 'Photo + caption' },
           { kind: 'video', label: 'Video', icon: 'ri-video-line', hint: 'Upload or link' },
           { kind: 'attachment', label: 'Attachment', icon: 'ri-attachment-line', hint: 'Linked file' },
+          { kind: 'recipe', label: 'Recipe', icon: 'ri-restaurant-line', hint: 'Yield + method' },
         ] as { kind: ProcedureBlockKind; label: string; icon: string; hint: string }[]).map((opt) => (
           <button
             key={opt.kind}

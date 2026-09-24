@@ -148,8 +148,8 @@ export function Allergen({
             })}
           </ul>
         )}
-        <b>{summary}</b>
-        <p>{detail}</p>
+        {summary ? <b>{summary}</b> : null}
+        {detail ? <p>{detail}</p> : null}
       </div>
     </div>
   );

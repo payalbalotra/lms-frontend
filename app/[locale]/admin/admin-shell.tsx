@@ -7,7 +7,7 @@ import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import type { Employee } from '@/lib/types';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
-import { LuArrowLeft, LuArrowUpRight, LuChartColumn, LuChefHat, LuCirclePlus, LuClipboardList, LuFolders, LuGraduationCap, LuHouse, LuLogOut, LuMapPin, LuMenu, LuUserCog, LuUserPlus, LuUsers, LuX } from 'react-icons/lu';
+import { LuArrowLeft, LuArrowUpRight, LuChartColumn, LuChefHat, LuCirclePlus, LuClipboardList, LuFolders, LuGraduationCap, LuHouse, LuLogOut, LuMenu, LuUserPlus, LuUsers, LuX } from 'react-icons/lu';
 import { Icon } from '@/components/ui/icon';
 import { AdminSearch } from '@/components/admin/admin-search';
 import type { IconType } from 'react-icons';
@@ -140,9 +140,10 @@ const NAV_GROUPS: NavGroup[] = [
   {
     headingKey: 'groupSettings',
     items: [
-      { href: '/settings/stations', icon: LuChefHat, labelKey: 'navStations' },
-      { href: '/settings/roles', icon: LuUserCog, labelKey: 'navRoles' },
-      { href: '/settings/locations', icon: LuMapPin, labelKey: 'navLocations' },
+      // One Settings row that opens the single /admin/settings page — the
+      // three sub-resources (stations, roles, locations) are now inline
+      // panels in that page rather than separate URLs.
+      { href: '/settings', icon: LuChefHat, labelKey: 'navSettings' },
     ],
   },
   {
