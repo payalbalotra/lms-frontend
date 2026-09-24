@@ -2,46 +2,14 @@ import * as React from 'react';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import {
-  ApiException,
-  fetchMe,
-  listProcedures,
-  listRoles,
-  listStations,
-} from '@/lib/api';
-import type { Procedure } from '@/lib/types';
+import { ApiException, fetchMe, listProcedures, listRoles, listStations } from '@/lib/api';
+import type { Procedure, ProcedureBlock, TrainingAssignmentRow } from '@/lib/types';
 import { readViewAs } from '@/lib/view-as-server';
-import {
-  EmployeeHome,
-  greetingForDate,
-  type GreetingKey,
-  type TrainingCard,
-  type TrainingStats,
-  type ProcedureRowData,
-} from './components/EmployeeHome';
 import { withAs } from '@/lib/view-as';
 import { TabBar } from '@/components/employee/tab-bar';
-import {
-  getTrainingRowsForEmployee,
-  mockSops,
-  mockTrainingEmployees,
-} from '@/lib/mock-training';
-import type { TrainingAssignmentRow, TrainingAssignmentStatus } from '@/lib/types';
-
-/**
- * The cook's home. Action-first.
- *
- * Visual hierarchy (per product spec):
- *   1. Greeting + identity.
- *   2. Search.
- *   3. Training that needs your attention (large hero card).
- *   4. Assigned training (compact rows / single wide card).
- *   5. Procedures relevant to role / station (compact list rows).
- *
- * The Training card carries the most weight on the page — it's the most
- * important action the cook has today. Procedures fill the page below with
- * useful content without competing with the training card.
- */
+import { getTrainingRowsForEmployee, mockTrainingEmployees } from '@/lib/mock-training';
+import { EmployeeHome, type HomeRow, type TrainingSummary } from './components/EmployeeHome';
+import { allergenWords, factsOf } from './components/procedure-facts';
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -49,7 +17,11 @@ interface PageProps {
 
 export const dynamic = 'force-dynamic';
 
-const DAY_MS = 24 * 60 * 60 * 1000;
+const DAY = 24 * 60 * 60 * 1000;
+/** Someone who joined this recently is still in their first weeks. */
+const FIRST_WEEKS = 30 * DAY;
+/** A procedure edited this recently counts as changed. */
+const CHANGED_WINDOW = 14 * DAY;
 
 export default async function EmployeeHomePage({ params }: PageProps): Promise<React.ReactElement> {
   const { locale } = await params;
@@ -64,180 +36,191 @@ export default async function EmployeeHomePage({ params }: PageProps): Promise<R
 
   let employee;
   try {
-    const me = await fetchMe(cookieHeader);
-    employee = me.employee;
+    employee = (await fetchMe(cookieHeader)).employee;
   } catch (err) {
     if (err instanceof ApiException) redirect(`/${locale}/login`);
     throw err;
   }
 
+  // Landed here in the other language (a bookmark, a shared link): the home is
+  // this person's, so it opens in theirs. An admin looking in is left alone.
+  if (employee.role !== 'admin' && employee.languagePref && employee.languagePref !== locale) {
+    redirect(`/${employee.languagePref}/employee/home`);
+  }
+
   const viewAs = await readViewAs();
-  const primaryRoleId = employee.roleIds[0];
-  const primaryStationId = employee.stationIds[0];
+  const stationId = employee.stationIds[0] ?? null;
+  const roleId = employee.roleIds[0] ?? null;
 
-  let procedures: Procedure[] = [];
-  let roleName: string | null = null;
-  let stationName: string | null = null;
-  let training: TrainingAssignmentRow[] = [];
-  let loadError = false;
-
-  // Each of these is optional context: a failure narrows the page, it does not
-  // break it. A cook mid-shift needs the search box more than the trimmings.
-  await Promise.all([
+  // Only what this person may read: the API applies audience and clearance.
+  const [procedures, roleName, stationName] = await Promise.all([
     listProcedures({}, cookieHeader)
-      .then((r) => {
-        procedures = r.procedures;
-      })
-      .catch(() => {
-        loadError = true;
-      }),
-    primaryRoleId
-      ? listRoles(cookieHeader)
-          .then((r) => {
-            roleName = r.roles.find((x) => x.id === primaryRoleId)?.name ?? null;
-          })
-          .catch(() => {})
-      : Promise.resolve(),
-    primaryStationId
+      .then((r) => r.procedures.filter((p) => p.status === 'published' && !p.isArchived))
+      .catch(() => [] as Procedure[]),
+    roleId
+      ? listRoles(cookieHeader).then((r) => r.roles.find((x) => x.id === roleId)?.name ?? null).catch(() => null)
+      : Promise.resolve(null),
+    stationId
       ? listStations(employee.locationId, cookieHeader)
-          .then((r) => {
-            stationName = r.stations.find((s) => s.id === primaryStationId)?.name ?? null;
-          })
-          .catch(() => {})
-      : Promise.resolve(),
-    Promise.resolve().then(() => {
-      // The mock-training seed identities don't match the auth seed. Bridge by
-      // name so Home renders the same pending training as the Training tab —
-      // matches the fallback the Training page already does.
-      const matched = mockTrainingEmployees.find(
-        (e) => e.name.toLowerCase() === employee.name.toLowerCase(),
-      );
-      const trainingEmployeeId =
-        matched?.id ?? mockTrainingEmployees[0]?.id ?? employee.id;
-      training = getTrainingRowsForEmployee(trainingEmployeeId, new Date());
-    }),
+          .then((r) => r.stations.find((s) => s.id === stationId)?.name ?? null)
+          .catch(() => null)
+      : Promise.resolve(null),
   ]);
 
   const now = Date.now();
   const isEs = locale === 'es';
-
-  // ---- Bucket training ----
-  // One card per unfinished assignment, ordered by urgency. The stats row
-  // sits at the top of the section; the cards below show every unfinished
-  // assignment in a single queue (overdue → due-soon → in-progress → due
-  // further out). The Training tab still surfaces every status; Home only
-  // shows the queue + counts.
-  const unfinished = training
-    .filter((r) => r.effectiveStatus !== 'complete')
-    .sort((a, b) => {
-      const rank = (s: TrainingAssignmentStatus): number =>
-        s === 'overdue' ? 0 : s === 'due' ? 1 : 2;
-      const ra = rank(a.effectiveStatus);
-      const rb = rank(b.effectiveStatus);
-      if (ra !== rb) return ra - rb;
-      return new Date(a.assignment.dueAt).getTime() - new Date(b.assignment.dueAt).getTime();
-    });
-  const completedCount = training.filter((r) => r.effectiveStatus === 'complete').length;
-  const trainingCards: TrainingCard[] = unfinished.slice(0, 6).map((r) =>
-    buildTrainingCard(r, now, t, isEs, locale),
-  );
-  const trainingStats: TrainingStats = {
-    completed: completedCount,
-    total: training.length,
-    progressLabel: t('trainingProgress', {
-      done: completedCount,
-      total: training.length,
-    }),
-    remainingLabel: t('trainingRemaining', { count: unfinished.length }),
-  };
-
-  // ---- Relevant procedures ----
-  // Live procedures + mockSops are merged so the section is populated while
-  // the library is still being seeded. The live list keeps priority; the
-  // mock fixtures fill in the rest. Both are filtered by stationScope (live
-  // also exposes an `access` field — when the live schema doesn't carry a
-  // stationScope we fall back to the live access roleId/stationId matching
-  // the cook's primary role/station).
   const readsSpanish = employee.languagePref === 'es';
-  const hasRoleOrStation = Boolean(primaryRoleId) || Boolean(primaryStationId);
-  const publishedLive = procedures.filter((p) => p.status === 'published' && !p.isArchived);
-  const liveRelevant = publishedLive.filter((p) => {
-    const scope = p.stationScope;
-    if (scope) {
-      if (scope.mode === 'all') return true;
-      return primaryStationId ? scope.stationIds.includes(primaryStationId) : false;
-    }
-    // No stationScope on the live row — try the legacy `access` shape. A
-    // procedure with no role/station access restriction matches everyone.
-    const access = (p as unknown as { access?: { roleId?: string | null; stationId?: string | null } }).access;
-    if (!access) return true;
-    if (access.roleId && access.roleId !== primaryRoleId) return false;
-    if (access.stationId && access.stationId !== primaryStationId) return false;
-    return true;
-  });
-  const liveSlugs = new Set(liveRelevant.map((p) => p.slug));
-  const mockRelevant = mockSops
-    .filter((p) => !liveSlugs.has(p.slug))
-    .filter((p) => {
-      const scope = p.stationScope;
-      if (!scope) return false;
-      if (scope.mode === 'all') return true;
-      return primaryStationId ? scope.stationIds.includes(primaryStationId) : false;
-    });
-  const combined = [...liveRelevant, ...mockRelevant];
-  const relevantProcedures: ProcedureRowData[] = hasRoleOrStation
-    ? combined
-        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-        .slice(0, 4)
-        .map((p) => ({
-          href: withAs(`/${locale}/procedures/${p.slug}`, viewAs),
-          title: readsSpanish ? p.titleEs || p.titleEn : p.titleEn || p.titleEs,
-          meta: procedureMeta(p, roleName, stationName, t, readsSpanish),
-        }))
-    : [];
+  const titleOf = (p: { titleEn: string; titleEs: string }): string =>
+    readsSpanish ? p.titleEs || p.titleEn : p.titleEn || p.titleEs;
 
-  const firstName = firstNameOf(employee.name);
-  const greetingKey: GreetingKey = greetingForDate(new Date(now));
+  /* ---------------------------------------------------------- training -- */
+
+  // The training mock and the employee list share ids; the name match is the
+  // fallback for anyone the mock does not know.
+  const trainingId =
+    mockTrainingEmployees.find((e) => e.id === employee.id)?.id ??
+    mockTrainingEmployees.find((e) => e.name.toLowerCase() === employee.name.toLowerCase())?.id ??
+    employee.id;
+  const rows = getTrainingRowsForEmployee(trainingId, new Date(now));
+  const open = rows.filter((r) => r.effectiveStatus !== 'complete');
+  const overdue = open.filter((r) => r.effectiveStatus === 'overdue');
+  const done = rows.length - open.length;
+  const inFirstWeeks = now - new Date(employee.createdAt ?? 0).getTime() < FIRST_WEEKS;
+
+  // The one course to do next: anything late, then what is already started,
+  // then whatever falls due first.
+  const rank = (r: TrainingAssignmentRow): number =>
+    r.effectiveStatus === 'overdue' ? 0 : r.effectiveStatus === 'in_progress' ? 1 : 2;
+  const next = [...open].sort(
+    (a, b) => rank(a) - rank(b) || new Date(a.assignment.dueAt).getTime() - new Date(b.assignment.dueAt).getTime(),
+  )[0];
+
+  const training: TrainingSummary | null = rows.length
+    ? {
+        heading: inFirstWeeks && open.length ? t('firstWeeksHeading') : t('trainingAttentionHeading'),
+        doneLine: t('trainingDoneLine', { done, total: rows.length }),
+        overdueLine: overdue.length ? t('trainingOverdueLine', { count: overdue.length }) : undefined,
+        done,
+        total: rows.length,
+        next: next
+          ? {
+              href: `/${locale}/employee/training/${next.course.id}`,
+              title: titleOf(next.course),
+              pill:
+                next.effectiveStatus === 'overdue'
+                  ? { tone: 'bad', text: t('trainingOverdueChip') }
+                  : next.effectiveStatus === 'in_progress'
+                    ? { tone: 'progress', text: t('trainingInProgressChip') }
+                    : { tone: 'neutral', text: t('trainingNotStarted') },
+              when: dueLabel(next.assignment.dueAt, now, t),
+              action: next.effectiveStatus === 'in_progress' ? t('continueAction') : t('startAction'),
+            }
+          : undefined,
+        caughtUp: t('trainingCatchUpTitle'),
+        all: { href: `/${locale}/employee/training`, label: t('trainingSeeAll') },
+      }
+    : null;
+
+  // First weeks with work open, or anything late: the training is the day's work.
+  const trainingFirst = Boolean(training && ((inFirstWeeks && open.length > 0) || overdue.length > 0));
+
+  /* -------------------------------------------------------- procedures -- */
+
+  const forMyStation = (p: Procedure): boolean =>
+    Boolean(
+      stationId &&
+        ((p.stationScope?.mode === 'specific' && p.stationScope.stationIds.includes(stationId)) ||
+          (p.audience?.mode === 'some' && p.audience.stationIds.includes(stationId))),
+    );
+  const toRow = (p: Procedure, meta: string): HomeRow => {
+    const facts = factsOf(p, readsSpanish);
+    return {
+      key: p.id,
+      slug: p.slug,
+      updatedAt: p.updatedAt,
+      href: withAs(`/${locale}/procedures/${p.slug}`, viewAs),
+      cover: coverOf(p.bodyEn.blocks.length ? p.bodyEn.blocks : p.bodyEs.blocks),
+      category: p.category,
+      title: titleOf(p),
+      meta,
+      flags: { ...facts, allergens: allergenWords(facts.allergens, isEs ? 'es' : 'en') },
+    };
+  };
+  const categoryOf = (p: Procedure): string =>
+    p.category ? (readsSpanish ? p.category.nameEs || p.category.nameEn : p.category.nameEn) : t('uncategorised');
+  const rel = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+
+  // What changed lately in what this person works with: their station's, and
+  // the kitchen-wide procedures everyone follows.
+  const changed = procedures
+    .filter((p) => now - new Date(p.updatedAt).getTime() < CHANGED_WINDOW)
+    .filter((p) => forMyStation(p) || !p.stationScope || p.stationScope.mode === 'all')
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+    .slice(0, 3);
+  const changedIds = new Set(changed.map((p) => p.id));
+
+  // Their station's own procedures first, then the rest of what they can read.
+  const stationRows = procedures
+    .filter((p) => !changedIds.has(p.id))
+    .sort(
+      (a, b) =>
+        Number(forMyStation(b)) - Number(forMyStation(a)) ||
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+    )
+    .slice(0, 5);
+
+  const initials = employee.name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]!.toUpperCase())
+    .join('');
 
   return (
     <>
-      <main className="mx-auto w-full max-w-doc px-4 pb-20 pt-6 sm:px-6 sm:pt-8">
+      <main className="mx-auto w-full max-w-doc px-4 pb-24 pt-6 sm:px-6 sm:pt-8">
         <EmployeeHome
           locale={locale}
-          fullName={employee.name}
-          firstName={firstName}
-          whoLine={[roleName, stationName].filter(Boolean).join(' · ') || t('noStation')}
-          greetingKey={greetingKey}
-          searchHeading={t('askHeading')}
-          searchLabel={t('searchLabel')}
-          searchPlaceholder={t('searchPlaceholder')}
-          searchHint={t('searchHint')}
-          greetingMorning={t('greetingMorning', { name: firstName })}
-          greetingAfternoon={t('greetingAfternoon', { name: firstName })}
-          greetingEvening={t('greetingEvening', { name: firstName })}
-          training={{
-            title: t('trainingAttentionHeading'),
-            cards: trainingCards,
-            stats: trainingStats,
-            seeAll: { href: `/${locale}/employee/training`, label: t('trainingSeeAll') },
+          readsSpanish={readsSpanish}
+          who={{
+            name: employee.name,
+            initials,
+            // A dishwasher at the Dishwasher station read "Dishwasher · Dishwasher".
+            line: [...new Set([roleName, stationName].filter(Boolean))].join(' · ') || t('noStation'),
           }}
-          caughtUpTitle={t('trainingCatchUpTitle')}
-          caughtUpBody={t('trainingCatchUpBody')}
-          procedures={{
-            rows: relevantProcedures,
-            title: t('newForRoleHeading'),
-            seeAll: { href: `/${locale}/procedures`, label: t('trainingSeeAll') },
-            emptyBody: hasRoleOrStation ? t('newForRoleEmpty') : t('newForRoleEmptyNoRole'),
-            browseLabel: t('noProceduresHeading'),
-            browseHref: `/${locale}/procedures`,
+          ask={{
+            locale,
+            heading: t('askHeading'),
+            label: t('searchLabel'),
+            placeholder: t('askPlaceholder'),
+            hint: t('askHint'),
+            micLabel: t('micLabel'),
+            listeningLabel: t('micListening'),
           }}
-          errorBody={t('errorBody')}
-          errored={
-            loadError &&
-            trainingCards.length === 0 &&
-            completedCount === 0 &&
-            relevantProcedures.length === 0
-          }
+          training={training}
+          trainingFirst={trainingFirst}
+          backTo={{ heading: t('backToHeading'), opened: t.raw('openedAgo') as string }}
+          changed={{
+            heading: t('changedForYouHeading'),
+            rows: changed.map((p) =>
+              toRow(p, `${categoryOf(p)} · ${t('changedAgo', { when: relDays(p.updatedAt, now, rel) })}`),
+            ),
+          }}
+          station={{
+            // Named for the station only when something here is the station's own.
+            heading:
+              stationName && stationRows.some(forMyStation)
+                ? t('stationHeading', { station: stationName })
+                : t('forYouHeading'),
+            rows: stationRows.map((p) => toRow(p, categoryOf(p))),
+            all: { href: `/${locale}/procedures`, label: t('browseAll') },
+            empty: t('noProceduresBody'),
+          }}
+          flagLabels={{
+            allergen: (list) => t('flagAllergen', { list }),
+            critical: t('flagCritical'),
+            english: t('flagEnglishOnly'),
+          }}
         />
       </main>
 
@@ -250,90 +233,21 @@ export default async function EmployeeHomePage({ params }: PageProps): Promise<R
   );
 }
 
-function buildTrainingCard(
-  r: TrainingAssignmentRow,
-  now: number,
-  t: (k: string, v?: Record<string, string | number>) => string,
-  isEs: boolean,
-  locale: string,
-): TrainingCard {
-  const status = r.effectiveStatus;
-  const title = isEs ? r.course.titleEs || r.course.titleEn : r.course.titleEn || r.course.titleEs;
-  const href = `/${locale}/employee/training/${r.course.id}`;
-
-  let statusPill: TrainingCard['statusPill'];
-  let dueLabel: string;
-  let action: TrainingCard['action'] = 'start';
-
-  if (status === 'overdue') {
-    const overdueDays = Math.max(
-      1,
-      Math.round(-(new Date(r.assignment.dueAt).getTime() - now) / DAY_MS),
-    );
-    statusPill = { tone: 'bad', text: t('trainingOverdueChip') };
-    dueLabel = overdueDays === 1 ? t('trainingOverdueSince') : t('trainingOverdueBy', { days: overdueDays });
-    action = 'start';
-  } else if (status === 'in_progress') {
-    statusPill = { tone: 'progress', text: t('trainingInProgressChip') };
-    dueLabel = t('trainingInProgressChip');
-    action = 'continue';
-  } else {
-    // status === 'due'.
-    statusPill = { tone: 'warn', text: t('trainingDueSoonChip') };
-    dueLabel = dueLabelFor(r.assignment.dueAt, now, t);
-    action = 'start';
-  }
-
-  return {
-    href,
-    title,
-    statusPill,
-    dueLabel,
-    action,
-    actionLabel: action === 'continue' ? t('continueAction') : t('startAction'),
-  };
+function coverOf(blocks: ProcedureBlock[]): string | undefined {
+  const img = blocks.find((b) => b.kind === 'image' && b.src);
+  return img && img.kind === 'image' ? img.src : undefined;
 }
 
-// ---- Pure helpers ----
+function relDays(iso: string, now: number, rel: Intl.RelativeTimeFormat): string {
+  return rel.format(Math.round((new Date(iso).getTime() - now) / DAY), 'day');
+}
 
-function dueLabelFor(
-  dueAt: string,
-  now: number,
-  t: (k: string, v?: Record<string, string | number>) => string,
-): string {
-  const days = (new Date(dueAt).getTime() - now) / DAY_MS;
-  const d = Math.round(days);
-  if (d <= 0) return t('trainingDueToday');
+function dueLabel(dueAt: string, now: number, t: (k: string, v?: Record<string, string | number>) => string): string {
+  // Rounded up, as the Training tab counts, so both say the same number.
+  const d = Math.ceil((new Date(dueAt).getTime() - now) / DAY);
+  if (d < -1) return t('trainingOverdueBy', { days: -d });
+  if (d === -1) return t('trainingOverdueSince');
+  if (d === 0) return t('trainingDueToday');
   if (d === 1) return t('trainingDueTomorrow');
   return t('trainingDueInDays', { days: d });
-}
-
-function procedureMeta(
-  p: Procedure,
-  roleName: string | null,
-  stationName: string | null,
-  t: (k: string, v?: Record<string, string | number>) => string,
-  readsSpanish = false,
-): string {
-  // The procedure's category -- the fact that tells one row from the next. The
-  // reader's own role and station were printed on every row, the same words
-  // four times under a heading that already says "for your role & station".
-  // They stay as the fallback for a procedure with no category.
-  const category = p.category ? (readsSpanish ? p.category.nameEs || p.category.nameEn : p.category.nameEn) : '';
-  if (category) return category;
-  const tokens = [roleName, stationName].filter(Boolean);
-  if (tokens.length === 0) return t('noStation');
-  return tokens.join(' · ');
-}
-
-function firstNameOf(name: string): string {
-  const trimmed = name.trim();
-  if (!trimmed) return '';
-  const first = trimmed.split(/\s+/)[0]!;
-  // Some names carry a "Chef " honorific; keep the second token as the spoken
-  // name if it exists, otherwise fall back to the first word.
-  if (/^(chef|chefra[ií]l)$/i.test(first) && trimmed.split(/\s+/).length > 1) {
-    return trimmed.split(/\s+/)[1]!;
-  }
-  return first;
 }

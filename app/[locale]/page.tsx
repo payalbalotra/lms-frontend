@@ -21,7 +21,9 @@ export default async function LocaleRootPage({
     if (me.employee.role === 'admin') {
       redirect(`/${locale}/admin/library`);
     } else {
-      redirect(`/${locale}/employee/home`);
+      // An employee's interface is in their own language (PROJECT_OVERVIEW §02:
+      // "the interface, training, quizzes and AI answers all follow it").
+      redirect(`/${me.employee.languagePref || locale}/employee/home`);
     }
   } catch (err) {
     if (err instanceof ApiException) {

@@ -1,483 +1,236 @@
 import * as React from 'react';
 import Link from 'next/link';
-import { cn } from '@/lib/utils';
+import { Avatar } from '@/components/ui/avatar';
+import { StatusPill, type StatusTone } from '@/components/ui/status-pill';
 import { buttonClassName } from '@/components/ui/button';
-import { StatusPill } from '@/components/ui/status-pill';
-import type { Procedure } from '@/lib/types';
-import {
-  LuCheck,
-  LuChevronRight,
-  LuClock3,
-  LuPlay,
-  LuSearch,
-  LuArrowRight,
-} from 'react-icons/lu';
-import type { TrainingAssignmentRow } from '@/lib/types';
-
-/*
- * The cook's home, action-first.
- *
- * Visual hierarchy (per DESIGN.md §8 + product spec):
- *
- *   1. Identity + time-of-day greeting              — compact
- *   2. Search                                       — compact, always visible
- *   3. Training section                             — one small stacked card
- *                                                     per unfinished training
- *                                                     (overdue, due-soon,
- *                                                     in-progress, assigned
- *                                                     further out all share
- *                                                     the same card shape),
- *                                                     with an inline stats row
- *                                                     (assigned / completed /
- *                                                     all) at the top of the
- *                                                     section. Empty state is
- *                                                     a single ✓ "caught up"
- *                                                     line.
- *   4. Procedures relevant to role / station        — compact LIST ROWS, not
- *                                                     cards. Fills the page
- *                                                     with useful content
- *                                                     without competing with
- *                                                     the training cards.
- *
- * Completed training is intentionally absent from the visible cards — the
- * stats row carries the count and the Training tab holds the history.
- */
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-export type GreetingKey = 'greetingMorning' | 'greetingAfternoon' | 'greetingEvening';
-
-export function greetingForDate(date: Date): GreetingKey {
-  const h = date.getHours();
-  if (h < 12) return 'greetingMorning';
-  if (h < 18) return 'greetingAfternoon';
-  return 'greetingEvening';
-}
-
-// ---------------------------------------------------------------------------
-// WhoBar — identity row. Avatar + name + role/station line.
-// ---------------------------------------------------------------------------
-
-export function WhoBar({ name, line }: { name: string; line: string }): React.ReactElement {
-  const initials = name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0]!.toUpperCase())
-    .join('');
-  return (
-    <div className="flex items-center gap-3">
-      <span
-        aria-hidden="true"
-        className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-panel)] text-base font-semibold text-[var(--color-ink-2)]"
-      >
-        {initials}
-      </span>
-      <span className="min-w-0">
-        <span className="block truncate text-base font-semibold leading-heading text-[var(--color-ink)]">
-          {name}
-        </span>
-        <span className="block truncate text-base leading-meta text-[var(--color-ink-2)]">{line}</span>
-      </span>
-    </div>
-  );
-}
+import { ProcedureRow, type FlagLabels, type ProcedureFlags } from '@/components/employee/procedure-row';
+import { AskBox } from './AskBox';
+import { BackTo } from './BackTo';
+import { ChangedLately } from './ChangedLately';
+import { SectionHead } from './SectionHead';
 
 /**
- * "Good morning, Chef Raúl". The page picks the greeting key server-side, so
- * SSR and hydration agree (no clock drift in the first paint).
+ * The employee's home: a line cook, a dishwasher, an intern on their third day.
+ *
+ * One page for all of them, arranged by what this person needs now rather than
+ * by their job. Every section is there only when it has something in it, and
+ * the order changes in one place: someone in their first weeks, or with training
+ * past its date, sees their training first, because that is the work in front
+ * of them. Everyone else sees Ask first, the thing they open the app for
+ * mid-shift. (PROJECT_OVERVIEW §01: "procedures for their station, the training
+ * assigned to them, and a search box".)
+ *
+ *   who  ·  [training | ask]  ·  back to  ·  changed for your station  ·  your station
+ *
+ * It restores what the first home had and the second dropped -- Ask, the shared
+ * procedure row with its photo and its allergen and critical-step flags -- and
+ * keeps what the second added: the training progress the client asked for.
  */
-export function Greeting({
-  firstName,
-  greetingKey,
-  greetingMorning,
-  greetingAfternoon,
-  greetingEvening,
-}: {
-  firstName: string;
-  greetingKey: GreetingKey;
-  greetingMorning: string;
-  greetingAfternoon: string;
-  greetingEvening: string;
-}): React.ReactElement {
-  const greeting =
-    greetingKey === 'greetingMorning'
-      ? greetingMorning
-      : greetingKey === 'greetingAfternoon'
-        ? greetingAfternoon
-        : greetingEvening;
-  return (
-    <h1 className="mt-6 font-[family-name:var(--font-display)] text-2xl font-bold leading-display tracking-tight text-[var(--color-ink)] sm:text-3xl">
-      {greeting || firstName}
-    </h1>
-  );
-}
 
-// ---------------------------------------------------------------------------
-// SearchHero — submit to /procedures?q=…
-// ---------------------------------------------------------------------------
-
-export function SearchHero({
-  locale,
-  heading,
-  label,
-  placeholder,
-  hint,
-}: {
-  locale: string;
-  heading: string;
-  label: string;
-  placeholder: string;
-  hint: string;
-}): React.ReactElement {
-  return (
-    <section aria-labelledby="ask-h" className="mt-6">
-      <p
-        id="ask-h"
-        className="font-[family-name:var(--font-ui)] text-md font-semibold leading-heading text-[var(--color-ink)]"
-      >
-        {heading}
-      </p>
-      <form action={`/${locale}/procedures`} role="search" className="mt-3">
-        <label htmlFor="q" className="sr-only">
-          {label}
-        </label>
-        <div className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--color-line-3)] bg-[var(--color-surface)] px-4 py-1 transition-colors duration-[var(--dur)] ease-[var(--ease)] focus-within:border-[var(--color-brand)]">
-          <LuSearch aria-hidden="true" className="text-lg text-[var(--color-ink-2)]" />
-          <input
-            id="q"
-            name="q"
-            type="search"
-            placeholder={placeholder}
-            className="h-tap min-w-0 flex-1 border-0 bg-transparent text-base text-[var(--color-ink)] outline-none placeholder:text-[var(--color-ink-3)]"
-          />
-          <button
-            type="submit"
-            aria-label={label}
-            className="inline-flex size-12 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand-600)] text-white transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:bg-[var(--color-brand-hover)]"
-          >
-            <LuArrowRight aria-hidden="true" className="text-lg" />
-          </button>
-        </div>
-      </form>
-      <p className="mt-2 text-base text-[var(--color-ink-2)]">{hint}</p>
-    </section>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// SectionHead — small uppercase eyebrow shared by the three sections.
-// ---------------------------------------------------------------------------
-
-function SectionHead({
-  id,
-  title,
-  seeAll,
-}: {
-  /** The section's aria-labelledby points here. */
-  id?: string;
-  title: string;
-  seeAll?: { href: string; label: string };
-}): React.ReactElement {
-  return (
-    // Sentence case at the heading size the rest of the employee side uses
-    // ("Due now", "Browse by category"). Tracked capitals are the label style
-    // this system removed everywhere else.
-    <div className="flex items-baseline justify-between gap-3">
-      <h2 id={id} className="text-lg font-semibold leading-heading text-[var(--color-ink)]">
-        {title}
-      </h2>
-      {seeAll ? (
-        <Link
-          href={seeAll.href}
-          className="inline-flex min-h-tap shrink-0 items-center gap-1 whitespace-nowrap text-sm font-semibold text-[var(--color-brand-700)]"
-        >
-          {seeAll.label}
-          <LuChevronRight aria-hidden="true" />
-        </Link>
-      ) : null}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// TrainingStackSection — one small stacked card per unfinished training.
-// All statuses (overdue, due-soon, in-progress, assigned further out) share
-// the same card shape so the list reads as a single queue. A compact stats
-// row sits at the top of the section (assigned / completed / all counts).
-// ---------------------------------------------------------------------------
-
-export type TrainingCard = {
+export interface HomeRow {
+  key: string;
+  slug: string;
+  updatedAt: string;
   href: string;
-  title: string;
-  statusPill: { tone: 'bad' | 'warn' | 'progress' | 'neutral'; text: string };
-  /** Trailing text under the title — e.g. "Due in 3 days" or "Started 2 days ago". */
-  dueLabel: string;
-  /** "start" or "continue". */
-  action: 'start' | 'continue';
-  actionLabel: string;
-};
-
-export type TrainingStats = {
-  /** Completed assignments. */
-  completed: number;
-  /** Total assignments (assigned + completed). */
-  total: number;
-  /** Localised "{done} of {total} completed" string. */
-  progressLabel: string;
-  /** Localised "# remaining" string. */
-  remainingLabel: string;
-};
-
-export function TrainingStackSection({
-  title,
-  cards,
-  stats,
-  caughtUpTitle,
-  caughtUpBody,
-  seeAll,
-}: {
-  /** It was the literal "Your training", so the Spanish home said it in English. */
-  title: string;
-  cards: TrainingCard[];
-  stats: TrainingStats;
-  caughtUpTitle: string;
-  caughtUpBody: string;
-  seeAll?: { href: string; label: string };
-}): React.ReactElement {
-  const isCaughtUp = cards.length === 0;
-
-  // Progress 0..1 — derived from completed / total so the bar reads the same
-  // whether the cook is fully caught up (1.0) or just starting (0). Capped at
-  // 0 if there are no assignments at all (no bar to draw).
-  const progressPercent =
-    stats.total > 0 ? Math.min(100, Math.max(0, (stats.completed / stats.total) * 100)) : 0;
-
-  return (
-    <section aria-labelledby="training-h" className="mt-12 first:mt-8">
-      <SectionHead id="training-h" title={title} seeAll={seeAll} />
-
-      <div className="mt-3 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3">
-        <div className="flex items-baseline justify-between gap-3 text-sm">
-          <span className="font-semibold text-[var(--color-ink)]">{stats.progressLabel}</span>
-          <span className="text-[var(--color-ink-2)]">{stats.remainingLabel}</span>
-        </div>
-        <div
-          className="progress mt-2"
-          role="progressbar"
-          aria-label={stats.progressLabel}
-          aria-valuenow={Math.round(progressPercent)}
-          aria-valuemin={0}
-          aria-valuemax={100}
-        >
-          <div className="track">
-            <i style={{ width: `${Math.max(2, progressPercent)}%` }} />
-          </div>
-        </div>
-      </div>
-
-      {isCaughtUp ? (
-        <div className="mt-3 flex items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3">
-          <span
-            aria-hidden="true"
-            className="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-[var(--color-ok-tint)] text-[var(--color-ok)]"
-          >
-            <LuCheck className="text-base" />
-          </span>
-          <span className="flex min-w-0 flex-col">
-            <span className="font-semibold leading-heading text-[var(--color-ink)]">{caughtUpTitle}</span>
-            <span className="text-sm text-[var(--color-ink-2)]">{caughtUpBody}</span>
-          </span>
-        </div>
-      ) : (
-        <ul className="mt-3 divide-y divide-[var(--color-line)] overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)]">
-          {/* The courses as rows, the shape the section below and the training
-              page already give the same kind of thing. As a grid of cards in this
-              630px column they broke titles over three lines, left an orphan card
-              beside a hole, and made the one action of each a button of its own;
-              the row itself is the way in, as it is for every procedure below. */}
-          {cards.slice(0, 6).map((r) => (
-            <li key={r.href}>
-              <Link
-                href={r.href}
-                aria-label={`${r.actionLabel}: ${r.title}`}
-                className="flex min-h-tap items-center gap-3 px-4 py-3 transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:bg-[var(--color-wash)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-ring)]"
-              >
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-md font-semibold leading-heading text-[var(--color-ink)]">{r.title}</span>
-                  {/* An in-progress course's due line was the words "In progress",
-                      the pill beside it said again. */}
-                  {r.dueLabel !== r.statusPill.text ? (
-                    <span className="mt-0.5 block truncate text-sm leading-meta text-[var(--color-ink-2)]">{r.dueLabel}</span>
-                  ) : null}
-                </span>
-                <StatusPill tone={r.statusPill.tone} withDot className="shrink-0">
-                  {r.statusPill.text}
-                </StatusPill>
-                <span aria-hidden="true" className="text-xl text-[var(--color-ink-3)]">
-                  <LuChevronRight />
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// RelevantProceduresSection — compact list rows. Fills the page with useful
-// content without competing with the training card.
-// ---------------------------------------------------------------------------
-
-export type ProcedureRowData = {
-  href: string;
+  cover?: string;
+  category: React.ComponentProps<typeof ProcedureRow>['category'];
   title: string;
   meta: string;
-};
-
-export function RelevantProceduresSection({
-  rows,
-  title,
-  seeAll,
-  emptyBody,
-  emptyBrowseLabel,
-  emptyBrowseHref,
-}: {
-  rows: ProcedureRowData[];
-  title: string;
-  seeAll?: { href: string; label: string };
-  emptyBody: string;
-  emptyBrowseLabel?: string;
-  emptyBrowseHref?: string;
-}): React.ReactElement {
-  return (
-    <section aria-labelledby="relevant-h" className="mt-12">
-      <SectionHead id="relevant-h" title={title} seeAll={seeAll} />
-      {rows.length === 0 ? (
-        <div className="mt-3 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-4">
-          <p className="text-base text-[var(--color-ink-2)]">{emptyBody}</p>
-          {emptyBrowseLabel && emptyBrowseHref ? (
-            <Link
-              href={emptyBrowseHref}
-              className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-[var(--color-brand-700)]"
-            >
-              {emptyBrowseLabel}
-              <LuChevronRight aria-hidden="true" />
-            </Link>
-          ) : null}
-        </div>
-      ) : (
-        <ul className="mt-3 divide-y divide-[var(--color-line)] overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)]">
-          {rows.slice(0, 4).map((r) => (
-            <li key={r.href}>
-              <Link
-                href={r.href}
-                className="flex min-h-tap items-center gap-3 px-4 py-3 transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:bg-[var(--color-wash)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-ring)]"
-              >
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-md font-semibold leading-heading text-[var(--color-ink)]">{r.title}</span>
-                  <span className="mt-0.5 block truncate text-sm leading-meta text-[var(--color-ink-2)]">{r.meta}</span>
-                </span>
-                <span aria-hidden="true" className="text-xl text-[var(--color-ink-3)]">
-                  <LuChevronRight />
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
+  flags: ProcedureFlags;
 }
 
-// ---------------------------------------------------------------------------
-// Top-level composition
-// ---------------------------------------------------------------------------
+export interface TrainingSummary {
+  heading: string;
+  /** "1 of 4 done". */
+  doneLine: string;
+  /** "1 overdue", only when something is. */
+  overdueLine?: string;
+  done: number;
+  total: number;
+  /** The one thing to do next; absent when everything is done. */
+  next?: { href: string; title: string; pill: { tone: StatusTone; text: string }; when: string; action: string };
+  caughtUp: string;
+  all: { href: string; label: string };
+}
 
 export function EmployeeHome({
   locale,
-  greetingKey,
-  firstName,
-  fullName,
-  whoLine,
-  searchHeading,
-  searchLabel,
-  searchPlaceholder,
-  searchHint,
-  greetingMorning,
-  greetingAfternoon,
-  greetingEvening,
+  readsSpanish,
+  who,
+  ask,
   training,
-  procedures,
-  caughtUpTitle,
-  caughtUpBody,
-  errored = false,
-  errorBody,
+  trainingFirst,
+  backTo,
+  changed,
+  station,
+  flagLabels,
 }: {
   locale: string;
-  greetingKey: GreetingKey;
-  firstName: string;
-  fullName: string;
-  whoLine: string;
-  searchHeading: string;
-  searchLabel: string;
-  searchPlaceholder: string;
-  searchHint: string;
-  greetingMorning: string;
-  greetingAfternoon: string;
-  greetingEvening: string;
-  training: { title: string; cards: TrainingCard[]; stats: TrainingStats; seeAll?: { href: string; label: string } };
-  procedures: { rows: ProcedureRowData[]; title: string; seeAll?: { href: string; label: string }; emptyBody: string; browseLabel?: string; browseHref?: string };
-  caughtUpTitle: string;
-  caughtUpBody: string;
-  errored?: boolean;
-  errorBody: string;
+  readsSpanish: boolean;
+  who: { name: string; initials: string; line: string };
+  ask: React.ComponentProps<typeof AskBox>;
+  training: TrainingSummary | null;
+  trainingFirst: boolean;
+  backTo: { heading: string; opened: string };
+  changed: { heading: string; rows: HomeRow[] };
+  station: { heading: string; rows: HomeRow[]; all: { href: string; label: string }; empty: string };
+  flagLabels: FlagLabels;
 }): React.ReactElement {
+  const trainingBlock = training ? <Training summary={training} first={trainingFirst} /> : null;
+
   return (
     <>
-      <WhoBar name={fullName} line={whoLine} />
-      <Greeting
-        firstName={firstName}
-        greetingKey={greetingKey}
-        greetingMorning={greetingMorning}
-        greetingAfternoon={greetingAfternoon}
-        greetingEvening={greetingEvening}
-      />
-      <SearchHero
-        locale={locale}
-        heading={searchHeading}
-        label={searchLabel}
-        placeholder={searchPlaceholder}
-        hint={searchHint}
+      {/* Who is signed in, once. The top bar says it too, in small type; the
+          greeting that said it a third time is gone. */}
+      <div className="flex items-center gap-3">
+        <Avatar initials={who.initials} />
+        <span className="min-w-0">
+          <span className="block truncate text-base font-semibold leading-heading text-[var(--color-ink)]">{who.name}</span>
+          <span className="block truncate text-sm leading-meta text-[var(--color-ink-2)]">{who.line}</span>
+        </span>
+      </div>
+
+      {trainingFirst ? (
+        <>
+          {trainingBlock}
+          <div className="mt-12">
+            <AskBox {...ask} />
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="mt-8">
+            <AskBox {...ask} />
+          </div>
+          {trainingBlock}
+        </>
+      )}
+
+      {/* Back to a recipe left half-read: read on the device, absent until one is opened. */}
+      <BackTo locale={locale} heading={backTo.heading} openedLabel={backTo.opened} readsSpanish={readsSpanish} />
+
+      <ChangedLately
+        heading={changed.heading}
+        items={changed.rows.map((r) => ({
+          key: r.key,
+          slug: r.slug,
+          updatedAt: r.updatedAt,
+          row: (
+            <ProcedureRow
+              href={r.href}
+              cover={r.cover}
+              category={r.category}
+              title={r.title}
+              meta={r.meta}
+              flags={r.flags}
+              flagLabels={flagLabels}
+            />
+          ),
+        }))}
       />
 
-      {errored ? (
-        <p className="mt-8 rounded-[var(--radius-lg)] border border-[var(--color-bad-tint)] bg-[var(--color-bad-tint)] px-4 py-3 text-base text-[var(--color-bad)]">
-          {errorBody}
-        </p>
-      ) : null}
-
-      <TrainingStackSection
-        title={training.title}
-        cards={training.cards}
-        stats={training.stats}
-        caughtUpTitle={caughtUpTitle}
-        caughtUpBody={caughtUpBody}
-        seeAll={training.seeAll}
-      />
-
-      <RelevantProceduresSection
-        rows={procedures.rows}
-        title={procedures.title}
-        seeAll={procedures.seeAll}
-        emptyBody={procedures.emptyBody}
-        emptyBrowseLabel={procedures.browseLabel}
-        emptyBrowseHref={procedures.browseHref}
+      <Rows
+        id="station-h"
+        heading={station.heading}
+        rows={station.rows}
+        flagLabels={flagLabels}
+        all={station.all}
+        empty={station.empty}
       />
     </>
   );
 }
 
-export type { TrainingAssignmentRow, Procedure };
+/**
+ * Where this person stands and what to do next. The whole list lives on the
+ * Training tab; the home carries the count, a bar, and the one next course, so
+ * it answers "how much have I done" and "what now" without becoming the list.
+ */
+function Training({ summary, first }: { summary: TrainingSummary; first: boolean }): React.ReactElement {
+  const pct = summary.total ? Math.round((summary.done / summary.total) * 100) : 0;
+  return (
+    <section aria-labelledby="training-h" className={first ? 'mt-8' : 'mt-12'}>
+      <SectionHead id="training-h" title={summary.heading} all={summary.all} />
+      <div className="mt-4 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-4">
+        <p className="flex flex-wrap items-baseline gap-x-2 text-base">
+          <span className="font-semibold text-[var(--color-ink)]">{summary.doneLine}</span>
+          {summary.overdueLine ? (
+            <span className="font-semibold text-[var(--color-bad)]">· {summary.overdueLine}</span>
+          ) : null}
+        </p>
+        <div
+          role="progressbar"
+          aria-label={summary.doneLine}
+          aria-valuemin={0}
+          aria-valuemax={summary.total}
+          aria-valuenow={summary.done}
+          className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--color-panel)]"
+        >
+          <div className="h-full rounded-full bg-[var(--color-ok-fill)]" style={{ width: `${pct}%` }} />
+        </div>
+
+        {summary.next ? (
+          <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-[var(--color-line)] pt-4">
+            <span className="min-w-0 flex-1 basis-48">
+              <span className="block font-semibold leading-heading text-[var(--color-ink)]">{summary.next.title}</span>
+              <span className="mt-1 flex flex-wrap items-center gap-2 text-sm text-[var(--color-ink-2)]">
+                <StatusPill tone={summary.next.pill.tone} withDot>
+                  {summary.next.pill.text}
+                </StatusPill>
+                {summary.next.when}
+              </span>
+            </span>
+            <Link href={summary.next.href} className={buttonClassName({ variant: 'primary', className: 'min-h-tap w-full sm:w-auto' })}>
+              {summary.next.action}
+            </Link>
+          </div>
+        ) : (
+          <p className="mt-4 border-t border-[var(--color-line)] pt-4 font-semibold text-[var(--color-ok)]">{summary.caughtUp}</p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function Rows({
+  id,
+  heading,
+  rows,
+  flagLabels,
+  all,
+  empty,
+}: {
+  id: string;
+  heading: string;
+  rows: HomeRow[];
+  flagLabels: FlagLabels;
+  all?: { href: string; label: string };
+  /** Shown instead of hiding the section; without it an empty section is left out. */
+  empty?: string;
+}): React.ReactElement | null {
+  if (rows.length === 0 && !empty) return null;
+  return (
+    <section aria-labelledby={id} className="mt-12">
+      <SectionHead id={id} title={heading} all={all} />
+      {rows.length === 0 ? (
+        <p className="mt-4 text-base text-[var(--color-ink-2)]">{empty}</p>
+      ) : (
+        <ul className="mt-4 space-y-3">
+          {rows.map((r) => (
+            <li key={r.key}>
+              <ProcedureRow
+                href={r.href}
+                cover={r.cover}
+                category={r.category}
+                title={r.title}
+                meta={r.meta}
+                flags={r.flags}
+                flagLabels={flagLabels}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}

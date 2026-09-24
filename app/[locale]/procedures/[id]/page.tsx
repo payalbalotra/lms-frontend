@@ -51,6 +51,8 @@ export default async function ProcedurePage({ params }: PageProps): Promise<Reac
 
   const labels = {
     back: t('back'),
+    print: t('print'),
+    updatedOn: t.raw('updatedOn') as string,
     uncategorised: t('uncategorised'),
     factCategory: t('factCategory'),
     factStatus: t('factStatus'),

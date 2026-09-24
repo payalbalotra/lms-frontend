@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { setRequestLocale } from 'next-intl/server';
 import { listCategories, listLocations, ApiException } from '@/lib/api';
 import type { Category } from '@/lib/types';
-import { NewProcedureForm } from './new-procedure-form';
+import { ProcedureEditor } from '@/components/admin/procedure-editor';
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -11,9 +11,7 @@ interface PageProps {
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminLibraryNewPage({
-  params,
-}: PageProps): Promise<React.ReactElement> {
+export default async function AdminLibraryNewPage({ params }: PageProps): Promise<React.ReactElement> {
   const { locale } = await params;
   setRequestLocale(locale);
 
@@ -23,36 +21,13 @@ export default async function AdminLibraryNewPage({
     .map((c) => `${c.name}=${c.value}`)
     .join('; ');
 
-  // The editor dropdown is a single location's active categories. We need a
-  // locationId; the manager's employee carries one. Without it, fall back
-  // to an empty list (the form still renders an "Uncategorised" choice).
-  const locations = await readActiveLocations(cookieHeader);
-  const categories: Category[] = locations.length === 0 ? [] : await readCategories(locations[0], cookieHeader);
-
-  return (
-    <div className="w-full">
-      <NewProcedureForm locale={locale} categories={categories} />
-    </div>
-  );
-}
-
-// Returns the locations the signed-in admin manages, so we know which
-// location's category list to pull.
-async function readActiveLocations(cookieHeader: string): Promise<string[]> {
+  let categories: Category[] = [];
   try {
-    const res = await listLocations(cookieHeader);
-    return res.locations.map((l) => l.id);
-  } catch {
-    return [];
-  }
-}
-
-async function readCategories(locationId: string, cookieHeader: string): Promise<Category[]> {
-  try {
-    const result = await listCategories(locationId, {}, cookieHeader);
-    return result.categories;
+    const { locations } = await listLocations(cookieHeader);
+    if (locations[0]) categories = (await listCategories(locations[0].id, {}, cookieHeader)).categories;
   } catch (err) {
-    if (err instanceof ApiException) return [];
-    throw err;
+    if (!(err instanceof ApiException)) throw err;
   }
+
+  return <ProcedureEditor locale={locale} categories={categories} />;
 }

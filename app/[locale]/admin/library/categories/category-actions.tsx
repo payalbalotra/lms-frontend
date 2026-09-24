@@ -113,7 +113,7 @@ export function CategoryActions({ category }: CategoryActionsProps): React.React
     <>
       <RowActions
         items={items}
-        triggerLabel={`${tCommon('rowActionsLabel')} — ${category.nameEn}`}
+        triggerLabel={`${tCommon('rowActionsLabel')}: ${category.nameEn}`}
         className={pending ? 'pointer-events-none opacity-50' : undefined}
       />
       {error ? (

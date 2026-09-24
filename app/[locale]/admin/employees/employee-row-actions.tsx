@@ -107,7 +107,7 @@ export function EmployeeRowActions({ locale, employee }: EmployeeRowActionsProps
     <div className="flex flex-col items-end gap-2">
       <RowActions
         items={buildItems()}
-        triggerLabel={`${t('rowActionsLabel')} — ${employee.name}`}
+        triggerLabel={`${t('rowActionsLabel')}: ${employee.name}`}
       />
       {resendError ? (
         <p role="alert" className="text-sm text-[var(--color-bad)]">

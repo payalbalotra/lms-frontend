@@ -52,7 +52,7 @@ const knifeQuizQuestions: ProcedureQuizQuestion[] = [
       es: '¿Cómo se le pasa un cuchillo a otro cocinero?',
     },
     choices: [
-      { id: 'kn-q2-a', label: { en: 'Blade first — they take the tip to control it.', es: 'Primero el filo — ellos agarran la punta para controlarlo.' } },
+      { id: 'kn-q2-a', label: { en: 'Blade first, so they take the tip to control it.', es: 'Primero el filo, así agarran la punta para controlarlo.' } },
       { id: 'kn-q2-b', label: { en: 'Handle first, announce "Knife behind you".', es: 'Por el mango, diciendo "Cuchillo detrás de usted".' } },
       { id: 'kn-q2-c', label: { en: 'Lay it on a board and step aside.', es: 'Ponerlo sobre una tabla y hacerse a un lado.' } },
     ],
@@ -69,7 +69,7 @@ const allergenQuizQuestions: ProcedureQuizQuestion[] = [
     },
     choices: [
       { id: 'al-q1-a', label: { en: 'Five', es: 'Cinco' } },
-      { id: 'al-q1-b', label: { en: 'All of them — nine', es: 'Todos — nueve' } },
+      { id: 'al-q1-b', label: { en: 'All nine of them', es: 'Los nueve' } },
       { id: 'al-q1-c', label: { en: 'Only the ones on the current ticket', es: 'Solo los de la comanda actual' } },
     ],
     correctChoiceId: 'al-q1-b',
@@ -81,8 +81,8 @@ const allergenQuizQuestions: ProcedureQuizQuestion[] = [
       es: 'Una comanda con alérgenos y una regular del mismo cliente llegan juntas. ¿Cuál va primero?',
     },
     choices: [
-      { id: 'al-q2-a', label: { en: 'The regular ticket — speed matters.', es: 'La regular — la velocidad importa.' } },
-      { id: 'al-q2-b', label: { en: 'The allergen ticket — always.', es: 'La de alérgenos — siempre.' } },
+      { id: 'al-q2-a', label: { en: 'The regular ticket. Speed matters.', es: 'La regular. La velocidad importa.' } },
+      { id: 'al-q2-b', label: { en: 'The allergen ticket, always.', es: 'La de alérgenos, siempre.' } },
       { id: 'al-q2-c', label: { en: 'Whichever the manager picks.', es: 'La que el gerente elija.' } },
     ],
     correctChoiceId: 'al-q2-b',
@@ -134,7 +134,7 @@ export const SEED_QUIZZES: Quiz[] = [
         choices: [
           { id: 'c1', label: { en: 'Wipe with a clean towel', es: 'Secar con un paño limpio' } },
           { id: 'c2', label: { en: 'Use paper towel and discard it', es: 'Usar papel absorbente y desecharlo' } },
-          { id: 'c3', label: { en: 'Let it air dry — do not towel it', es: 'Dejar secar al aire — no usar paño' } },
+          { id: 'c3', label: { en: 'Let it air dry; do not towel it', es: 'Dejar secar al aire; no usar paño' } },
           { id: 'c4', label: { en: 'Blow on it until dry', es: 'Soplar hasta que se seque' } },
         ],
         correctChoiceId: 'c3',

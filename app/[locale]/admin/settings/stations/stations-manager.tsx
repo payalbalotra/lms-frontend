@@ -287,7 +287,7 @@ export function StationsManager({
                           ) : (
                             <RowActions
                               items={rowItemsFor(s)}
-                              triggerLabel={`${t('rowActionsLabel')} — ${s.name}`}
+                              triggerLabel={`${t('rowActionsLabel')}: ${s.name}`}
                             />
                           )}
                         </td>

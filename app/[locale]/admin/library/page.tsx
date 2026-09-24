@@ -238,7 +238,6 @@ export default async function AdminLibraryPage({
           that nothing else offers, which here is one thing: start a procedure. */}
       <PageHeader
         title={t('pageTitle')}
-        subtitle={t('pageSubtitle')}
         actions={
           <Link href={`/${locale}/admin/library/new`}>
             <Button icon={LuPlus}>{t('newProcedure')}</Button>

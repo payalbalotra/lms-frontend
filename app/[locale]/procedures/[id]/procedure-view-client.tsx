@@ -13,14 +13,18 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { getProcedureBySlug, getQuizById, updateQuiz } from '@/lib/api';
+import { getProcedureBySlug, getQuizById, logRestrictedView, updateQuiz } from '@/lib/api';
 import type { Employee, Procedure, ProcedureBlock } from '@/lib/types';
 import { withAs, type ViewAs } from '@/lib/view-as';
 import { BlockRenderer, findAllergen } from '@/components/doc/block-renderer';
 import { QuizAttachBanner, QuizReader } from '@/components/doc/quiz-reader';
-import { Allergen, Cover, DocActs, DocBar, DocControl, DocHead, DocPurpose, Facts } from '@/components/doc';
+import { Allergen, Cover, DocBar, DocControl, DocHead, DocPurpose, Facts } from '@/components/doc';
+import { LuPrinter } from 'react-icons/lu';
+import { Button } from '@/components/ui/button';
 import { DocBehaviour } from '@/components/doc/doc-behaviour';
 import { TabBar } from '@/components/employee/tab-bar';
+import { Watermark } from '@/components/doc/watermark';
+import { recordRecentView } from '@/lib/recent-views';
 import { LuArrowLeft } from 'react-icons/lu';
 
 interface ProcedureViewClientProps {
@@ -34,6 +38,8 @@ interface ProcedureViewClientProps {
   viewAs: ViewAs | null;
   locale: string;
   labels: {
+    print: string;
+    updatedOn: string;
     back: string;
     uncategorised: string;
     factCategory: string;
@@ -102,6 +108,29 @@ export function ProcedureViewClient({
       setIsLoading(false);
     }
   }, [slugOrId, proc]);
+
+  // Remembered on this device, so the home can offer the way back to it.
+  React.useEffect(() => {
+    if (!proc) return;
+    const blocks = proc.bodyEn.blocks.length ? proc.bodyEn.blocks : proc.bodyEs.blocks;
+    const img = blocks.find((b) => b.kind === 'image' && b.src);
+    recordRecentView({
+      slug: proc.slug,
+      titleEn: proc.titleEn,
+      titleEs: proc.titleEs,
+      cover: img && img.kind === 'image' ? img.src : undefined,
+    });
+    // Once per procedure opened.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [proc?.id]);
+
+  // A confidential or master recipe records who opened it, once per visit.
+  const protectedId = proc && (proc.protection === 'confidential' || proc.protection === 'master') ? proc.id : null;
+  React.useEffect(() => {
+    if (protectedId && proc) logRestrictedView(proc, employee);
+    // Once per procedure opened, not on every re-render of it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [protectedId, employee.id]);
 
   const handleAttach = React.useCallback(async () => {
     if (!proc || !proc.quizId) return;
@@ -190,11 +219,16 @@ export function ProcedureViewClient({
     return (
       <div className={notFoundClass}>
         <div className="mx-auto max-w-card space-y-4">
+          {/* The same words whether it was deleted or is not this person's to
+              read: a restricted document must not be known to exist. In the
+              reader's language, and without the URL's slug. */}
           <h1 className="font-[family-name:var(--font-display)] text-3xl font-bold text-[var(--color-ink)]">
-            404 — Procedure Not Found
+            {locale === 'es' ? 'Este procedimiento no está disponible' : 'This procedure isn’t available'}
           </h1>
-          <p className="text-sm text-[var(--color-ink-2)]">
-            The procedure <code className="font-mono">{slugOrId}</code> could not be found or may have been deleted.
+          <p className="text-base text-[var(--color-ink-2)]">
+            {locale === 'es'
+              ? 'Puede que se haya quitado o movido. Pregunta a tu gerente si lo necesitas.'
+              : 'It may have been removed or moved. Ask your manager if you need it.'}
           </p>
           <div className="pt-4">
             <Link
@@ -224,7 +258,7 @@ export function ProcedureViewClient({
   const categoryLabel = cat ? (isEs ? cat.nameEs || cat.nameEn : cat.nameEn || cat.nameEs) : labels.uncategorised;
   const iconName = cat?.slug ? `category-${cat.slug}` : 'file-text';
 
-  let updated = '—';
+  let updated = '';
   try {
     const rawDate = proc.updatedAt || proc.createdAt;
     if (rawDate) {
@@ -233,7 +267,7 @@ export function ProcedureViewClient({
       );
     }
   } catch {
-    updated = '—';
+    updated = '';
   }
 
   const languages = [proc.titleEn?.trim() ? 'EN' : null, bodyEsBlocks.length > 0 ? 'ES' : null]
@@ -253,6 +287,9 @@ export function ProcedureViewClient({
 
   return (
     <div className={wrapperClass}>
+      {proc.protection === 'confidential' || proc.protection === 'master' ? (
+        <Watermark name={employee.name} locale={locale} />
+      ) : null}
       {showAttachBanner && !bannerDismissed ? (
         <div className="mx-auto w-full max-w-doc px-4 pt-6 sm:px-6">
           <QuizAttachBanner
@@ -271,7 +308,7 @@ export function ProcedureViewClient({
             article — the same shape other admin detail pages use to climb
             back out to the list. */}
         {isAdmin ? (
-          <div className="px-4 pt-6 sm:px-6">
+          <div className="flex items-center justify-between gap-3 px-4 pt-6 sm:px-6">
             <Link
               href={backHref}
               onClick={(e) => {
@@ -285,6 +322,10 @@ export function ProcedureViewClient({
               <LuArrowLeft aria-hidden="true" />
               {labels.back}
             </Link>
+            {/* Printing for the station is the manager's job as much as the cook's. */}
+            <Button type="button" variant="neutral" size="sm" icon={LuPrinter} onClick={() => window.print()}>
+              {labels.print}
+            </Button>
           </div>
         ) : (
           <DocBar
@@ -293,14 +334,18 @@ export function ProcedureViewClient({
             onBack={hasReferrer ? onBack : undefined}
             title={title || 'Untitled Procedure'}
             category={categoryLabel}
+            action={{ label: labels.print, icon: LuPrinter, onClick: () => window.print() }}
           />
         )}
 
         {cover ? <Cover src={cover.src} alt={cover.alt} /> : null}
 
+        {/* For a cook: the category once, with when it last changed, and no
+            tile. The status, the languages and the document control are the
+            manager's facts; they stay on the admin's view. */}
         <DocHead
-          icon={iconName}
-          category={categoryLabel}
+          icon={isAdmin ? iconName : undefined}
+          category={isAdmin ? categoryLabel : `${categoryLabel} · ${labels.updatedOn.replace('{date}', updated)}`}
           title={title || 'Untitled Procedure'}
           withCover={Boolean(cover)}
         />
@@ -316,6 +361,7 @@ export function ProcedureViewClient({
 
         {purpose ? <DocPurpose>{purpose}</DocPurpose> : null}
 
+        {isAdmin ? (
         <Facts
           items={[
             { icon: 'folder', label: labels.factCategory, value: categoryLabel },
@@ -329,6 +375,7 @@ export function ProcedureViewClient({
             { icon: 'languages', label: labels.factLanguages, value: languages || 'EN' },
           ]}
         />
+        ) : null}
 
         {englishOnly ? (
           <p className="doc-sec">
@@ -344,8 +391,7 @@ export function ProcedureViewClient({
           <QuizReader quiz={quiz} locale={isEs ? 'es' : 'en'} />
         ) : null}
 
-        <DocActs />
-
+        {isAdmin ? (
         <DocControl
           entries={[
             { label: labels.ctlReference, value: proc.slug },
@@ -354,6 +400,7 @@ export function ProcedureViewClient({
             { label: labels.ctlLanguages, value: languages || 'EN' },
           ]}
         />
+        ) : null}
       </article>
 
       {isAdmin ? null : (

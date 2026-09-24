@@ -2,6 +2,7 @@ import type {
   AdminEmployee,
   ApiError,
   Category,
+  ClearanceLevel,
   CreateEmployeeInput,
   CreateLocationInput,
   CreateProcedureInput,
@@ -277,6 +278,75 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     locationName: 'Almentria Mexicana - Main Kitchen',
     roleClearance: 'general',
   },
+  {
+    id: 'emp-001',
+    name: 'Marisol Ruiz',
+    locationId: 'loc-main',
+    accessLevel: 'employee',
+    roleIds: ['role-prep'],
+    stationIds: ['stn-gm'],
+    clearanceLevel: 'general',
+    role: 'employee',
+    languagePref: 'es',
+    employeeCode: 'EMP-004',
+    status: 'active',
+    createdAt: '2026-09-20T00:00:00Z',
+    deactivatedAt: null,
+    locationName: 'Almentria Mexicana - Main Kitchen',
+    roleClearance: 'general',
+  },
+  {
+    id: 'emp-004',
+    name: 'Hiro Watanabe',
+    locationId: 'loc-main',
+    accessLevel: 'employee',
+    roleIds: ['role-cook'],
+    stationIds: ['stn-grill'],
+    clearanceLevel: 'station',
+    role: 'employee',
+    languagePref: 'en',
+    employeeCode: 'EMP-005',
+    status: 'active',
+    createdAt: '2026-08-20T00:00:00Z',
+    deactivatedAt: null,
+    locationName: 'Almentria Mexicana - Main Kitchen',
+    roleClearance: 'station',
+  },
+  {
+    id: 'emp-006',
+    name: 'Ana López',
+    locationId: 'loc-main',
+    accessLevel: 'employee',
+    roleIds: ['role-dish'],
+    stationIds: ['stn-dish'],
+    clearanceLevel: 'general',
+    role: 'employee',
+    languagePref: 'es',
+    employeeCode: 'EMP-006',
+    status: 'active',
+    createdAt: '2026-09-21T00:00:00Z',
+    deactivatedAt: null,
+    locationName: 'Almentria Mexicana - Main Kitchen',
+    roleClearance: 'general',
+  },
+  // The invite still waiting, for the admin home.
+  {
+    id: 'emp-007',
+    name: 'Luis Ortega',
+    locationId: 'loc-main',
+    accessLevel: 'employee',
+    roleIds: ['role-prep'],
+    stationIds: ['stn-prep'],
+    clearanceLevel: 'general',
+    role: 'employee',
+    languagePref: 'es',
+    employeeCode: 'EMP-007',
+    status: 'pending',
+    createdAt: '2026-09-22T00:00:00Z',
+    deactivatedAt: null,
+    locationName: 'Almentria Mexicana - Main Kitchen',
+    roleClearance: 'general',
+  },
 ];
 
 const SEED_PROCEDURES: Procedure[] = [
@@ -287,11 +357,11 @@ const SEED_PROCEDURES: Procedure[] = [
     titleEs: 'Limpieza y desinfección de superficies en contacto con alimentos',
     purposeEn: 'To prevent foodborne illness by making sure every surface that touches food is cleaned and sanitised before it is used.',
     purposeEs: 'Para prevenir enfermedades transmitidas por alimentos asegurando que cada superficie que toque alimentos se limpie y desinfecte.',
-    category: SEED_CATEGORIES[0],
+    category: SEED_CATEGORIES[3],
     status: 'published',
     createdBy: 'emp-admin',
     createdAt: '2026-09-04T00:00:00Z',
-    updatedAt: '2026-09-04T00:00:00Z',
+    updatedAt: '2026-09-20T00:00:00Z',
     version: 1,
     isArchived: false,
     quizId: 'quiz-cleaning',
@@ -371,7 +441,7 @@ const SEED_PROCEDURES: Procedure[] = [
     titleEs: 'Norma de Lavado de Manos e Higiene Personal',
     purposeEn: 'Ensure all team members clean hands thoroughly before handling food.',
     purposeEs: 'Garantizar que todos se laven las manos antes de manipular alimentos.',
-    category: SEED_CATEGORIES[3],
+    category: SEED_CATEGORIES[1],
     status: 'published',
     createdBy: 'emp-admin',
     createdAt: '2026-09-01T00:00:00Z',
@@ -405,7 +475,7 @@ const SEED_PROCEDURES: Procedure[] = [
     titleEs: 'Lista de Control de Apertura de Cocina',
     purposeEn: 'Ensure all station refrigeration, hot holding, and prep lines are verified before service.',
     purposeEs: 'Asegurar la refrigeración, mantenimiento en caliente y líneas de preparación antes del servicio.',
-    category: SEED_CATEGORIES[0],
+    category: SEED_CATEGORIES[4],
     status: 'published',
     createdBy: 'emp-admin',
     createdAt: '2026-09-02T00:00:00Z',
@@ -445,13 +515,15 @@ const SEED_PROCEDURES: Procedure[] = [
     titleEs: 'Preparación de Lote de Salsa Verde',
     purposeEn: 'Standard procedure for roasting tomatillos, blending fresh ingredients, and storing salsa verde.',
     purposeEs: 'Procedimiento estándar para asar tomatillos, licuar e ingredientes y almacenar salsa verde.',
-    category: SEED_CATEGORIES[1],
+    category: SEED_CATEGORIES[6],
     status: 'published',
     createdBy: 'emp-admin',
     createdAt: '2026-09-03T00:00:00Z',
     updatedAt: '2026-09-03T00:00:00Z',
     version: 1,
     isArchived: false,
+    // The house salsa is a confidential recipe: confidential clearance and up.
+    protection: 'confidential',
     quizId: null,
     linkedTrainingId: 'course-recipes',
     quizMode: 'training',
@@ -485,20 +557,20 @@ const SEED_PROCEDURES: Procedure[] = [
     titleEs: 'Configuración de Estación de Parrilla y Registro de Temperatura',
     purposeEn: 'Ensure grill line safety standards, grease trap inspection, and core cooking temperature compliance.',
     purposeEs: 'Garantizar normas de seguridad en la parrilla, inspección de trampa de grasa y temperaturas de cocción.',
-    category: SEED_CATEGORIES[4],
+    category: SEED_CATEGORIES[2],
     status: 'published',
     createdBy: 'emp-admin',
     createdAt: '2026-09-05T00:00:00Z',
     updatedAt: '2026-09-05T00:00:00Z',
     version: 1,
     isArchived: false,
+    // Only the grill needs its own setup.
+    audience: { mode: 'some', stationIds: ['stn-grill'], roleIds: [], employeeIds: [] },
     quizId: null,
     linkedTrainingId: 'course-kitchen-ops',
     quizMode: 'training',
     bodyEn: {
       blocks: [
-        { id: 'gr-img', kind: 'image', src: '/img/cover-fryer-oil.jpg', hint: 'photo',
-          alt: { en: 'The hot line at the start of a shift, with the equipment clean and the guards in place.', es: 'La línea caliente al inicio del turno, con el equipo limpio y los protectores colocados.' } },
         { id: 'gr-h1', kind: 'heading', level: 1, text: { en: 'Safety & Setup Guidelines', es: 'Instrucciones de Seguridad y Configuración' } },
         { id: 'gr-t1', kind: 'text', body: { en: 'Verify grease trays are emptied and flame guards are positioned correctly.', es: 'Verifique que las charolas de grasa estén vacías y los protectores colocados.' } },
         { id: 'gr-t2', kind: 'text', body: { en: 'Preheat grill surface to minimum 450°F (230°C) before placing proteins.', es: 'Precaliente la superficie de la parrilla a un mínimo de 230°C.' } },
@@ -507,14 +579,62 @@ const SEED_PROCEDURES: Procedure[] = [
     },
     bodyEs: {
       blocks: [
-        { id: 'gr-img', kind: 'image', src: '/img/cover-fryer-oil.jpg', hint: 'photo',
-          alt: { en: 'The hot line at the start of a shift, with the equipment clean and the guards in place.', es: 'La línea caliente al inicio del turno, con el equipo limpio y los protectores colocados.' } },
         { id: 'gr-h1', kind: 'heading', level: 1, text: { en: 'Safety & Setup Guidelines', es: 'Instrucciones de Seguridad y Configuración' } },
         { id: 'gr-t1', kind: 'text', body: { en: 'Verify grease trays are emptied and flame guards are positioned correctly.', es: 'Verifique que las charolas de grasa estén vacías y los protectores colocados.' } },
         { id: 'gr-t2', kind: 'text', body: { en: 'Preheat grill surface to minimum 450°F (230°C) before placing proteins.', es: 'Precaliente la superficie de la parrilla a un mínimo de 230°C.' } },
         { id: 'gr-t3', kind: 'text', body: { en: 'Use separate red tongs for raw proteins and yellow tongs for cooked meats.', es: 'Use pinzas rojas separadas para proteínas crudas y pinzas amarillas para carnes cocidas.' } },
       ],
     },
+  },
+  {
+    id: 'proc-fryer-oil',
+    slug: 'fryer-oil-change',
+    titleEn: 'Fryer oil change and filtering',
+    titleEs: '',
+    purposeEn: 'When and how to filter the fryer oil, and when to change it.',
+    purposeEs: '',
+    category: SEED_CATEGORIES[5] ?? null,
+    status: 'draft',
+    createdBy: 'emp-admin',
+    createdAt: '2026-09-21T00:00:00Z',
+    updatedAt: '2026-09-22T00:00:00Z',
+    version: 1,
+    isArchived: false,
+    quizId: null,
+    linkedTrainingId: null,
+    quizMode: 'training',
+    bodyEn: {
+      blocks: [
+        { id: 'fo-img', kind: 'image', src: '/img/cover-fryer-oil.jpg', hint: 'photo',
+          alt: { en: 'A fryer with its basket, the filter and the oil being changed.', es: 'Una freidora con su canasta, el filtro y el aceite en cambio.' } },
+        { id: 'fo1', kind: 'text', body: { en: 'Filter the oil at the end of every shift. Change it when it darkens or smokes below 350°F.', es: '' } },
+      ],
+    },
+    bodyEs: { blocks: [] },
+  },
+  {
+    id: 'proc-walkin',
+    slug: 'walk-in-cooler-temperature-log',
+    titleEn: 'Walk-in cooler temperature log',
+    titleEs: '',
+    purposeEn: 'Check and record the walk-in temperature twice a shift.',
+    purposeEs: '',
+    category: SEED_CATEGORIES[1] ?? null,
+    status: 'published',
+    createdBy: 'emp-admin',
+    createdAt: '2026-09-10T00:00:00Z',
+    updatedAt: '2026-09-10T00:00:00Z',
+    version: 1,
+    isArchived: false,
+    quizId: null,
+    linkedTrainingId: null,
+    quizMode: 'training',
+    bodyEn: {
+      blocks: [
+        { id: 'wc1', kind: 'text', body: { en: 'Read the thermometer at opening and at mid-shift. It must read 41°F or below. Write the time, the reading and your initials on the log.', es: '' } },
+      ],
+    },
+    bodyEs: { blocks: [] },
   },
 ];
 
@@ -545,8 +665,8 @@ let mockLocations: Location[] = getStored('locations', SEED_LOCATIONS);
 let mockRoles: Role[] = getStored('roles', SEED_ROLES);
 let mockStations: Station[] = getStored('stations', SEED_STATIONS);
 let mockCategories: Category[] = getStored('categories_v3', SEED_CATEGORIES);
-let mockEmployees: AdminEmployee[] = getStored('employees', SEED_EMPLOYEES);
-let mockProcedures: Procedure[] = getStored('procedures', SEED_PROCEDURES);
+let mockEmployees: AdminEmployee[] = getStored('employees_v2', SEED_EMPLOYEES);
+let mockProcedures: Procedure[] = getStored('procedures_v2', SEED_PROCEDURES);
 // Centralised quizzes table. The wizard authors quizzes locally in form
 // state and on save calls `createQuiz()` to materialise a row here and
 // stamp its id onto the procedure. Stage 3 (course creation) writes to
@@ -570,11 +690,11 @@ function getCategoriesStore(): Category[] {
   return mockCategories;
 }
 function getEmployeesStore(): AdminEmployee[] {
-  if (typeof window !== 'undefined') mockEmployees = getStored('employees', SEED_EMPLOYEES);
+  if (typeof window !== 'undefined') mockEmployees = getStored('employees_v2', SEED_EMPLOYEES);
   return mockEmployees;
 }
 function getProceduresStore(): Procedure[] {
-  if (typeof window !== 'undefined') mockProcedures = getStored('procedures', SEED_PROCEDURES);
+  if (typeof window !== 'undefined') mockProcedures = getStored('procedures_v2', SEED_PROCEDURES);
   return mockProcedures;
 }
 function getQuizzesStore(): Quiz[] {
@@ -659,6 +779,11 @@ export async function fetchMe(cookieHeader?: string, _signal?: AbortSignal): Pro
   }
 
   if (typeof window !== 'undefined') {
+    // The signed-in person's id first, as the server reads it; otherwise the
+    // browser answered as the admin while the server answered as the cook.
+    const idCookie = document.cookie.match(/lms_emp_id=([^;]+)/);
+    const byId = idCookie?.[1] ? emps.find((e) => e.id === idCookie[1].trim()) : undefined;
+    if (byId) return { employee: byId };
     const stored = getStored<Employee | null>('current_user', null);
     if (stored) {
       const found = emps.find((e) => e.id === stored.id) || stored;
@@ -750,7 +875,7 @@ export async function createEmployee(input: CreateEmployeeInput): Promise<{ empl
   };
 
   mockEmployees = [newEmp, ...mockEmployees];
-  setStored('employees', mockEmployees);
+  setStored('employees_v2', mockEmployees);
 
   const invite: InviteResult = {
     url: typeof window !== 'undefined' ? `${window.location.origin}/activate/demo-token` : '#',
@@ -775,7 +900,7 @@ export async function deactivateEmployee(employeeId: string): Promise<{ employee
   mockEmployees = mockEmployees.map((e) =>
     e.id === employeeId ? { ...e, status: 'deactivated', deactivatedAt: new Date().toISOString() } : e,
   );
-  setStored('employees', mockEmployees);
+  setStored('employees_v2', mockEmployees);
   const updated = mockEmployees.find((e) => e.id === employeeId)!;
   return { employee: updated };
 }
@@ -784,7 +909,7 @@ export async function reactivateEmployee(employeeId: string): Promise<{ employee
   mockEmployees = mockEmployees.map((e) =>
     e.id === employeeId ? { ...e, status: 'active', deactivatedAt: null } : e,
   );
-  setStored('employees', mockEmployees);
+  setStored('employees_v2', mockEmployees);
   const updated = mockEmployees.find((e) => e.id === employeeId)!;
   return { employee: updated };
 }
@@ -889,10 +1014,26 @@ export async function activate(_input: { token: string; code: string; password: 
 // Library — procedures
 // ----------------------------------------------------------------------------
 
+/** A URL name from a title: lower case, digits kept, and a number on the end
+ *  when another procedure already has it. */
+function uniqueSlug(title: string, exceptId?: string): string {
+  const base =
+    title
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '') || `procedure-${Date.now()}`;
+  const taken = new Set(getProceduresStore().filter((p) => p.id !== exceptId).map((p) => p.slug));
+  let slug = base;
+  for (let n = 2; taken.has(slug); n++) slug = `${base}-${n}`;
+  return slug;
+}
+
 export async function createProcedure(input: CreateProcedureInput): Promise<{ procedure: Procedure }> {
   const cats = getCategoriesStore();
   const cat = cats.find((c) => c.id === input.categoryId) ?? null;
-  const slug = input.titleEn.toLowerCase().replace(/[^a-z0-0]+/g, '-').replace(/(^-|-$)/g, '') || `proc-${Date.now()}`;
+  const slug = uniqueSlug(input.titleEn || input.titleEs);
 
   const newProc: Procedure = {
     id: `proc-${Date.now()}`,
@@ -924,6 +1065,8 @@ export async function createProcedure(input: CreateProcedureInput): Promise<{ pr
     // unarchived; archive is a separate admin action (⋯ kebab → Archive
     // → modal confirm).
     isArchived: input.isArchived ?? false,
+    audience: input.audience ?? null,
+    protection: input.protection ?? 'standard',
     // FK to the centralised quizzes table. The wizard authors a quiz
     // locally in form state, calls createQuiz() first to materialise a
     // row, then passes that id here. `null` means the SOP has no quiz.
@@ -939,17 +1082,142 @@ export async function createProcedure(input: CreateProcedureInput): Promise<{ pr
   };
 
   mockProcedures = [newProc, ...getProceduresStore()];
-  setStored('procedures', mockProcedures);
+  setStored('procedures_v2', mockProcedures);
   return { procedure: newProc };
+}
+
+export interface AccessLogEntry {
+  procedureId: string;
+  employeeId: string;
+  employeeName: string;
+  at: string;
+  device: string;
+}
+
+/** Every open of a confidential or master recipe, admins included
+ *  (PROJECT_OVERVIEW §04: "opening one is recorded in the same way as for any
+ *  other user"). Called by the reading page once it is on screen, since the
+ *  page itself is often rendered on the server. Mock: kept in the browser,
+ *  newest first, capped. */
+export function logRestrictedView(p: Procedure, viewer: Employee): void {
+  if (typeof window === 'undefined') return;
+  const log = getStored<AccessLogEntry[]>('access_log', []);
+  const entry: AccessLogEntry = {
+    procedureId: p.id,
+    employeeId: viewer.id,
+    employeeName: viewer.name,
+    at: new Date().toISOString(),
+    device: navigator.userAgent,
+  };
+  setStored('access_log', [entry, ...log].slice(0, 500));
+}
+
+export async function listAccessLog(): Promise<{ entries: AccessLogEntry[] }> {
+  return { entries: getStored<AccessLogEntry[]>('access_log', []) };
+}
+
+const CLEARANCE_RANK: Record<ClearanceLevel, number> = { general: 0, station: 1, confidential: 2, master: 3 };
+
+/**
+ * Can this person open this procedure? The backend enforces the same rule in
+ * the database (PROJECT_OVERVIEW §04: "a mistake in the interface cannot
+ * expose the wrong data"); the mock enforces it where the backend would, in
+ * the list and in the single lookup, so no screen has to remember to.
+ *
+ * Admins and managers read everything. Anyone else reads what is published,
+ * not archived, meant for them (everyone, or one of the stations, roles or
+ * people named), and within their clearance: a confidential recipe needs
+ * confidential clearance, a master recipe needs master.
+ */
+export function canRead(p: Procedure, viewer: Employee): boolean {
+  if (viewer.role === 'admin' || viewer.accessLevel === 'manager') return true;
+  if (p.status !== 'published' || p.isArchived) return false;
+  const a = p.audience;
+  if (a && a.mode === 'some') {
+    const meant =
+      a.employeeIds.includes(viewer.id) ||
+      a.stationIds.some((id) => viewer.stationIds.includes(id)) ||
+      a.roleIds.some((id) => viewer.roleIds.includes(id));
+    if (!meant) return false;
+  }
+  const needs: ClearanceLevel = p.protection === 'master' ? 'master' : p.protection === 'confidential' ? 'confidential' : 'general';
+  return CLEARANCE_RANK[viewer.clearanceLevel] >= CLEARANCE_RANK[needs];
 }
 
 export async function listProcedures(
   filter: { status?: Procedure['status'] } = {},
-  _cookieHeader?: string,
+  cookieHeader?: string,
 ): Promise<{ procedures: Procedure[] }> {
-  const procs = getProceduresStore();
+  const { employee: viewer } = await fetchMe(cookieHeader);
+  const procs = getProceduresStore().filter((p) => canRead(p, viewer));
   const filtered = filter.status ? procs.filter((p) => p.status === filter.status) : procs;
   return { procedures: [...filtered] };
+}
+
+/** Save an edit to an existing procedure. The slug stays, so printed QR codes
+ *  and links keep working; publishing from a draft bumps the version. */
+export async function updateProcedure(
+  id: string,
+  input: CreateProcedureInput,
+): Promise<{ procedure: Procedure }> {
+  const cats = getCategoriesStore();
+  const existing = getProceduresStore().find((p) => p.id === id);
+  if (!existing) throw new ApiException(404, 'NOT_FOUND', 'Procedure not found');
+  const status = input.status ?? existing.status;
+  const updated: Procedure = {
+    ...existing,
+    titleEn: input.titleEn,
+    titleEs: input.titleEs,
+    purposeEn: input.purposeEn,
+    purposeEs: input.purposeEs,
+    category: cats.find((c) => c.id === input.categoryId) ?? null,
+    subcategoryId: input.subcategoryId ?? null,
+    stationScope: input.stationScope ?? null,
+    status,
+    bodyEn: input.bodyEn,
+    bodyEs: input.bodyEs,
+    quizId: input.quizId ?? null,
+    audience: input.audience ?? null,
+    protection: input.protection ?? 'standard',
+    updatedAt: new Date().toISOString(),
+    version: status === 'published' && existing.status !== 'published' ? (existing.version ?? 0) + 1 : existing.version,
+  };
+  mockProcedures = getProceduresStore().map((p) => (p.id === id ? updated : p));
+  setStored('procedures_v2', mockProcedures);
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('lms_procedures_updated'));
+  return { procedure: updated };
+}
+
+/** One procedure by id, for the editor. */
+export async function getProcedureById(id: string): Promise<{ procedure: Procedure }> {
+  const found = getProceduresStore().find((p) => p.id === id);
+  if (!found) throw new ApiException(404, 'NOT_FOUND', 'Procedure not found');
+  return { procedure: found };
+}
+
+/** Move a procedure through its states: draft -> published -> archived, and
+ *  back. Mock: rewrites the local store. Publishing bumps the version, which
+ *  the printed QR code points at. */
+export async function setProcedureState(
+  id: string,
+  change: { status?: Procedure['status']; isArchived?: boolean },
+): Promise<Procedure> {
+  const now = new Date().toISOString();
+  mockProcedures = getProceduresStore().map((p) =>
+    p.id === id
+      ? {
+          ...p,
+          ...change,
+          updatedAt: now,
+          version: change.status === 'published' && p.status !== 'published' ? (p.version ?? 0) + 1 : p.version,
+        }
+      : p,
+  );
+  setStored('procedures_v2', mockProcedures);
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('lms_procedures_updated'));
+  const updated = mockProcedures.find((p) => p.id === id);
+  if (!updated) throw new ApiException(404, 'NOT_FOUND', 'Procedure not found');
+  return updated;
 }
 
 // ----------------------------------------------------------------------------
@@ -1021,11 +1289,14 @@ export async function updateQuiz(
 
 export async function getProcedureBySlug(
   slug: string,
-  _cookieHeader?: string,
+  cookieHeader?: string,
 ): Promise<{ procedure: Procedure }> {
   const normSlug = slug.toLowerCase();
   const procs = getProceduresStore();
-  const proc = procs.find((p) => p.slug.toLowerCase() === normSlug || p.id.toLowerCase() === normSlug);
+  const found = procs.find((p) => p.slug.toLowerCase() === normSlug || p.id.toLowerCase() === normSlug);
+  const { employee: viewer } = await fetchMe(cookieHeader);
+  // Not cleared reads exactly as not there: the cook is not told it exists.
+  const proc = found && canRead(found, viewer) ? found : null;
 
   if (!proc) {
     throw new ApiException(404, 'PROCEDURE_NOT_FOUND', `Procedure ${slug} not found`);

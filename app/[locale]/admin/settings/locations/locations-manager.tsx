@@ -219,7 +219,7 @@ export function LocationsManager({
                           ) : (
                             <RowActions
                               items={rowItemsFor(l)}
-                              triggerLabel={`${t('rowActionsLabel')} — ${l.name}`}
+                              triggerLabel={`${t('rowActionsLabel')}: ${l.name}`}
                             />
                           )}
                         </td>

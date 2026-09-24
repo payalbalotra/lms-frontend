@@ -91,7 +91,8 @@ export default async function ProceduresPage({ params, searchParams }: PageProps
           </Link>
         ) : null}
 
-        <h1 className="mt-2 font-[family-name:var(--font-display)] text-2xl font-bold leading-display tracking-tight text-[var(--color-ink)]">
+        {/* 32px on a phone: at 40 the heading took two lines of the first screen. */}
+        <h1 className="mt-2 font-[family-name:var(--font-display)] text-xl font-bold leading-display tracking-tight text-[var(--color-ink)] sm:text-2xl">
           {t('heading')}
         </h1>
 
@@ -104,6 +105,7 @@ export default async function ProceduresPage({ params, searchParams }: PageProps
           locale={locale}
           readsSpanish={readsSpanish}
           viewAs={viewAs}
+          stationId={employee.stationIds[0] ?? null}
         />
       </main>
 

@@ -2,31 +2,35 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { listCategories, listProcedures } from '@/lib/api';
+import { listCategories, listProcedures, setProcedureState } from '@/lib/api';
 import type { Procedure, Category, ProcedureStatus } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CustomSelect } from '@/components/ui/custom-select';
 import {
+  LuArchive,
+  LuArchiveRestore,
   LuArrowDownAZ,
-  LuArrowRight,
   LuArrowUpAZ,
   LuBrush,
   LuBuilding2,
   LuCircleCheck,
+  LuCircleDashed,
   LuClock,
   LuFilePen,
   LuFileSearch,
   LuFileText,
+  LuLock,
+  LuPencil,
+  LuPlus,
   LuFilter,
   LuFolder,
   LuGlobe,
   LuHistory,
   LuLayers,
   LuLayoutGrid,
-  LuListChecks,
   LuRefreshCw,
   LuSearch,
   LuShieldAlert,
@@ -42,6 +46,7 @@ import { StatusPill } from '@/components/ui/status-pill';
 import { FilterChips } from '@/components/ui/filter-chips';
 import { IconTile } from '@/components/ui/icon-tile';
 import { EmptyState } from '@/components/ui/empty-state';
+import { RowActions, type RowActionItem } from '@/components/ui/row-actions';
 
 interface LibraryProcedureExplorerProps {
   procedures: Procedure[];
@@ -134,657 +139,6 @@ export function getCategoryTheme(slug: string): {
   }
 }
 
-// 28 Procedure demo suite with realistic titles, purpose, metadata, subcategories and language tags
-const FULL_DEMO_SUITE: (Procedure & {
-  subCategory?: string;
-  languages?: string;
-})[] = [
-  {
-    id: 'proc-1',
-    slug: 'chicken-tinga',
-    titleEn: 'Chicken Tinga',
-    titleEs: 'Tinga de Pollo',
-    purposeEn: 'Shredded chicken in a chipotle tomato sauce. Perfect for tacos, tostadas and more.',
-    purposeEs: 'Pollo deshebrado en salsa de tomate y chipotle. Perfecto para tacos, tostadas y más.',
-    category: {
-      id: 'cat-recipes',
-      slug: 'recipes',
-      nameEn: 'Recipe',
-      nameEs: 'Receta',
-      isArchived: false,
-    },
-    status: 'published',
-    bodyEn: { blocks: [] },
-    bodyEs: { blocks: [] },
-    createdBy: 'Maria Lopez',
-    createdAt: '2026-09-01T10:00:00Z',
-    updatedAt: '2026-09-16T14:30:00Z',
-    subCategory: 'Main Menu',
-    languages: 'EN / ES',
-  },
-  {
-    id: 'proc-2',
-    slug: 'grill-station-setup',
-    titleEn: 'Grill Station Setup',
-    titleEs: 'Configuración de Estación de Parrilla',
-    purposeEn: 'Step-by-step instructions for preparing the grill station.',
-    purposeEs: 'Instrucciones paso a paso para preparar la estación de parrilla.',
-    category: {
-      id: 'cat-kitchen-ops',
-      slug: 'kitchen-operations',
-      nameEn: 'Kitchen Operations',
-      nameEs: 'Operaciones de Cocina',
-      isArchived: false,
-    },
-    status: 'draft',
-    bodyEn: { blocks: [] },
-    bodyEs: { blocks: [] },
-    createdBy: 'Carlos Ruiz',
-    createdAt: '2026-09-02T10:00:00Z',
-    updatedAt: '2026-09-15T11:20:00Z',
-    subCategory: 'Kitchen Stations',
-    languages: 'EN',
-  },
-  {
-    id: 'proc-3',
-    slug: 'deep-cleaning-walk-in-cooler',
-    titleEn: 'Deep Cleaning - Walk-in Cooler',
-    titleEs: 'Limpieza Profunda - Enfriador de Entrada',
-    purposeEn: 'Complete cleaning and sanitization procedure for the walk-in cooler.',
-    purposeEs: 'Procedimiento completo de limpieza y desinfección del enfriador.',
-    category: {
-      id: 'cat-cleaning',
-      slug: 'cleaning',
-      nameEn: 'Cleaning Schedules',
-      nameEs: 'Horarios de Limpieza',
-      isArchived: false,
-    },
-    status: 'draft',
-    bodyEn: { blocks: [] },
-    bodyEs: { blocks: [] },
-    createdBy: 'Ana Torres',
-    createdAt: '2026-09-03T10:00:00Z',
-    updatedAt: '2026-09-14T09:15:00Z',
-    subCategory: 'Maintenance',
-    languages: 'EN / ES',
-  },
-  {
-    id: 'proc-4',
-    slug: 'food-safety-basics',
-    titleEn: 'Food Safety Basics',
-    titleEs: 'Fundamentos de Seguridad Alimentaria',
-    purposeEn: 'Key food safety principles for all team members.',
-    purposeEs: 'Principios clave de seguridad alimentaria para todos los miembros.',
-    category: {
-      id: 'cat-onboarding',
-      slug: 'onboarding',
-      nameEn: 'Onboarding',
-      nameEs: 'Inducción y Capacitación',
-      isArchived: false,
-    },
-    status: 'published',
-    bodyEn: { blocks: [] },
-    bodyEs: { blocks: [] },
-    createdBy: 'Training Team',
-    createdAt: '2026-09-04T10:00:00Z',
-    updatedAt: '2026-09-12T16:45:00Z',
-    subCategory: 'Food Safety',
-    languages: 'EN',
-  },
-  {
-    id: 'proc-5',
-    slug: 'salsa-roja',
-    titleEn: 'Salsa Roja',
-    titleEs: 'Salsa Roja Tradicional',
-    purposeEn: 'Traditional red salsa with fresh tomatoes and mild chili.',
-    purposeEs: 'Salsa roja tradicional con tomates frescos y chile suave.',
-    category: {
-      id: 'cat-recipes',
-      slug: 'recipes',
-      nameEn: 'Recipe',
-      nameEs: 'Receta',
-      isArchived: false,
-    },
-    status: 'published',
-    bodyEn: { blocks: [] },
-    bodyEs: { blocks: [] },
-    createdBy: 'Maria Lopez',
-    createdAt: '2026-09-05T10:00:00Z',
-    updatedAt: '2026-09-10T13:10:00Z',
-    subCategory: 'Sauces & Dressings',
-    languages: 'EN / ES',
-  },
-  {
-    id: 'proc-6',
-    slug: 'dishwashing-station',
-    titleEn: 'Dishwashing Station',
-    titleEs: 'Estación de Lavado de Platos',
-    purposeEn: 'Proper setup and operation of the dishwashing station.',
-    purposeEs: 'Configuración y operación adecuada de la estación de lavavajillas.',
-    category: {
-      id: 'cat-kitchen-ops',
-      slug: 'kitchen-operations',
-      nameEn: 'Kitchen Operations',
-      nameEs: 'Operaciones de Cocina',
-      isArchived: false,
-    },
-    status: 'draft',
-    bodyEn: { blocks: [] },
-    bodyEs: { blocks: [] },
-    createdBy: 'Luis Martinez',
-    createdAt: '2026-09-06T10:00:00Z',
-    updatedAt: '2026-09-08T08:30:00Z',
-    subCategory: 'Back of House',
-    languages: 'EN',
-  },
-  {
-    id: 'proc-7',
-    slug: 'guacamole-prep',
-    titleEn: 'Fresh Guacamole Preparation',
-    titleEs: 'Preparación de Guacamole Fresco',
-    purposeEn: 'Authentic guacamole with ripe Hass avocados, lime, onion, and cilantro.',
-    purposeEs: 'Guacamole auténtico con aguacates Hass maduros, limón, cebolla y cilantro.',
-    category: {
-      id: 'cat-recipes',
-      slug: 'recipes',
-      nameEn: 'Recipe',
-      nameEs: 'Receta',
-      isArchived: false,
-    },
-    status: 'published',
-    bodyEn: { blocks: [] },
-    bodyEs: { blocks: [] },
-    createdBy: 'Maria Lopez',
-    createdAt: '2026-09-07T10:00:00Z',
-    updatedAt: '2026-09-06T15:00:00Z',
-    subCategory: 'Appetizers',
-    languages: 'EN / ES',
-  },
-  {
-    id: 'proc-8',
-    slug: 'opening-prep-checklist',
-    titleEn: 'Shift Opening Prep Checklist',
-    titleEs: 'Lista de Verificación de Apertura',
-    purposeEn: 'Essential morning prep steps before restaurant doors open to customers.',
-    purposeEs: 'Pasos esenciales de preparación matutina antes de abrir el restaurante.',
-    category: {
-      id: 'cat-onboarding',
-      slug: 'onboarding',
-      nameEn: 'Onboarding',
-      nameEs: 'Inducción y Capacitación',
-      isArchived: false,
-    },
-    status: 'published',
-    bodyEn: { blocks: [] },
-    bodyEs: { blocks: [] },
-    createdBy: 'Carlos Ruiz',
-    createdAt: '2026-09-08T10:00:00Z',
-    updatedAt: '2026-09-05T07:15:00Z',
-    subCategory: 'Operations',
-    languages: 'EN',
-  },
-  {
-    id: 'proc-9',
-    slug: 'fryer-cleaning-routine',
-    titleEn: 'Fryer Boil-out & Oil Filtering',
-    titleEs: 'Limpieza de Freidora y Filtrado de Aceite',
-    purposeEn: 'Daily oil filtering and weekly boil-out procedure for deep fryers.',
-    purposeEs: 'Filtrado diario de aceite y procedimiento semanal para freidoras.',
-    category: {
-      id: 'cat-cleaning',
-      slug: 'cleaning',
-      nameEn: 'Cleaning Schedules',
-      nameEs: 'Horarios de Limpieza',
-      isArchived: false,
-    },
-    status: 'published',
-    bodyEn: { blocks: [] },
-    bodyEs: { blocks: [] },
-    createdBy: 'Ana Torres',
-    createdAt: '2026-09-09T10:00:00Z',
-    updatedAt: '2026-09-04T18:40:00Z',
-    subCategory: 'Maintenance',
-    languages: 'EN / ES',
-  },
-  {
-    id: 'proc-10',
-    slug: 'carnitas-recipe',
-    titleEn: 'Slow-Cooked Pork Carnitas',
-    titleEs: 'Carnitas de Cerdo Tradicionales',
-    purposeEn: 'Traditional citrus and spice braised pork carnitas recipe.',
-    purposeEs: 'Receta tradicional de carnitas de cerdo con cítricos y especias.',
-    category: {
-      id: 'cat-recipes',
-      slug: 'recipes',
-      nameEn: 'Recipe',
-      nameEs: 'Receta',
-      isArchived: false,
-    },
-    status: 'published',
-    bodyEn: { blocks: [] },
-    bodyEs: { blocks: [] },
-    createdBy: 'Maria Lopez',
-    createdAt: '2026-09-10T10:00:00Z',
-    updatedAt: '2026-09-03T12:00:00Z',
-    subCategory: 'Main Menu',
-    languages: 'EN / ES',
-  },
-  {
-    id: 'proc-11',
-    slug: 'beverage-bar-station',
-    titleEn: 'Beverage Bar & Aguas Frescas',
-    titleEs: 'Barra de Bebidas y Aguas Frescas',
-    purposeEn: 'Setup, dispensing, and sanitization instructions for drinks station.',
-    purposeEs: 'Instrucciones de configuración y limpieza de estación de bebidas.',
-    category: {
-      id: 'cat-kitchen-ops',
-      slug: 'kitchen-operations',
-      nameEn: 'Kitchen Operations',
-      nameEs: 'Operaciones de Cocina',
-      isArchived: false,
-    },
-    status: 'draft',
-    bodyEn: { blocks: [] },
-    bodyEs: { blocks: [] },
-    createdBy: 'Front Staff',
-    createdAt: '2026-09-11T10:00:00Z',
-    updatedAt: '2026-09-02T10:30:00Z',
-    subCategory: 'Front of House',
-    languages: 'EN',
-  },
-  {
-    id: 'proc-12',
-    slug: 'handwashing-protocol',
-    titleEn: 'Handwashing & Hygiene Standard',
-    titleEs: 'Protocolo de Lavado de Manos e Higiene',
-    purposeEn: 'Mandatory 20-second handwashing protocol for food handlers.',
-    purposeEs: 'Protocolo obligatorio de lavado de manos de 20 segundos.',
-    category: {
-      id: 'cat-onboarding',
-      slug: 'onboarding',
-      nameEn: 'Onboarding',
-      nameEs: 'Inducción y Capacitación',
-      isArchived: false,
-    },
-    status: 'published',
-    bodyEn: { blocks: [] },
-    bodyEs: { blocks: [] },
-    createdBy: 'Safety Team',
-    createdAt: '2026-09-12T10:00:00Z',
-    updatedAt: '2026-09-01T09:00:00Z',
-    subCategory: 'Food Safety',
-    languages: 'EN / ES',
-  },
-  {
-    id: 'proc-13',
-    slug: 'pico-de-gallo',
-    titleEn: 'Fresh Pico de Gallo',
-    titleEs: 'Pico de Gallo Fresco',
-    purposeEn: 'Diced tomatoes, white onions, jalapenos, and lime juice.',
-    purposeEs: 'Tomates picados, cebollas blancas, jalapeños y jugo de limón.',
-    category: {
-      id: 'cat-recipes',
-      slug: 'recipes',
-      nameEn: 'Recipe',
-      nameEs: 'Receta',
-      isArchived: false,
-    },
-    status: 'published',
-    bodyEn: { blocks: [] },
-    bodyEs: { blocks: [] },
-    createdBy: 'Maria Lopez',
-    createdAt: '2026-09-13T10:00:00Z',
-    updatedAt: '2026-08-30T14:15:00Z',
-    subCategory: 'Sauces & Dressings',
-    languages: 'EN / ES',
-  },
-  {
-    id: 'proc-14',
-    slug: 'sanitization-log-routine',
-    titleEn: 'Hourly Sanitization Log Routine',
-    titleEs: 'Rutina de Registro de Desinfección',
-    purposeEn: 'High-touch surface sanitization checklist and hourly log.',
-    purposeEs: 'Lista de verificación de desinfección de superficies.',
-    category: {
-      id: 'cat-cleaning',
-      slug: 'cleaning',
-      nameEn: 'Cleaning Schedules',
-      nameEs: 'Horarios de Limpieza',
-      isArchived: false,
-    },
-    status: 'published',
-    bodyEn: { blocks: [] },
-    bodyEs: { blocks: [] },
-    createdBy: 'Ana Torres',
-    createdAt: '2026-09-14T10:00:00Z',
-    updatedAt: '2026-08-28T16:00:00Z',
-    subCategory: 'Maintenance',
-    languages: 'EN',
-  },
-  {
-    id: 'proc-15',
-    slug: 'taco-assembly-line',
-    titleEn: 'Taco Line Station Setup',
-    titleEs: 'Estación de Linea de Tacos',
-    purposeEn: 'Standard operating procedure for the fast-casual taco assembly line.',
-    purposeEs: 'Procedimiento estándar para la línea de ensamblaje de tacos.',
-    category: {
-      id: 'cat-kitchen-ops',
-      slug: 'kitchen-operations',
-      nameEn: 'Kitchen Operations',
-      nameEs: 'Operaciones de Cocina',
-      isArchived: false,
-    },
-    status: 'published',
-    bodyEn: { blocks: [] },
-    bodyEs: { blocks: [] },
-    createdBy: 'Carlos Ruiz',
-    createdAt: '2026-09-15T10:00:00Z',
-    updatedAt: '2026-08-25T11:45:00Z',
-    subCategory: 'Kitchen Stations',
-    languages: 'EN / ES',
-  },
-  {
-    id: 'proc-16',
-    slug: 'churros-recipe',
-    titleEn: 'Churros & Cinnamon Sugar',
-    titleEs: 'Churros y Azúcar con Canela',
-    purposeEn: 'Crispy fried churro dough tossed in cinnamon sugar.',
-    purposeEs: 'Masa de churro frita y crujiente cubierta con azúcar y canela.',
-    category: {
-      id: 'cat-recipes',
-      slug: 'recipes',
-      nameEn: 'Recipe',
-      nameEs: 'Receta',
-      isArchived: false,
-    },
-    status: 'draft',
-    bodyEn: { blocks: [] },
-    bodyEs: { blocks: [] },
-    createdBy: 'Maria Lopez',
-    createdAt: '2026-09-16T10:00:00Z',
-    updatedAt: '2026-08-22T13:20:00Z',
-    subCategory: 'Desserts',
-    languages: 'EN',
-  },
-  {
-    id: 'proc-17',
-    slug: 'trash-disposal-recyclables',
-    titleEn: 'Waste & Recycling Disposal SOP',
-    titleEs: 'Manejo de Residuos y Reciclaje',
-    purposeEn: 'Proper bagging, sorting, and dumpster area sanitization.',
-    purposeEs: 'Embolsado, clasificación y limpieza del área de contenedores.',
-    category: {
-      id: 'cat-cleaning',
-      slug: 'cleaning',
-      nameEn: 'Cleaning Schedules',
-      nameEs: 'Horarios de Limpieza',
-      isArchived: false,
-    },
-    status: 'published',
-    bodyEn: { blocks: [] },
-    bodyEs: { blocks: [] },
-    createdBy: 'Back Staff',
-    createdAt: '2026-09-17T10:00:00Z',
-    updatedAt: '2026-08-20T20:10:00Z',
-    subCategory: 'Back of House',
-    languages: 'EN / ES',
-  },
-  {
-    id: 'proc-18',
-    slug: 'emergency-shutoff-guide',
-    titleEn: 'Emergency Gas & Water Shutoff',
-    titleEs: 'Cierre de Emergencia de Gas y Agua',
-    purposeEn: 'Location and operation of emergency utility shutoff valves.',
-    purposeEs: 'Ubicación y operación de válvulas de cierre de emergencia.',
-    category: {
-      id: 'cat-onboarding',
-      slug: 'onboarding',
-      nameEn: 'Onboarding',
-      nameEs: 'Inducción y Capacitación',
-      isArchived: false,
-    },
-    status: 'published',
-    bodyEn: { blocks: [] },
-    bodyEs: { blocks: [] },
-    createdBy: 'Safety Team',
-    createdAt: '2026-09-18T10:00:00Z',
-    updatedAt: '2026-08-18T10:00:00Z',
-    subCategory: 'Safety',
-    languages: 'EN',
-  },
-  {
-    id: 'proc-19',
-    slug: 'horchata-batch-recipe',
-    titleEn: 'Agua de Horchata Batch',
-    titleEs: 'Agua de Horchata por Lote',
-    purposeEn: 'Rice milk, cinnamon, vanilla, and condensed milk beverage recipe.',
-    purposeEs: 'Receta de bebida de leche de arroz, canela, vainilla y leche condensada.',
-    category: {
-      id: 'cat-recipes',
-      slug: 'recipes',
-      nameEn: 'Recipe',
-      nameEs: 'Receta',
-      isArchived: false,
-    },
-    status: 'published',
-    bodyEn: { blocks: [] },
-    bodyEs: { blocks: [] },
-    createdBy: 'Maria Lopez',
-    createdAt: '2026-09-19T10:00:00Z',
-    updatedAt: '2026-08-15T15:30:00Z',
-    subCategory: 'Beverages',
-    languages: 'EN / ES',
-  },
-  {
-    id: 'proc-20',
-    slug: 'pos-terminal-opening',
-    titleEn: 'POS Terminal & Cash Drawer',
-    titleEs: 'Terminal POS y Caja Registradora',
-    purposeEn: 'Opening cash count, system login, and receipt printer check.',
-    purposeEs: 'Conteo de efectivo de apertura, inicio de sesión y comprobación de impresora.',
-    category: {
-      id: 'cat-kitchen-ops',
-      slug: 'kitchen-operations',
-      nameEn: 'Kitchen Operations',
-      nameEs: 'Operaciones de Cocina',
-      isArchived: false,
-    },
-    status: 'published',
-    bodyEn: { blocks: [] },
-    bodyEs: { blocks: [] },
-    createdBy: 'Front Staff',
-    createdAt: '2026-09-20T10:00:00Z',
-    updatedAt: '2026-08-12T07:45:00Z',
-    subCategory: 'Front of House',
-    languages: 'EN',
-  },
-  {
-    id: 'proc-21',
-    slug: 'restroom-cleaning-checklist',
-    titleEn: 'Restroom Sanitization Checklist',
-    titleEs: 'Lista de Limpieza de Baños',
-    purposeEn: 'Step-by-step cleaning, restocking, and inspection for restrooms.',
-    purposeEs: 'Limpieza paso a paso, reabastecimiento e inspección de baños.',
-    category: {
-      id: 'cat-cleaning',
-      slug: 'cleaning',
-      nameEn: 'Cleaning Schedules',
-      nameEs: 'Horarios de Limpieza',
-      isArchived: false,
-    },
-    status: 'published',
-    bodyEn: { blocks: [] },
-    bodyEs: { blocks: [] },
-    createdBy: 'Cleaning Crew',
-    createdAt: '2026-09-21T10:00:00Z',
-    updatedAt: '2026-08-10T17:25:00Z',
-    subCategory: 'Maintenance',
-    languages: 'EN / ES',
-  },
-  {
-    id: 'proc-22',
-    slug: 'allergen-cross-contact-sop',
-    titleEn: 'Allergen Cross-Contact Prevention',
-    titleEs: 'Prevención de Contacto Cruzado de Alérgenos',
-    purposeEn: 'Rules for handling gluten, dairy, nut, and shellfish food prep.',
-    purposeEs: 'Reglas para el manejo de alimentos con alérgenos.',
-    category: {
-      id: 'cat-onboarding',
-      slug: 'onboarding',
-      nameEn: 'Onboarding',
-      nameEs: 'Inducción y Capacitación',
-      isArchived: false,
-    },
-    status: 'published',
-    bodyEn: { blocks: [] },
-    bodyEs: { blocks: [] },
-    createdBy: 'Safety Team',
-    createdAt: '2026-09-22T10:00:00Z',
-    updatedAt: '2026-08-08T11:00:00Z',
-    subCategory: 'Food Safety',
-    languages: 'EN / ES',
-  },
-  {
-    id: 'proc-23',
-    slug: 'queso-fundido-recipe',
-    titleEn: 'Queso Fundido with Chorizo',
-    titleEs: 'Queso Fundido con Chorizo',
-    purposeEn: 'Melted Oaxaca cheese topped with spicy crumbled chorizo.',
-    purposeEs: 'Queso Oaxaca fundido con chorizo desmenuzado picante.',
-    category: {
-      id: 'cat-recipes',
-      slug: 'recipes',
-      nameEn: 'Recipe',
-      nameEs: 'Receta',
-      isArchived: false,
-    },
-    status: 'published',
-    bodyEn: { blocks: [] },
-    bodyEs: { blocks: [] },
-    createdBy: 'Maria Lopez',
-    createdAt: '2026-09-23T10:00:00Z',
-    updatedAt: '2026-08-05T14:50:00Z',
-    subCategory: 'Appetizers',
-    languages: 'EN / ES',
-  },
-  {
-    id: 'proc-24',
-    slug: 'ice-machine-sanitization',
-    titleEn: 'Ice Machine Cleaning & De-scaling',
-    titleEs: 'Desinfección de Máquina de Hielo',
-    purposeEn: 'Monthly de-scaling and bin sanitization for commercial ice maker.',
-    purposeEs: 'Descalcificación mensual y desinfección de máquina de hielo.',
-    category: {
-      id: 'cat-cleaning',
-      slug: 'cleaning',
-      nameEn: 'Cleaning Schedules',
-      nameEs: 'Horarios de Limpieza',
-      isArchived: false,
-    },
-    status: 'draft',
-    bodyEn: { blocks: [] },
-    bodyEs: { blocks: [] },
-    createdBy: 'Tech Team',
-    createdAt: '2026-09-24T10:00:00Z',
-    updatedAt: '2026-08-02T16:10:00Z',
-    subCategory: 'Maintenance',
-    languages: 'EN',
-  },
-  {
-    id: 'proc-25',
-    slug: 'drive-thru-window-sop',
-    titleEn: 'Drive-Thru Window Workflow',
-    titleEs: 'Flujo de Trabajo en Ventanilla',
-    purposeEn: 'Speed-of-service guidelines and window station operation.',
-    purposeEs: 'Pautas de velocidad de servicio y operación de ventanilla.',
-    category: {
-      id: 'cat-kitchen-ops',
-      slug: 'kitchen-operations',
-      nameEn: 'Kitchen Operations',
-      nameEs: 'Operaciones de Cocina',
-      isArchived: false,
-    },
-    status: 'published',
-    bodyEn: { blocks: [] },
-    bodyEs: { blocks: [] },
-    createdBy: 'Front Staff',
-    createdAt: '2026-09-25T10:00:00Z',
-    updatedAt: '2026-07-30T12:00:00Z',
-    subCategory: 'Front of House',
-    languages: 'EN / ES',
-  },
-  {
-    id: 'proc-26',
-    slug: 'chipotle-crema',
-    titleEn: 'Chipotle Lime Crema',
-    titleEs: 'Crema de Chipotle y Limón',
-    purposeEn: 'Smoky chipotle crema sauce for tacos, bowls, and salads.',
-    purposeEs: 'Salsa crema de chipotle ahumado para tacos, bowls y ensaladas.',
-    category: {
-      id: 'cat-recipes',
-      slug: 'recipes',
-      nameEn: 'Recipe',
-      nameEs: 'Receta',
-      isArchived: false,
-    },
-    status: 'published',
-    bodyEn: { blocks: [] },
-    bodyEs: { blocks: [] },
-    createdBy: 'Maria Lopez',
-    createdAt: '2026-09-26T10:00:00Z',
-    updatedAt: '2026-07-28T10:30:00Z',
-    subCategory: 'Sauces & Dressings',
-    languages: 'EN / ES',
-  },
-  {
-    id: 'proc-27',
-    slug: 'end-of-shift-closing',
-    titleEn: 'Night Shift Closing Checklist',
-    titleEs: 'Lista de Cierre de Turno Nocturno',
-    purposeEn: 'Kitchen shutdown, refrigeration checks, and security lockup.',
-    purposeEs: 'Cierre de cocina, verificación de refrigeración y seguridad.',
-    category: {
-      id: 'cat-onboarding',
-      slug: 'onboarding',
-      nameEn: 'Onboarding',
-      nameEs: 'Inducción y Capacitación',
-      isArchived: false,
-    },
-    status: 'published',
-    bodyEn: { blocks: [] },
-    bodyEs: { blocks: [] },
-    createdBy: 'Carlos Ruiz',
-    createdAt: '2026-09-27T10:00:00Z',
-    updatedAt: '2026-07-25T23:00:00Z',
-    subCategory: 'Operations',
-    languages: 'EN / ES',
-  },
-  {
-    id: 'proc-28',
-    slug: 'walk-in-temp-log',
-    titleEn: 'Walk-in Temp Monitoring SOP',
-    titleEs: 'Monitoreo de Temperatura de Enfriador',
-    purposeEn: 'HACCP temperature monitoring twice daily for coolers and freezers.',
-    purposeEs: 'Monitoreo de temperatura HACCP dos veces al día para congeladores.',
-    category: {
-      id: 'cat-onboarding',
-      slug: 'onboarding',
-      nameEn: 'Onboarding',
-      nameEs: 'Inducción y Capacitación',
-      isArchived: false,
-    },
-    status: 'published',
-    bodyEn: { blocks: [] },
-    bodyEs: { blocks: [] },
-    createdBy: 'Safety Team',
-    createdAt: '2026-09-28T10:00:00Z',
-    updatedAt: '2026-07-20T08:00:00Z',
-    subCategory: 'Food Safety',
-    languages: 'EN / ES',
-  },
-];
-
 export function LibraryProcedureExplorer({
   procedures,
   categories,
@@ -826,6 +180,13 @@ export function LibraryProcedureExplorer({
     };
   }, []);
 
+  const act = React.useCallback(async (id: string, change: { status?: ProcedureStatus; isArchived?: boolean }) => {
+    const updated = await setProcedureState(id, change);
+    setLiveProcedures((list) => list.map((p) => (p.id === id ? updated : p)));
+  }, []);
+
+  const router = useRouter();
+
   // Filters State
   const searchParams = useSearchParams();
   const [selectedCategorySlug, setSelectedCategorySlug] = React.useState<string>(
@@ -839,22 +200,19 @@ export function LibraryProcedureExplorer({
     }
   }, [searchParams]);
   const [searchQuery, setSearchQuery] = React.useState<string>('');
-  const [statusFilter, setStatusFilter] = React.useState<'all' | ProcedureStatus>('all');
+  // Archived is its own choice: out of the list by default, one pick away for
+  // the audit.
+  const [statusFilter, setStatusFilter] = React.useState<'all' | ProcedureStatus | 'archived'>('all');
   const [sortBy, setSortBy] = React.useState<'updated_desc' | 'updated_asc' | 'title_asc' | 'title_desc'>(
     'updated_desc',
   );
-  const [viewMode, setViewMode] = React.useState<'list' | 'grid'>('list');
   const [currentPage, setCurrentPage] = React.useState<number>(1);
-  const pageSize = 6;
+  // Six a page turned a restaurant's 50-100 documents into a dozen pages.
+  const pageSize = 25;
 
-  // The demo suite fills an empty library so the screen can be shown with nothing
-  // in it — it is not mixed into a library that has something. Mixing them listed
-  // rows whose documents do not exist: every one of those 28 titles opened a 404,
-  // which is why the slug lookup used to fall back to "some other procedure".
-  const allProcedures = React.useMemo(
-    () => (liveProcedures && liveProcedures.length > 0 ? liveProcedures : FULL_DEMO_SUITE),
-    [liveProcedures],
-  );
+  // A restaurant with nothing written yet sees that, and the way to start. A
+  // stand-in set of documents here looked like someone else's library on day one.
+  const allProcedures = liveProcedures;
 
   // Category counts & deduplication matching exact category pills in design reference
   const { categoryList, categoryCounts, categorySlugMap } = React.useMemo(() => {
@@ -915,9 +273,12 @@ export function LibraryProcedureExplorer({
     }
 
     const uniqueCategories = Array.from(canonicalByName.values());
-    const counts: Record<string, number> = { all: allProcedures.length };
+    // What the list shows by default: archived documents are out of it, so
+    // they are out of the counts too, or "Food Safety 2" opened a list of one.
+    const current = allProcedures.filter((p) => !p.isArchived);
+    const counts: Record<string, number> = { all: current.length };
 
-    for (const p of allProcedures) {
+    for (const p of current) {
       if (!p.category) {
         counts['general'] = (counts['general'] || 0) + 1;
         continue;
@@ -958,7 +319,7 @@ export function LibraryProcedureExplorer({
     return [
       {
         value: 'all',
-        label: isEs ? 'Todos los estados' : 'All Status',
+        label: isEs ? 'Todos los estados' : 'All statuses',
         icon: LuLayers,
       },
       {
@@ -970,6 +331,11 @@ export function LibraryProcedureExplorer({
         value: 'draft',
         label: isEs ? 'Borradores' : 'Drafts',
         icon: LuFilePen,
+      },
+      {
+        value: 'archived',
+        label: isEs ? 'Archivados' : 'Archived',
+        icon: LuArchive,
       },
     ];
   }, [isEs]);
@@ -1015,8 +381,11 @@ export function LibraryProcedureExplorer({
         }
 
         // Status Filter
-        if (statusFilter !== 'all' && p.status !== statusFilter) {
-          return false;
+        if (statusFilter === 'archived') {
+          if (!p.isArchived) return false;
+        } else {
+          if (p.isArchived) return false;
+          if (statusFilter !== 'all' && p.status !== statusFilter) return false;
         }
 
         // Search Query
@@ -1084,7 +453,11 @@ export function LibraryProcedureExplorer({
           {isEs ? 'Categorías' : 'Categories'}
         </span>
 
+        {/* On a phone the eight pills took half the screen in four rows; there
+            they scroll sideways in one, as on the cook's procedures list. */}
+        <div className="chip-rail -mx-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0">
         <FilterChips
+          className="flex-nowrap sm:flex-wrap"
           label={isEs ? 'Categoría' : 'Category'}
           value={selectedCategorySlug}
           onChange={(slug) => {
@@ -1100,6 +473,7 @@ export function LibraryProcedureExplorer({
             })),
           ]}
         />
+        </div>
       </div>
 
       {/* One control per question. The search field was a hand-built copy of the
@@ -1119,7 +493,7 @@ export function LibraryProcedureExplorer({
             id="library-search"
             type="search"
             value={searchQuery}
-            placeholder={isEs ? 'Buscar por título, slug o descripción…' : 'Search by title, slug or description…'}
+            placeholder={isEs ? 'Buscar procedimientos…' : 'Search procedures…'}
             onChange={(e) => {
               setSearchQuery(e.target.value);
               setCurrentPage(1);
@@ -1142,7 +516,7 @@ export function LibraryProcedureExplorer({
             <CustomSelect
               value={statusFilter}
               onChange={(val) => {
-                setStatusFilter(val as ProcedureStatus | 'all');
+                setStatusFilter(val as ProcedureStatus | 'all' | 'archived');
                 setCurrentPage(1);
               }}
               options={statusOptions}
@@ -1150,7 +524,7 @@ export function LibraryProcedureExplorer({
               className="h-tap-admin text-sm"
             />
           </div>
-          <div className="w-field-sm shrink-0">
+          <div className="w-field-md shrink-0">
             <CustomSelect
               value={sortBy}
               onChange={(val) => setSortBy(val as typeof sortBy)}
@@ -1160,26 +534,6 @@ export function LibraryProcedureExplorer({
             />
           </div>
 
-          <div className="segbar" role="group" aria-label={isEs ? 'Vista' : 'View'}>
-            <button
-              type="button"
-              aria-current={viewMode === 'list' ? 'true' : undefined}
-              onClick={() => setViewMode('list')}
-              title={isEs ? 'Lista' : 'List'}
-            >
-              <LuListChecks aria-hidden="true" />
-              <span className="sr-only">{isEs ? 'Lista' : 'List'}</span>
-            </button>
-            <button
-              type="button"
-              aria-current={viewMode === 'grid' ? 'true' : undefined}
-              onClick={() => setViewMode('grid')}
-              title={isEs ? 'Cuadrícula' : 'Grid'}
-            >
-              <LuLayoutGrid aria-hidden="true" />
-              <span className="sr-only">{isEs ? 'Cuadrícula' : 'Grid'}</span>
-            </button>
-          </div>
         </div>
       </div>
 
@@ -1207,7 +561,22 @@ export function LibraryProcedureExplorer({
       )}
 
       {/* Empty State */}
-      {filteredProcedures.length === 0 ? (
+      {allProcedures.length === 0 ? (
+        <EmptyState
+          icon={LuFileText}
+          title={isEs ? 'Aún no hay procedimientos' : 'No procedures yet'}
+          body={
+            isEs
+              ? 'Escribe el primero, o importa un documento que ya tengas.'
+              : 'Write your first one, or import a document you already have.'
+          }
+          action={
+            <Link href={`/${locale}/admin/library/new`}>
+              <Button icon={LuPlus}>{isEs ? 'Nuevo procedimiento' : 'New procedure'}</Button>
+            </Link>
+          }
+        />
+      ) : filteredProcedures.length === 0 ? (
         <EmptyState
           icon={LuFileSearch}
           title={isEs ? 'No se encontraron procedimientos' : 'No procedures found'}
@@ -1224,8 +593,7 @@ export function LibraryProcedureExplorer({
             ) : undefined
           }
         />
-      ) : viewMode === 'list' ? (
-        /* List View - Rich Cards Matching Design Specification */
+      ) : (
         <ul className="divide-y divide-[var(--color-line)] rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)]">
           {paginatedProcedures.map((p, index) => {
             const catName = p.category ? (isEs ? p.category.nameEs : p.category.nameEn) : 'General';
@@ -1234,8 +602,9 @@ export function LibraryProcedureExplorer({
             const title = (isEs ? p.titleEs || p.titleEn : p.titleEn || p.titleEs) || p.slug;
             const purpose = isEs ? p.purposeEs || p.purposeEn : p.purposeEn || p.purposeEs;
             const isRecipe = catSlug === 'recipes' || catSlug === 'recipe' || p.slug.includes('recipe');
-            const languagesText =
-              (p as any).languages || ((p.titleEn && p.titleEs) || (p.purposeEn && p.purposeEs) ? 'EN / ES' : 'EN');
+            // The same test the admin home uses: a Spanish-reading cook cannot
+            // read it. A bare "EN" beside "EN / ES" did not say that was a gap.
+            const noSpanish = !p.titleEs.trim() || (p.bodyEn.blocks.length > 0 && p.bodyEs.blocks.length === 0);
             const subCategory =
               (p as any).subCategory ||
               (isRecipe
@@ -1248,10 +617,14 @@ export function LibraryProcedureExplorer({
             const isFirstCard = index === 0 && validCurrentPage === 1;
 
             return (
-              <li
-                key={p.id}
-                className="group flex flex-col md:flex-row md:items-center justify-between gap-4 px-4 py-5 transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:bg-[var(--color-wash)]"
-              >
+              <li key={p.id} className="flex items-center gap-2 pr-3 transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:bg-[var(--color-wash)]">
+                {/* The row is the link. Six identical "View" buttons down the
+                    list were six copies of one action. What changes the
+                    procedure's state sits in its menu. */}
+                <Link
+                  href={`/${locale}/procedures/${p.slug}`}
+                  className="group flex min-w-0 flex-1 items-center justify-between gap-4 py-5 pl-4"
+                >
                 {/* The icon is a mark, not a framed object: the bordered tile was
                     the only one of its kind in the product. */}
                 <div className="flex min-w-0 flex-1 items-start gap-4">
@@ -1259,11 +632,13 @@ export function LibraryProcedureExplorer({
 
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <h4 className="min-w-0 truncate text-base font-semibold leading-heading text-[var(--color-ink)] transition-colors">
+                      <h4 className="min-w-0 text-base font-semibold leading-heading text-[var(--color-ink)] transition-colors">
                         {title}
                       </h4>
-                      <StatusPill tone={p.status === 'published' ? 'ok' : 'neutral'} withDot>
-                        {p.status === 'published' ? (isEs ? 'Publicado' : 'Published') : isEs ? 'Borrador' : 'Draft'}
+                      <StatusPill tone={p.isArchived ? 'neutral' : p.status === 'published' ? 'ok' : 'neutral'} withDot>
+                        {p.isArchived
+                          ? isEs ? 'Archivado' : 'Archived'
+                          : p.status === 'published' ? (isEs ? 'Publicado' : 'Published') : isEs ? 'Borrador' : 'Draft'}
                       </StatusPill>
                     </div>
 
@@ -1277,7 +652,24 @@ export function LibraryProcedureExplorer({
                     <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm leading-meta text-[var(--color-ink-3)]">
                       <span>{catName}</span>
                       <span aria-hidden="true">·</span>
-                      <span>{languagesText}</span>
+                      {p.protection === 'confidential' || p.protection === 'master' ? (
+                        <>
+                          <span className="inline-flex items-center gap-1 font-semibold text-[var(--color-ink-2)]">
+                            <LuLock aria-hidden="true" />
+                            {p.protection === 'master'
+                              ? isEs ? 'Receta maestra' : 'Master recipe'
+                              : isEs ? 'Confidencial' : 'Confidential'}
+                          </span>
+                          <span aria-hidden="true">·</span>
+                        </>
+                      ) : null}
+                      {noSpanish ? (
+                        <span className="font-semibold text-[var(--color-warn-ink)]">
+                          {isEs ? 'Sin español' : 'No Spanish yet'}
+                        </span>
+                      ) : (
+                        <span>EN / ES</span>
+                      )}
                       <span aria-hidden="true">·</span>
                       <span>
                         {isEs ? 'Actualizado' : 'Updated'}{' '}
@@ -1291,83 +683,40 @@ export function LibraryProcedureExplorer({
                   </div>
                 </div>
 
-                <div className="flex shrink-0 items-center self-start md:self-center">
-                  <Link href={`/${locale}/procedures/${p.slug}`}>
-                    <Button variant="neutral" size="sm" className="gap-2 font-semibold">
-                      <span>{isEs ? 'Ver' : 'View'}</span>
-                      <LuArrowRight aria-hidden="true" className="text-sm" />
-                    </Button>
-                  </Link>
-                </div>
+                </Link>
+                <RowActions
+                  triggerLabel={`${isEs ? 'Acciones' : 'Actions'}: ${title}`}
+                  items={
+                    [
+                      p.isArchived
+                        ? null
+                        : { label: isEs ? 'Editar' : 'Edit', icon: LuPencil, onSelect: () => router.push(`/${locale}/admin/library/${p.id}/edit`) },
+                      p.isArchived
+                        ? { label: isEs ? 'Restaurar' : 'Restore', icon: LuArchiveRestore, onSelect: () => void act(p.id, { isArchived: false }) }
+                        : p.status === 'draft'
+                          ? { label: isEs ? 'Publicar' : 'Publish', icon: LuCircleCheck, onSelect: () => void act(p.id, { status: 'published' }) }
+                          : { label: isEs ? 'Pasar a borrador' : 'Move to drafts', icon: LuCircleDashed, onSelect: () => void act(p.id, { status: 'draft' }) },
+                      p.isArchived
+                        ? null
+                        : { label: isEs ? 'Archivar' : 'Archive', icon: LuArchive, onSelect: () => void act(p.id, { isArchived: true }) },
+                    ].filter(Boolean) as RowActionItem[]
+                  }
+                />
               </li>
             );
           })}
         </ul>
-      ) : (
-        /* Grid View */
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {paginatedProcedures.map((p) => {
-            const catName = p.category ? (isEs ? p.category.nameEs : p.category.nameEn) : 'General';
-            const catSlug = p.category?.slug ?? 'general';
-            const theme = getCategoryTheme(catSlug);
-            const title = (isEs ? p.titleEs || p.titleEn : p.titleEn || p.titleEs) || p.slug;
-            const purpose = isEs ? p.purposeEs || p.purposeEn : p.purposeEn || p.purposeEs;
-
-            return (
-              <div
-                key={p.id}
-                className="group relative flex flex-col justify-between rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-4 transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:border-[var(--color-line-hover)] hover:shadow-e1"
-              >
-                <div className="space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    {/* The same mark as the list row: a tile, not a framed
-                        object, and the same badge from the same component. */}
-                    <IconTile size="lg" icon={theme.icon} />
-
-                    <StatusPill tone={p.status === 'published' ? 'ok' : 'neutral'} withDot>
-                      {p.status === 'published' ? (isEs ? 'Publicado' : 'Published') : isEs ? 'Borrador' : 'Draft'}
-                    </StatusPill>
-                  </div>
-
-                  <div className="space-y-1">
-                    <span className="text-sm font-semibold text-[var(--color-ink-3)] block">{catName}</span>
-                    <h4 className="line-clamp-2 text-base font-semibold leading-heading text-[var(--color-ink)] transition-colors">
-                      {title}
-                    </h4>
-                    {purpose && (
-                      <p className="line-clamp-2 pt-1 text-sm leading-body text-[var(--color-ink-2)]">{purpose}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="mt-4 pt-3 border-t border-[var(--color-line)] flex items-center justify-between text-sm">
-                  <span className="text-[var(--color-ink-3)]">
-                    {new Date(p.updatedAt).toLocaleDateString(isEs ? 'es' : 'en', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                    })}
-                  </span>
-                  <Link href={`/${locale}/procedures/${p.slug}`}>
-                    <Button variant="neutral" size="sm" className="gap-2 font-semibold">
-                      <span>{isEs ? 'Ver' : 'View'}</span>
-                      <LuArrowRight aria-hidden="true" className="text-sm" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            );
-          })}
-        </div>
       )}
 
       {/* Pagination Footer */}
       {totalItems > 0 && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-[var(--color-line)] text-sm text-[var(--color-ink-3)]">
           <div>
-            Showing {startIndex + 1}–{Math.min(startIndex + pageSize, totalItems)} of {totalItems} procedures
+            {isEs ? 'Mostrando' : 'Showing'} {startIndex + 1}–{Math.min(startIndex + pageSize, totalItems)}{' '}
+            {isEs ? 'de' : 'of'} {totalItems} {isEs ? 'procedimientos' : 'procedures'}
           </div>
 
+          {totalPages > 1 ? (
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -1406,6 +755,7 @@ export function LibraryProcedureExplorer({
               <Icon icon="ri-arrow-right-s-line" className="text-base" />
             </button>
           </div>
+          ) : null}
         </div>
       )}
     </div>

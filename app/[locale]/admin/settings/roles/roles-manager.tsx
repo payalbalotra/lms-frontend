@@ -262,7 +262,7 @@ export function RolesManager({
                           ) : (
                             <RowActions
                               items={rowItemsFor(r)}
-                              triggerLabel={`${t('rowActionsLabel')} — ${r.name}`}
+                              triggerLabel={`${t('rowActionsLabel')}: ${r.name}`}
                             />
                           )}
                         </td>
