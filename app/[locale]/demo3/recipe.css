@@ -1,0 +1,991 @@
+/* /demo3's additions to the document styles in app/lms.css: the compact
+   overview and cook mode. Tokens only, so light and dark both follow.
+   Unlayered, so these win over lms.css, which is in the components layer. */
+
+/* --- the step number is the tick (as on /demo1) ------------------------------ */
+
+button.step-check {
+  position: relative;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+/* The disc is 30px; the target is 48px, the employee minimum. */
+button.step-check::after {
+  content: '';
+  position: absolute;
+  inset: -9px;
+}
+
+button.step-check:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .step:not(.is-done) button.step-check:hover {
+    border-color: var(--ink-3);
+  }
+}
+
+/* Done: the same green tick as a checklist, so "done" looks one way. */
+.step.is-done .step-num,
+.step-num.is-on {
+  border-color: var(--ok);
+  background: var(--ok-fill) center / 17px 17px no-repeat
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8l3 3 5-5'/%3E%3C/svg%3E");
+}
+
+.step.is-done .step-num::before {
+  content: '';
+}
+
+.step.is-done .step-line {
+  color: var(--ink-3);
+}
+
+.qty {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* --- the way in ------------------------------------------------------------------ */
+
+/* Where the cook is: a quiet panel under the facts, the same width, shown
+   once there is progress to report. The button for it lives in the bar. */
+.cook-status {
+  position: relative;
+  margin: var(--s-3) var(--s-5) 0;
+  padding: var(--s-4) var(--s-4) var(--s-5);
+  border-radius: var(--r-lg);
+  background: var(--wash);
+  overflow: hidden;
+}
+
+.cook-status-text {
+  display: grid;
+  gap: 2px;
+}
+
+.cook-status-text b {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: var(--t-md);
+  font-variant-numeric: tabular-nums;
+}
+
+.cook-status-text span {
+  font-size: var(--t-sm);
+  color: var(--ink-2);
+}
+
+.cook-status[data-state='done'] .cook-status-text .i {
+  color: var(--ok);
+}
+
+/* How much is done, along the panel's foot. */
+.cook-status-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+  background: var(--line);
+}
+
+.cook-status-bar i {
+  display: block;
+  height: 100%;
+  background: var(--brand-600);
+}
+
+/* The document's own side margin from 600px, so it lines up with the facts. */
+@media (min-width: 600px) {
+  .cook-status {
+    margin-left: var(--s-8);
+    margin-right: var(--s-8);
+    padding-left: var(--s-5);
+  }
+}
+
+/* --- the way in ----------------------------------------------------------------
+   One place per device. From 720px it is in the top bar, before the theme and
+   the menu; below that it is the bottom bar (the dock, further down). */
+
+.cook-bar-btn,
+.doc-bar .timer-chip {
+  display: none;
+}
+
+@media (min-width: 720px) {
+  .cook-bar-btn {
+    display: inline-flex;
+    min-height: 44px;
+    padding: 0 var(--s-5);
+    white-space: nowrap;
+  }
+
+  .doc-bar .timer-chip {
+    display: inline-flex;
+    flex: none;
+  }
+}
+
+/* --- how far along ------------------------------------------------------------- */
+
+.method-progress {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  margin: 0 0 var(--s-3);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.method-reset {
+  min-height: 48px;
+  padding: 0 var(--s-2);
+  border: 0;
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--t-sm);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.method-reset:hover {
+  color: var(--ink);
+}
+
+/* --- the parts ----------------------------------------------------------------------
+   Closer together than sections: they are one method. */
+
+.doc-sec.phase {
+  margin-top: var(--s-8);
+}
+
+.phase-part {
+  margin-bottom: var(--s-1);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  letter-spacing: var(--caps-track);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.doc-sec.phase > h2 {
+  margin-bottom: var(--s-2);
+}
+
+/* --- a step as one line ----------------------------------------------------------
+   Number, words, picture. The words are a size down from the reading size on a
+   phone: beside a thumbnail the column is 230px, and at 20px a step ran to seven
+   lines. Full size is what cook mode is for. */
+
+.steps.compact .step {
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  column-gap: var(--s-3);
+  row-gap: 0;
+  align-items: start;
+}
+
+.steps.compact .step-line {
+  font-size: var(--t-base);
+  line-height: 1.5;
+  max-width: 62ch;
+}
+
+.steps.compact .step-body {
+  padding-top: 3px;
+}
+
+/* Safety at full width, under the line, never behind a tap. */
+.step-extra {
+  grid-column: 2 / -1;
+}
+
+.step-extra .note-block {
+  margin-top: var(--s-3);
+}
+
+.step-extra .crit {
+  margin-bottom: 0;
+}
+
+@media (min-width: 720px) {
+  .steps.compact .step {
+    column-gap: var(--s-4);
+  }
+
+  .steps.compact .step-line {
+    font-size: var(--t-md);
+  }
+}
+
+/* --- the thumbnail ------------------------------------------------------------------ */
+
+.step-thumb {
+  position: relative;
+  display: block;
+  width: 72px;
+  height: 72px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--panel);
+  cursor: pointer;
+  transition: transform var(--dur-press) var(--ease);
+}
+
+.step-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.step-thumb:active {
+  transform: scale(0.97);
+}
+
+.step-thumb:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Right and wrong, side by side, each with its colour along the bottom. */
+.step-thumb.is-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  background: var(--surface);
+}
+
+.step-thumb.is-pair img {
+  border-radius: 0;
+}
+
+.step-thumb.is-pair img.ok {
+  border-bottom: 4px solid var(--ok);
+}
+
+.step-thumb.is-pair img.no {
+  border-bottom: 4px solid var(--bad);
+}
+
+.step-thumb .badge {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 6px 0 3px;
+  border-radius: var(--r-pill);
+  background: var(--scrim-strong);
+  color: var(--on-fill);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 720px) {
+  .step-thumb {
+    width: 120px;
+    height: 90px;
+  }
+}
+
+/* The whole video: one more line of the same shape. */
+.video-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--s-4);
+  align-items: center;
+  padding: var(--s-3);
+  border-radius: var(--r-lg);
+  background: var(--wash);
+}
+
+.video-row p {
+  display: grid;
+  gap: 2px;
+}
+
+.video-row span {
+  font-size: var(--t-sm);
+  color: var(--ink-2);
+}
+
+/* ================================================================================
+   COOK MODE
+   The whole screen on a phone; a tall panel on anything wider.
+   ================================================================================ */
+
+dialog.cook {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+dialog.cook[open] {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+dialog.cook::backdrop {
+  background: var(--scrim);
+}
+
+@media (min-width: 720px) and (min-height: 600px) {
+  dialog.cook {
+    width: min(720px, calc(100vw - 48px));
+    height: min(calc(100dvh - 48px), 940px);
+    margin: auto;
+    border-radius: var(--r-lg);
+    box-shadow: var(--e-3);
+    overflow: hidden;
+  }
+}
+
+.cook-top {
+  position: relative;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 48px;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  border-bottom: 1px solid var(--line);
+}
+
+.cook-where {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cook-where p {
+  display: grid;
+  text-align: center;
+  line-height: 1.3;
+}
+
+.cook-where b {
+  font-size: var(--t-base);
+  font-variant-numeric: tabular-nums;
+}
+
+.cook-where p span {
+  font-size: var(--t-sm);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- timers ---------------------------------------------------------------------
+   The soonest one, in the header and in the dock: counting, then red. */
+
+.timer-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  max-width: 100%;
+  min-height: 28px;
+  padding: 0 var(--s-3) 0 var(--s-2);
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--t-sm);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* 28px drawn, 48px to hit. */
+.timer-chip::after {
+  content: '';
+  position: absolute;
+  inset: -10px 0;
+}
+
+.timer-chip b {
+  font-variant-numeric: tabular-nums;
+}
+
+.timer-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ink-2);
+}
+
+.timer-chip[data-over] {
+  background: var(--bad-fill);
+  color: var(--on-fill);
+}
+
+.timer-chip[data-over] span {
+  color: var(--on-fill);
+}
+
+.cook-timer {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-2) var(--s-2) var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--wash);
+}
+
+.cook-timer b {
+  flex: 1;
+  font-size: var(--t-xl);
+  font-variant-numeric: tabular-nums;
+}
+
+.cook-timer .i {
+  color: var(--brand-600);
+}
+
+.cook-timer[data-over] {
+  background: var(--bad-tint);
+  color: var(--bad);
+}
+
+.cook-timer[data-over] .i {
+  color: var(--bad);
+}
+
+.cook-timer-start {
+  justify-self: start;
+}
+
+/* How far through, along the header's edge. */
+.cook-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 3px;
+}
+
+.cook-bar i {
+  display: block;
+  height: 100%;
+  background: var(--brand-600);
+  transition: width var(--dur) var(--ease);
+}
+
+.cook-main {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+
+/* A step arrives from the side it was asked for. Short: a cook taps through
+   twenty of these in one batch. */
+.cook-screen[data-dir='next'] {
+  animation: cook-in-next 180ms var(--ease);
+}
+
+.cook-screen[data-dir='back'] {
+  animation: cook-in-back 180ms var(--ease);
+}
+
+@keyframes cook-in-next {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+
+@keyframes cook-in-back {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cook-screen[data-dir] {
+    animation: none;
+  }
+}
+
+/* The picture, full width, never so tall that the words fall off the screen. */
+.cook-media {
+  margin: 0;
+}
+
+.cook-media .frame {
+  position: relative;
+}
+
+.cook-media img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  max-height: 46dvh;
+  object-fit: cover;
+  background: var(--panel);
+}
+
+.cook-media > figcaption {
+  padding: var(--s-2) var(--s-4) 0;
+  font-size: var(--t-base);
+  color: var(--ink-2);
+}
+
+.cook-media .play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--glass);
+  color: var(--ink);
+  box-shadow: var(--e-3);
+  cursor: pointer;
+}
+
+.cook-media .dur {
+  position: absolute;
+  right: var(--s-3);
+  bottom: var(--s-3);
+  padding: 2px var(--s-2);
+  border-radius: var(--r-sm);
+  background: var(--scrim-strong);
+  color: var(--on-fill);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Right beside wrong, both big enough to tell apart. */
+.cook-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+}
+
+.cook-pair figure {
+  margin: 0;
+}
+
+.cook-pair figcaption {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  padding: var(--s-2) var(--s-3);
+  font-weight: 700;
+}
+
+.cook-pair .ok img {
+  border-bottom: 4px solid var(--ok);
+}
+
+.cook-pair .no img {
+  border-bottom: 4px solid var(--bad);
+}
+
+.cook-pair .ok figcaption {
+  color: var(--ok);
+}
+
+.cook-pair .no figcaption {
+  color: var(--bad);
+}
+
+.cook-pad {
+  display: grid;
+  align-content: start;
+  gap: var(--s-3);
+  padding: var(--s-5) var(--s-4) var(--s-6);
+}
+
+@media (min-width: 720px) {
+  .cook-pad {
+    padding: var(--s-6) var(--s-8) var(--s-8);
+  }
+}
+
+.cook-stepline {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+/* In cook mode the disc carries its own number: there is no list to count it. */
+.cook-stepline .step-num::before {
+  content: none;
+}
+
+.cook-stepline .step-flag {
+  margin-bottom: 0;
+}
+
+.cook-phase {
+  font-size: var(--t-sm);
+  font-weight: 600;
+  letter-spacing: var(--caps-track);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* Read at arm's length, over a bench. */
+.cook-line {
+  font-size: var(--t-lg);
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: var(--heading-track);
+}
+
+.cook-note {
+  font-size: var(--t-md);
+  line-height: var(--lh-body);
+  color: var(--ink-2);
+}
+
+.cook-discard {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--wash);
+  font-size: var(--t-md);
+}
+
+.cook-discard .i {
+  flex: none;
+  color: var(--brand-600);
+}
+
+.cook-pad .note-block,
+.cook-pad .crit {
+  margin: 0;
+}
+
+/* The step after this one, quieter than this one. */
+.cook-next {
+  display: grid;
+  gap: var(--s-1);
+  margin-top: var(--s-4);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--line);
+  color: var(--ink-2);
+}
+
+.cook-next-lbl {
+  font-size: var(--t-sm);
+  font-weight: 600;
+  letter-spacing: var(--caps-track);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.cook-next p {
+  font-size: var(--t-base);
+  line-height: 1.5;
+}
+
+/* --- all steps, to jump to any of them ---------------------------------------- */
+
+.cook-list {
+  display: grid;
+  gap: var(--s-5);
+  padding: var(--s-5) var(--s-3) var(--s-6);
+}
+
+.cook-list h3 {
+  padding: 0 var(--s-3);
+  margin-bottom: var(--s-1);
+}
+
+.cook-list ol {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cook-list li button {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: var(--s-3);
+  align-items: start;
+  width: 100%;
+  min-height: 48px;
+  padding: var(--s-2) var(--s-3);
+  border: 0;
+  border-radius: var(--r-md);
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cook-list li button:hover {
+  background: var(--wash);
+}
+
+.cook-list li button[aria-current] {
+  background: var(--wash);
+  box-shadow: inset 3px 0 0 var(--brand-600);
+}
+
+.cook-list .step-num::before {
+  content: none;
+}
+
+.cook-list .step-num.is-crit:not(.is-on) {
+  border-color: var(--bad-fill);
+  color: var(--bad);
+}
+
+/* Two lines of each, enough to know it. */
+.cook-list-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  padding-top: 3px;
+  font-size: var(--t-base);
+  line-height: 1.5;
+}
+
+/* Screen 0: the batch and the weigh-out. */
+.cook-title {
+  font-size: var(--t-xl);
+  font-weight: 700;
+  letter-spacing: var(--heading-track);
+  line-height: 1.15;
+}
+
+.cook-sub {
+  font-size: var(--t-md);
+  line-height: var(--lh-body);
+  color: var(--ink-2);
+}
+
+.cook-intro .scaler {
+  position: static;
+  padding: 0;
+}
+
+.cook-h3 {
+  margin-top: var(--s-2);
+  font-size: var(--t-md);
+  font-weight: 600;
+}
+
+.cook-weigh {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cook-weigh li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--s-3);
+  padding: var(--s-3) 0;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--t-md);
+}
+
+.cook-weigh .flag {
+  margin-left: var(--s-2);
+  white-space: nowrap;
+}
+
+.cook-hint {
+  font-size: var(--t-sm);
+  color: var(--ink-2);
+}
+
+/* The last screen. */
+.cook-end {
+  justify-items: start;
+}
+
+.cook-end-mark {
+  width: 56px;
+  height: 56px;
+  color: var(--ok);
+}
+
+.cook-left {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+/* The two buttons that matter, under the thumb. */
+.cook-foot {
+  display: flex;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4) calc(var(--s-3) + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.cook-foot .btn {
+  min-height: 56px;
+}
+
+.cook-foot .cook-back {
+  flex: none;
+  width: 56px;
+  height: 56px;
+}
+
+.cook-go {
+  flex: 1;
+  padding: 0 var(--s-5);
+}
+
+.cook-go:active,
+.cook-back:active {
+  transform: scale(0.97);
+}
+
+/* The control point's button is the red of its badge: it confirms a reading. */
+.cook-go.is-crit {
+  background: var(--bad-fill);
+}
+
+.cook-go.is-crit:hover {
+  background: var(--bad-hover);
+}
+
+/* --- sideways ------------------------------------------------------------------
+   A tablet on its stand, or a phone turned on its side: the photo on the left
+   at the height of the screen, the words on the right, each scrolling alone. */
+
+@media (orientation: landscape) and (min-width: 900px) and (min-height: 600px) {
+  dialog.cook {
+    width: min(1100px, calc(100vw - 48px));
+  }
+
+  /* Read from a stand, further off than a phone in the hand. */
+  .cook-line {
+    font-size: var(--t-xl);
+  }
+}
+
+@media (orientation: landscape) and (min-width: 640px) {
+  .cook-screen:has(> .cook-step.has-media) {
+    height: 100%;
+  }
+
+  .cook-step.has-media {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    height: 100%;
+  }
+
+  .cook-step.has-media > .cook-media:not(.cook-pair) {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .cook-step.has-media .frame {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .cook-step.has-media .frame img {
+    height: 100%;
+    max-height: none;
+    aspect-ratio: auto;
+  }
+
+  .cook-step.has-media > .cook-media > figcaption {
+    padding-bottom: var(--s-3);
+  }
+
+  .cook-step.has-media > .cook-pair {
+    align-self: center;
+  }
+
+  .cook-step.has-media > .cook-pad {
+    height: 100%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+/* --- the dock ------------------------------------------------------------------
+   On a phone, the way in is always at the foot of the screen, under the thumb.
+   Wider screens have it in the top bar instead. */
+
+.cook-dock {
+  display: none;
+}
+
+@media (max-width: 719px) {
+  .cook-dock {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: var(--z-sticky);
+    display: grid;
+    justify-items: center;
+    gap: var(--s-2);
+    padding: var(--s-3) var(--s-4) calc(var(--s-3) + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--line);
+    background: var(--surface);
+    box-shadow: var(--e-2);
+  }
+
+  .cook-dock .btn {
+    width: 100%;
+  }
+
+  /* Room under the last thing on the page, so the dock never covers it. */
+  main:has(> .cook-dock) {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+}
+
+@media print {
+  .cook-dock,
+  .cook-bar-btn,
+  .cook-status,
+  .video-row,
+  .method-progress,
+  .step-thumb {
+    display: none;
+  }
+}

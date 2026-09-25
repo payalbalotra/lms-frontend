@@ -3261,22 +3261,23 @@ dl.yield {
    margin-bottom: var(--s-2);
 }
 
-/* STEP RAIL
-   The method's steps as a row of marks in the right margin, on screens wide enough
-   to have one. It is the same state the current-step highlight carries, shown a
-   second way: how many steps there are, which one you are on, and a way to jump to
-   any of them. A control point is marked in red, so "there is a critical step at
-   four" is readable without scrolling to it.
-   Built by script from the steps themselves, so it cannot fall out of step with
-   them, and absent entirely without script. Hidden on phones: there is no margin
-   to put it in, and the thumb is already the navigation. */
-.steprail {
+/* PROXIMITY RAIL
+   A map of the document in the right margin, on screens wide enough to have one:
+   a line per section, a shorter one per step of the method. The lines near the
+   pointer reach toward it on a spring, and the nearest one names itself in a chip,
+   so "there is a critical step at eleven" is readable without scrolling to it.
+   The line for where you are reading is marked; a critical step is red.
+   Built from the page by components/doc/proximity-rail.tsx, so it cannot fall out
+   of step with it, and absent without script. Hidden on phones: there is no
+   margin to put it in, and the thumb is already the navigation. From 1200px: below
+   that, beside the admin sidebar, the lines would sit on the text. */
+.proxrail {
    display: none;
 }
 
-@media (min-width: 1080px) {
-   .steprail {
-      display: grid;
+@media (min-width: 1200px) {
+   .proxrail {
+      display: block;
       position: fixed;
       right: var(--s-8);
       top: 50%;
@@ -3284,62 +3285,109 @@ dl.yield {
       z-index: var(--z-sticky);
    }
 
-   /* 24px rows: the mark is 2px but the target has to be reachable. */
-   .steprail a {
+   .proxrail-list {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      padding: var(--s-2) 0;
+   }
+
+   /* As wide as the longest reach, so the whole line is the target. */
+   .proxrail-row {
       display: flex;
       align-items: center;
       justify-content: flex-end;
-      height: 24px;
-      position: relative;
-      text-decoration: none;
+      width: 56px;
+      height: 12px;
+      padding: 0;
+      border: 0;
+      background: none;
+      cursor: pointer;
    }
 
-   .steprail a::after {
-      content: "";
-      width: 18px;
+   /* A section starts a group: a little air above it, and a taller target. */
+   .proxrail-row[data-kind="section"] {
+      height: 16px;
+   }
+
+   .proxrail-row[data-kind="section"]:not(:first-child) {
+      margin-top: 6px;
+   }
+
+   .proxrail-row:focus-visible {
+      outline: 2px solid var(--ring);
+      outline-offset: 2px;
+      border-radius: 2px;
+   }
+
+   /* Its width is set by the spring, frame by frame. */
+   .proxrail-line {
+      display: block;
+      flex-shrink: 0;
       height: 2px;
       border-radius: 1px;
-      background: var(--line-2);
-      transition: background var(--dur) var(--ease), width var(--dur) var(--ease), height var(--dur) var(--ease);
+      background: var(--line-3);
+      transition: background var(--dur) var(--ease), height var(--dur) var(--ease);
    }
 
-   .steprail a:hover::after {
+   .proxrail-row[data-kind="section"] .proxrail-line {
       background: var(--ink-3);
    }
 
-   .steprail a.is-crit::after {
+   .proxrail-row[data-critical] .proxrail-line {
       background: var(--bad-fill);
    }
 
-   .steprail a[aria-current="true"]::after {
-      width: 28px;
+   /* Where you are reading. */
+   .proxrail-row[aria-current] .proxrail-line {
       height: 3px;
       background: var(--ink);
    }
 
-   .steprail a.is-crit[aria-current="true"]::after {
+   .proxrail-row[data-critical][aria-current] .proxrail-line {
       background: var(--bad-fill);
    }
 
-   .steprail .n {
+   .proxrail-label {
       position: absolute;
-      right: var(--s-8);
+      right: 62px;
+      max-width: 300px;
+      overflow: hidden;
+      text-overflow: ellipsis;
       white-space: nowrap;
-      font-size: var(--t-sm);
-      font-weight: 600;
-      color: var(--ink);
+      padding: 2px var(--s-2);
+      border-radius: var(--r-sm);
       background: var(--surface);
       box-shadow: var(--e-2);
-      border-radius: var(--r-sm);
-      padding: 2px var(--s-2);
+      color: var(--ink);
+      font-size: var(--t-sm);
+      font-weight: 600;
       opacity: 0;
       pointer-events: none;
-      transition: opacity var(--dur) var(--ease);
+      transform: translate(4px, -50%);
+      transition: opacity 120ms var(--ease), transform 160ms var(--ease), top 120ms var(--ease);
    }
 
-   .steprail a:hover .n,
-   .steprail a:focus-visible .n {
+   .proxrail-label[data-on] {
       opacity: 1;
+      transform: translate(0, -50%);
+   }
+
+   .proxrail-label[data-critical] {
+      color: var(--bad);
+   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .proxrail-label {
+      transition: opacity 120ms linear;
+   }
+}
+
+@media print {
+   .proxrail {
+      display: none;
    }
 }
 

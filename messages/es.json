@@ -172,6 +172,11 @@
       "tabTraining": "Capacitación",
       "tabSoon": "Próximamente",
       "tabsNav": "Secciones",
+      "rail": {
+        "nav": "Secciones de la página",
+        "step": "Paso {n}",
+        "critical": "Paso crítico {n}"
+      },
       "quiz": {
         "heading": "Verificación rápida",
         "count": "{count, plural, =0 {sin preguntas} =1 {1 pregunta} other {# preguntas}}",
