@@ -23,6 +23,7 @@ import { MultiSelectChips } from "@/components/ui/multi-select-chips";
 import { Drawer } from "@/components/ui/drawer";
 import { BilingualInput, type BilingualValue } from "@/components/ui/bilingual-input";
 import { WizardStepper } from "@/components/ui/wizard-stepper";
+import { getAllStepProgress } from "@/lib/getStepProgress";
 import { StatusPill } from "@/components/ui/status-pill";
 import { PageHeader } from "@/components/admin/page-header";
 import { FormSection } from "@/components/admin/form-section";
@@ -270,6 +271,22 @@ export function ProcedureEditor({
     [blocks, isRecipe, ingredients, yieldItems, title],
   );
 
+  // Per-step fill ratio, recomputed on every keystroke so the stepper reads
+  // as live progress rather than "you are on step 2". The rules live in
+  // lib/getStepProgress.ts so they are easy to read and easy to change.
+  const stepProgress = React.useMemo(
+    () =>
+      getAllStepProgress({
+        title,
+        purpose,
+        quiz,
+        subcategoryId,
+        isStationSpecific: Boolean(subcategory?.isStationSpecific),
+        audience,
+      }),
+    [title, purpose, quiz, subcategoryId, subcategory?.isStationSpecific, audience],
+  );
+
   const quizCount = quiz?.questions.length ?? 0;
   const whoSummary = (() => {
     if (audience.mode === "everyone") return t("whoEveryone");
@@ -376,9 +393,13 @@ export function ProcedureEditor({
 
       <WizardStepper
         ariaLabel={tStep("ariaLabel")}
-        currentStep={step}
-        steps={STEPS.map((s) => ({ id: s.id, num: s.num, label: s.label }))}
-        onSelectStep={(id) => setStep(id as WizardStepId)}
+        current={step}
+        steps={STEPS.map((s) => ({
+          id: s.id,
+          label: s.label,
+          progress: stepProgress[s.id],
+        }))}
+        onSelect={(id) => setStep(id as WizardStepId)}
       />
 
       <div className="mt-2 space-y-4 pb-20">

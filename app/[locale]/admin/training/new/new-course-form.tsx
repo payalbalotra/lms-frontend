@@ -766,13 +766,54 @@ export function NewCourseForm({
   const stepIdx = COURSE_STEPS.findIndex((x) => x.id === step);
   const isLastStep = stepIdx === COURSE_STEPS.length - 1;
 
+  // Per-step fill ratio — recomputed on every keystroke. Each step is one
+  // required item; "ack" is derived from how many of the others are done so
+  // the bar catches up the moment the manager finishes a step, even though
+  // ack itself just collects a single confirmation value.
+  const filled = (s: string): boolean => s.trim().length > 0;
+  const stepProgress = React.useMemo<Record<CourseStep, number>>(() => {
+    const details =
+      (filled(titleEn) ? 1 : 0) +
+      (filled(titleEs) ? 1 : 0) +
+      (filled(purposeEn) ? 1 : 0) +
+      (filled(purposeEs) ? 1 : 0);
+    const content = blocks.length > 0 ? 1 : 0;
+    const validQuestions = quiz
+      ? quiz.questions.filter(
+          (q) => filled(q.prompt.en) || filled(q.prompt.es),
+        ).length
+      : 0;
+    // Skipping the quiz (null) counts as complete, otherwise need ≥3 questions.
+    const quizDone = quiz === null
+      ? 1
+      : Math.min(validQuestions / 3, 1);
+    const sops = linkedSops.length > 0 ? 1 : 0;
+    const ackDone =
+      ((details / 4) +
+        content +
+        quizDone +
+        sops) /
+      4;
+    return {
+      details: details / 4,
+      content,
+      quiz: quizDone,
+      sops,
+      ack: acknowledgement !== null ? 1 : ackDone,
+    };
+  }, [titleEn, titleEs, purposeEn, purposeEs, blocks, quiz, linkedSops, acknowledgement]);
+
   return (
     <div className="space-y-6 pb-24">
       <WizardStepper
         ariaLabel={tForm('stepperLabel')}
-        currentStep={step}
-        steps={COURSE_STEPS.map((x) => ({ id: x.id, num: x.num, label: tForm(x.labelKey as never) }))}
-        onSelectStep={(id) => setStep(id as CourseStep)}
+        current={step}
+        steps={COURSE_STEPS.map((x) => ({
+          id: x.id,
+          label: tForm(x.labelKey as never),
+          progress: stepProgress[x.id],
+        }))}
+        onSelect={(id) => setStep(id as CourseStep)}
       />
 
       {step === 'details' && (
