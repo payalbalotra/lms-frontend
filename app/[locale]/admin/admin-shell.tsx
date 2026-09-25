@@ -7,7 +7,7 @@ import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import type { Employee } from '@/lib/types';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
-import { LuArrowLeft, LuArrowUpRight, LuChartColumn, LuChefHat, LuCirclePlus, LuClipboardList, LuFolders, LuGraduationCap, LuHouse, LuLogOut, LuMapPin, LuMenu, LuUserCog, LuUserPlus, LuUsers, LuX } from 'react-icons/lu';
+import { LuArrowLeft, LuArrowUpRight, LuChartColumn, LuChefHat, LuCirclePlus, LuClipboardList, LuFolders, LuGraduationCap, LuHouse, LuLogOut, LuMenu, LuUserPlus, LuUsers, LuX } from 'react-icons/lu';
 import { Icon } from '@/components/ui/icon';
 import { AdminSearch } from '@/components/admin/admin-search';
 import type { IconType } from 'react-icons';
@@ -140,9 +140,10 @@ const NAV_GROUPS: NavGroup[] = [
   {
     headingKey: 'groupSettings',
     items: [
-      { href: '/settings/stations', icon: LuChefHat, labelKey: 'navStations' },
-      { href: '/settings/roles', icon: LuUserCog, labelKey: 'navRoles' },
-      { href: '/settings/locations', icon: LuMapPin, labelKey: 'navLocations' },
+      // One Settings row that opens the single /admin/settings page — the
+      // three sub-resources (stations, roles, locations) are now inline
+      // panels in that page rather than separate URLs.
+      { href: '/settings', icon: LuChefHat, labelKey: 'navSettings' },
     ],
   },
   {
@@ -308,7 +309,7 @@ export function AdminShell({
 
             It is not shown below 900px: there the mobile header already occupies
             that row, and a phone has no space for a field this wide. */}
-        <div className="sticky top-0 z-sticky hidden min-h-bar items-center gap-4 border-b border-[var(--color-line)] bg-[var(--color-ground)] px-10 py-3 lg:flex">
+        <header className="sticky top-0 z-sticky hidden h-[75px] min-h-[75px] items-center gap-4 border-b border-[var(--color-line-2)] bg-white/70 px-10 shadow-[var(--e-1)] backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-white/60 lg:flex">
           <AdminSearch
             locale={locale}
             labels={{
@@ -338,7 +339,7 @@ export function AdminShell({
             <ThemeToggle labels={{ toDark: tApp('themeToDark'), toLight: tApp('themeToLight') }} />
             <LocaleSwitch locale={locale} label={tShell('langLabel')} />
           </div>
-        </div>
+        </header>
 
         <main className="min-w-0 flex-1 px-4 pb-12 pt-6 sm:px-6 lg:px-10 lg:pb-12 lg:pt-8">
           {/* Keyed by locale, so the fade runs when the language changes rather
@@ -397,7 +398,7 @@ function Sidebar({
           stepped zigzag instead of a 1px rule. It is the one place in the admin
           chrome that looks like the restaurant rather than like software, which
           is why it is also the only terracotta field on the screen. */}
-      <div className="flex min-h-16 items-center gap-3 bg-[var(--color-brand-600)] px-4 py-3">
+      <div className="flex h-16 min-h-16 items-center gap-3 bg-[var(--color-brand-600)] px-4 py-3">
         {/* The restaurant's own mark, from alimentariamexicana.com. It carries its
             own cream ground, so it sits in a plain rounded frame. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -12,8 +12,15 @@ export const ALLERGEN_KEYS = [
   'treeNuts',
   'peanuts',
   'wheat',
+  'gluten',
   'soy',
   'sesame',
+  'celery',
+  'mustard',
+  'sulphites',
+  'lupin',
+  'molluscs',
+  'corn',
 ] as const;
 
 export type AllergenKey = (typeof ALLERGEN_KEYS)[number];
@@ -26,6 +33,13 @@ export const ALLERGEN_LABELS: Record<AllergenKey, { en: string; es: string }> = 
   treeNuts:  { en: 'Tree nuts',  es: 'Frutos secos' },
   peanuts:   { en: 'Peanuts',    es: 'Cacahuetes' },
   wheat:     { en: 'Wheat',      es: 'Trigo' },
+  gluten:    { en: 'Gluten',     es: 'Gluten' },
   soy:       { en: 'Soy',        es: 'Soya' },
   sesame:    { en: 'Sesame',     es: 'Sésamo' },
+  celery:    { en: 'Celery',     es: 'Apio' },
+  mustard:   { en: 'Mustard',    es: 'Mostaza' },
+  sulphites: { en: 'Sulphites',  es: 'Sulfitos' },
+  lupin:     { en: 'Lupin',      es: 'Altramuces' },
+  molluscs:  { en: 'Molluscs',   es: 'Moluscos' },
+  corn:      { en: 'Corn',       es: 'Maíz' },
 };

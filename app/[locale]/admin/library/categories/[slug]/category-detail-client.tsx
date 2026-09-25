@@ -13,6 +13,7 @@ import { Icon } from '@/components/ui/icon';
 import { RowActions } from '@/components/ui/row-actions';
 import { StatusPill } from '@/components/ui/status-pill';
 import { cn } from '@/lib/utils';
+import { BilingualInput, type BilingualValue } from '@/components/ui/bilingual-input';
 import { useUpdateCategory } from '@/services/categories/hooks';
 import { LuArrowLeft, LuChevronRight, LuClock, LuFileText, LuLink, LuPlus, LuSearch, LuShieldAlert, LuShieldCheck, LuSparkles, LuTag, LuX } from 'react-icons/lu';
 import { IconTile } from '@/components/ui/icon-tile';
@@ -629,8 +630,14 @@ export function CategoryDetailClient({
 
                               <div className="flex shrink-0 items-center gap-4 pl-2" onClick={(e) => e.stopPropagation()}>
                                 {proc.station !== 'General' && (
+                                  // Subcategory station ids can come in as
+                                  // `stn-gm` (subcategory store), `st-gm`
+                                  // (Access step), or `GM` (seed story).
+                                  // `stationCode` collapses all three onto the
+                                  // human-readable badge the rest of the
+                                  // page uses.
                                   <StatusPill tone="neutral" className="hidden sm:inline-flex">
-                                    {proc.station}
+                                    {stationCode(proc.station)}
                                   </StatusPill>
                                 )}
                                 <span className="hidden text-sm leading-meta text-[var(--color-ink-3)] md:inline">
@@ -885,7 +892,12 @@ function AddProcedureModal({
                       <span className="block truncate text-sm text-[var(--color-ink-2)]">{proc.titleEs}</span>
                     </span>
                     {proc.station !== 'General' && (
-                      <StatusPill tone="neutral">{proc.station.replace(/^st-/, '')}</StatusPill>
+                      // Same normalisation as the panel row below: the
+                      // catalog's station field is the raw id (`st-expo`,
+                      // `st-grill`, …) and the badge should read like the
+                      // rest of the page (`Expo`, `Grill`). `stationCode`
+                      // covers both `stn-` and `st-` prefixes.
+                      <StatusPill tone="neutral">{stationCode(proc.station)}</StatusPill>
                     )}
                   </label>
                 );
@@ -1050,15 +1062,17 @@ function SubcategoryForm({
   onSave: (data: { nameEn: string; nameEs: string; isStationSpecific: boolean; stations: string[] }) => void;
   onCancel: () => void;
 }) {
-  const [nameEn, setNameEn] = React.useState(editingSub?.nameEn ?? '');
-  const [nameEs, setNameEs] = React.useState(editingSub?.nameEs ?? '');
+  const [name, setName] = React.useState<BilingualValue>({
+    en: editingSub?.nameEn ?? '',
+    es: editingSub?.nameEs ?? '',
+  });
   const [isStationSpecific, setIsStationSpecific] = React.useState(
     Boolean(editingSub?.isStationSpecific)
   );
   const [stations, setStations] = React.useState<string[]>(editingSub?.stations ?? []);
 
-  const trimmedEn = nameEn.trim();
-  const trimmedEs = nameEs.trim();
+  const trimmedEn = name.en.trim();
+  const trimmedEs = name.es.trim();
   const enValid = trimmedEn.length > 0 && trimmedEn.length <= 100;
   const esValid = trimmedEs.length <= 100;
   const stationsValid = !isStationSpecific || stations.length > 0;
@@ -1077,7 +1091,7 @@ function SubcategoryForm({
         if (!canSubmit) return;
         onSave({
           nameEn: trimmedEn,
-          nameEs: trimmedEs,
+          nameEs: trimmedEs || trimmedEn,
           isStationSpecific,
           stations: isStationSpecific ? stations : [],
         });
@@ -1106,43 +1120,17 @@ function SubcategoryForm({
           </h3>
 
           <div className="space-y-1.5">
-            <Label htmlFor="sub-name-en">
-              {isEs ? 'Nombre (Inglés)' : 'Name (English)'}{' '}
-              <span aria-hidden="true" className="text-[var(--color-bad)]">*</span>
-            </Label>
-            <Input
-              id="sub-name-en"
-              value={nameEn}
-              onChange={(e) => setNameEn(e.target.value.slice(0, 100))}
-              placeholder="e.g. Hygiene"
+            <BilingualInput
+              label={isEs ? 'Nombre de la subcategoría' : 'Subcategory name'}
+              value={name}
+              onChange={setName}
               required
               maxLength={100}
-              autoFocus
-              aria-invalid={nameEn.length > 0 && !enValid}
+              placeholder={{
+                en: 'e.g. Hygiene',
+                es: 'e.g. Higiene',
+              }}
             />
-            {nameEn.length > 90 && (
-              <p className="text-sm text-[var(--color-ink-3)]">
-                {100 - nameEn.length} {isEs ? 'caracteres restantes' : 'characters left'}
-              </p>
-            )}
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="sub-name-es">
-              {isEs ? 'Nombre (Español)' : 'Name (Spanish)'}{' '}
-              <span className="font-normal text-[var(--color-ink-3)]">{isEs ? '(opcional)' : '(optional)'}</span>
-            </Label>
-            <Input
-              id="sub-name-es"
-              value={nameEs}
-              onChange={(e) => setNameEs(e.target.value.slice(0, 100))}
-              placeholder="e.g. Higiene"
-              maxLength={100}
-              aria-invalid={nameEs.length > 0 && !esValid}
-            />
-            <p className="text-sm text-[var(--color-ink-3)]">
-              {isEs ? 'Se muestra cuando la biblioteca se ve en español.' : 'Used when the library is viewed in Spanish.'}
-            </p>
           </div>
         </section>
 

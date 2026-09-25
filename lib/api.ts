@@ -10,8 +10,6 @@ import type {
   CreateStationInput,
   Employee,
   EmployeeStatus,
-  ExtractedProcedure,
-  ImportProcedureType,
   InviteResult,
   Location,
   Procedure,
@@ -56,18 +54,19 @@ const SEED_LOCATIONS: Location[] = [
 ];
 
 const SEED_ROLES: Role[] = [
-  { id: 'role-exec', name: 'Executive Chef', clearanceLevel: 'master', createdAt: '2026-01-01T00:00:00Z' },
+  { id: 'role-exec', name: 'Head Chef', clearanceLevel: 'master', createdAt: '2026-01-01T00:00:00Z' },
   { id: 'role-sous', name: 'Sous Chef', clearanceLevel: 'master', createdAt: '2026-01-01T00:00:00Z' },
   { id: 'role-cook', name: 'Line Cook', clearanceLevel: 'station', createdAt: '2026-01-01T00:00:00Z' },
   { id: 'role-prep', name: 'Prep Cook', clearanceLevel: 'station', createdAt: '2026-01-01T00:00:00Z' },
+  { id: 'role-pastry', name: 'Pastry Chef', clearanceLevel: 'station', createdAt: '2026-01-01T00:00:00Z' },
   { id: 'role-dish', name: 'Dishwasher', clearanceLevel: 'general', createdAt: '2026-01-01T00:00:00Z' },
 ];
 
 const SEED_STATIONS: Station[] = [
-  { id: 'stn-gm', name: 'GM - Cold section + fryer', locationId: 'loc-main', sortOrder: 1, isArchived: false },
+  { id: 'stn-gm', name: 'GM', locationId: 'loc-main', sortOrder: 1, isArchived: false },
   { id: 'stn-grill', name: 'Grill', locationId: 'loc-main', sortOrder: 2, isArchived: false },
   { id: 'stn-expo', name: 'Expo', locationId: 'loc-main', sortOrder: 3, isArchived: false },
-  { id: 'stn-prep', name: 'prep kitchen', locationId: 'loc-main', sortOrder: 4, isArchived: false },
+  { id: 'stn-prep', name: 'Prep Kitchen', locationId: 'loc-main', sortOrder: 4, isArchived: false },
   { id: 'stn-dish', name: 'Dishwasher', locationId: 'loc-main', sortOrder: 5, isArchived: false },
 ];
 
@@ -228,16 +227,170 @@ const SEED_CATEGORIES: Category[] = [
 
 const SEED_EMPLOYEES: AdminEmployee[] = [
   {
+    id: 'emp-maria',
+    name: 'María González',
+    locationId: 'loc-main',
+    accessLevel: 'employee',
+    roleIds: ['role-cook'],
+    stationIds: ['stn-grill'],
+    clearanceLevel: 'station',
+    role: 'employee',
+    languagePref: 'es',
+    employeeCode: 'EMP-001',
+    status: 'active',
+    createdAt: '2026-01-10T00:00:00Z',
+    deactivatedAt: null,
+    locationName: 'Almentria Mexicana - Main Kitchen',
+    roleClearance: 'station',
+  },
+  {
+    id: 'emp-james',
+    name: 'James Carter',
+    locationId: 'loc-main',
+    accessLevel: 'employee',
+    roleIds: ['role-cook'],
+    stationIds: ['stn-gm'],
+    clearanceLevel: 'station',
+    role: 'employee',
+    languagePref: 'en',
+    employeeCode: 'EMP-002',
+    status: 'active',
+    createdAt: '2026-01-12T00:00:00Z',
+    deactivatedAt: null,
+    locationName: 'Almentria Mexicana - Main Kitchen',
+    roleClearance: 'station',
+  },
+  {
+    id: 'emp-ana',
+    name: 'Ana Martínez',
+    locationId: 'loc-main',
+    accessLevel: 'employee',
+    roleIds: ['role-pastry'],
+    stationIds: ['stn-prep'],
+    clearanceLevel: 'station',
+    role: 'employee',
+    languagePref: 'es',
+    employeeCode: 'EMP-003',
+    status: 'active',
+    createdAt: '2026-01-15T00:00:00Z',
+    deactivatedAt: null,
+    locationName: 'Almentria Mexicana - Main Kitchen',
+    roleClearance: 'station',
+  },
+  {
+    id: 'emp-david',
+    name: 'David Park',
+    locationId: 'loc-main',
+    accessLevel: 'employee',
+    roleIds: ['role-prep'],
+    stationIds: ['stn-gm'],
+    clearanceLevel: 'station',
+    role: 'employee',
+    languagePref: 'en',
+    employeeCode: 'EMP-004',
+    status: 'active',
+    createdAt: '2026-01-20T00:00:00Z',
+    deactivatedAt: null,
+    locationName: 'Almentria Mexicana - Main Kitchen',
+    roleClearance: 'station',
+  },
+  {
+    id: 'emp-sofia',
+    name: 'Sofía Hernández',
+    locationId: 'loc-main',
+    accessLevel: 'manager',
+    roleIds: ['role-exec'],
+    stationIds: ['stn-expo'],
+    clearanceLevel: 'master',
+    role: 'admin',
+    languagePref: 'es',
+    employeeCode: 'EMP-005',
+    status: 'active',
+    createdAt: '2026-01-05T00:00:00Z',
+    deactivatedAt: null,
+    locationName: 'Almentria Mexicana - Main Kitchen',
+    roleClearance: 'master',
+  },
+  {
+    id: 'emp-lucas',
+    name: 'Lucas Silva',
+    locationId: 'loc-main',
+    accessLevel: 'employee',
+    roleIds: ['role-dish'],
+    stationIds: ['stn-dish'],
+    clearanceLevel: 'general',
+    role: 'employee',
+    languagePref: 'es',
+    employeeCode: 'EMP-006',
+    status: 'active',
+    createdAt: '2026-01-25T00:00:00Z',
+    deactivatedAt: null,
+    locationName: 'Almentria Mexicana - Main Kitchen',
+    roleClearance: 'general',
+  },
+  {
+    id: 'emp-priya',
+    name: 'Priya Patel',
+    locationId: 'loc-main',
+    accessLevel: 'employee',
+    roleIds: ['role-cook'],
+    stationIds: ['stn-gm'],
+    clearanceLevel: 'station',
+    role: 'employee',
+    languagePref: 'en',
+    employeeCode: 'EMP-007',
+    status: 'active',
+    createdAt: '2026-02-01T00:00:00Z',
+    deactivatedAt: null,
+    locationName: 'Almentria Mexicana - Main Kitchen',
+    roleClearance: 'station',
+  },
+  {
+    id: 'emp-hiroshi',
+    name: 'Hiroshi Tanaka',
+    locationId: 'loc-main',
+    accessLevel: 'employee',
+    roleIds: ['role-pastry'],
+    stationIds: ['stn-prep'],
+    clearanceLevel: 'station',
+    role: 'employee',
+    languagePref: 'en',
+    employeeCode: 'EMP-008',
+    status: 'active',
+    createdAt: '2026-02-05T00:00:00Z',
+    deactivatedAt: null,
+    locationName: 'Almentria Mexicana - Main Kitchen',
+    roleClearance: 'station',
+  },
+  {
+    id: 'emp-carla',
+    name: 'Carla Fernández',
+    locationId: 'loc-main',
+    accessLevel: 'employee',
+    roleIds: ['role-prep'],
+    stationIds: ['stn-gm'],
+    clearanceLevel: 'station',
+    role: 'employee',
+    languagePref: 'es',
+    employeeCode: 'EMP-009',
+    status: 'active',
+    createdAt: '2026-02-10T00:00:00Z',
+    deactivatedAt: null,
+    locationName: 'Almentria Mexicana - Main Kitchen',
+    roleClearance: 'station',
+  },
+  // 9 more active team members so "Show 9 more" appears
+  {
     id: 'emp-admin',
     name: 'Chef Raúl Medina',
     locationId: 'loc-main',
     accessLevel: 'manager',
     roleIds: ['role-exec'],
-    stationIds: [],
+    stationIds: ['stn-expo'],
     clearanceLevel: 'master',
     role: 'admin',
     languagePref: 'en',
-    employeeCode: 'EMP-001',
+    employeeCode: 'EMP-010',
     status: 'active',
     createdAt: '2026-01-10T00:00:00Z',
     deactivatedAt: null,
@@ -254,7 +407,7 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     clearanceLevel: 'station',
     role: 'employee',
     languagePref: 'es',
-    employeeCode: 'EMP-002',
+    employeeCode: 'EMP-011',
     status: 'active',
     createdAt: '2026-02-01T00:00:00Z',
     deactivatedAt: null,
@@ -271,7 +424,7 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     clearanceLevel: 'general',
     role: 'employee',
     languagePref: 'es',
-    employeeCode: 'EMP-003',
+    employeeCode: 'EMP-012',
     status: 'active',
     createdAt: '2026-02-15T00:00:00Z',
     deactivatedAt: null,
@@ -288,7 +441,7 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     clearanceLevel: 'general',
     role: 'employee',
     languagePref: 'es',
-    employeeCode: 'EMP-004',
+    employeeCode: 'EMP-013',
     status: 'active',
     createdAt: '2026-09-20T00:00:00Z',
     deactivatedAt: null,
@@ -305,7 +458,7 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     clearanceLevel: 'station',
     role: 'employee',
     languagePref: 'en',
-    employeeCode: 'EMP-005',
+    employeeCode: 'EMP-014',
     status: 'active',
     createdAt: '2026-08-20T00:00:00Z',
     deactivatedAt: null,
@@ -322,12 +475,63 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     clearanceLevel: 'general',
     role: 'employee',
     languagePref: 'es',
-    employeeCode: 'EMP-006',
+    employeeCode: 'EMP-015',
     status: 'active',
     createdAt: '2026-09-21T00:00:00Z',
     deactivatedAt: null,
     locationName: 'Almentria Mexicana - Main Kitchen',
     roleClearance: 'general',
+  },
+  {
+    id: 'emp-elena',
+    name: 'Elena Rostova',
+    locationId: 'loc-main',
+    accessLevel: 'employee',
+    roleIds: ['role-pastry'],
+    stationIds: ['stn-prep'],
+    clearanceLevel: 'station',
+    role: 'employee',
+    languagePref: 'en',
+    employeeCode: 'EMP-016',
+    status: 'active',
+    createdAt: '2026-09-22T00:00:00Z',
+    deactivatedAt: null,
+    locationName: 'Almentria Mexicana - Main Kitchen',
+    roleClearance: 'station',
+  },
+  {
+    id: 'emp-mateo',
+    name: 'Mateo Rossi',
+    locationId: 'loc-main',
+    accessLevel: 'employee',
+    roleIds: ['role-cook'],
+    stationIds: ['stn-grill'],
+    clearanceLevel: 'station',
+    role: 'employee',
+    languagePref: 'en',
+    employeeCode: 'EMP-017',
+    status: 'active',
+    createdAt: '2026-09-22T00:00:00Z',
+    deactivatedAt: null,
+    locationName: 'Almentria Mexicana - Main Kitchen',
+    roleClearance: 'station',
+  },
+  {
+    id: 'emp-chloe',
+    name: 'Chloe Dubois',
+    locationId: 'loc-main',
+    accessLevel: 'employee',
+    roleIds: ['role-prep'],
+    stationIds: ['stn-gm'],
+    clearanceLevel: 'station',
+    role: 'employee',
+    languagePref: 'en',
+    employeeCode: 'EMP-018',
+    status: 'active',
+    createdAt: '2026-09-23T00:00:00Z',
+    deactivatedAt: null,
+    locationName: 'Almentria Mexicana - Main Kitchen',
+    roleClearance: 'station',
   },
   // The invite still waiting, for the admin home.
   {
@@ -340,7 +544,7 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     clearanceLevel: 'general',
     role: 'employee',
     languagePref: 'es',
-    employeeCode: 'EMP-007',
+    employeeCode: 'EMP-019',
     status: 'pending',
     createdAt: '2026-09-22T00:00:00Z',
     deactivatedAt: null,
@@ -662,10 +866,10 @@ function setStored<T>(key: string, data: T): void {
 }
 
 let mockLocations: Location[] = getStored('locations', SEED_LOCATIONS);
-let mockRoles: Role[] = getStored('roles', SEED_ROLES);
-let mockStations: Station[] = getStored('stations', SEED_STATIONS);
+let mockRoles: Role[] = getStored('roles_v2', SEED_ROLES);
+let mockStations: Station[] = getStored('stations_v2', SEED_STATIONS);
 let mockCategories: Category[] = getStored('categories_v3', SEED_CATEGORIES);
-let mockEmployees: AdminEmployee[] = getStored('employees_v2', SEED_EMPLOYEES);
+let mockEmployees: AdminEmployee[] = getStored('employees_v3', SEED_EMPLOYEES);
 let mockProcedures: Procedure[] = getStored('procedures_v2', SEED_PROCEDURES);
 // Centralised quizzes table. The wizard authors quizzes locally in form
 // state and on save calls `createQuiz()` to materialise a row here and
@@ -678,11 +882,11 @@ function getLocationsStore(): Location[] {
   return mockLocations;
 }
 function getRolesStore(): Role[] {
-  if (typeof window !== 'undefined') mockRoles = getStored('roles', SEED_ROLES);
+  if (typeof window !== 'undefined') mockRoles = getStored('roles_v2', SEED_ROLES);
   return mockRoles;
 }
 function getStationsStore(): Station[] {
-  if (typeof window !== 'undefined') mockStations = getStored('stations', SEED_STATIONS);
+  if (typeof window !== 'undefined') mockStations = getStored('stations_v2', SEED_STATIONS);
   return mockStations;
 }
 function getCategoriesStore(): Category[] {
@@ -690,7 +894,7 @@ function getCategoriesStore(): Category[] {
   return mockCategories;
 }
 function getEmployeesStore(): AdminEmployee[] {
-  if (typeof window !== 'undefined') mockEmployees = getStored('employees_v2', SEED_EMPLOYEES);
+  if (typeof window !== 'undefined') mockEmployees = getStored('employees_v3', SEED_EMPLOYEES);
   return mockEmployees;
 }
 function getProceduresStore(): Procedure[] {
@@ -1086,6 +1290,52 @@ export async function createProcedure(input: CreateProcedureInput): Promise<{ pr
   return { procedure: newProc };
 }
 
+export type UpdateProcedureInput = Partial<Omit<CreateProcedureInput, 'titleEn'>> & {
+  titleEn?: string;
+};
+
+export async function updateProcedure(
+  id: string,
+  patch: UpdateProcedureInput,
+): Promise<{ procedure: Procedure }> {
+  const procs = getProceduresStore();
+  const idx = procs.findIndex((p) => p.id === id || p.slug === id);
+  if (idx === -1) {
+    throw new ApiException(404, 'PROCEDURE_NOT_FOUND', `Procedure ${id} not found`);
+  }
+  const existing = procs[idx];
+
+  // Resolve category from the patch (if provided)
+  const cats = getCategoriesStore();
+  const cat = patch.categoryId != null
+    ? (cats.find((c) => c.id === patch.categoryId) ?? existing.category)
+    : existing.category;
+
+  const updated: Procedure = {
+    ...existing,
+    ...(patch.titleEn != null && { titleEn: patch.titleEn }),
+    ...(patch.titleEs != null && { titleEs: patch.titleEs }),
+    ...(patch.purposeEn != null && { purposeEn: patch.purposeEn }),
+    ...(patch.purposeEs != null && { purposeEs: patch.purposeEs }),
+    ...(patch.categoryId != null && { category: cat }),
+    ...(patch.subcategoryId !== undefined && { subcategoryId: patch.subcategoryId }),
+    ...(patch.stationScope !== undefined && { stationScope: patch.stationScope }),
+    ...(patch.status != null && { status: patch.status }),
+    ...(patch.bodyEn != null && { bodyEn: patch.bodyEn }),
+    ...(patch.bodyEs != null && { bodyEs: patch.bodyEs }),
+    ...(patch.quizId !== undefined && { quizId: patch.quizId }),
+    ...(patch.linkedTrainingId !== undefined && { linkedTrainingId: patch.linkedTrainingId }),
+    ...(patch.quizMode != null && { quizMode: patch.quizMode as ProcedureQuizMode }),
+    updatedAt: new Date().toISOString(),
+  };
+
+  mockProcedures = [...procs];
+  mockProcedures[idx] = updated;
+  setStored('procedures_v2', mockProcedures);
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('lms_procedures_updated'));
+  return { procedure: updated };
+}
+
 export interface AccessLogEntry {
   procedureId: string;
   employeeId: string;
@@ -1154,43 +1404,9 @@ export async function listProcedures(
   return { procedures: [...filtered] };
 }
 
-/** Save an edit to an existing procedure. The slug stays, so printed QR codes
- *  and links keep working; publishing from a draft bumps the version. */
-export async function updateProcedure(
-  id: string,
-  input: CreateProcedureInput,
-): Promise<{ procedure: Procedure }> {
-  const cats = getCategoriesStore();
-  const existing = getProceduresStore().find((p) => p.id === id);
-  if (!existing) throw new ApiException(404, 'NOT_FOUND', 'Procedure not found');
-  const status = input.status ?? existing.status;
-  const updated: Procedure = {
-    ...existing,
-    titleEn: input.titleEn,
-    titleEs: input.titleEs,
-    purposeEn: input.purposeEn,
-    purposeEs: input.purposeEs,
-    category: cats.find((c) => c.id === input.categoryId) ?? null,
-    subcategoryId: input.subcategoryId ?? null,
-    stationScope: input.stationScope ?? null,
-    status,
-    bodyEn: input.bodyEn,
-    bodyEs: input.bodyEs,
-    quizId: input.quizId ?? null,
-    audience: input.audience ?? null,
-    protection: input.protection ?? 'standard',
-    updatedAt: new Date().toISOString(),
-    version: status === 'published' && existing.status !== 'published' ? (existing.version ?? 0) + 1 : existing.version,
-  };
-  mockProcedures = getProceduresStore().map((p) => (p.id === id ? updated : p));
-  setStored('procedures_v2', mockProcedures);
-  if (typeof window !== 'undefined') window.dispatchEvent(new Event('lms_procedures_updated'));
-  return { procedure: updated };
-}
-
 /** One procedure by id, for the editor. */
 export async function getProcedureById(id: string): Promise<{ procedure: Procedure }> {
-  const found = getProceduresStore().find((p) => p.id === id);
+  const found = getProceduresStore().find((p) => p.id === id || p.slug === id);
   if (!found) throw new ApiException(404, 'NOT_FOUND', 'Procedure not found');
   return { procedure: found };
 }
@@ -1218,6 +1434,18 @@ export async function setProcedureState(
   const updated = mockProcedures.find((p) => p.id === id);
   if (!updated) throw new ApiException(404, 'NOT_FOUND', 'Procedure not found');
   return updated;
+}
+
+export async function deleteProcedure(id: string): Promise<{ ok: true }> {
+  const procs = getProceduresStore();
+  const next = procs.filter((p) => p.id !== id && p.slug !== id);
+  if (next.length === procs.length) {
+    throw new ApiException(404, 'PROCEDURE_NOT_FOUND', `Procedure ${id} not found`);
+  }
+  mockProcedures = next;
+  setStored('procedures_v2', mockProcedures);
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('lms_procedures_updated'));
+  return { ok: true };
 }
 
 // ----------------------------------------------------------------------------
@@ -1430,63 +1658,6 @@ export async function requestVideoUpload(
     key: `videos/${Date.now()}-${input.filename}`,
     publicUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
     expiresIn: 3600,
-  };
-}
-
-export async function requestDocumentUpload(
-  input: { filename: string; contentType: string; size: number },
-): Promise<PresignedUpload> {
-  return {
-    uploadUrl: 'mock-upload',
-    key: `docs/${Date.now()}-${input.filename}`,
-    publicUrl: `https://example.com/demo-${input.filename}`,
-    expiresIn: 3600,
-  };
-}
-
-export async function importDocument(input: {
-  publicUrl: string;
-  filename: string;
-  contentType: string;
-  procedureType: ImportProcedureType;
-}): Promise<{ extraction: ExtractedProcedure }> {
-  // Simulate Gemini AI Extraction delay
-  await new Promise((resolve) => setTimeout(resolve, 800));
-
-  const sampleTitle = input.filename.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
-  return {
-    extraction: {
-      extractedLanguage: 'en',
-      title: {
-        en: sampleTitle.charAt(0).toUpperCase() + sampleTitle.slice(1),
-        es: sampleTitle.charAt(0).toUpperCase() + sampleTitle.slice(1) + ' (ES)',
-      },
-      purpose: {
-        en: 'Imported standard operating procedure draft generated from document analysis.',
-        es: 'Borrador de procedimiento operativo estándar generado a partir del análisis del documento.',
-      },
-      blocks: [
-        {
-          kind: 'heading',
-          level: 2,
-          text: { en: 'Overview & Purpose', es: 'Descripción y Propósito' },
-        },
-        {
-          kind: 'text',
-          body: {
-            en: `Extracted key instructions from source file "${input.filename}". Review steps and critical bounds below.`,
-            es: `Instrucciones clave extraídas del archivo de origen "${input.filename}".`,
-          },
-        },
-        {
-          kind: 'method',
-          steps: [
-            { body: { en: 'Prepare equipment and verify safety area is clear.', es: 'Prepare el equipo y verifique el área.' } },
-            { body: { en: 'Check temperature / concentration requirements before operating.', es: 'Verifique los requisitos de temperatura.' } },
-          ],
-        },
-      ],
-    },
   };
 }
 

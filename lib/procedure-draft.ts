@@ -1,5 +1,4 @@
 import type {
-  ExtractedProcedure,
   Localised,
   LocalisedOptional,
   Procedure,
@@ -15,8 +14,7 @@ import type { RecipeIngredientItem } from '@/components/admin/recipe-ingredients
  *
  * The editor keeps the content as a list of blocks, and for a recipe, the
  * ingredients and yield beside it. Saving folds them into one body; opening a
- * saved procedure to edit unfolds them again. Import maps an extracted document
- * onto the same shape, so an imported draft edits like one typed by hand.
+ * saved procedure to edit unfolds them again.
  */
 
 /** The batch sizes a recipe offers the cook. */
@@ -204,51 +202,7 @@ export function toEditorContent(p: Procedure): {
   return { blocks, ingredients: ingredients.length ? ingredients : [emptyIngredient()], yieldItems };
 }
 
-/* --------------------------------------------------------------- import -- */
-
-/** An extracted document as editor state: every block gets an id, and a
- *  recipe's ingredients and yield land in the recipe panel. */
-export function fromExtraction(x: ExtractedProcedure): {
-  title: Localised;
-  purpose: Localised;
-  blocks: ProcedureBlock[];
-  ingredients: RecipeIngredientItem[] | null;
-} {
-  let ingredients: RecipeIngredientItem[] | null = null;
-  const blocks = (x.blocks ?? []).flatMap((b): ProcedureBlock[] => {
-    switch (b.kind) {
-      case 'text':
-        return [{ id: newId('t'), kind: 'text', body: b.body }];
-      case 'heading':
-        return [{ id: newId('h'), kind: 'heading', level: b.level, text: b.text }];
-      case 'method':
-        return [{ id: newId('m'), kind: 'method', steps: b.steps.map((s) => ({ id: newId('s'), body: s.body })) }];
-      case 'warning':
-        return [{ id: newId('w'), kind: 'warning', severity: b.severity, body: b.body }];
-      case 'table':
-        return [{ id: newId('tb'), kind: 'table', headers: b.headers, rows: b.rows }];
-      case 'recipe':
-        ingredients = (b.ingredients ?? []).map((i) => ({
-          id: newId('ing'),
-          name: i.name,
-          quantity: i.amounts[0] ?? '',
-          unit: i.unit ?? 'kg',
-          notes: '',
-        }));
-        return b.steps?.length
-          ? [{ id: newId('m'), kind: 'method', steps: b.steps.map((s) => ({ id: newId('s'), body: s.body })) }]
-          : [];
-      default:
-        return [];
-    }
-  });
-  return {
-    title: x.title ?? { en: '', es: '' },
-    purpose: x.purpose ?? { en: '', es: '' },
-    blocks,
-    ingredients,
-  };
-}
+/* ----------------------------------------------------------- derivation -- */
 
 /** A procedure a Spanish-reading cook cannot read yet. */
 export function missingSpanish(p: Pick<Procedure, 'titleEs' | 'bodyEn' | 'bodyEs'>): boolean {

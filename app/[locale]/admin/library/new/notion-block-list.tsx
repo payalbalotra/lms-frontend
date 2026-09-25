@@ -56,6 +56,8 @@ import type {
   ProcedureNoteKind,
 } from '@/lib/types';
 import { IconTile } from '@/components/ui/icon-tile';
+import { RecipeBlockBody } from './recipe-block-body';
+import { BilingualInput } from '@/components/ui/bilingual-input';
 
 // ---------------------------------------------------------------------------
 // Localised helpers (kept local — this file is self-contained).
@@ -170,8 +172,6 @@ function BlockRow({
     id: block.id,
   });
   const [isHover, setIsHover] = React.useState(false);
-  // Lang state lives here so the unified toolbar can own the EN|ES toggle
-  const [lang, setLang] = React.useState<'en' | 'es'>('en');
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -184,41 +184,53 @@ function BlockRow({
     <div
       ref={setNodeRef}
       style={style}
+      tabIndex={-1}
       onMouseEnter={() => setIsHover(true)}
       onMouseLeave={() => setIsHover(false)}
       className={cn(
-        'group rounded-lg border border-transparent py-2 pl-3 pr-3 transition-all duration-150',
-        'hover:border-[var(--color-line-2)] hover:bg-[var(--color-wash)]/60',
-        isHover && 'bg-[var(--color-wash)]/60 border-[var(--color-line-2)]',
-        isDragging && 'opacity-60 z-dropdown bg-[var(--color-wash)] border-[var(--color-line-2)]',
+        'group rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-4 transition-all duration-200 outline-none',
+        'hover:border-[var(--color-line-3)] hover:bg-[var(--color-wash)]/50',
+        'focus-within:border-[var(--color-line-3)] focus-within:bg-[var(--color-wash)] focus-within:shadow-sm',
+        isHover && 'border-[var(--color-line-3)]',
+        isDragging && 'opacity-60 z-dropdown bg-[var(--color-wash)] border-[var(--color-line-3)] shadow-e2',
       )}
     >
-      {/* Unified toolbar: drag, EN|ES, options menu. Hidden at rest under a
-          mouse, shown on hover and while the block is being edited. A phone has
-          no hover, so there it always shows: hidden, it left an empty band
-          above every block and the block menu could never be opened. */}
-      <div
-        className={cn(
-          'mb-1 flex items-center gap-1 transition-opacity duration-[var(--dur)]',
-          showToolbar
-            ? 'opacity-100'
-            : 'pointer-events-none opacity-0 group-focus-within:pointer-events-auto group-focus-within:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100',
-        )}
-      >
+      {/* Header bar: drag handle, block type badge, and options menu */}
+      <div className="mb-3 flex items-center gap-2">
         {/* Drag handle */}
         <button
           type="button"
           aria-label="Drag to reorder"
           title="Drag to reorder"
-          className="flex size-8 cursor-grab items-center justify-center rounded-md text-[var(--color-ink-3)] hover:bg-[var(--color-surface)] hover:text-[var(--color-ink-2)] active:cursor-grabbing transition-colors"
+          className="flex size-7 cursor-grab items-center justify-center rounded-md text-[var(--color-ink-3)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink-2)] active:cursor-grabbing transition-colors"
           {...attributes}
           {...listeners}
         >
           <Icon icon="ri-drag-move-2-line" className="text-base" />
         </button>
 
-        {/* Language toggle */}
-        <LangToggle lang={lang} onChange={setLang} />
+        {/* Block kind indicator badge */}
+        <span className="inline-flex items-center rounded bg-[var(--color-wash)] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--color-ink-3)] group-focus-within:bg-[var(--color-surface)] group-focus-within:text-[var(--color-ink)] group-focus-within:shadow-e1 transition-all">
+          {block.kind === 'text'
+            ? 'Text'
+            : block.kind === 'heading'
+            ? `Heading H${block.level}`
+            : block.kind === 'method'
+            ? 'Numbered steps'
+            : block.kind === 'checklist'
+            ? 'Checklist'
+            : block.kind === 'warning'
+            ? 'Callout'
+            : block.kind === 'recipe'
+            ? 'Recipe'
+            : block.kind === 'image'
+            ? 'Image'
+            : block.kind === 'video'
+            ? 'Video'
+            : block.kind === 'attachment'
+            ? 'Attachment'
+            : 'Table'}
+        </span>
 
         {/* Spacer pushes menu to the right */}
         <span className="flex-1" />
@@ -235,8 +247,8 @@ function BlockRow({
         />
       </div>
 
-      {/* Block body — lang is controlled by the toolbar above */}
-      <BlockBody block={block} onPatch={onPatch} lang={lang} onInsertAfter={onInsertAfter} />
+      {/* Block body */}
+      <BlockBody block={block} onPatch={onPatch} onInsertAfter={onInsertAfter} />
     </div>
   );
 }
@@ -285,6 +297,7 @@ function InsertAfterButton({
             { kind: 'image', label: 'Photograph', icon: 'ri-image-line' },
             { kind: 'video', label: 'Video', icon: 'ri-video-line' },
             { kind: 'attachment', label: 'Attachment', icon: 'ri-attachment-line' },
+            { kind: 'recipe', label: 'Recipe', icon: 'ri-restaurant-line' },
           ] as { kind: ProcedureBlockKind; label: string; icon: string }[]).map((opt) => (
             <button
               key={opt.kind}
@@ -314,41 +327,38 @@ function InsertAfterButton({
 type BodyProps<T extends ProcedureBlock> = {
   block: T;
   onPatch: (next: T) => void;
-  lang: 'en' | 'es';
 };
 
 function BlockBody({
   block,
   onPatch,
-  lang,
   onInsertAfter,
 }: {
   block: ProcedureBlock;
   onPatch: (next: ProcedureBlock) => void;
-  lang: 'en' | 'es';
   onInsertAfter?: (kind: ProcedureBlockKind) => void;
 }): React.ReactElement {
   switch (block.kind) {
     case 'text':
-      return <TextBody block={block} onPatch={onPatch} lang={lang} onInsertAfter={onInsertAfter} />;
+      return <TextBody block={block} onPatch={onPatch} onInsertAfter={onInsertAfter} />;
     case 'heading':
-      return <HeadingBody block={block} onPatch={onPatch} lang={lang} />;
+      return <HeadingBody block={block} onPatch={onPatch} />;
     case 'method':
-      return <MethodBody block={block} onPatch={onPatch} lang={lang} />;
+      return <MethodBody block={block} onPatch={onPatch} />;
     case 'recipe':
-      return <RecipeSummaryBody block={block} onPatch={onPatch} lang={lang} />;
+      return <RecipeBlockBody block={block} onPatch={onPatch} />;
     case 'image':
-      return <ImageBody block={block} onPatch={onPatch} lang={lang} />;
+      return <ImageBody block={block} onPatch={onPatch} />;
     case 'video':
-      return <VideoBody block={block} onPatch={onPatch} lang={lang} />;
+      return <VideoBody block={block} onPatch={onPatch} />;
     case 'warning':
-      return <WarningBody block={block} onPatch={onPatch} lang={lang} />;
+      return <WarningBody block={block} onPatch={onPatch} />;
     case 'attachment':
-      return <AttachmentBody block={block} onPatch={onPatch} lang={lang} />;
+      return <AttachmentBody block={block} onPatch={onPatch} />;
     case 'table':
-      return <TableBody block={block} onPatch={onPatch} lang={lang} />;
+      return <TableBody block={block} onPatch={onPatch} />;
     case 'checklist':
-      return <ChecklistBody block={block} onPatch={onPatch} lang={lang} />;
+      return <ChecklistBody block={block} onPatch={onPatch} />;
     default:
       return <></>;
   }
@@ -367,44 +377,54 @@ const SLASH_BLOCK_OPTIONS: { kind: ProcedureBlockKind; label: string; icon: stri
   { kind: 'image', label: 'Photograph', icon: 'ri-image-line' },
   { kind: 'video', label: 'Video', icon: 'ri-video-line' },
   { kind: 'attachment', label: 'Attachment', icon: 'ri-attachment-line' },
+  { kind: 'recipe', label: 'Recipe', icon: 'ri-restaurant-line' },
 ];
 
 function TextBody({
   block,
   onPatch,
-  lang,
   onInsertAfter,
 }: BodyProps<Extract<ProcedureBlock, { kind: 'text' }>> & {
   onInsertAfter?: (kind: ProcedureBlockKind) => void;
 }): React.ReactElement {
   const [slashOpen, setSlashOpen] = React.useState(false);
-  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
-
-  const value = asLoc(block.body, lang);
-
-  function handleChange(e: React.ChangeEvent<HTMLTextAreaElement>): void {
-    const v = e.target.value;
-    if (v === '/' && value === '') {
-      setSlashOpen(true);
-      return;
-    }
-    onPatch({ ...block, body: setLoc(block.body, lang, v) });
-  }
 
   function handleSlashSelect(kind: ProcedureBlockKind): void {
     setSlashOpen(false);
     onInsertAfter?.(kind);
   }
 
+  function handleInputKeyDown(
+    e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>,
+    _lang: 'en' | 'es',
+  ): void {
+    if (e.key === '/' && !e.currentTarget.value) {
+      e.preventDefault();
+      setSlashOpen(true);
+    }
+  }
+
   return (
     <div className="relative">
-      <textarea
-        ref={textareaRef}
-        value={value}
-        onChange={handleChange}
-        placeholder={lang === 'en' ? 'Type something… (or / for blocks)' : 'Escribe algo… (o / para bloques)'}
-        rows={3}
-        className={bodyTextareaCls}
+      <BilingualInput
+        value={block.body}
+        onChange={(val) => {
+          if (val.en === '/' && !block.body?.en) {
+            setSlashOpen(true);
+            return;
+          }
+          if (val.es === '/' && !block.body?.es) {
+            setSlashOpen(true);
+            return;
+          }
+          onPatch({ ...block, body: val });
+        }}
+        multiline
+        placeholder={{
+          en: 'Type something… (or / for blocks)',
+          es: 'Escribe algo… (o / para bloques)',
+        }}
+        onInputKeyDown={handleInputKeyDown}
       />
       {slashOpen && (
         <div
@@ -444,13 +464,11 @@ function TextBody({
 function HeadingBody({
   block,
   onPatch,
-  lang,
 }: BodyProps<Extract<ProcedureBlock, { kind: 'heading' }>>): React.ReactElement {
-  const value = asLoc(block.text, lang);
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-start gap-2">
       {/* Heading level selector — always visible, compact */}
-      <div className="w-16 shrink-0">
+      <div className="w-16 shrink-0 pt-1">
         <CustomSelect
           size="sm"
           value={String(block.level)}
@@ -462,17 +480,18 @@ function HeadingBody({
           ]}
         />
       </div>
-      <Input
-        value={value}
-        onChange={(e) => onPatch({ ...block, text: setLoc(block.text, lang, e.target.value) })}
-        placeholder={lang === 'en' ? 'Section title' : 'Título de la sección'}
-        className={cn(
-          'border-transparent bg-transparent shadow-none flex-1',
-          headingCls(block.level),
-          'px-2',
-          'focus:border-[var(--color-ring)] focus:bg-[var(--color-surface)] focus:ring-0',
-        )}
-      />
+      <div className="flex-1">
+        <BilingualInput
+          value={block.text}
+          onChange={(val) => onPatch({ ...block, text: val })}
+          placeholder={{
+            en: 'Section title (English)…',
+            es: 'Título de la sección (Español)…',
+          }}
+          className="bli--heading"
+          inputClassName={headingCls(block.level)}
+        />
+      </div>
     </div>
   );
 }
@@ -489,7 +508,6 @@ function headingCls(level: 1 | 2 | 3): string {
 function MethodBody({
   block,
   onPatch,
-  lang,
 }: BodyProps<Extract<ProcedureBlock, { kind: 'method' }>>): React.ReactElement {
   const update = (idx: number, next: ProcedureMethodStep): void => {
     onPatch({ ...block, steps: block.steps.map((s, i) => (i === idx ? next : s)) });
@@ -509,26 +527,24 @@ function MethodBody({
 
   return (
     <div className="space-y-2">
-      <ol className="space-y-2">
+      <ol className="space-y-3">
         {block.steps.map((step, i) => (
-          <li key={step.id ?? i} className="flex gap-3">
+          <li key={step.id ?? i} className="flex gap-3 items-start">
             <span className="mt-2 inline-flex size-6 shrink-0 items-center justify-center rounded-full border-2 border-[var(--color-line-2)] bg-[var(--color-surface)] font-mono text-sm font-semibold text-[var(--color-ink)]">
               {String(i + 1).padStart(2, '0')}
             </span>
-            <div className="flex-1 space-y-2">
-              <textarea
-                value={asLoc(step.body, lang)}
-                onChange={(e) => update(i, { ...step, body: setLoc(step.body, lang, e.target.value) })}
-                placeholder={
-                  lang === 'en'
-                    ? 'Describe this step in English…'
-                    : 'Describe este paso en español…'
-                }
-                rows={2}
-                className={bodyTextareaCls}
+            <div className="flex-1 space-y-1">
+              <BilingualInput
+                value={step.body}
+                onChange={(val) => update(i, { ...step, body: val })}
+                multiline
+                placeholder={{
+                  en: 'Describe this step in English…',
+                  es: 'Describe este paso en español…',
+                }}
               />
               {step.critical && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-warn-tint)] px-2 py-0.5 text-sm font-semibold uppercase text-[var(--color-warn-ink)]">
+                <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-warn-tint)] px-2 py-0.5 text-xs font-semibold uppercase text-[var(--color-warn-ink)]">
                   <Icon icon="ri-focus-3-line" />
                   Critical
                 </span>
@@ -578,40 +594,9 @@ function StepRowMenu({
   return <RowActions triggerLabel="Step actions" items={items} />;
 }
 
-// ---- Recipe — for now, summary card pointing to dedicated editor ----
-
-function RecipeSummaryBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind: 'recipe' }>>): React.ReactElement { // lang unused for recipe
-  const ingredientsCount = block.ingredients?.length ?? 0;
-  const stepsCount = block.steps?.length ?? 0;
-  return (
-    <div className="space-y-3 pt-1">
-      <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-wash)] p-3">
-        <Icon icon="ri-restaurant-line" className="text-2xl text-[var(--color-ink-3)]" />
-        <div className="flex-1 text-sm">
-          <div className="font-semibold text-[var(--color-ink)]">Recipe block</div>
-          <div className="text-[var(--color-ink-2)]">
-            {ingredientsCount} ingredient{ingredientsCount === 1 ? '' : 's'} · {stepsCount} step{stepsCount === 1 ? '' : 's'}
-          </div>
-        </div>
-        <CustomSelect
-          size="sm"
-          value=""
-          onChange={() => {
-            /* future: jump to dedicated recipe editor */
-          }}
-          options={[{ value: '', label: 'Open', icon: 'ri-arrow-right-line' }]}
-        />
-      </div>
-      <p className="text-sm italic text-[var(--color-ink-3)]">
-        Detailed recipe fields (audience, allergens, yields, factors) are edited in the full Recipe editor. This card summarises what's been added.
-      </p>
-    </div>
-  );
-}
-
 // ---- Image ----
 
-function ImageBody({ block, onPatch, lang }: BodyProps<Extract<ProcedureBlock, { kind: 'image' }>>): React.ReactElement {
+function ImageBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind: 'image' }>>): React.ReactElement {
   const [upload, setUpload] = React.useState<{ state: 'idle' | 'uploading' | 'failed'; error?: string }>({ state: 'idle' });
   const fileRef = React.useRef<HTMLInputElement>(null);
 
@@ -720,13 +705,16 @@ function ImageBody({ block, onPatch, lang }: BodyProps<Extract<ProcedureBlock, {
         </button>
       )}
       <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleFile} className="hidden" />
-      {/* Caption — uses parent lang from toolbar */}
-      <textarea
-        value={asOpt(block.caption, lang) ?? ''}
-        onChange={(e) => onPatch({ ...block, caption: setOpt(block.caption, lang, e.target.value) })}
-        placeholder={lang === 'en' ? 'Optional caption' : 'Pie de foto opcional'}
-        rows={2}
-        className={bodyTextareaCls}
+      {/* Caption — bilingual */}
+      <BilingualInput
+        value={{ en: block.caption?.en ?? '', es: block.caption?.es ?? '' }}
+        onChange={(val) => onPatch({ ...block, caption: val })}
+        multiline
+        size="compact"
+        placeholder={{
+          en: 'Optional caption (English)…',
+          es: 'Pie de foto opcional (Español)…',
+        }}
       />
     </div>
   );
@@ -734,7 +722,7 @@ function ImageBody({ block, onPatch, lang }: BodyProps<Extract<ProcedureBlock, {
 
 // ---- Video ----
 
-function VideoBody({ block, onPatch, lang }: BodyProps<Extract<ProcedureBlock, { kind: 'video' }>>): React.ReactElement {
+function VideoBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind: 'video' }>>): React.ReactElement {
   const [upload, setUpload] = React.useState<{ state: 'idle' | 'uploading' | 'failed'; error?: string }>({ state: 'idle' });
   const fileRef = React.useRef<HTMLInputElement>(null);
   const videoClass = React.useMemo(() => classifyVideoUrl(block.src), [block.src]);
@@ -854,12 +842,15 @@ function VideoBody({ block, onPatch, lang }: BodyProps<Extract<ProcedureBlock, {
         </div>
       )}
       <input ref={fileRef} type="file" accept="video/mp4,video/webm,video/quicktime" onChange={handleFile} className="hidden" />
-      <textarea
-        value={asOpt(block.caption, lang) ?? ''}
-        onChange={(e) => onPatch({ ...block, caption: setOpt(block.caption, lang, e.target.value) })}
-        placeholder={lang === 'en' ? 'Optional caption' : 'Pie de foto opcional'}
-        rows={2}
-        className={bodyTextareaCls}
+      <BilingualInput
+        value={{ en: block.caption?.en ?? '', es: block.caption?.es ?? '' }}
+        onChange={(val) => onPatch({ ...block, caption: val })}
+        multiline
+        size="compact"
+        placeholder={{
+          en: 'Optional caption (English)…',
+          es: 'Pie de foto opcional (Español)…',
+        }}
       />
     </div>
   );
@@ -870,7 +861,6 @@ function VideoBody({ block, onPatch, lang }: BodyProps<Extract<ProcedureBlock, {
 function WarningBody({
   block,
   onPatch,
-  lang,
 }: BodyProps<Extract<ProcedureBlock, { kind: 'warning' }>>): React.ReactElement {
   const sevTone: Record<ProcedureNoteKind, { bg: string; text: string; icon: string }> = {
     warn: { bg: 'border-[var(--color-bad-tint)] bg-[var(--color-bad-tint)]', text: 'text-[var(--color-bad)]', icon: 'ri-error-warning-line' },
@@ -895,12 +885,14 @@ function WarningBody({
           />
         </div>
       </div>
-      <textarea
-        value={asLoc(block.body, lang)}
-        onChange={(e) => onPatch({ ...block, body: setLoc(block.body, lang, e.target.value) })}
-        placeholder={lang === 'en' ? 'Write the note in English…' : 'Escribe la nota en español…'}
-        rows={3}
-        className={cn(bodyTextareaCls, 'bg-[var(--color-surface)]')}
+      <BilingualInput
+        value={block.body}
+        onChange={(val) => onPatch({ ...block, body: val })}
+        multiline
+        placeholder={{
+          en: 'Write the note in English…',
+          es: 'Escribe la nota en español…',
+        }}
       />
     </div>
   );
@@ -908,7 +900,7 @@ function WarningBody({
 
 // ---- Attachment ----
 
-function AttachmentBody({ block, onPatch, lang }: BodyProps<Extract<ProcedureBlock, { kind: 'attachment' }>>): React.ReactElement {
+function AttachmentBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind: 'attachment' }>>): React.ReactElement {
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-wash)] px-3 py-2">
@@ -921,11 +913,14 @@ function AttachmentBody({ block, onPatch, lang }: BodyProps<Extract<ProcedureBlo
           className="flex-1 border-none bg-transparent shadow-none focus:border-none"
         />
       </div>
-      <Input
-        value={asLoc(block.title, lang)}
-        onChange={(e) => onPatch({ ...block, title: setLoc(block.title, lang, e.target.value) })}
-        placeholder={lang === 'en' ? 'e.g. HACCP checklist' : 'e.g. Lista HACCP'}
-        className="border-transparent bg-transparent shadow-none focus:border-[var(--color-ring)] focus:ring-0"
+      <BilingualInput
+        value={block.title}
+        onChange={(val) => onPatch({ ...block, title: val })}
+        size="compact"
+        placeholder={{
+          en: 'e.g. HACCP checklist (English)',
+          es: 'e.g. Lista HACCP (Español)',
+        }}
       />
     </div>
   );
@@ -933,27 +928,32 @@ function AttachmentBody({ block, onPatch, lang }: BodyProps<Extract<ProcedureBlo
 
 // ---- Table — real table ----
 
+const TABLE_LANGS: Array<'en' | 'es'> = ['en', 'es'];
+
 function TableBody({
   block,
   onPatch,
-  lang,
 }: BodyProps<Extract<ProcedureBlock, { kind: 'table' }>>): React.ReactElement {
-  const currentLabel = lang === 'en' ? 'EN' : 'ES';
-  const otherLabel = lang === 'en' ? 'ES' : 'EN';
+  const [activeLang, setActiveLang] = React.useState<'en' | 'es'>('en');
+
   function setHeader(j: number, lang: 'en' | 'es', value: string): void {
     onPatch({
       ...block,
-      headers: block.headers.map((h, k) => (k === j ? setLoc(h, lang, value) : h)),
+      headers: block.headers.map((h, k) => (k === j ? { ...h, [lang]: value } : h)),
     });
   }
+
   function setCell(i: number, j: number, lang: 'en' | 'es', value: string): void {
     onPatch({
       ...block,
       rows: block.rows.map((row, k) =>
-        k === i ? row.map((cell, l) => (l === j ? setLoc(cell, lang, value) : cell)) : row,
+        k === i
+          ? row.map((cell, m) => (m === j ? { ...cell, [lang]: value } : cell))
+          : row,
       ),
     });
   }
+
   function addColumn(): void {
     const empty: Localised = { en: '', es: '' };
     onPatch({
@@ -962,6 +962,7 @@ function TableBody({
       rows: block.rows.map((row) => [...row, empty]),
     });
   }
+
   function removeColumn(j: number): void {
     if (block.headers.length <= 1) return;
     onPatch({
@@ -970,148 +971,191 @@ function TableBody({
       rows: block.rows.map((row) => row.filter((_, k) => k !== j)),
     });
   }
+
   function addRow(): void {
     const emptyRow: Localised[] = Array.from({ length: block.headers.length }, () => ({ en: '', es: '' }));
     onPatch({ ...block, rows: [...block.rows, emptyRow] });
   }
+
   function removeRow(i: number): void {
     if (block.rows.length <= 1) return;
     onPatch({ ...block, rows: block.rows.filter((_, k) => k !== i) });
   }
 
   return (
-    <div>
-      {/* Table grid — hairline borders, no badge/label */}
-      <div className="overflow-x-auto rounded-[var(--radius-md)] border border-[var(--color-line)] bg-[var(--color-surface)]">
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="border-b border-[var(--color-line)] bg-[var(--color-wash)]">
-              {block.headers.map((_, j) => {
-                const isFilledOther = otherLabel === 'ES'
-                  ? Boolean(block.headers[j]?.es?.trim())
-                  : Boolean(block.headers[j]?.en?.trim());
-                return (
-                  <th
-                    key={j}
-                    className="group relative min-w-field-xs border-r border-[var(--color-line)] p-1 text-left font-semibold text-[var(--color-ink)] last:border-r-0"
-                  >
-                    <div className="flex items-center gap-1 px-1">
-                      <input
-                        type="text"
-                        value={asLoc(block.headers[j], lang)}
-                        onChange={(e) => setHeader(j, lang, e.target.value)}
-                        placeholder={`Header ${j + 1} (${currentLabel})`}
-                        className="w-full rounded px-2 py-1 text-sm font-semibold text-[var(--color-ink)] bg-transparent placeholder:text-[var(--color-ink-3)] border border-transparent hover:border-[var(--color-line-2)] focus:border-[var(--color-ring)] focus:bg-[var(--color-surface)] focus:outline-none focus:ring-1 focus:ring-[var(--color-ring)] transition-colors"
-                      />
-                      {isFilledOther && (
-                        <span
-                          title={`${otherLabel} translation present`}
-                          className="inline-flex size-4 shrink-0 items-center justify-center text-[var(--color-ok)]"
-                        >
-                          <Icon icon="ri-check-line" className="text-sm font-semibold" />
-                        </span>
-                      )}
-                      {block.headers.length > 1 && (
-                        <button
-                          type="button"
-                          aria-label="Remove column"
-                          title="Remove column"
-                          onClick={() => removeColumn(j)}
-                          className="flex size-5 shrink-0 items-center justify-center rounded text-[var(--color-ink-3)] opacity-0 group-hover:opacity-100 hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)] transition-all"
-                        >
-                          <Icon icon="ri-close-line" className="text-sm" />
-                        </button>
-                      )}
-                    </div>
-                  </th>
-                );
-              })}
-              <th className="w-tap-admin border-b border-[var(--color-line)] bg-[var(--color-wash)] p-1 text-center">
-                <button
-                  type="button"
-                  aria-label="Add column"
-                  title="Add column"
-                  onClick={addColumn}
-                  className="mx-auto flex size-8 items-center justify-center rounded text-[var(--color-ink-2)] hover:bg-[var(--color-panel)] hover:text-[var(--color-ink)] transition-colors"
-                >
-                  <Icon icon="ri-add-line" className="text-base font-semibold" />
-                </button>
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[var(--color-line)]">
-            {block.rows.map((row, i) => (
-              <tr key={i} className="group/row transition-colors hover:bg-[var(--color-wash)]">
-                {row.map((_, j) => {
-                  const isFilledOther = otherLabel === 'ES'
-                    ? Boolean(row[j]?.es?.trim())
-                    : Boolean(row[j]?.en?.trim());
-                  return (
-                    <td
-                      key={j}
-                      className="min-w-field-xs border-r border-[var(--color-line)] p-1 align-top last:border-r-0"
-                    >
-                      <div className="flex items-center gap-1 px-1">
-                        <input
-                          type="text"
-                          value={asLoc(row[j], lang)}
-                          onChange={(e) => setCell(i, j, lang, e.target.value)}
-                          placeholder={`Cell (${currentLabel})`}
-                          className="w-full rounded px-2 py-1 text-sm text-[var(--color-ink)] bg-transparent placeholder:text-[var(--color-ink-3)] border border-transparent hover:border-[var(--color-line-2)] focus:border-[var(--color-ring)] focus:bg-[var(--color-surface)] focus:outline-none focus:ring-1 focus:ring-[var(--color-ring)] transition-colors"
-                        />
-                        {isFilledOther && (
-                          <span
-                            title={`${otherLabel} translation present`}
-                            className="inline-flex size-4 shrink-0 items-center justify-center text-[var(--color-ok)]"
+    <div className="space-y-2.5">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold text-[var(--color-ink-3)]">
+          Table Columns & Rows
+        </span>
+      </div>
+
+      <div className="space-y-2">
+        {TABLE_LANGS.map((lang) => {
+          const isActive = activeLang === lang;
+          if (isActive) {
+            return (
+              <div
+                key={lang}
+                className="w-full rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-3 shadow-[var(--e-1)] transition-all duration-200 space-y-2.5"
+              >
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-xs font-semibold text-[var(--color-ink)]">
+                    {lang === 'en' ? 'English Table' : 'Spanish Table (Español)'}
+                  </span>
+                  <span className="font-mono text-xs font-semibold text-[var(--color-ink-3)] uppercase tracking-wider">
+                    {lang.toUpperCase()}
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto rounded-[var(--radius-md)] border border-[var(--color-line)] bg-[var(--color-surface)]">
+                  <table className="w-full border-collapse text-sm">
+                    <thead>
+                      <tr className="border-b border-[var(--color-line)] bg-[var(--color-wash)]">
+                        {block.headers.map((_, j) => (
+                          <th
+                            key={j}
+                            className="group relative min-w-[160px] border-r border-[var(--color-line)] p-1 text-left font-semibold text-[var(--color-ink)] last:border-r-0"
                           >
-                            <Icon icon="ri-check-line" className="text-sm font-semibold" />
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                  );
-                })}
-                <td className="w-tap-admin p-1 text-center align-middle">
-                  {block.rows.length > 1 && (
-                    <button
-                      type="button"
-                      aria-label="Remove row"
-                      title="Remove row"
-                      onClick={() => removeRow(i)}
-                      className="mx-auto flex size-6 items-center justify-center rounded text-[var(--color-ink-3)] opacity-0 group-hover/row:opacity-100 hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)] transition-all"
-                    >
-                      <Icon icon="ri-close-line" className="text-sm" />
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-            <tr className="bg-[var(--color-wash)]">
-              <td colSpan={block.headers.length} className="p-1">
-                <button
-                  type="button"
-                  onClick={addRow}
-                  title="Add row"
-                  className="inline-flex items-center gap-2 rounded px-2 py-1 text-sm font-semibold text-[var(--color-ink-2)] hover:bg-[var(--color-panel)] hover:text-[var(--color-ink)] transition-colors"
-                >
-                  <Icon icon="ri-add-line" className="text-sm" />
-                  <span>Add row</span>
-                </button>
-              </td>
-              <td className="w-tap-admin p-1 text-center align-middle border-t border-[var(--color-line)]">
-                <button
-                  type="button"
-                  aria-label="Add row"
-                  title="Add row"
-                  onClick={addRow}
-                  className="mx-auto flex size-8 items-center justify-center rounded text-[var(--color-ink-2)] hover:bg-[var(--color-panel)] hover:text-[var(--color-ink)] transition-colors"
-                >
-                  <Icon icon="ri-add-line" className="text-base font-semibold" />
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                            <div className="flex items-center gap-1 px-1">
+                              <input
+                                type="text"
+                                value={block.headers[j]?.[lang] ?? ''}
+                                onChange={(e) => setHeader(j, lang, e.target.value)}
+                                placeholder={`Header ${j + 1} (${lang.toUpperCase()})`}
+                                className="w-full rounded px-2 py-1 text-sm font-semibold text-[var(--color-ink)] bg-transparent placeholder:text-[var(--color-ink-3)] border border-transparent hover:border-[var(--color-line-2)] focus:border-[var(--color-ring)] focus:bg-[var(--color-surface)] focus:outline-none focus:ring-1 focus:ring-[var(--color-ring)] transition-colors"
+                              />
+                              {block.headers.length > 1 && (
+                                <button
+                                  type="button"
+                                  aria-label="Remove column"
+                                  title="Remove column"
+                                  onClick={() => removeColumn(j)}
+                                  className="flex size-5 shrink-0 items-center justify-center rounded text-[var(--color-ink-3)] opacity-0 group-hover:opacity-100 hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)] transition-all"
+                                >
+                                  <Icon icon="ri-close-line" className="text-sm" />
+                                </button>
+                              )}
+                            </div>
+                          </th>
+                        ))}
+                        <th className="w-tap-admin border-b border-[var(--color-line)] bg-[var(--color-wash)] p-1 text-center align-middle">
+                          <button
+                            type="button"
+                            aria-label="Add column"
+                            title="Add column"
+                            onClick={addColumn}
+                            className="mx-auto flex size-8 items-center justify-center rounded text-[var(--color-ink-2)] hover:bg-[var(--color-panel)] hover:text-[var(--color-ink)] transition-colors"
+                          >
+                            <Icon icon="ri-add-line" className="text-base font-semibold" />
+                          </button>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[var(--color-line)]">
+                      {block.rows.map((row, i) => (
+                        <tr key={i} className="group/row transition-colors hover:bg-[var(--color-wash)]/40">
+                          {row.map((_, j) => (
+                            <td
+                              key={j}
+                              className="min-w-[160px] border-r border-[var(--color-line)] p-1 align-top last:border-r-0"
+                            >
+                              <div className="flex items-center gap-1 px-1">
+                                <input
+                                  type="text"
+                                  value={row[j]?.[lang] ?? ''}
+                                  onChange={(e) => setCell(i, j, lang, e.target.value)}
+                                  placeholder={`Cell (${lang.toUpperCase()})`}
+                                  className="w-full rounded px-2 py-1 text-sm text-[var(--color-ink)] bg-transparent placeholder:text-[var(--color-ink-3)] border border-transparent hover:border-[var(--color-line-2)] focus:border-[var(--color-ring)] focus:bg-[var(--color-surface)] focus:outline-none focus:ring-1 focus:ring-[var(--color-ring)] transition-colors"
+                                />
+                              </div>
+                            </td>
+                          ))}
+                          <td className="w-tap-admin p-1 text-center align-middle">
+                            {block.rows.length > 1 && (
+                              <button
+                                type="button"
+                                aria-label="Remove row"
+                                title="Remove row"
+                                onClick={() => removeRow(i)}
+                                className="mx-auto flex size-6 items-center justify-center rounded text-[var(--color-ink-3)] opacity-0 group-hover/row:opacity-100 hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)] transition-all"
+                              >
+                                <Icon icon="ri-close-line" className="text-sm" />
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                      <tr className="bg-[var(--color-wash)]">
+                        <td colSpan={block.headers.length} className="p-1">
+                          <button
+                            type="button"
+                            onClick={addRow}
+                            title="Add row"
+                            className="inline-flex items-center gap-2 rounded px-2 py-1 text-sm font-semibold text-[var(--color-ink-2)] hover:bg-[var(--color-panel)] hover:text-[var(--color-ink)] transition-colors"
+                          >
+                            <Icon icon="ri-add-line" className="text-sm" />
+                            <span>Add row</span>
+                          </button>
+                        </td>
+                        <td className="w-tap-admin p-1 text-center align-middle border-t border-[var(--color-line)]">
+                          <button
+                            type="button"
+                            aria-label="Add row"
+                            title="Add row"
+                            onClick={addRow}
+                            className="mx-auto flex size-8 items-center justify-center rounded text-[var(--color-ink-2)] hover:bg-[var(--color-panel)] hover:text-[var(--color-ink)] transition-colors"
+                          >
+                            <Icon icon="ri-add-line" className="text-base font-semibold" />
+                          </button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          }
+
+          // Inactive language card: collapsed slim preview matching user sketch
+          return (
+            <div
+              key={lang}
+              role="button"
+              tabIndex={0}
+              onClick={() => setActiveLang(lang)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setActiveLang(lang);
+                }
+              }}
+              className="group relative w-[94%] max-w-full cursor-pointer rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-wash)] p-3 transition-all duration-200 hover:border-[var(--color-line-2)] hover:bg-[var(--color-panel)]"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 overflow-hidden text-sm">
+                  <span className="shrink-0 text-xs font-semibold text-[var(--color-ink-2)]">
+                    {lang === 'en' ? 'English Table' : 'Spanish Table (Español)'}
+                  </span>
+                  <span className="shrink-0 text-xs text-[var(--color-ink-3)]">·</span>
+                  <div className="flex items-center gap-1.5 overflow-hidden">
+                    {block.headers.map((h, k) => (
+                      <span
+                        key={k}
+                        className="truncate rounded border border-[var(--color-line-2)] bg-[var(--color-surface)] px-2 py-0.5 text-xs text-[var(--color-ink-2)] max-w-[140px]"
+                      >
+                        {h[lang]?.trim() || `Header ${k + 1}`}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <span className="shrink-0 font-mono text-xs font-semibold text-[var(--color-ink-3)] uppercase tracking-wider">
+                  {lang.toUpperCase()}
+                </span>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -1119,27 +1163,41 @@ function TableBody({
 
 // ---- Checklist ----
 
+const CHECKLIST_LANGS: Array<'en' | 'es'> = ['en', 'es'];
+
 function ChecklistBody({
   block,
   onPatch,
-  lang,
 }: BodyProps<Extract<ProcedureBlock, { kind: 'checklist' }>>): React.ReactElement {
   const items = block.items;
-  const titleValue = asOpt(block.title, lang);
+  const [activeLang, setActiveLang] = React.useState<'en' | 'es'>('en');
 
-  function setItem(i: number, value: string): void {
+  function setTitleText(lang: 'en' | 'es', val: string): void {
     onPatch({
       ...block,
-      items: items.map((it, j) =>
-        j === i ? { ...it, text: setLoc(it.text, lang, value) } : it,
-      ),
+      title: {
+        en: block.title?.en ?? '',
+        es: block.title?.es ?? '',
+        [lang]: val,
+      },
     });
   }
 
-  function setTitle(value: string): void {
+  function setItemText(i: number, lang: 'en' | 'es', val: string): void {
     onPatch({
       ...block,
-      title: setOpt(block.title, lang, value),
+      items: items.map((it, j) =>
+        j === i
+          ? {
+              ...it,
+              text: {
+                en: it.text?.en ?? '',
+                es: it.text?.es ?? '',
+                [lang]: val,
+              },
+            }
+          : it,
+      ),
     });
   }
 
@@ -1164,243 +1222,168 @@ function ChecklistBody({
   }
 
   return (
-    <div className="space-y-2 py-1">
-      <input
-        type="text"
-        value={titleValue}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder={lang === 'en' ? 'Checklist title' : 'Título de la lista'}
-        className="w-full bg-transparent px-1 py-1 text-base font-semibold text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] placeholder:font-normal border-none outline-none focus:outline-none focus:ring-0 shadow-none"
-      />
-      <ol className="space-y-1">
-        {items.map((it, i) => (
-          <li
-            key={it.id}
-            className="group/item relative flex items-center gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-[var(--color-wash)]"
-          >
-            {/* Reorder arrows — visible on item hover */}
-            <div className="flex items-center opacity-0 transition-opacity group-hover/item:opacity-100">
-              <button
-                type="button"
-                disabled={i === 0}
-                onClick={() => moveItem(i, 'up')}
-                className="p-0.5 text-[var(--color-ink-3)] hover:text-[var(--color-ink)] disabled:opacity-30"
-                aria-label="Move up"
-                title="Move up"
-              >
-                <Icon icon="ri-arrow-up-line" className="text-xs" />
-              </button>
-              <button
-                type="button"
-                disabled={i === items.length - 1}
-                onClick={() => moveItem(i, 'down')}
-                className="p-0.5 text-[var(--color-ink-3)] hover:text-[var(--color-ink)] disabled:opacity-30"
-                aria-label="Move down"
-                title="Move down"
-              >
-                <Icon icon="ri-arrow-down-line" className="text-xs" />
-              </button>
+    <div className="bli-card-group py-1">
+      {CHECKLIST_LANGS.map((lang) => {
+        const isActive = activeLang === lang;
+
+        if (isActive) {
+          return (
+            <div key={lang} className="bli-card is-active">
+              <header className="flex items-center justify-between border-b border-[var(--color-line)] bg-[var(--color-wash)] px-4 py-2.5">
+                <span className="text-xs font-semibold text-[var(--color-ink)]">
+                  {lang === 'en' ? 'Checklist (English)' : 'Lista de verificación (Español)'}
+                </span>
+                <span className="rounded bg-[var(--color-brand-tint)] px-2 py-0.5 font-mono text-[11px] font-bold text-[var(--color-brand-700)] uppercase">
+                  {lang.toUpperCase()}
+                </span>
+              </header>
+
+              <div className="p-4 space-y-3">
+                {/* Title */}
+                <div>
+                  <input
+                    type="text"
+                    value={block.title?.[lang] ?? ''}
+                    onChange={(e) => setTitleText(lang, e.target.value)}
+                    placeholder={
+                      lang === 'en'
+                        ? 'Checklist title (English)…'
+                        : 'Título de la lista (Español)…'
+                    }
+                    className="w-full rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold text-[var(--color-ink)] placeholder:font-normal placeholder:text-[var(--color-ink-3)] focus:border-[var(--color-ring)] focus:outline-none focus:ring-1 focus:ring-[var(--color-ring)] transition-colors"
+                  />
+                </div>
+
+                {/* Items */}
+                <ol className="space-y-2">
+                  {items.map((it, i) => (
+                    <li
+                      key={it.id}
+                      className="group/item relative flex items-center gap-2 rounded-md px-1 py-1 transition-colors hover:bg-[var(--color-wash)]"
+                    >
+                      {/* Reorder arrows — visible on item hover */}
+                      <div className="flex items-center opacity-0 transition-opacity group-hover/item:opacity-100">
+                        <button
+                          type="button"
+                          disabled={i === 0}
+                          onClick={() => moveItem(i, 'up')}
+                          className="p-0.5 text-[var(--color-ink-3)] hover:text-[var(--color-ink)] disabled:opacity-30"
+                          aria-label="Move up"
+                          title="Move up"
+                        >
+                          <Icon icon="ri-arrow-up-line" className="text-xs" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={i === items.length - 1}
+                          onClick={() => moveItem(i, 'down')}
+                          className="p-0.5 text-[var(--color-ink-3)] hover:text-[var(--color-ink)] disabled:opacity-30"
+                          aria-label="Move down"
+                          title="Move down"
+                        >
+                          <Icon icon="ri-arrow-down-line" className="text-xs" />
+                        </button>
+                      </div>
+
+                      {/* Checkbox tile */}
+                      <span
+                        aria-hidden="true"
+                        className="flex size-4 shrink-0 items-center justify-center rounded-[3px] border border-[var(--color-line-2)] bg-[var(--color-surface)]"
+                      />
+
+                      {/* Item number badge */}
+                      <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-ok-tint)] font-mono text-[10px] font-bold text-[var(--color-ok)]">
+                        {i + 1}
+                      </span>
+
+                      {/* Item text input in active language */}
+                      <div className="flex-1">
+                        <input
+                          type="text"
+                          value={it.text?.[lang] ?? ''}
+                          onChange={(e) => setItemText(i, lang, e.target.value)}
+                          placeholder={
+                            lang === 'en'
+                              ? `Item ${i + 1} (English)…`
+                              : `Elemento ${i + 1} (Español)…`
+                          }
+                          className="w-full rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] focus:border-[var(--color-ring)] focus:outline-none focus:ring-1 focus:ring-[var(--color-ring)] transition-colors"
+                        />
+                      </div>
+
+                      {/* Remove item button — visible on item hover */}
+                      {items.length > 1 ? (
+                        <button
+                          type="button"
+                          onClick={() => removeItem(i)}
+                          aria-label="Remove item"
+                          title="Remove item"
+                          className="flex size-6 shrink-0 items-center justify-center rounded text-[var(--color-ink-3)] opacity-0 transition-opacity hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)] group-hover/item:opacity-100 focus:opacity-100"
+                        >
+                          <Icon icon="ri-close-line" className="text-base" />
+                        </button>
+                      ) : null}
+                    </li>
+                  ))}
+                </ol>
+
+                <button
+                  type="button"
+                  onClick={addItem}
+                  className="inline-flex items-center gap-1.5 rounded px-2 py-1 text-xs font-semibold text-[var(--color-brand-600)] hover:bg-[var(--color-panel)] hover:text-[var(--color-brand-700)] transition-colors mt-1"
+                >
+                  <Icon icon="ri-add-line" className="text-sm" />
+                  <span>{lang === 'en' ? 'Add checklist item' : 'Agregar elemento'}</span>
+                </button>
+              </div>
             </div>
+          );
+        }
 
-            {/* Checkbox tile */}
-            <span
-              aria-hidden="true"
-              className="flex size-4 shrink-0 items-center justify-center rounded-[3px] border border-[var(--color-line-2)] bg-[var(--color-surface)]"
-            />
+        // Inactive language card: collapsed slim preview matching quiz
+        const preview =
+          block.title?.[lang]?.trim() ||
+          (lang === 'es' ? 'Lista de verificación (Español)' : 'Checklist (English)');
+        const filled = items.filter((it) => Boolean(it.text?.[lang]?.trim())).length;
 
-            {/* Item number badge */}
-            <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-ok-tint)] font-mono text-[10px] font-bold text-[var(--color-ok)]">
-              {i + 1}
-            </span>
-
-            {/* Item label input */}
-            <input
-              type="text"
-              value={asLoc(it.text, lang)}
-              onChange={(e) => setItem(i, e.target.value)}
-              placeholder={lang === 'en' ? `Item ${i + 1}` : `Elemento ${i + 1}`}
-              className="flex-1 bg-transparent px-1 py-0.5 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] border-none outline-none focus:outline-none focus:ring-0 shadow-none"
-            />
-
-            {/* Remove item button — visible on item hover */}
-            {items.length > 1 ? (
-              <button
-                type="button"
-                onClick={() => removeItem(i)}
-                aria-label="Remove item"
-                title="Remove item"
-                className="flex size-6 shrink-0 items-center justify-center rounded text-[var(--color-ink-3)] opacity-0 transition-opacity hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)] group-hover/item:opacity-100 focus:opacity-100"
-              >
-                <Icon icon="ri-close-line" className="text-base" />
-              </button>
-            ) : null}
-          </li>
-        ))}
-      </ol>
-      <button
-        type="button"
-        onClick={addItem}
-        className="inline-flex items-center gap-1.5 rounded px-2 py-1 text-xs font-semibold text-[var(--color-brand-600)] hover:bg-[var(--color-panel)] hover:text-[var(--color-brand-700)] transition-colors mt-1"
-      >
-        <Icon icon="ri-add-line" className="text-sm" />
-        <span>{lang === 'en' ? 'Add checklist item' : 'Agregar elemento'}</span>
-      </button>
+        return (
+          <div
+            key={lang}
+            role="button"
+            tabIndex={0}
+            onClick={() => setActiveLang(lang)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setActiveLang(lang);
+              }
+            }}
+            className="bli-card is-inactive px-4"
+            title={lang === 'es' ? 'Click to edit in Spanish' : 'Click to edit in English'}
+          >
+            <div className="flex w-full items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="truncate text-xs font-normal text-[var(--color-ink-2)]">
+                  {preview}
+                </span>
+                <span className="text-[11px] text-[var(--color-ink-3)] shrink-0">
+                  · {filled}/{items.length} {lang === 'es' ? 'completados' : 'items'}
+                </span>
+              </div>
+              <span className="rounded bg-[var(--color-surface)] px-1.5 py-0.5 font-mono text-[10px] font-bold text-[var(--color-ink-3)] border border-[var(--color-line)] uppercase shrink-0">
+                {lang.toUpperCase()}
+              </span>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Bilingual primitives — single visible language, EN/ES pill to switch.
-//
-// The previous version stacked EN above ES (two textareas per block, two
-// label rows). That doubled each block's height and pushed content off the
-// page. This version matches the rest of the codebase (see BilingualTabs
-// in procedure-block-editor.tsx): one input visible at a time, small pill
-// toggle to switch sides. Each bilingual body owns its own `lang` state so
-// the manager can be filling English in one block and Spanish in another
-// without one switch affecting the other.
-// ---------------------------------------------------------------------------
 
 const bodyTextareaCls =
   'flex w-full resize-none rounded-[var(--radius-md)] border border-transparent bg-transparent px-3 py-2 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] transition-colors hover:border-[var(--color-line-2)] hover:bg-[var(--color-surface)] focus:border-[var(--color-ring)] focus:bg-[var(--color-surface)] focus:outline-none';
 
-function LangToggle({
-  lang,
-  onChange,
-}: {
-  lang: 'en' | 'es';
-  onChange: (next: 'en' | 'es') => void;
-}): React.ReactElement {
-  return (
-    <div
-      role="tablist"
-      aria-label="Language"
-      className="inline-flex rounded-md border border-[var(--color-line-2)] bg-[var(--color-wash)] p-0.5 text-sm font-semibold shadow-e1"
-    >
-      <button
-        type="button"
-        role="tab"
-        aria-checked={lang === 'en'}
-        aria-selected={lang === 'en'}
-        onClick={() => onChange('en')}
-        className={cn(
-          'rounded-[var(--radius-sm)] px-3 py-1 transition-colors',
-          lang === 'en'
-            ? 'bg-[var(--color-surface)] text-[var(--color-brand-700)] shadow-e1 ring-1 ring-[var(--color-ring)]'
-            : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
-        )}
-      >
-        EN
-      </button>
-      <button
-        type="button"
-        role="tab"
-        aria-checked={lang === 'es'}
-        aria-selected={lang === 'es'}
-        onClick={() => onChange('es')}
-        className={cn(
-          'rounded-[var(--radius-sm)] px-3 py-1 transition-colors',
-          lang === 'es'
-            ? 'bg-[var(--color-surface)] text-[var(--color-brand-700)] shadow-e1 ring-1 ring-[var(--color-ring)]'
-            : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]',
-        )}
-      >
-        ES
-      </button>
-    </div>
-  );
-}
-
-interface BilingualInputProps {
-  lang: 'en' | 'es';
-  onLangChange: (next: 'en' | 'es') => void;
-  enValue: string;
-  esValue: string;
-  onEnChange: (next: string) => void;
-  onEsChange: (next: string) => void;
-  enPlaceholder: string;
-  esPlaceholder: string;
-  /** When true, render a textarea; otherwise a single-line input. */
-  multiline?: boolean;
-  className?: string;
-  rows?: number;
-  bgClass?: string;
-  /** Where the pill sits — top-right by default, inline-left for headings. */
-  pillPosition?: 'top-right' | 'inline';
-}
-
-function BilingualInput({
-  lang,
-  onLangChange,
-  enValue,
-  esValue,
-  onEnChange,
-  onEsChange,
-  enPlaceholder,
-  esPlaceholder,
-  multiline,
-  className,
-  rows = 2,
-  pillPosition = 'top-right',
-}: BilingualInputProps): React.ReactElement {
-  const value = lang === 'en' ? enValue : esValue;
-  const onChange = lang === 'en' ? onEnChange : onEsChange;
-  const placeholder = lang === 'en' ? enPlaceholder : esPlaceholder;
-
-  if (pillPosition === 'inline') {
-    // Pill sits left of the input — used by Heading so the level selector
-    // doesn't have to fight for space at the top.
-    return (
-      <div className={cn('flex items-center gap-2', className)}>
-        <LangToggle lang={lang} onChange={onLangChange} />
-        {multiline ? (
-          <textarea
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder={placeholder}
-            rows={rows}
-            className={cn(bodyTextareaCls, 'flex-1')}
-          />
-        ) : (
-          <Input
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder={placeholder}
-            className="flex-1 border-transparent bg-[var(--color-wash)] shadow-none focus:border-transparent focus:ring-0"
-          />
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2">
-        <LangToggle lang={lang} onChange={onLangChange} />
-      </div>
-      {multiline ? (
-        <textarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          rows={rows}
-          className={cn(bodyTextareaCls, className)}
-        />
-      ) : (
-        <Input
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          className={cn(
-            'border-transparent bg-[var(--color-wash)] shadow-none',
-            'focus:border-[var(--color-ring)] focus:ring-2 focus:ring-[var(--color-brand-tint)]',
-            className,
-          )}
-        />
-      )}
-    </div>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Empty state — a clean "press / for blocks" surface. No 8-card grid.
@@ -1433,6 +1416,7 @@ function EmptyState({ onAdd }: { onAdd: (kind: ProcedureBlockKind) => void }): R
           { kind: 'image', label: 'Image', icon: 'ri-image-line', hint: 'Photo + caption' },
           { kind: 'video', label: 'Video', icon: 'ri-video-line', hint: 'Upload or link' },
           { kind: 'attachment', label: 'Attachment', icon: 'ri-attachment-line', hint: 'Linked file' },
+          { kind: 'recipe', label: 'Recipe', icon: 'ri-restaurant-line', hint: 'Yield + method' },
         ] as { kind: ProcedureBlockKind; label: string; icon: string; hint: string }[]).map((opt) => (
           <button
             key={opt.kind}
@@ -1511,7 +1495,7 @@ export function NotionBlockList({ blocks, onChange }: NotionBlockListProps): Rea
   return (
     // No gutter on a phone: the toolbar sits inside each row there, and the
     // 32px it kept cut the image toolbar's Remove button off the edge.
-    <div className="space-y-1 sm:pl-10">
+    <div className="space-y-6 sm:pl-10">
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
           {blocks.map((block, i) => (

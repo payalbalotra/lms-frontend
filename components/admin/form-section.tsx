@@ -22,8 +22,8 @@ export function FormSection({
   id?: string;
   /** A component, or a name the icon registry resolves. */
   icon?: IconType | string;
-  title: string;
-  subtitle?: string;
+  title: React.ReactNode;
+  subtitle?: React.ReactNode;
   headerAction?: React.ReactNode;
   children: React.ReactNode;
 }): React.ReactElement {

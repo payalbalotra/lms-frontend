@@ -13,7 +13,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { getProcedureBySlug, getQuizById, logRestrictedView, updateQuiz } from '@/lib/api';
+import { deleteProcedure, getProcedureBySlug, getQuizById, logRestrictedView, updateQuiz } from '@/lib/api';
 import type { Employee, Procedure, ProcedureBlock } from '@/lib/types';
 import { withAs, type ViewAs } from '@/lib/view-as';
 import { BlockRenderer, findAllergen } from '@/components/doc/block-renderer';
@@ -138,11 +138,6 @@ export function ProcedureViewClient({
     if (!quiz || quiz.attached) return;
     setIsAttaching(true);
     try {
-      // Flip the quiz's attached flag in the mock store. The read side
-      // resolves `procedure.quizId` to its quiz row on every render, so
-      // bumping the procedure's `updatedAt` here forces a re-render and
-      // the new flag is picked up next tick. The backend will replace
-      // this with a PATCH on `/api/admin/quizzes/:id`.
       await updateQuiz(proc.quizId, { attached: true });
       setProc({ ...proc, updatedAt: new Date().toISOString() });
       if (typeof window !== 'undefined') {
@@ -182,6 +177,27 @@ export function ProcedureViewClient({
     router.back();
   }, [router]);
   const backHref = fallbackHref;
+
+  // Delete modal state — admin only (placed after router so the callback can use it)
+  const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false);
+
+  const handleDelete = React.useCallback(async () => {
+    if (!proc) return;
+    setIsDeleting(true);
+    try {
+      await deleteProcedure(proc.id);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('lms_procedures_updated'));
+      }
+      // Navigate away — the procedure no longer exists.
+      router.push(`/${locale}/admin/library`);
+      router.refresh();
+    } catch {
+      setIsDeleting(false);
+      setIsDeleteOpen(false);
+    }
+  }, [proc, locale, router]);
 
   // Admins come in through the AdminShell (see /procedures/layout.tsx) which
   // already supplies the surrounding chrome (sidebar + sticky top bar). They
