@@ -630,8 +630,14 @@ export function CategoryDetailClient({
 
                               <div className="flex shrink-0 items-center gap-4 pl-2" onClick={(e) => e.stopPropagation()}>
                                 {proc.station !== 'General' && (
+                                  // Subcategory station ids can come in as
+                                  // `stn-gm` (subcategory store), `st-gm`
+                                  // (Access step), or `GM` (seed story).
+                                  // `stationCode` collapses all three onto the
+                                  // human-readable badge the rest of the
+                                  // page uses.
                                   <StatusPill tone="neutral" className="hidden sm:inline-flex">
-                                    {proc.station}
+                                    {stationCode(proc.station)}
                                   </StatusPill>
                                 )}
                                 <span className="hidden text-sm leading-meta text-[var(--color-ink-3)] md:inline">
@@ -886,7 +892,12 @@ function AddProcedureModal({
                       <span className="block truncate text-sm text-[var(--color-ink-2)]">{proc.titleEs}</span>
                     </span>
                     {proc.station !== 'General' && (
-                      <StatusPill tone="neutral">{proc.station.replace(/^st-/, '')}</StatusPill>
+                      // Same normalisation as the panel row below: the
+                      // catalog's station field is the raw id (`st-expo`,
+                      // `st-grill`, …) and the badge should read like the
+                      // rest of the page (`Expo`, `Grill`). `stationCode`
+                      // covers both `stn-` and `st-` prefixes.
+                      <StatusPill tone="neutral">{stationCode(proc.station)}</StatusPill>
                     )}
                   </label>
                 );

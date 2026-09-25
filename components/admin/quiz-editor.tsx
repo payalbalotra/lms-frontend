@@ -3,29 +3,20 @@
 /**
  * QuizEditor — the "Quiz" step of the procedure wizard.
  *
- * Admin authors a quiz inline: each question gets a prompt, up to six options
- * (min two), and exactly one option is marked correct. The attach toggle
- * controls whether the quiz shows on the procedure detail page; if the
- * procedure is part of training it shows even without the toggle.
- *
- * State lives here so the wizard stays dumb — the editor receives `value`
- * and emits a full `ProcedureQuiz` on every change. When `value` is null we
- * seed one empty question so the author has something to fill in straight
- * away; nothing is emitted until the admin actually edits.
+ * Implements the exact bilingual component effect (one gets bigger, one becomes
+ * shorter; active card 100% on top, inactive card 92% centered directly
+ * underneath with zero gap) for each question and its options.
  */
 
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
-import type { Localised, ProcedureQuiz, ProcedureQuizQuestion } from '@/lib/types';
+import type { ProcedureQuiz, ProcedureQuizQuestion } from '@/lib/types';
 import { LuCheck, LuCircle, LuPlus, LuTrash2 } from 'react-icons/lu';
 
 const MIN_CHOICES = 2;
 const MAX_CHOICES = 6;
-
-function withBoth(s: string): Localised {
-  return { en: s, es: s };
-}
+const LANGS: Array<'en' | 'es'> = ['en', 'es'];
 
 function emptyQuestion(): ProcedureQuizQuestion {
   return {
@@ -33,13 +24,13 @@ function emptyQuestion(): ProcedureQuizQuestion {
       typeof crypto !== 'undefined' && 'randomUUID' in crypto
         ? crypto.randomUUID()
         : `q-${Math.random().toString(36).slice(2, 10)}`,
-    prompt: withBoth(''),
+    prompt: { en: '', es: '' },
     choices: Array.from({ length: 4 }, () => ({
       id:
         typeof crypto !== 'undefined' && 'randomUUID' in crypto
           ? crypto.randomUUID()
           : `c-${Math.random().toString(36).slice(2, 10)}`,
-      label: withBoth(''),
+      label: { en: '', es: '' },
     })),
     correctChoiceId: '',
   };
@@ -49,23 +40,38 @@ interface QuizEditorProps {
   value: ProcedureQuiz | null;
   onChange: (next: ProcedureQuiz | null) => void;
   isSaving?: boolean;
-  /**
-   * Hide the editor's own <h2> and description. Use this when the editor
-   * sits inside a parent card (e.g. the procedure wizard's FormSection)
-   * that already supplies a title and subtitle — otherwise "Quiz" appears
-   * twice and the description shows up below its own heading.
-   */
   hideHeader?: boolean;
 }
 
 export function QuizEditor({ value, onChange, isSaving, hideHeader }: QuizEditorProps): React.ReactElement {
   const t = useTranslations('admin.library.new.quiz');
+  const [questionLangs, setQuestionLangs] = React.useState<Record<string, 'en' | 'es'>>({});
 
-  // Local working copy. Seeded once from `value` (or a blank single-question
-  // quiz when authoring for the first time). Edits emit through `onChange`
-  // — no emit on mount, so flipping through the wizard without touching
-  // anything leaves the parent state clean.
-  const [working, setWorking] = React.useState<ProcedureQuiz>(() => value ?? makeBlankQuiz());
+  const [working, setWorking] = React.useState<ProcedureQuiz>(() => {
+    if (!value) return makeBlankQuiz();
+    return {
+      attached: Boolean(value.attached),
+      questions: value.questions.map((q) => ({
+        id: q.id || makeId(),
+        prompt: {
+          en: typeof q.prompt === 'string' ? q.prompt : (q.prompt?.en ?? ''),
+          es: typeof q.prompt === 'string' ? q.prompt : (q.prompt?.es ?? ''),
+        },
+        choices: (q.choices || []).map((c) => ({
+          id: c.id || makeId(),
+          label: {
+            en: typeof c.label === 'string' ? c.label : (c.label?.en ?? ''),
+            es: typeof c.label === 'string' ? c.label : (c.label?.es ?? ''),
+          },
+        })),
+        correctChoiceId: q.correctChoiceId ?? '',
+      })),
+    };
+  });
+
+  const getLang = (qId: string): 'en' | 'es' => questionLangs[qId] ?? 'en';
+  const setLang = (qId: string, l: 'en' | 'es'): void =>
+    setQuestionLangs((prev) => ({ ...prev, [qId]: l }));
 
   const update = (next: ProcedureQuiz): void => {
     setWorking(next);
@@ -79,13 +85,18 @@ export function QuizEditor({ value, onChange, isSaving, hideHeader }: QuizEditor
     update({ ...working, questions });
   };
 
-  const updatePrompt = (qi: number, text: string): void =>
-    updateQuestion(qi, { prompt: withBoth(text) });
-
-  const updateChoice = (qi: number, ci: number, text: string): void => {
+  const updatePrompt = (qi: number, lang: 'en' | 'es', text: string): void => {
     const q = working.questions[qi];
     if (!q) return;
-    const choices = q.choices.map((c, j) => (j === ci ? { ...c, label: withBoth(text) } : c));
+    updateQuestion(qi, { prompt: { ...q.prompt, [lang]: text } });
+  };
+
+  const updateChoice = (qi: number, ci: number, lang: 'en' | 'es', text: string): void => {
+    const q = working.questions[qi];
+    if (!q) return;
+    const choices = q.choices.map((c, j) =>
+      j === ci ? { ...c, label: { ...c.label, [lang]: text } } : c,
+    );
     updateQuestion(qi, { choices });
   };
 
@@ -109,7 +120,7 @@ export function QuizEditor({ value, onChange, isSaving, hideHeader }: QuizEditor
   const addChoice = (qi: number): void => {
     const q = working.questions[qi];
     if (!q || q.choices.length >= MAX_CHOICES) return;
-    updateQuestion(qi, { choices: [...q.choices, { id: makeId(), label: withBoth('') }] });
+    updateQuestion(qi, { choices: [...q.choices, { id: makeId(), label: { en: '', es: '' } }] });
   };
 
   const deleteChoice = (qi: number, ci: number): void => {
@@ -150,113 +161,185 @@ export function QuizEditor({ value, onChange, isSaving, hideHeader }: QuizEditor
         </label>
       </div>
 
-      {/* Question list */}
-      <ol className="space-y-4">
-        {working.questions.map((q, qi) => (
-          <li
-            key={q.id}
-            className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)]"
-          >
-            <header className="flex items-start gap-3 border-b border-[var(--color-line)] bg-[var(--color-wash)] px-4 py-3">
-              <span className="mt-2 flex size-8 shrink-0 items-center justify-center rounded-full border-2 border-[var(--color-line-2)] bg-[var(--color-surface)] text-sm font-bold text-[var(--color-ink)]">
-                {qi + 1}
-              </span>
-              <div className="flex-1 space-y-1">
-                <label
-                  htmlFor={`q-${q.id}-prompt`}
-                  className="block text-sm font-semibold uppercase text-[var(--color-ink-3)]"
-                >
-                  Question
-                </label>
-                <input
-                  id={`q-${q.id}-prompt`}
-                  type="text"
-                  value={q.prompt.en}
-                  onChange={(e) => updatePrompt(qi, e.target.value)}
-                  placeholder={t('promptPlaceholder')}
-                  disabled={isSaving}
-                  className="w-full rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold text-[var(--color-ink)] placeholder:font-normal placeholder:text-[var(--color-ink-3)] focus:border-[var(--color-ring)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-tint)]"
-                />
-                {q.choices.every((c) => !c.label.en.trim()) ? null : !q.correctChoiceId ? (
-                  <p className="pt-1 text-sm font-medium text-[var(--color-warn-ink)]">
-                    {t('noCorrect')}
-                  </p>
-                ) : null}
-              </div>
-              <button
-                type="button"
-                onClick={() => deleteQuestion(qi)}
-                disabled={isSaving}
-                aria-label={t('deleteQuestion')}
-                className="mt-1 flex size-8 shrink-0 items-center justify-center rounded-full text-[var(--color-ink-3)] hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)] disabled:opacity-50"
-              >
-                <LuTrash2 className="size-4" aria-hidden="true" />
-              </button>
-            </header>
+      {/* Question list — each question has the exact bilingual component effect (one gets bigger, one becomes shorter) */}
+      <ol className="space-y-6">
+        {working.questions.map((q, qi) => {
+          const currentActive = getLang(q.id);
 
-            <ul className="space-y-2 p-3">
-              {q.choices.map((c, ci) => {
-                const isCorrect = q.correctChoiceId === c.id;
+          return (
+            <li key={q.id} className="bli-card-group">
+              {LANGS.map((lang) => {
+                const isActive = currentActive === lang;
+
+                if (isActive) {
+                  // Active card: BIGGER (100% width, height auto, full question prompt + all options)
+                  return (
+                    <div key={lang} className="bli-card is-active">
+                      <header className="flex items-center justify-between border-b border-[var(--color-line)] bg-[var(--color-wash)] px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <span className="flex size-7 shrink-0 items-center justify-center rounded-full border-2 border-[var(--color-line-2)] bg-[var(--color-surface)] text-xs font-bold text-[var(--color-ink)]">
+                            {qi + 1}
+                          </span>
+                          <span className="text-sm font-semibold text-[var(--color-ink)]">
+                            {lang === 'en' ? `Question ${qi + 1}` : `Pregunta ${qi + 1}`}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="rounded bg-[var(--color-brand-tint)] px-2 py-0.5 font-mono text-xs font-bold text-[var(--color-brand-700)] uppercase">
+                            {lang.toUpperCase()}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => deleteQuestion(qi)}
+                            disabled={isSaving}
+                            aria-label={t('deleteQuestion')}
+                            title={t('deleteQuestion')}
+                            className="flex size-8 shrink-0 items-center justify-center rounded-full text-[var(--color-ink-3)] hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)] disabled:opacity-50 transition-colors"
+                          >
+                            <LuTrash2 className="size-4" aria-hidden="true" />
+                          </button>
+                        </div>
+                      </header>
+
+                      <div className="p-4 space-y-4">
+                        {/* Question prompt input in active language */}
+                        <div className="space-y-1.5">
+                          <label
+                            htmlFor={`q-${q.id}-prompt-${lang}`}
+                            className="block text-xs font-semibold uppercase text-[var(--color-ink-3)] tracking-wider"
+                          >
+                            {lang === 'en' ? 'Question' : 'Pregunta'}
+                          </label>
+                          <input
+                            id={`q-${q.id}-prompt-${lang}`}
+                            type="text"
+                            value={q.prompt[lang] ?? ''}
+                            onChange={(e) => updatePrompt(qi, lang, e.target.value)}
+                            placeholder={lang === 'en' ? t('promptPlaceholder') : 'Escribe la pregunta en español...'}
+                            disabled={isSaving}
+                            className="w-full rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold text-[var(--color-ink)] placeholder:font-normal placeholder:text-[var(--color-ink-3)] focus:border-[var(--color-ring)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-tint)]"
+                          />
+                          {q.choices.every((c) => !(c.label[lang] ?? '').trim()) ? null : !q.correctChoiceId ? (
+                            <p className="pt-1 text-sm font-medium text-[var(--color-warn-ink)]">
+                              {t('noCorrect')}
+                            </p>
+                          ) : null}
+                        </div>
+
+                        {/* Options in active language */}
+                        <div className="space-y-2">
+                          <span className="block text-xs font-semibold uppercase text-[var(--color-ink-3)] tracking-wider">
+                            {lang === 'en' ? 'Options' : 'Opciones'}
+                          </span>
+                          <ul className="space-y-2">
+                            {q.choices.map((c, ci) => {
+                              const isCorrect = q.correctChoiceId === c.id;
+                              return (
+                                <li key={c.id} className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setCorrect(qi, ci)}
+                                    disabled={isSaving}
+                                    aria-pressed={isCorrect}
+                                    aria-label={t('markCorrect')}
+                                    title={isCorrect ? 'Correct option' : 'Click to mark as correct'}
+                                    className={cn(
+                                      'flex size-8 shrink-0 items-center justify-center rounded-full border transition-colors',
+                                      isCorrect
+                                        ? 'border-[var(--color-ok)] bg-[var(--color-ok-tint)] text-[var(--color-ok)]'
+                                        : 'border-[var(--color-line-2)] bg-[var(--color-surface)] text-transparent hover:border-[var(--color-ink-3)]',
+                                    )}
+                                  >
+                                    {isCorrect ? <LuCheck className="size-4" aria-hidden="true" /> : <LuCircle className="size-4" aria-hidden="true" />}
+                                  </button>
+                                  <input
+                                    type="text"
+                                    value={c.label[lang] ?? ''}
+                                    onChange={(e) => updateChoice(qi, ci, lang, e.target.value)}
+                                    placeholder={
+                                      lang === 'en'
+                                        ? t('choicePlaceholder', { n: ci + 1 })
+                                        : `Opción ${ci + 1}`
+                                    }
+                                    disabled={isSaving}
+                                    className={cn(
+                                      'flex-1 rounded-[var(--radius-md)] border bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] focus:outline-none focus:ring-2',
+                                      isCorrect
+                                        ? 'border-[var(--color-ok)] focus:border-[var(--color-ok)] focus:ring-[var(--color-ok-tint)]'
+                                        : 'border-[var(--color-line-2)] focus:border-[var(--color-ring)] focus:ring-[var(--color-brand-tint)]',
+                                    )}
+                                  />
+                                  {q.choices.length > MIN_CHOICES ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => deleteChoice(qi, ci)}
+                                      disabled={isSaving}
+                                      aria-label={t('deleteOption')}
+                                      title={t('deleteOption')}
+                                      className="flex size-8 shrink-0 items-center justify-center rounded-full text-[var(--color-ink-3)] hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)] disabled:opacity-50 transition-colors"
+                                    >
+                                      <LuTrash2 className="size-4" aria-hidden="true" />
+                                    </button>
+                                  ) : null}
+                                </li>
+                              );
+                            })}
+                            {q.choices.length < MAX_CHOICES ? (
+                              <li className="pt-1">
+                                <button
+                                  type="button"
+                                  onClick={() => addChoice(qi)}
+                                  disabled={isSaving}
+                                  className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-[var(--color-brand-700)] hover:bg-[var(--color-panel)] disabled:opacity-50 transition-colors"
+                                >
+                                  <LuPlus className="size-4" aria-hidden="true" />
+                                  {t('addOption')}
+                                </button>
+                              </li>
+                            ) : null}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Inactive card: SHORTER (height 44px, 92% width, centered, attached directly with no gap)
                 return (
-                  <li key={c.id} className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setCorrect(qi, ci)}
-                      disabled={isSaving}
-                      aria-pressed={isCorrect}
-                      aria-label={t('markCorrect')}
-                      className={cn(
-                        'flex size-8 shrink-0 items-center justify-center rounded-full border transition-colors',
-                        isCorrect
-                          ? 'border-[var(--color-ok)] bg-[var(--color-ok-tint)] text-[var(--color-ok)]'
-                          : 'border-[var(--color-line-2)] bg-[var(--color-surface)] text-transparent hover:border-[var(--color-ink-3)]',
-                      )}
-                    >
-                      {isCorrect ? <LuCheck className="size-4" aria-hidden="true" /> : <LuCircle className="size-4" aria-hidden="true" />}
-                    </button>
-                    <input
-                      type="text"
-                      value={c.label.en}
-                      onChange={(e) => updateChoice(qi, ci, e.target.value)}
-                      placeholder={t('choicePlaceholder', { n: ci + 1 })}
-                      disabled={isSaving}
-                      className={cn(
-                        'flex-1 rounded-[var(--radius-md)] border bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] focus:outline-none focus:ring-2',
-                        isCorrect
-                          ? 'border-[var(--color-ok)] focus:border-[var(--color-ok)] focus:ring-[var(--color-ok-tint)]'
-                          : 'border-[var(--color-line-2)] focus:border-[var(--color-ring)] focus:ring-[var(--color-brand-tint)]',
-                      )}
-                    />
-                    {q.choices.length > MIN_CHOICES ? (
-                      <button
-                        type="button"
-                        onClick={() => deleteChoice(qi, ci)}
-                        disabled={isSaving}
-                        aria-label={t('deleteOption')}
-                        className="flex size-8 shrink-0 items-center justify-center rounded-full text-[var(--color-ink-3)] hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)] disabled:opacity-50"
-                      >
-                        <LuTrash2 className="size-4" aria-hidden="true" />
-                      </button>
-                    ) : null}
-                  </li>
+                  <div
+                    key={lang}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setLang(q.id, lang)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setLang(q.id, lang);
+                      }
+                    }}
+                    className="bli-card is-inactive px-4"
+                    title={lang === 'es' ? 'Click to edit in Spanish' : 'Click to edit in English'}
+                  >
+                    <div className="flex w-full items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="truncate text-xs font-normal text-[var(--color-ink-2)]">
+                          {q.prompt[lang]?.trim()
+                            ? q.prompt[lang]
+                            : (lang === 'es'
+                                ? 'Ingresa la pregunta del cuestionario...'
+                                : 'Type the question...')}
+                        </span>
+                      </div>
+                      <span className="rounded bg-[var(--color-surface)] px-1.5 py-0.5 font-mono text-[10px] font-bold text-[var(--color-ink-3)] border border-[var(--color-line)] uppercase shrink-0">
+                        {lang.toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
                 );
               })}
-              {q.choices.length < MAX_CHOICES ? (
-                <li className="pt-1">
-                  <button
-                    type="button"
-                    onClick={() => addChoice(qi)}
-                    disabled={isSaving}
-                    className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-[var(--color-brand-700)] hover:bg-[var(--color-panel)] disabled:opacity-50"
-                  >
-                    <LuPlus className="size-4" aria-hidden="true" />
-                    {t('addOption')}
-                  </button>
-                </li>
-              ) : null}
-            </ul>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ol>
 
       <button

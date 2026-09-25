@@ -1,5 +1,5 @@
 import type { BilingualValue } from '@/components/ui/bilingual-input';
-import type { ProcedureQuiz, ProcedureAudience } from './types';
+import type { ProcedureQuiz, ProcedureAudience, ProcedureBlock } from './types';
 
 /**
  * Pure progress functions for the procedure wizard.
@@ -14,16 +14,49 @@ import type { ProcedureQuiz, ProcedureAudience } from './types';
  * input with one space in it should not count as progress.
  */
 
-const filled = (s: string): boolean => s.trim().length > 0;
+const filled = (s?: string | null): boolean => Boolean(s && s.trim().length > 0);
 
-/** Details (step 1) — four bilingual inputs, each is one item.
- *
- *  The wizard asks for both EN and ES up front; a manager who only writes
- *  one language has done 2 of 4, which the stepper shows as a half-filled
- *  connector — a deliberate nudge toward the bilingual contract. */
+export function hasBlockContent(b: ProcedureBlock): boolean {
+  switch (b.kind) {
+    case 'text':
+      return filled(b.body?.en) || filled(b.body?.es);
+    case 'heading':
+      return filled(b.text?.en) || filled(b.text?.es);
+    case 'method':
+      return b.steps.some((s) => filled(s.body?.en) || filled(s.body?.es));
+    case 'recipe':
+      return (
+        b.steps.some((s) => filled(s.body?.en) || filled(s.body?.es)) ||
+        Boolean(b.ingredients?.some((i) => filled(i.name)))
+      );
+    case 'image':
+      return filled(b.src) || filled(b.alt?.en) || filled(b.alt?.es);
+    case 'video':
+      return filled(b.src);
+    case 'warning':
+      return filled(b.body?.en) || filled(b.body?.es);
+    case 'attachment':
+      return filled(b.href) || filled(b.title?.en) || filled(b.title?.es);
+    case 'table':
+      return (
+        b.headers.some((h) => filled(h?.en) || filled(h?.es)) ||
+        b.rows.some((r) => r.some((c) => filled(c?.en) || filled(c?.es)))
+      );
+    case 'checklist':
+      return b.items.some((i) => filled(i.text?.en) || filled(i.text?.es));
+    default:
+      return false;
+  }
+}
+
+/** Details (step 1) — split into two parts:
+ *  1. About this procedure (Title & Purpose): 50% max
+ *  2. Content (blocks): 50% max
+ *  Total progress reaches 100% when both sections have content. */
 export const getDetailsProgress = (state: {
   title: BilingualValue;
   purpose: BilingualValue;
+  blocks?: ProcedureBlock[];
 }): number => {
   const items = [
     state.title.en,
@@ -31,8 +64,13 @@ export const getDetailsProgress = (state: {
     state.purpose.en,
     state.purpose.es,
   ];
-  const done = items.filter(filled).length;
-  return done / items.length;
+  const aboutDone = items.filter(filled).length;
+  const aboutRatio = items.length > 0 ? aboutDone / items.length : 0;
+
+  const validBlocks = (state.blocks ?? []).filter(hasBlockContent);
+  const contentRatio = validBlocks.length > 0 ? 1 : 0;
+
+  return (aboutRatio * 0.5) + (contentRatio * 0.5);
 };
 
 /** Quiz (step 2) — one item. Skipping the quiz counts as complete (the
@@ -103,6 +141,7 @@ export const getReviewProgress = (others: {
 export const getAllStepProgress = (state: {
   title: BilingualValue;
   purpose: BilingualValue;
+  blocks?: ProcedureBlock[];
   quiz: ProcedureQuiz | null;
   subcategoryId: string;
   isStationSpecific: boolean;
@@ -111,6 +150,7 @@ export const getAllStepProgress = (state: {
   const details = getDetailsProgress({
     title: state.title,
     purpose: state.purpose,
+    blocks: state.blocks,
   });
   const quiz = getQuizProgress({ quiz: state.quiz });
   const access = getAccessProgress({

@@ -5,20 +5,17 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { deleteProcedure, listCategories, listProcedures, setProcedureState } from '@/lib/api';
-import type { Procedure, Category, ProcedureStatus } from '@/lib/types';
+import type { Procedure, Category, ProcedureStatus, Subcategory } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CustomSelect } from '@/components/ui/custom-select';
 import {
   LuArchive,
   LuArchiveRestore,
-  LuArrowDownAZ,
-  LuArrowUpAZ,
   LuBrush,
   LuBuilding2,
   LuCircleCheck,
   LuCircleDashed,
-  LuClock,
   LuEye,
   LuFilePen,
   LuFileSearch,
@@ -29,7 +26,6 @@ import {
   LuFilter,
   LuFolder,
   LuGlobe,
-  LuHistory,
   LuLayers,
   LuLayoutGrid,
   LuRefreshCw,
@@ -200,6 +196,21 @@ export function LibraryProcedureExplorer({
       setSelectedCategorySlug(categoryParam);
     }
   }, [searchParams]);
+  // The subcategory dropdown's options follow the category chip: pick
+  // "Food Safety" and only Hygiene / Cross-Contamination / Labeling & Dating /
+  // Allergy appear. Reset the subcategory whenever the category narrows so a
+  // stale subcategory from another category does not produce an empty list.
+  const [selectedSubcategoryId, setSelectedSubcategoryId] = React.useState<string>('all');
+
+  const lastCategoryRef = React.useRef<string>(selectedCategorySlug);
+  React.useEffect(() => {
+    if (lastCategoryRef.current !== selectedCategorySlug) {
+      lastCategoryRef.current = selectedCategorySlug;
+      setSelectedSubcategoryId('all');
+      setCurrentPage(1);
+    }
+  }, [selectedCategorySlug]);
+
   const [searchQuery, setSearchQuery] = React.useState<string>('');
   // Archived is its own choice: out of the list by default, one pick away for
   // the audit.
@@ -316,6 +327,51 @@ export function LibraryProcedureExplorer({
     ];
   }, [categoryList, isEs]);
 
+  // Subcategories the manager can pick. Scoped to the currently selected
+  // category when one is chosen, so the dropdown is short and the picked
+  // subcategory is guaranteed to live under the chosen category. "all" (no
+  // category chip) shows every subcategory across every category.
+  const subcategoryOptions = React.useMemo(() => {
+    const pool: Subcategory[] =
+      selectedCategorySlug === 'all'
+        ? categoryList.flatMap((cat) => cat.subcategories ?? [])
+        : categoryList
+            .filter((cat) => cat.slug === selectedCategorySlug)
+            .flatMap((cat) => cat.subcategories ?? []);
+
+    // Dedupe by id — two categories with overlapping subcategory ids would
+    // otherwise show the same name twice.
+    const seen = new Set<string>();
+    const unique = pool.filter((s) => {
+      if (!s.id || seen.has(s.id)) return false;
+      seen.add(s.id);
+      return true;
+    });
+
+    // Sort by display name in the active locale so the dropdown reads A-Z.
+    unique.sort((a, b) => {
+      const an = (isEs ? a.nameEs : a.nameEn).toLowerCase();
+      const bn = (isEs ? b.nameEs : b.nameEn).toLowerCase();
+      return an.localeCompare(bn);
+    });
+
+    return [
+      {
+        value: 'all',
+        label: isEs ? 'Todas las subcategorías' : 'All subcategories',
+        icon: LuLayers,
+      },
+      ...unique.map((sub) => {
+        const name = isEs ? sub.nameEs : sub.nameEn;
+        return {
+          value: sub.id,
+          label: name,
+          icon: LuLayers,
+        };
+      }),
+    ];
+  }, [categoryList, selectedCategorySlug, isEs]);
+
   const statusOptions = React.useMemo(() => {
     return [
       {
@@ -341,31 +397,6 @@ export function LibraryProcedureExplorer({
     ];
   }, [isEs]);
 
-  const sortOptions = React.useMemo(() => {
-    return [
-      {
-        value: 'updated_desc',
-        label: isEs ? 'Recientes primero' : 'Recently updated',
-        icon: LuClock,
-      },
-      {
-        value: 'updated_asc',
-        label: isEs ? 'Antiguos primero' : 'Oldest updated',
-        icon: LuHistory,
-      },
-      {
-        value: 'title_asc',
-        label: isEs ? 'Título A-Z' : 'Title A-Z',
-        icon: LuArrowDownAZ,
-      },
-      {
-        value: 'title_desc',
-        label: isEs ? 'Título Z-A' : 'Title Z-A',
-        icon: LuArrowUpAZ,
-      },
-    ];
-  }, [isEs]);
-
   // Filtered procedures
   const filteredProcedures = React.useMemo(() => {
     return allProcedures
@@ -387,6 +418,15 @@ export function LibraryProcedureExplorer({
         } else {
           if (p.isArchived) return false;
           if (statusFilter !== 'all' && p.status !== statusFilter) return false;
+        }
+
+        // Subcategory Filter — string match on the procedure's FK. The
+        // dropdown's options are already scoped to the selected category,
+        // so an empty result means "no procedures in this subcategory yet".
+        if (selectedSubcategoryId !== 'all') {
+          if (!p.subcategoryId || p.subcategoryId !== selectedSubcategoryId) {
+            return false;
+          }
         }
 
         // Search Query
@@ -428,12 +468,17 @@ export function LibraryProcedureExplorer({
         }
         return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
       });
-  }, [allProcedures, selectedCategorySlug, statusFilter, searchQuery, sortBy, isEs, categorySlugMap]);
+  }, [allProcedures, selectedCategorySlug, selectedSubcategoryId, statusFilter, searchQuery, sortBy, isEs, categorySlugMap]);
 
-  const hasActiveFilters = selectedCategorySlug !== 'all' || statusFilter !== 'all' || searchQuery.trim().length > 0;
+  const hasActiveFilters =
+    selectedCategorySlug !== 'all' ||
+    selectedSubcategoryId !== 'all' ||
+    statusFilter !== 'all' ||
+    searchQuery.trim().length > 0;
 
   const resetFilters = (): void => {
     setSelectedCategorySlug('all');
+    setSelectedSubcategoryId('all');
     setStatusFilter('all');
     setSearchQuery('');
     setCurrentPage(1);
@@ -549,9 +594,12 @@ export function LibraryProcedureExplorer({
           </div>
           <div className="w-field-md shrink-0">
             <CustomSelect
-              value={sortBy}
-              onChange={(val) => setSortBy(val as typeof sortBy)}
-              options={sortOptions}
+              value={selectedSubcategoryId}
+              onChange={(val) => {
+                setSelectedSubcategoryId(val);
+                setCurrentPage(1);
+              }}
+              options={subcategoryOptions}
               size="sm"
               className="h-tap-admin text-sm"
             />

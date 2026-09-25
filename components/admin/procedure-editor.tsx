@@ -197,7 +197,7 @@ export function ProcedureEditor({
      library, not the editor. State stays here so URL-prefilled values from a
      category deep-link still flow into the saved record. */
   const STEPS = [
-    { id: "details", label: tStep("stepDetails"), num: 1 },
+    { id: "details", label: tStep("stepContent"), num: 1 },
     { id: "quiz", label: tStep("stepQuiz"), num: 2 },
     { id: "access", label: tStep("stepAccess"), num: 3 },
     { id: "review", label: tStep("stepReview"), num: 4 },
@@ -232,10 +232,10 @@ export function ProcedureEditor({
   // Every edit marks the page dirty; one wrapper instead of a line per field.
   const edit =
     <T,>(set: React.Dispatch<React.SetStateAction<T>>) =>
-    (v: T): void => {
-      set(v);
-      setDirty(true);
-    };
+      (v: T): void => {
+        set(v);
+        setDirty(true);
+      };
 
   // Leaving with unsaved work asks first.
   React.useEffect(() => {
@@ -279,13 +279,32 @@ export function ProcedureEditor({
       getAllStepProgress({
         title,
         purpose,
+        blocks,
         quiz,
         subcategoryId,
         isStationSpecific: Boolean(subcategory?.isStationSpecific),
         audience,
       }),
-    [title, purpose, quiz, subcategoryId, subcategory?.isStationSpecific, audience],
+    [title, purpose, blocks, quiz, subcategoryId, subcategory?.isStationSpecific, audience],
   );
+
+  const hasQuizContent = React.useMemo(() => {
+    if (!quiz || !quiz.questions || quiz.questions.length === 0) return false;
+    return quiz.questions.some((q) => {
+      const promptHasText = Boolean(
+        (q.prompt?.en && q.prompt.en.trim().length > 0) ||
+        (q.prompt?.es && q.prompt.es.trim().length > 0)
+      );
+      const choicesHaveText = q.choices?.some(
+        (c) =>
+          Boolean(
+            (c.label?.en && c.label.en.trim().length > 0) ||
+            (c.label?.es && c.label.es.trim().length > 0)
+          )
+      );
+      return promptHasText || choicesHaveText;
+    });
+  }, [quiz]);
 
   const quizCount = quiz?.questions.length ?? 0;
   const whoSummary = (() => {
@@ -323,7 +342,7 @@ export function ProcedureEditor({
       try {
         // The quiz lives in its own table: keep its row, make one, or drop it.
         let quizId: string | null = null;
-        if (quiz && quiz.questions.length > 0) {
+        if (quiz && hasQuizContent && quiz.questions.length > 0) {
           if (initial?.quizId) {
             await updateQuiz(initial.quizId, {
               questions: quiz.questions,
@@ -374,35 +393,50 @@ export function ProcedureEditor({
   /* --------------------------------------------------------------- render -- */
 
   return (
-    <div className="mx-auto max-w-page">
-      <PageHeader
-        eyebrow={t("back")}
-        eyebrowHref={`/${locale}/admin/library`}
-        title={isEdit ? t("titleEdit") : t("titleNew")}
-        actions={
-          <Button
-            type="button"
-            variant="surface"
-            icon={LuEye}
-            onClick={() => setPreviewOpen(true)}
-          >
-            {t("preview")}
-          </Button>
-        }
-      />
+    <div>
+      <div className="mx-auto max-w-page">
+        <PageHeader
+          eyebrow={t("back")}
+          eyebrowHref={`/${locale}/admin/library`}
+          title={isEdit ? t("titleEdit") : t("titleNew")}
+        />
+      </div>
 
-      <WizardStepper
-        ariaLabel={tStep("ariaLabel")}
-        current={step}
-        steps={STEPS.map((s) => ({
-          id: s.id,
-          label: s.label,
-          progress: stepProgress[s.id],
-        }))}
-        onSelect={(id) => setStep(id as WizardStepId)}
-      />
+      <div className="sticky top-[56px] z-10 -mx-4 border-b border-[var(--color-line-2)]/60 bg-[var(--color-bg-admin)]/95 px-4 py-2.5 backdrop-blur-md transition-shadow sm:-mx-6 sm:px-6 lg:top-[75px] lg:-mx-10 lg:px-10">
+        <div className="mx-auto max-w-page">
+          <WizardStepper
+            className="my-0"
+            ariaLabel={tStep("ariaLabel")}
+            current={step}
+            steps={STEPS.map((s) => ({
+              id: s.id,
+              label: s.label,
+              progress: stepProgress[s.id],
+            }))}
+            onSelect={(id) => setStep(id as WizardStepId)}
+          />
+        </div>
+      </div>
 
-      <div className="mt-2 space-y-4 pb-20">
+      {/* Floating Preview button, bottom-right. Always reachable regardless
+          of scroll, sits above the fixed bottom footer (Cancel / Save draft /
+          Next) so it never overlaps the navigation actions. The pill itself
+          is the only thing inside its z-stacked wrapper; the wrapper is
+          pointer-events-none so the empty gutter behind the pill never
+          traps clicks meant for the form. */}
+      <div className="pointer-events-none fixed bottom-[90px] right-5 z-30 lg:right-6">
+        <Button
+          type="button"
+          variant="surface"
+          icon={LuEye}
+          onClick={() => setPreviewOpen(true)}
+          className="pointer-events-auto shadow-e2"
+        >
+          {t("preview")}
+        </Button>
+      </div>
+
+      <div className="mx-auto max-w-page mt-4 space-y-4 pb-20">
         {error ? (
           <p
             role="alert"
@@ -449,12 +483,18 @@ export function ProcedureEditor({
             </FormSection>
 
             {/* ── What it says ─────────────────────────────────────────── */}
+            {/* ── What it says ─────────────────────────────────────────── */}
             <FormSection
               id="proc-content"
               icon={LuLayoutGrid}
               title={t("contentTitle")}
               subtitle={
                 isRecipe ? t("contentSubtitleRecipe") : t("contentSubtitle")
+              }
+              headerAction={
+                <span className="inline-flex items-center rounded-full border border-[var(--color-line-2)] bg-[var(--color-wash)] px-3 py-1 text-xs font-semibold text-[var(--color-ink-2)]">
+                  {t("contentBlocksCount", { count: blocks.length })}
+                </span>
               }
             >
               <NotionBlockList blocks={blocks} onChange={edit(setBlocks)} />
@@ -530,8 +570,8 @@ export function ProcedureEditor({
                     {audience.stationIds.length === 0
                       ? t("stationsRowNone")
                       : t("stationsRowCount", {
-                          count: audience.stationIds.length,
-                        })}
+                        count: audience.stationIds.length,
+                      })}
                   </StatusPill>
                 </div>
                 <div className="mt-3">
@@ -849,8 +889,8 @@ export function ProcedureEditor({
                     ? t("reviewReadyNotifyEveryone")
                     : audience.employeeIds.length > 0
                       ? t("reviewReadyNotify", {
-                          count: audience.employeeIds.length,
-                        })
+                        count: audience.employeeIds.length,
+                      })
                       : t("reviewReadyNotifyNobody")}
                 </p>
               </div>
@@ -909,7 +949,9 @@ export function ProcedureEditor({
               type="button"
               onClick={() => setStep(STEPS[stepIdx + 1].id)}
             >
-              {t("wizardNext")}
+              {step === "quiz" && !hasQuizContent
+                ? t("wizardSkip")
+                : t("wizardNext")}
             </Button>
           )}
         </div>
@@ -1258,10 +1300,10 @@ function AssignBlock({
         <div className="rounded-[var(--radius-md)] border border-dashed border-[var(--color-line-3)] bg-[var(--color-wash)] p-6 text-center text-sm text-[var(--color-ink-2)]">
           {filterStationIds && filterStationIds.length > 0
             ? t("assignEmptyStations", {
-                stations: filterStationIds
-                  .map((id) => stationNameById.get(id) ?? id)
-                  .join(", "),
-              })
+              stations: filterStationIds
+                .map((id) => stationNameById.get(id) ?? id)
+                .join(", "),
+            })
             : t("assignEmpty")}
         </div>
       ) : (

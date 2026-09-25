@@ -134,57 +134,59 @@ export function BilingualInput({
         </div>
       )}
 
-      {LANGS.map((lang) => {
-        const isActive = active === lang;
-        const shared = {
-          id: `${baseId}-${lang}`,
-          name: name ? `${name}.${lang}` : undefined,
-          value: value?.[lang] ?? '',
-          maxLength,
-          lang,
-          placeholder: placeholder?.[lang] ?? DEFAULT_PLACEHOLDER[lang],
-          'aria-label': label ? `${label} (${LANG_NAME[lang]})` : (placeholder?.[lang] ?? LANG_NAME[lang]),
-          'aria-required': required || undefined,
-          className: cn('bli__control', inputClassName),
-          onFocus: () => setActive(lang),
-          onKeyDown: (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-            onInputKeyDown?.(e, lang);
-          },
-          onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-            handleChange(lang, e.target.value),
-        };
-        const setRef = (el: HTMLInputElement | HTMLTextAreaElement | null): void => {
-          controls.current[lang] = el;
-        };
+      <div className="bli__fields">
+        {LANGS.map((lang) => {
+          const isActive = active === lang;
+          const shared = {
+            id: `${baseId}-${lang}`,
+            name: name ? `${name}.${lang}` : undefined,
+            value: value?.[lang] ?? '',
+            maxLength,
+            lang,
+            placeholder: placeholder?.[lang] ?? DEFAULT_PLACEHOLDER[lang],
+            'aria-label': label ? `${label} (${LANG_NAME[lang]})` : (placeholder?.[lang] ?? LANG_NAME[lang]),
+            'aria-required': required || undefined,
+            className: cn('bli__control', inputClassName),
+            onFocus: () => setActive(lang),
+            onKeyDown: (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+              onInputKeyDown?.(e, lang);
+            },
+            onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+              handleChange(lang, e.target.value),
+          };
+          const setRef = (el: HTMLInputElement | HTMLTextAreaElement | null): void => {
+            controls.current[lang] = el;
+          };
 
-        return (
-          <div
-            key={lang}
-            className={[
-              'bli__field',
-              isActive ? 'is-active' : 'is-inactive',
-              multiline ? 'is-multiline' : '',
-            ]
-              .filter(Boolean)
-              .join(' ')}
-            onClick={() => controls.current[lang]?.focus()}
-          >
-            {multiline ? (
-              <textarea {...shared} ref={setRef} />
-            ) : (
-              <input {...shared} type="text" ref={setRef} />
-            )}
-            {maxLength !== undefined && (
-              <span className="bli__count" aria-hidden="true">
-                {(value?.[lang] ?? '').length} / {maxLength}
+          return (
+            <div
+              key={lang}
+              className={[
+                'bli__field',
+                isActive ? 'is-active' : 'is-inactive',
+                multiline ? 'is-multiline' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              onClick={() => controls.current[lang]?.focus()}
+            >
+              {multiline ? (
+                <textarea {...shared} ref={setRef} />
+              ) : (
+                <input {...shared} type="text" ref={setRef} />
+              )}
+              {maxLength !== undefined && (
+                <span className="bli__count" aria-hidden="true">
+                  {(value?.[lang] ?? '').length} / {maxLength}
+                </span>
+              )}
+              <span className="bli__tag" aria-hidden="true">
+                {lang.toUpperCase()}
               </span>
-            )}
-            <span className="bli__tag" aria-hidden="true">
-              {lang.toUpperCase()}
-            </span>
-          </div>
-        );
-      })}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

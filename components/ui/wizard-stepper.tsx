@@ -38,11 +38,13 @@ export function WizardStepper({
   current,
   ariaLabel,
   onSelect,
+  className,
 }: {
   steps: WizardStep[];
   current: string;
   ariaLabel: string;
   onSelect?: (stepId: string) => void;
+  className?: string;
 }): React.ReactElement {
   const rawIdx = steps.findIndex((s) => s.id === current);
   const activeIdx = rawIdx >= 0 ? rawIdx : 0;
@@ -68,7 +70,7 @@ export function WizardStepper({
   const motion = reducedMotion ? '' : 'transition-all duration-[400ms] ease-out';
 
   return (
-    <nav aria-label={ariaLabel} className="my-6 w-full">
+    <nav aria-label={ariaLabel} className={cn('w-full', className ?? 'my-6')}>
       <div className="py-2">
         <ol className="flex w-full items-center justify-between">
           {steps.map((step, idx) => {

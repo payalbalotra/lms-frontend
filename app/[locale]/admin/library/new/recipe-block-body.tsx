@@ -349,6 +349,10 @@ function RecipeAllergens({
 }): React.ReactElement {
   const tForm = useTranslations('admin.library.new.form');
   const selected = allergen?.selectedAllergens ?? [];
+  const [customInput, setCustomInput] = React.useState('');
+
+  const standardSet = new Set<string>(ALLERGEN_KEYS);
+  const customTags = selected.filter((k) => !standardSet.has(k));
 
   function toggle(key: AllergenKey, on: boolean): void {
     const set = new Set(selected);
@@ -366,12 +370,46 @@ function RecipeAllergens({
     }
   }
 
+  function addCustom(): void {
+    const trimmed = customInput.trim();
+    if (!trimmed) return;
+    if (!selected.includes(trimmed as AllergenKey)) {
+      const next = [...selected, trimmed as AllergenKey];
+      onChange({
+        summary: allergen?.summary ?? '',
+        detail: allergen?.detail ?? '',
+        selectedAllergens: next,
+      });
+    }
+    setCustomInput('');
+  }
+
+  function removeCustom(tag: string): void {
+    const next = selected.filter((k) => k !== tag);
+    if (next.length === 0) {
+      onChange(undefined);
+    } else {
+      onChange({
+        summary: allergen?.summary ?? '',
+        detail: allergen?.detail ?? '',
+        selectedAllergens: next,
+      });
+    }
+  }
+
   return (
     <details className="rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2">
-      <summary className="cursor-pointer text-sm font-semibold text-[var(--color-ink)]">
-        {labels.title}
+      <summary className="cursor-pointer text-sm font-semibold text-[var(--color-ink)] flex items-center justify-between">
+        <span className="flex items-center gap-2">
+          {labels.title}
+          {selected.length > 0 && (
+            <span className="inline-flex items-center rounded-full bg-[var(--color-warn-tint)] px-2 py-0.5 text-xs font-semibold text-[var(--color-warn-ink)]">
+              {selected.length}
+            </span>
+          )}
+        </span>
       </summary>
-      <div className="mt-3 space-y-2">
+      <div className="mt-3 space-y-3">
         <p className="text-sm text-[var(--color-ink-3)]">{labels.picker}</p>
         <fieldset className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {ALLERGEN_KEYS.map((key) => {
@@ -396,6 +434,55 @@ function RecipeAllergens({
             );
           })}
         </fieldset>
+
+        {/* Custom allergen chips & small inline add input */}
+        <div className="flex flex-wrap items-center gap-3 pt-2">
+          {customTags.length > 0 && (
+            <span className="text-xs font-semibold text-[var(--color-ink-3)]">Custom:</span>
+          )}
+          {customTags.map((tag) => (
+            <span
+              key={tag}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-warn)] bg-[var(--color-warn-tint)] px-3 py-1 text-xs font-medium text-[var(--color-warn-ink)] shadow-[var(--e-1)]"
+            >
+              <span>{tag}</span>
+              <button
+                type="button"
+                onClick={() => removeCustom(tag)}
+                className="flex size-4 items-center justify-center rounded-full hover:bg-[var(--color-warn)]/25 text-[var(--color-warn-ink)] transition-colors"
+                aria-label={`Remove ${tag}`}
+              >
+                <Icon icon="ri-close-line" className="text-xs" />
+              </button>
+            </span>
+          ))}
+
+          {/* Small compact input with + icon */}
+          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-line-2)] bg-[var(--color-surface)] pl-3 pr-2 py-1 text-xs shadow-[var(--e-1)] focus-within:border-[var(--color-ring)] focus-within:ring-1 focus-within:ring-[var(--color-ring)] transition-all ml-1">
+            <button
+              type="button"
+              onClick={addCustom}
+              disabled={!customInput.trim()}
+              title="Add allergen"
+              className="flex size-5 items-center justify-center rounded-full text-[var(--color-brand-600)] hover:bg-[var(--color-brand-tint)] disabled:text-[var(--color-ink-3)] disabled:opacity-40 transition-colors"
+            >
+              <Icon icon="ri-add-line" className="text-sm font-bold" />
+            </button>
+            <input
+              type="text"
+              value={customInput}
+              onChange={(e) => setCustomInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  addCustom();
+                }
+              }}
+              placeholder="Add other..."
+              className="w-32 bg-transparent text-xs text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] focus:outline-none"
+            />
+          </div>
+        </div>
       </div>
     </details>
   );

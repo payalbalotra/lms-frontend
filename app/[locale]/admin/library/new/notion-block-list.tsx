@@ -56,8 +56,8 @@ import type {
   ProcedureNoteKind,
 } from '@/lib/types';
 import { IconTile } from '@/components/ui/icon-tile';
-import { BilingualInput } from '@/components/ui/bilingual-input';
 import { RecipeBlockBody } from './recipe-block-body';
+import { BilingualInput } from '@/components/ui/bilingual-input';
 
 // ---------------------------------------------------------------------------
 // Localised helpers (kept local — this file is self-contained).
@@ -1163,25 +1163,41 @@ function TableBody({
 
 // ---- Checklist ----
 
+const CHECKLIST_LANGS: Array<'en' | 'es'> = ['en', 'es'];
+
 function ChecklistBody({
   block,
   onPatch,
 }: BodyProps<Extract<ProcedureBlock, { kind: 'checklist' }>>): React.ReactElement {
   const items = block.items;
+  const [activeLang, setActiveLang] = React.useState<'en' | 'es'>('en');
 
-  function setItem(i: number, val: Localised): void {
+  function setTitleText(lang: 'en' | 'es', val: string): void {
     onPatch({
       ...block,
-      items: items.map((it, j) =>
-        j === i ? { ...it, text: val } : it,
-      ),
+      title: {
+        en: block.title?.en ?? '',
+        es: block.title?.es ?? '',
+        [lang]: val,
+      },
     });
   }
 
-  function setTitle(val: Localised): void {
+  function setItemText(i: number, lang: 'en' | 'es', val: string): void {
     onPatch({
       ...block,
-      title: val,
+      items: items.map((it, j) =>
+        j === i
+          ? {
+              ...it,
+              text: {
+                en: it.text?.en ?? '',
+                es: it.text?.es ?? '',
+                [lang]: val,
+              },
+            }
+          : it,
+      ),
     });
   }
 
@@ -1206,93 +1222,161 @@ function ChecklistBody({
   }
 
   return (
-    <div className="space-y-2 py-1">
-      <BilingualInput
-        value={{ en: block.title?.en ?? '', es: block.title?.es ?? '' }}
-        onChange={setTitle}
-        size="compact"
-        placeholder={{
-          en: 'Checklist title (English)…',
-          es: 'Título de la lista (Español)…',
-        }}
-      />
-      <ol className="space-y-2">
-        {items.map((it, i) => (
-          <li
-            key={it.id}
-            className="group/item relative flex items-start gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-[var(--color-wash)]"
+    <div className="bli-card-group py-1">
+      {CHECKLIST_LANGS.map((lang) => {
+        const isActive = activeLang === lang;
+
+        if (isActive) {
+          return (
+            <div key={lang} className="bli-card is-active">
+              <header className="flex items-center justify-between border-b border-[var(--color-line)] bg-[var(--color-wash)] px-4 py-2.5">
+                <span className="text-xs font-semibold text-[var(--color-ink)]">
+                  {lang === 'en' ? 'Checklist (English)' : 'Lista de verificación (Español)'}
+                </span>
+                <span className="rounded bg-[var(--color-brand-tint)] px-2 py-0.5 font-mono text-[11px] font-bold text-[var(--color-brand-700)] uppercase">
+                  {lang.toUpperCase()}
+                </span>
+              </header>
+
+              <div className="p-4 space-y-3">
+                {/* Title */}
+                <div>
+                  <input
+                    type="text"
+                    value={block.title?.[lang] ?? ''}
+                    onChange={(e) => setTitleText(lang, e.target.value)}
+                    placeholder={
+                      lang === 'en'
+                        ? 'Checklist title (English)…'
+                        : 'Título de la lista (Español)…'
+                    }
+                    className="w-full rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold text-[var(--color-ink)] placeholder:font-normal placeholder:text-[var(--color-ink-3)] focus:border-[var(--color-ring)] focus:outline-none focus:ring-1 focus:ring-[var(--color-ring)] transition-colors"
+                  />
+                </div>
+
+                {/* Items */}
+                <ol className="space-y-2">
+                  {items.map((it, i) => (
+                    <li
+                      key={it.id}
+                      className="group/item relative flex items-center gap-2 rounded-md px-1 py-1 transition-colors hover:bg-[var(--color-wash)]"
+                    >
+                      {/* Reorder arrows — visible on item hover */}
+                      <div className="flex items-center opacity-0 transition-opacity group-hover/item:opacity-100">
+                        <button
+                          type="button"
+                          disabled={i === 0}
+                          onClick={() => moveItem(i, 'up')}
+                          className="p-0.5 text-[var(--color-ink-3)] hover:text-[var(--color-ink)] disabled:opacity-30"
+                          aria-label="Move up"
+                          title="Move up"
+                        >
+                          <Icon icon="ri-arrow-up-line" className="text-xs" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={i === items.length - 1}
+                          onClick={() => moveItem(i, 'down')}
+                          className="p-0.5 text-[var(--color-ink-3)] hover:text-[var(--color-ink)] disabled:opacity-30"
+                          aria-label="Move down"
+                          title="Move down"
+                        >
+                          <Icon icon="ri-arrow-down-line" className="text-xs" />
+                        </button>
+                      </div>
+
+                      {/* Checkbox tile */}
+                      <span
+                        aria-hidden="true"
+                        className="flex size-4 shrink-0 items-center justify-center rounded-[3px] border border-[var(--color-line-2)] bg-[var(--color-surface)]"
+                      />
+
+                      {/* Item number badge */}
+                      <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-ok-tint)] font-mono text-[10px] font-bold text-[var(--color-ok)]">
+                        {i + 1}
+                      </span>
+
+                      {/* Item text input in active language */}
+                      <div className="flex-1">
+                        <input
+                          type="text"
+                          value={it.text?.[lang] ?? ''}
+                          onChange={(e) => setItemText(i, lang, e.target.value)}
+                          placeholder={
+                            lang === 'en'
+                              ? `Item ${i + 1} (English)…`
+                              : `Elemento ${i + 1} (Español)…`
+                          }
+                          className="w-full rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] focus:border-[var(--color-ring)] focus:outline-none focus:ring-1 focus:ring-[var(--color-ring)] transition-colors"
+                        />
+                      </div>
+
+                      {/* Remove item button — visible on item hover */}
+                      {items.length > 1 ? (
+                        <button
+                          type="button"
+                          onClick={() => removeItem(i)}
+                          aria-label="Remove item"
+                          title="Remove item"
+                          className="flex size-6 shrink-0 items-center justify-center rounded text-[var(--color-ink-3)] opacity-0 transition-opacity hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)] group-hover/item:opacity-100 focus:opacity-100"
+                        >
+                          <Icon icon="ri-close-line" className="text-base" />
+                        </button>
+                      ) : null}
+                    </li>
+                  ))}
+                </ol>
+
+                <button
+                  type="button"
+                  onClick={addItem}
+                  className="inline-flex items-center gap-1.5 rounded px-2 py-1 text-xs font-semibold text-[var(--color-brand-600)] hover:bg-[var(--color-panel)] hover:text-[var(--color-brand-700)] transition-colors mt-1"
+                >
+                  <Icon icon="ri-add-line" className="text-sm" />
+                  <span>{lang === 'en' ? 'Add checklist item' : 'Agregar elemento'}</span>
+                </button>
+              </div>
+            </div>
+          );
+        }
+
+        // Inactive language card: collapsed slim preview matching quiz
+        const preview =
+          block.title?.[lang]?.trim() ||
+          (lang === 'es' ? 'Lista de verificación (Español)' : 'Checklist (English)');
+        const filled = items.filter((it) => Boolean(it.text?.[lang]?.trim())).length;
+
+        return (
+          <div
+            key={lang}
+            role="button"
+            tabIndex={0}
+            onClick={() => setActiveLang(lang)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setActiveLang(lang);
+              }
+            }}
+            className="bli-card is-inactive px-4"
+            title={lang === 'es' ? 'Click to edit in Spanish' : 'Click to edit in English'}
           >
-            {/* Reorder arrows — visible on item hover */}
-            <div className="flex items-center pt-2 opacity-0 transition-opacity group-hover/item:opacity-100">
-              <button
-                type="button"
-                disabled={i === 0}
-                onClick={() => moveItem(i, 'up')}
-                className="p-0.5 text-[var(--color-ink-3)] hover:text-[var(--color-ink)] disabled:opacity-30"
-                aria-label="Move up"
-                title="Move up"
-              >
-                <Icon icon="ri-arrow-up-line" className="text-xs" />
-              </button>
-              <button
-                type="button"
-                disabled={i === items.length - 1}
-                onClick={() => moveItem(i, 'down')}
-                className="p-0.5 text-[var(--color-ink-3)] hover:text-[var(--color-ink)] disabled:opacity-30"
-                aria-label="Move down"
-                title="Move down"
-              >
-                <Icon icon="ri-arrow-down-line" className="text-xs" />
-              </button>
+            <div className="flex w-full items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="truncate text-xs font-normal text-[var(--color-ink-2)]">
+                  {preview}
+                </span>
+                <span className="text-[11px] text-[var(--color-ink-3)] shrink-0">
+                  · {filled}/{items.length} {lang === 'es' ? 'completados' : 'items'}
+                </span>
+              </div>
+              <span className="rounded bg-[var(--color-surface)] px-1.5 py-0.5 font-mono text-[10px] font-bold text-[var(--color-ink-3)] border border-[var(--color-line)] uppercase shrink-0">
+                {lang.toUpperCase()}
+              </span>
             </div>
-
-            {/* Checkbox tile */}
-            <span
-              aria-hidden="true"
-              className="mt-2.5 flex size-4 shrink-0 items-center justify-center rounded-[3px] border border-[var(--color-line-2)] bg-[var(--color-surface)]"
-            />
-
-            {/* Item number badge */}
-            <span className="mt-2 inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-ok-tint)] font-mono text-[10px] font-bold text-[var(--color-ok)]">
-              {i + 1}
-            </span>
-
-            {/* Item label bilingual input */}
-            <div className="flex-1">
-              <BilingualInput
-                value={it.text}
-                onChange={(val) => setItem(i, val)}
-                size="compact"
-                placeholder={{
-                  en: `Item ${i + 1} (English)…`,
-                  es: `Elemento ${i + 1} (Español)…`,
-                }}
-              />
-            </div>
-
-            {/* Remove item button — visible on item hover */}
-            {items.length > 1 ? (
-              <button
-                type="button"
-                onClick={() => removeItem(i)}
-                aria-label="Remove item"
-                title="Remove item"
-                className="mt-1 flex size-6 shrink-0 items-center justify-center rounded text-[var(--color-ink-3)] opacity-0 transition-opacity hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)] group-hover/item:opacity-100 focus:opacity-100"
-              >
-                <Icon icon="ri-close-line" className="text-base" />
-              </button>
-            ) : null}
-          </li>
-        ))}
-      </ol>
-      <button
-        type="button"
-        onClick={addItem}
-        className="inline-flex items-center gap-1.5 rounded px-2 py-1 text-xs font-semibold text-[var(--color-brand-600)] hover:bg-[var(--color-panel)] hover:text-[var(--color-brand-700)] transition-colors mt-1"
-      >
-        <Icon icon="ri-add-line" className="text-sm" />
-        <span>Add checklist item</span>
-      </button>
+          </div>
+        );
+      })}
     </div>
   );
 }
