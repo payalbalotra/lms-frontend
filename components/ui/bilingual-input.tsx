@@ -180,7 +180,7 @@ export function BilingualInput({
                   {(value?.[lang] ?? '').length} / {maxLength}
                 </span>
               )}
-              <span className="bli__tag" aria-hidden="true">
+              <span className="bli__tag notranslate" translate="no" aria-hidden="true">
                 {lang.toUpperCase()}
               </span>
             </div>

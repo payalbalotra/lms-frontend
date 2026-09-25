@@ -63,7 +63,7 @@ function LocaleSwitch({ locale, label }: { locale: string; label: string }): Rea
   // seats, same filled answer — so the two places the app asks "which one?" look
   // alike.
   return (
-    <div className="segbar" role="group" aria-label={label}>
+    <div className="segbar notranslate" translate="no" role="group" aria-label={label}>
       {LOCALES.map((code) => {
         const current = code === locale;
         return (
@@ -71,6 +71,8 @@ function LocaleSwitch({ locale, label }: { locale: string; label: string }): Rea
             key={code}
             href={`/${code}${rest ? `/${rest}` : ''}${suffix}`}
             aria-current={current ? 'true' : undefined}
+            translate="no"
+            className="notranslate"
           >
             {/* The code is written in caps, rather than a lowercase word set in
                 caps by CSS: a screen reader should say "E S", not "es". */}
@@ -309,7 +311,7 @@ export function AdminShell({
 
             It is not shown below 900px: there the mobile header already occupies
             that row, and a phone has no space for a field this wide. */}
-        <header className="sticky top-0 z-sticky hidden h-[75px] min-h-[75px] items-center gap-4 border-b border-[var(--color-line-2)] bg-[var(--color-surface)]/80 px-10 shadow-[var(--e-1)] backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-[var(--color-surface)]/75 lg:flex">
+        <header className="sticky top-0 z-sticky hidden h-[75px] min-h-[75px] items-center gap-4 border-b border-[var(--color-line-2)] bg-[var(--color-surface)] px-10 shadow-[var(--e-1)] backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-[color-mix(in_srgb,var(--color-surface)_80%,transparent)] lg:flex">
           <AdminSearch
             locale={locale}
             labels={{

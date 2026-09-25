@@ -4,6 +4,7 @@ import * as React from 'react';
 import { ALLERGEN_LABELS, type AllergenKey } from '@/lib/allergens';
 import { LuArrowLeft, LuArrowLeftRight, LuBadgeCheck, LuCheck, LuChevronDown, LuChevronRight, LuCircleAlert, LuDownload, LuFocus, LuImage, LuLightbulb, LuLock, LuPlay, LuTestTube, LuTriangleAlert, LuUtensils, LuWrench, LuX } from 'react-icons/lu';
 import { Icon, iconByName } from '@/components/ui/icon';
+import { classifyVideoUrl } from '@/lib/procedure-media';
 import type { IconType } from 'react-icons';
 
 /**
@@ -336,6 +337,14 @@ export type MethodStep = {
   /** Pinned video clip with start/end timestamps. Renders as a watch chip
    *  linking to the source in a new tab. */
   clip?: { src: string; startSec: number; endSec: number };
+  /** Photos attached to this step (a picture of what the grill marks should
+   *  look like, etc). Anchored here, not as top-level image blocks, because
+   *  the step is the only place they make sense. Multiple photos per step
+   *  are common — "before / after" plating, "wrong cut / right cut". */
+  shots?: Array<{ src: string; alt: string; caption?: string }>;
+  /** Video attached to this step. Same idea as `shots` — direct on the step
+   *  rather than floating in the procedure. */
+  video?: { src: string; caption?: string };
 };
 
 function fmtClock(totalSec: number): string {
@@ -379,11 +388,45 @@ export function MethodSteps({ steps, nowIndex }: { steps: MethodStep[]; nowIndex
                   <LuPlay aria-hidden="true" className="i i-sm" /> Watch · {fmtClock(s.clip.startSec)}–{fmtClock(s.clip.endSec)}
                 </a>
               )}
+              {/* Per-step media. Anchored here, not as a free-floating block,
+                  because a picture of what step 3 should look like is useless
+                  unless it's next to step 3. Multiple shots are common
+                  (before / after plating, right / wrong cut). */}
+              {s.shots?.map((sh, j) => (
+                <Shot key={`shot-${j}`} src={sh.src} alt={sh.alt} caption={sh.caption} />
+              ))}
+              {s.video ? (
+                <StepVideo src={s.video.src} caption={s.video.caption} />
+              ) : null}
             </div>
           </li>
         );
       })}
     </ol>
+  );
+}
+
+/** In-step video. Reuses the same upload/embed detection as the top-level
+ *  video block; keeps the same `.shot` chrome so the document looks like one
+ *  thing, not two. Local to this module — no caller outside the doc needs it. */
+function StepVideo({ src, caption }: { src: string; caption?: string }) {
+  const videoClass = classifyVideoUrl(src);
+  return (
+    <figure className="shot">
+      {videoClass.provider === 'file' ? (
+        <video controls src={src} />
+      ) : videoClass.embedUrl ? (
+        <iframe
+          src={videoClass.embedUrl}
+          title={caption ?? 'video'}
+          className="aspect-video w-full rounded-[var(--radius-md)]"
+          allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          referrerPolicy="no-referrer"
+        />
+      ) : null}
+      {caption ? <figcaption>{caption}</figcaption> : null}
+    </figure>
   );
 }
 

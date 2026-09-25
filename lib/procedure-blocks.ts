@@ -176,6 +176,11 @@ function cloneStep(step: ProcedureMethodStep): ProcedureMethodStep {
     body: cloneLocalised(step.body),
     criticalLimit: step.criticalLimit ? { ...step.criticalLimit } : undefined,
     videoSegment: step.videoSegment ? { ...step.videoSegment } : undefined,
+    // The `images` array is shared by reference when spread — deep-clone so
+    // deleting an image from the clone doesn't take it out of the original.
+    images: step.images
+      ? step.images.map((img) => ({ src: img.src, alt: cloneRequiredLocalised(img.alt) }))
+      : undefined,
   };
 }
 
