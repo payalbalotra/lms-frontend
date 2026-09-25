@@ -42,8 +42,11 @@ export function LoginForm({ locale }: LoginFormProps): React.ReactElement {
         if (res.employee.role === 'admin') {
           router.replace(`/${locale}/admin/library`);
         } else {
-          // Their own language, whatever the login page was showing.
-          router.replace(`/${res.employee.languagePref || locale}/employee/home`);
+          // Keep them on the locale they signed in with — switching languages
+          // is a deliberate URL change, not a server-side preference. Marías
+          // seeded with `languagePref: "es"` would otherwise always land on
+          // `/es/employee/home` even when they typed `/en/login`.
+          router.replace(`/${locale}/employee/home`);
         }
         router.refresh();
       } catch (err) {

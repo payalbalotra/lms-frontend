@@ -309,7 +309,7 @@ export function AdminShell({
 
             It is not shown below 900px: there the mobile header already occupies
             that row, and a phone has no space for a field this wide. */}
-        <header className="sticky top-0 z-sticky hidden h-[75px] min-h-[75px] items-center gap-4 border-b border-[var(--color-line-2)] bg-white/70 px-10 shadow-[var(--e-1)] backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-white/60 lg:flex">
+        <header className="sticky top-0 z-sticky hidden h-[75px] min-h-[75px] items-center gap-4 border-b border-[var(--color-line-2)] bg-[var(--color-surface)]/80 px-10 shadow-[var(--e-1)] backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-[var(--color-surface)]/75 lg:flex">
           <AdminSearch
             locale={locale}
             labels={{
