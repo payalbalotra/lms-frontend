@@ -185,7 +185,7 @@ export function QuizEditor({ value, onChange, isSaving, hideHeader }: QuizEditor
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="rounded bg-[var(--color-brand-tint)] px-2 py-0.5 font-mono text-xs font-bold text-[var(--color-brand-700)] uppercase">
+                          <span translate="no" className="rounded bg-[var(--color-brand-tint)] px-2 py-0.5 font-mono text-xs font-bold text-[var(--color-brand-700)] uppercase notranslate">
                             {lang.toUpperCase()}
                           </span>
                           <button
@@ -330,7 +330,7 @@ export function QuizEditor({ value, onChange, isSaving, hideHeader }: QuizEditor
                                 : 'Type the question...')}
                         </span>
                       </div>
-                      <span className="rounded bg-[var(--color-surface)] px-1.5 py-0.5 font-mono text-[10px] font-bold text-[var(--color-ink-3)] border border-[var(--color-line)] uppercase shrink-0">
+                      <span translate="no" className="rounded bg-[var(--color-surface)] px-1.5 py-0.5 font-mono text-[10px] font-bold text-[var(--color-ink-3)] border border-[var(--color-line)] uppercase shrink-0 notranslate">
                         {lang.toUpperCase()}
                       </span>
                     </div>

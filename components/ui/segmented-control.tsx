@@ -82,6 +82,8 @@ export function SegmentedControl({
           type="button"
           aria-current={seg.value === value ? 'true' : undefined}
           onClick={() => onChange(seg.value)}
+          translate="no"
+          className="notranslate"
         >
           {seg.icon ? <Icon icon={seg.icon} /> : null}
           {seg.label}

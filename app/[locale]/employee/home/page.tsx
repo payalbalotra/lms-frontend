@@ -42,11 +42,14 @@ export default async function EmployeeHomePage({ params }: PageProps): Promise<R
     throw err;
   }
 
-  // Landed here in the other language (a bookmark, a shared link): the home is
-  // this person's, so it opens in theirs. An admin looking in is left alone.
-  if (employee.role !== 'admin' && employee.languagePref && employee.languagePref !== locale) {
-    redirect(`/${employee.languagePref}/employee/home`);
-  }
+  // Locale is decided by the URL (`/[locale]/employee/home`) and the Admin →
+  // Employee link in admin-shell.tsx already passes through the admin's current
+  // locale, so we never silently bounce employees into the language they
+  // used to log in with — that used to be `employee.languagePref` and it kept
+  // handing Spanish-speaking users to `/es/employee/home` even when they
+  // clicked the link from an English admin page. `languagePref` still drives
+  // which side of bilingual procedure content we render (`titleEs` vs
+  // `titleEn`), which is its only correct job.
 
   const viewAs = await readViewAs();
   const stationId = employee.stationIds[0] ?? null;
@@ -68,10 +71,14 @@ export default async function EmployeeHomePage({ params }: PageProps): Promise<R
   ]);
 
   const now = Date.now();
+  // Bilingual content follows the URL locale, not the seeded `languagePref`.
+  // The URL already drives every string the employee sees — a separate
+  // "renders the Spanish translation because the row says so" toggle would
+  // just produce an English page with Spanish titles and Spanish eyebrows,
+  // which is what the screenshot was showing.
   const isEs = locale === 'es';
-  const readsSpanish = employee.languagePref === 'es';
   const titleOf = (p: { titleEn: string; titleEs: string }): string =>
-    readsSpanish ? p.titleEs || p.titleEn : p.titleEn || p.titleEs;
+    isEs ? p.titleEs || p.titleEn : p.titleEn || p.titleEs;
 
   /* ---------------------------------------------------------- training -- */
 
@@ -133,7 +140,7 @@ export default async function EmployeeHomePage({ params }: PageProps): Promise<R
           (p.audience?.mode === 'some' && p.audience.stationIds.includes(stationId))),
     );
   const toRow = (p: Procedure, meta: string): HomeRow => {
-    const facts = factsOf(p, readsSpanish);
+    const facts = factsOf(p, isEs);
     return {
       key: p.id,
       slug: p.slug,
@@ -147,7 +154,7 @@ export default async function EmployeeHomePage({ params }: PageProps): Promise<R
     };
   };
   const categoryOf = (p: Procedure): string =>
-    p.category ? (readsSpanish ? p.category.nameEs || p.category.nameEn : p.category.nameEn) : t('uncategorised');
+    p.category ? (isEs ? p.category.nameEs || p.category.nameEn : p.category.nameEn) : t('uncategorised');
   const rel = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
 
   // What changed lately in what this person works with: their station's, and
@@ -181,7 +188,7 @@ export default async function EmployeeHomePage({ params }: PageProps): Promise<R
       <main className="mx-auto w-full max-w-doc px-4 pb-24 pt-6 sm:px-6 sm:pt-8">
         <EmployeeHome
           locale={locale}
-          readsSpanish={readsSpanish}
+          readsSpanish={isEs}
           who={{
             name: employee.name,
             initials,

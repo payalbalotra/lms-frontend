@@ -533,7 +533,7 @@ function MethodBody({
             <span className="mt-2 inline-flex size-6 shrink-0 items-center justify-center rounded-full border-2 border-[var(--color-line-2)] bg-[var(--color-surface)] font-mono text-sm font-semibold text-[var(--color-ink)]">
               {String(i + 1).padStart(2, '0')}
             </span>
-            <div className="flex-1 space-y-1">
+            <div className="flex-1 space-y-2">
               <BilingualInput
                 value={step.body}
                 onChange={(val) => update(i, { ...step, body: val })}
@@ -549,6 +549,15 @@ function MethodBody({
                   Critical
                 </span>
               )}
+              {/* Per-step media. The photographer or short-clip author can pin
+                  one of each to this exact step — "this is what the grill marks
+                  should look like", "this is the right whisking motion" — so
+                  it sits next to the words that describe it, not floating in
+                  its own block far above. */}
+              <StepMedia
+                step={step}
+                onPatch={(patched) => update(i, patched)}
+              />
             </div>
             <StepRowMenu
               index={i}
@@ -567,6 +576,410 @@ function MethodBody({
         <Icon icon="ri-add-line" />
         Add step
       </button>
+    </div>
+  );
+}
+
+/** Per-step image / video attachments. Anchored right beneath the step body
+ *  so the cook reading the procedure sees the media where it's described.
+ *  Image and video both go through the same presigned upload the rest of
+ *  the composer uses — same size/format limits, same error states.
+ *
+ *  A step can carry any number of photos (the `images` array) plus one
+ *  optional video. The legacy single-slot `imageSrc`/`imageAlt` is read on
+ *  mount so procedures written before the array shipped keep showing one
+ *  photo; new writes go through the array. */
+function StepMedia({
+  step,
+  onPatch,
+}: {
+  step: ProcedureMethodStep;
+  onPatch: (next: ProcedureMethodStep) => void;
+}): React.ReactElement | null {
+  // Normalize the images list: prefer `step.images`; fall back to the legacy
+  // single-slot fields so older procedures render without a migration step.
+  // Writes always go through `images` and clear the legacy slots, so this
+  // is one-way: the next save promotes old data into the array shape.
+  const legacyFirst = step.imageSrc
+    ? [{ src: step.imageSrc, alt: step.imageAlt ?? { en: '', es: '' } }]
+    : [];
+  const images: Array<{ src: string; alt: Localised }> =
+    step.images && step.images.length > 0 ? step.images : legacyFirst;
+
+  const imageFileRef = React.useRef<HTMLInputElement>(null);
+  const videoFileRef = React.useRef<HTMLInputElement>(null);
+  // `null` = append a new image at the end; a number = replace that index.
+  const pendingImageIndex = React.useRef<number | null>(null);
+  const [imageBusy, setImageBusy] = React.useState<
+    { state: 'uploading' | 'failed'; target: number | null; error?: string } | null
+  >(null);
+  const [videoBusy, setVideoBusy] = React.useState<
+    { state: 'uploading' | 'failed'; error?: string } | null
+  >(null);
+
+  const hasVideo = Boolean(step.videoSrc);
+  const hasAny = images.length > 0 || hasVideo || imageBusy || videoBusy;
+
+  const triggerImageUpload = (target: number | null): void => {
+    pendingImageIndex.current = target;
+    imageFileRef.current?.click();
+  };
+
+  const writeImages = (next: Array<{ src: string; alt: Localised }>): void => {
+    onPatch({
+      ...step,
+      images: next,
+      // Clear the legacy slots once the new array owns the data — keeps
+      // legacy and new paths from drifting apart on subsequent edits.
+      imageSrc: undefined,
+      imageAlt: undefined,
+    });
+  };
+
+  const removeImage = (i: number): void => {
+    const removed = images[i];
+    writeImages(images.filter((_, j) => j !== i));
+    if (removed?.src) void deleteUpload({ url: removed.src }).catch(() => undefined);
+  };
+
+  const updateImageAlt = (i: number, alt: Localised): void => {
+    writeImages(images.map((img, j) => (j === i ? { ...img, alt } : img)));
+  };
+
+  async function uploadImage(file: File): Promise<void> {
+    if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+      setImageBusy({ state: 'failed', target: pendingImageIndex.current, error: 'Unsupported image type' });
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setImageBusy({ state: 'failed', target: pendingImageIndex.current, error: 'Image too large (max 10 MB)' });
+      return;
+    }
+    const target = pendingImageIndex.current;
+    setImageBusy({ state: 'uploading', target });
+    try {
+      const presigned = await requestImageUpload({
+        filename: file.name,
+        contentType: file.type,
+        size: file.size,
+      });
+      await uploadToR2(presigned.uploadUrl, file, file.type);
+      const filenameNoExt = file.name.replace(/\.[^.]+$/, '');
+      const defaultAlt: Localised = { en: filenameNoExt, es: filenameNoExt };
+      if (target === null) {
+        writeImages([...images, { src: presigned.publicUrl, alt: defaultAlt }]);
+      } else {
+        writeImages(
+          images.map((img, j) =>
+            j === target
+              ? { src: presigned.publicUrl, alt: img.alt.en || img.alt.es ? img.alt : defaultAlt }
+              : img,
+          ),
+        );
+      }
+      setImageBusy(null);
+    } catch (err) {
+      setImageBusy({
+        state: 'failed',
+        target,
+        error: err instanceof Error ? err.message : 'Upload failed',
+      });
+    }
+  }
+
+  async function uploadVideo(file: File): Promise<void> {
+    if (!ALLOWED_VIDEO_TYPES.has(file.type)) {
+      setVideoBusy({ state: 'failed', error: 'Unsupported video type' });
+      return;
+    }
+    if (file.size > MAX_VIDEO_BYTES) {
+      setVideoBusy({ state: 'failed', error: 'Video too large (max 100 MB)' });
+      return;
+    }
+    setVideoBusy({ state: 'uploading' });
+    try {
+      const presigned = await requestVideoUpload({
+        filename: file.name,
+        contentType: file.type,
+        size: file.size,
+      });
+      await uploadToR2(presigned.uploadUrl, file, file.type);
+      onPatch({ ...step, videoSrc: presigned.publicUrl });
+      setVideoBusy(null);
+    } catch (err) {
+      setVideoBusy({ state: 'failed', error: err instanceof Error ? err.message : 'Upload failed' });
+    }
+  }
+
+  // Empty state — a tiny inline pair of ghost buttons, no card chrome.
+  // Most steps don't need media; surfacing the affordance as a card before
+  // anything is attached would be visual noise.
+  if (!hasAny) {
+    return (
+      <div className="flex items-center gap-2 pt-1">
+        <button
+          type="button"
+          onClick={() => triggerImageUpload(null)}
+          className="inline-flex items-center gap-2 rounded-full border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-1 text-xs font-semibold text-[var(--color-ink)] hover:bg-[var(--color-panel)] hover:border-[var(--color-line-3)] transition-colors"
+        >
+          <Icon icon="ri-image-add-line" className="text-[var(--color-brand-600)]" />
+          <span>Add photo</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => videoFileRef.current?.click()}
+          className="inline-flex items-center gap-2 rounded-full border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-1 text-xs font-semibold text-[var(--color-ink)] hover:bg-[var(--color-panel)] hover:border-[var(--color-line-3)] transition-colors"
+        >
+          <Icon icon="ri-video-add-line" className="text-[var(--color-brand-600)]" />
+          <span>Add video</span>
+        </button>
+        <input
+          ref={imageFileRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            e.target.value = '';
+            if (f) void uploadImage(f);
+          }}
+        />
+        <input
+          ref={videoFileRef}
+          type="file"
+          accept="video/mp4,video/webm,video/quicktime"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            e.target.value = '';
+            if (f) void uploadVideo(f);
+          }}
+        />
+      </div>
+    );
+  }
+
+  // Busy-target labels — the failed state shows next to whichever image it
+  // belongs to, not at the card level, so the user knows which row to retry.
+  const uploadingIndex = imageBusy?.state === 'uploading' ? imageBusy.target : null;
+  const failedIndex = imageBusy?.state === 'failed' ? imageBusy.target : null;
+
+  return (
+    <div className="space-y-3 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-wash)] p-3">
+      {/* Photos list */}
+      {images.length > 0 ? (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="flex items-center gap-2 text-xs font-semibold text-[var(--color-ink)]">
+              <Icon icon="ri-image-line" className="text-[var(--color-ink-3)]" />
+              <span>Step Photos</span>
+              <span className="rounded-full bg-[var(--color-surface)] border border-[var(--color-line-2)] px-2 py-0.5 text-[10px] font-bold text-[var(--color-ink-2)]">
+                {images.length}
+              </span>
+            </span>
+          </div>
+
+          <div className="space-y-2">
+            {images.map((img, i) => {
+              const isUploading = uploadingIndex === i;
+              const isFailed = failedIndex === i;
+              return (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-3 shadow-xs"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <div className="relative size-12 shrink-0 overflow-hidden rounded-[var(--radius-sm)] border border-[var(--color-line-2)] bg-[var(--color-panel)]">
+                    <img
+                      src={img.src}
+                      alt={img.alt.en ?? ''}
+                      className="size-full object-cover"
+                    />
+                    {isUploading && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[1px]">
+                        <span className="spinner text-white" aria-hidden="true" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <BilingualInput
+                      value={img.alt ?? { en: '', es: '' }}
+                      onChange={(val) => updateImageAlt(i, val)}
+                      size="compact"
+                      placeholder={{
+                        en: 'Alt text (English)…',
+                        es: 'Texto alternativo (Español)…',
+                      }}
+                    />
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => triggerImageUpload(i)}
+                      title="Replace photo"
+                      aria-label="Replace photo"
+                      className="inline-flex size-8 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-ink-2)] hover:bg-[var(--color-panel)] hover:text-[var(--color-ink)] transition-colors"
+                    >
+                      <Icon icon="ri-upload-2-line" className="text-base" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeImage(i)}
+                      title="Remove photo"
+                      aria-label="Remove photo"
+                      className="inline-flex size-8 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-bad)] hover:bg-[var(--color-bad-tint)] transition-colors"
+                    >
+                      <Icon icon="ri-delete-bin-line" className="text-base" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {failedIndex !== null ? (
+            <div className="flex items-center gap-2 text-xs text-[var(--color-bad)]">
+              <Icon icon="ri-error-warning-line" />
+              <span>{imageBusy?.error}</span>
+              <button
+                type="button"
+                onClick={() => triggerImageUpload(failedIndex)}
+                className="underline font-semibold hover:no-underline ml-1"
+              >
+                Try again
+              </button>
+            </div>
+          ) : null}
+
+          {uploadingIndex === null && imageBusy?.state === 'uploading' ? (
+            <div className="flex items-center gap-2 text-xs text-[var(--color-ink-2)]">
+              <span className="spinner" aria-hidden="true" />
+              Uploading photo…
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* Video section */}
+      {hasVideo ? (
+        <div className="space-y-2 border-t border-[var(--color-line-2)] pt-3">
+          <div className="flex items-center gap-2 text-xs font-semibold text-[var(--color-ink)]">
+            <Icon icon="ri-video-line" className="text-[var(--color-ink-3)]" />
+            <span>Step Video</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <input
+                type="url"
+                value={step.videoSrc ?? ''}
+                onChange={(e) => onPatch({ ...step, videoSrc: e.target.value })}
+                placeholder="Paste a YouTube, Vimeo, or video URL…"
+                aria-label="Video URL"
+                className="h-8 w-full rounded-[var(--radius-sm)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 text-xs text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] focus:border-[var(--color-brand)] focus:outline-none"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => videoFileRef.current?.click()}
+              title="Replace video"
+              aria-label="Replace video"
+              className="inline-flex size-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:bg-[var(--color-panel)] hover:text-[var(--color-ink)] transition-colors"
+            >
+              <Icon icon="ri-upload-2-line" className="text-base" />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const nextSrc = step.videoSrc;
+                onPatch({ ...step, videoSrc: '', videoCaption: undefined });
+                if (nextSrc && classifyVideoUrl(nextSrc).provider === 'file') {
+                  void deleteUpload({ url: nextSrc }).catch(() => undefined);
+                }
+              }}
+              title="Remove video"
+              aria-label="Remove video"
+              className="inline-flex size-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-bad)] hover:bg-[var(--color-bad-tint)] transition-colors"
+            >
+              <Icon icon="ri-delete-bin-line" className="text-base" />
+            </button>
+          </div>
+          <input
+            type="text"
+            value={step.videoCaption ?? ''}
+            onChange={(e) => onPatch({ ...step, videoCaption: e.target.value || undefined })}
+            placeholder="Video caption (optional)…"
+            aria-label="Video caption"
+            className="h-8 w-full rounded-[var(--radius-sm)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 text-xs text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] focus:border-[var(--color-brand)] focus:outline-none"
+          />
+          {videoBusy?.state === 'uploading' ? (
+            <div className="flex items-center gap-2 text-xs text-[var(--color-ink-2)]">
+              <span className="spinner" aria-hidden="true" />
+              Uploading video…
+            </div>
+          ) : null}
+          {videoBusy?.state === 'failed' ? (
+            <div className="flex items-center gap-2 text-xs text-[var(--color-bad)]">
+              <Icon icon="ri-error-warning-line" />
+              <span>{videoBusy.error}</span>
+              <button
+                type="button"
+                onClick={() => videoFileRef.current?.click()}
+                className="underline font-semibold hover:no-underline ml-1"
+              >
+                Try again
+              </button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* Buttons bar */}
+      <div className="flex items-center gap-2 pt-1">
+        <button
+          type="button"
+          onClick={() => triggerImageUpload(null)}
+          className="inline-flex items-center gap-2 rounded-full border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-1 text-xs font-semibold text-[var(--color-ink)] hover:bg-[var(--color-panel)] hover:border-[var(--color-line-3)] transition-colors"
+        >
+          <Icon icon="ri-image-add-line" className="text-[var(--color-brand-600)]" />
+          <span>Add photo</span>
+        </button>
+
+        {!hasVideo ? (
+          <button
+            type="button"
+            onClick={() => videoFileRef.current?.click()}
+            className="inline-flex items-center gap-2 rounded-full border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-1 text-xs font-semibold text-[var(--color-ink)] hover:bg-[var(--color-panel)] hover:border-[var(--color-line-3)] transition-colors"
+          >
+            <Icon icon="ri-video-add-line" className="text-[var(--color-brand-600)]" />
+            <span>Add video</span>
+          </button>
+        ) : null}
+      </div>
+
+      {/* Hidden file inputs — one each, shared by Replace and Add. The pending
+          index ref tells the upload handler whether to append or replace. */}
+      <input
+        ref={imageFileRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          e.target.value = '';
+          if (f) void uploadImage(f);
+        }}
+      />
+      <input
+        ref={videoFileRef}
+        type="file"
+        accept="video/mp4,video/webm,video/quicktime"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          e.target.value = '';
+          if (f) void uploadVideo(f);
+        }}
+      />
     </div>
   );
 }
@@ -1003,7 +1416,7 @@ function TableBody({
                   <span className="text-xs font-semibold text-[var(--color-ink)]">
                     {lang === 'en' ? 'English Table' : 'Spanish Table (Español)'}
                   </span>
-                  <span className="font-mono text-xs font-semibold text-[var(--color-ink-3)] uppercase tracking-wider">
+                  <span translate="no" className="font-mono text-xs font-semibold text-[var(--color-ink-3)] uppercase tracking-wider notranslate">
                     {lang.toUpperCase()}
                   </span>
                 </div>
@@ -1149,7 +1562,7 @@ function TableBody({
                     ))}
                   </div>
                 </div>
-                <span className="shrink-0 font-mono text-xs font-semibold text-[var(--color-ink-3)] uppercase tracking-wider">
+                <span translate="no" className="shrink-0 font-mono text-xs font-semibold text-[var(--color-ink-3)] uppercase tracking-wider notranslate">
                   {lang.toUpperCase()}
                 </span>
               </div>
@@ -1233,7 +1646,7 @@ function ChecklistBody({
                 <span className="text-xs font-semibold text-[var(--color-ink)]">
                   {lang === 'en' ? 'Checklist (English)' : 'Lista de verificación (Español)'}
                 </span>
-                <span className="rounded bg-[var(--color-brand-tint)] px-2 py-0.5 font-mono text-[11px] font-bold text-[var(--color-brand-700)] uppercase">
+                <span translate="no" className="rounded bg-[var(--color-brand-tint)] px-2 py-0.5 font-mono text-[11px] font-bold text-[var(--color-brand-700)] uppercase notranslate">
                   {lang.toUpperCase()}
                 </span>
               </header>
@@ -1370,7 +1783,7 @@ function ChecklistBody({
                   · {filled}/{items.length} {lang === 'es' ? 'completados' : 'items'}
                 </span>
               </div>
-              <span className="rounded bg-[var(--color-surface)] px-1.5 py-0.5 font-mono text-[10px] font-bold text-[var(--color-ink-3)] border border-[var(--color-line)] uppercase shrink-0">
+              <span translate="no" className="rounded bg-[var(--color-surface)] px-1.5 py-0.5 font-mono text-[10px] font-bold text-[var(--color-ink-3)] border border-[var(--color-line)] uppercase shrink-0 notranslate">
                 {lang.toUpperCase()}
               </span>
             </div>

@@ -87,6 +87,32 @@ function toMethodStep(step: ProcedureMethodStep, locale: 'en' | 'es'): MethodSte
   if (step.videoSegment) {
     out.clip = step.videoSegment;
   }
+  // Collect every per-step photo. New writes go through `images`; the legacy
+  // `imageSrc` / `imageAlt` is read as a fallback so procedures written before
+  // the array shipped keep rendering until they're re-saved.
+  const shots: Array<{ src: string; alt: string; caption?: string }> = [];
+  if (step.images) {
+    for (const img of step.images) {
+      if (!img.src) continue;
+      shots.push({
+        src: img.src,
+        alt: pickText(img.alt ?? { en: '', es: '' }, locale) || '',
+      });
+    }
+  }
+  if (step.imageSrc) {
+    shots.push({
+      src: step.imageSrc,
+      alt: pickText(step.imageAlt ?? { en: '', es: '' }, locale) || '',
+      caption: step.videoCaption,
+    });
+  }
+  if (shots.length > 0) {
+    out.shots = shots;
+  }
+  if (step.videoSrc) {
+    out.video = { src: step.videoSrc, caption: step.videoCaption };
+  }
   return out;
 }
 

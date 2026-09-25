@@ -208,6 +208,27 @@ export interface ProcedureMethodStep {
   critical?: boolean;
   criticalLimit?: CriticalLimit;
   videoSegment?: ProcedureVideoSegment;
+  /**
+   * Photos attached directly to a single step. A photo of what the grill marks
+   * should look like, a second angle of the plating — these are anchored to the
+   * step that needs them, not floated somewhere else in the procedure. The
+   * `images` array replaces the legacy single-slot `imageSrc`/`imageAlt`; the
+   * renderer still reads the legacy fields so procedures written before the
+   * array shipped keep rendering until they're re-saved.
+   */
+  images?: Array<{ src: string; alt: Localised }>;
+  /** @deprecated Read by the renderer as the first image for back-compat. Use
+   *  `images` instead. New writes go through `images`. */
+  imageSrc?: string;
+  /** @deprecated Read by the renderer as the first image's alt for back-compat. */
+  imageAlt?: Localised;
+  /** Optional video attached to the step. Single-slot — a cook rarely needs two
+   *  clips on the same step, and a second clip usually means it should be its
+   *  own step. */
+  videoSrc?: string;
+  /** Short caption for the video (single string; bilingual is overkill here —
+   *  the step body already carries the bilingual text). */
+  videoCaption?: string;
 }
 
 export interface ProcedureAllergen {
