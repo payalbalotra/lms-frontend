@@ -1,0 +1,141 @@
+/* /demo1's additions to the document styles in app/lms.css. Tokens only, so
+   light and dark both follow. Unlayered, so these win over lms.css, which is
+   imported into the components layer. */
+
+/* --- the step number is the tick -------------------------------------------- */
+
+button.step-check {
+  position: relative;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+/* The disc is 30px; the target is 48px, the employee minimum. */
+button.step-check::after {
+  content: '';
+  position: absolute;
+  inset: -9px;
+}
+
+button.step-check:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .step:not(.is-done) button.step-check:hover {
+    border-color: var(--ink-3);
+  }
+}
+
+/* Done: the same green tick as the prep list, so "done" looks one way. */
+.step.is-done .step-num {
+  border-color: var(--ok);
+  background: var(--ok-fill) center / 17px 17px no-repeat
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8l3 3 5-5'/%3E%3C/svg%3E");
+}
+
+.step.is-done .step-num::before {
+  content: '';
+}
+
+/* Done work steps back without disappearing. */
+.step.is-done .step-line {
+  color: var(--ink-3);
+}
+
+/* --- the text, then its video moment at the end of it -----------------------------
+   Inline after the words rather than in a column beside them: a column took 80px
+   of a phone's width and broke every step over an extra line or two. */
+
+.step-play {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  min-height: 36px;
+  margin-left: var(--s-2);
+  padding: 0 var(--s-3);
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--panel);
+  color: var(--ink);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+/* 36px drawn, 48px to hit. */
+.step-play::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+}
+
+.step-play .i {
+  color: var(--brand-600);
+}
+
+.step-play:active {
+  background: var(--panel-2);
+}
+
+@media (hover: hover) {
+  .step-play:hover {
+    background: var(--panel-2);
+  }
+}
+
+/* The current step lifts its play control off the wash, as the step rail's did. */
+.step.is-now .step-play {
+  background: var(--surface);
+  box-shadow: var(--e-1);
+}
+
+/* --- amounts in the steps ------------------------------------------------------ */
+
+.qty {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* --- how far along -------------------------------------------------------------- */
+
+.method-progress {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  margin: 0 0 var(--s-3);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.method-reset {
+  min-height: 48px;
+  padding: 0 var(--s-2);
+  border: 0;
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--t-sm);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.method-reset:hover {
+  color: var(--ink);
+}
+
+@media print {
+  .step-play,
+  .method-progress {
+    display: none;
+  }
+}

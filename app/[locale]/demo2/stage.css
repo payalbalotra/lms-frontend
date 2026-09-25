@@ -1,0 +1,443 @@
+/* /demo2: the method with its pictures on one stage. One column on every screen.
+   Tokens only, so light and dark both follow. Unlayered, so these win over lms.css
+   (the components layer). */
+
+.qty {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.method-hint {
+  margin: calc(var(--s-2) * -1) 0 0;
+  font-size: var(--t-sm);
+  color: var(--ink-2);
+}
+
+/* --- the parts -------------------------------------------------------------------- */
+
+.part-h {
+  display: grid;
+  gap: 2px;
+  margin: var(--s-6) 0 var(--s-2);
+  font-size: var(--t-md);
+  font-weight: 600;
+  letter-spacing: var(--heading-track);
+}
+
+.part-h span {
+  font-size: var(--t-sm);
+  font-weight: 600;
+  letter-spacing: var(--caps-track);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.part:first-child .part-h {
+  margin-top: var(--s-2);
+}
+
+/* --- a step: the whole of it chooses it ------------------------------------------ */
+
+.method .step {
+  cursor: pointer;
+}
+
+button.step-show {
+  position: relative;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+/* The disc is 30px; the target is 48px, the employee minimum. */
+button.step-show::after {
+  content: '';
+  position: absolute;
+  inset: -9px;
+}
+
+button.step-show:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* --- the stage ------------------------------------------------------------------------
+   Across the column, edge to edge, stuck under the bar while the method scrolls
+   under it. 16:9 of the column, and never more than two fifths of the screen, so
+   the steps always keep most of it. Its height is fixed: the picture changing
+   never moves the text. */
+
+.stage {
+  position: sticky;
+  top: calc(var(--bar-h) + 1px);
+  z-index: 4;
+  margin: var(--s-4) calc(var(--s-5) * -1) var(--s-2);
+}
+
+@media (min-width: 600px) {
+  .stage {
+    margin-left: calc(var(--s-8) * -1);
+    margin-right: calc(var(--s-8) * -1);
+  }
+}
+
+/* Text passing under the stage fades into it rather than being cut in half. */
+.stage::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: var(--s-6);
+  background: linear-gradient(var(--surface) 35%, transparent);
+  pointer-events: none;
+}
+
+/* Always the column's full width. When the height cap bites, the picture is
+   cropped a little more; the frame never narrows and lets the text show beside it. */
+.stage-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 40vh;
+  max-height: 40svh;
+  overflow: hidden;
+  background: var(--panel);
+}
+
+.stage-layer {
+  position: absolute;
+  inset: 0;
+}
+
+/* The next picture fades in over the last. */
+.stage-layer.is-in {
+  animation: stage-in 240ms var(--ease) both;
+}
+
+@keyframes stage-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.stage-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Right beside wrong. */
+.stage-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  height: 100%;
+  background: var(--surface);
+}
+
+.stage-pair figure {
+  position: relative;
+  margin: 0;
+  min-height: 0;
+}
+
+.stage-pair img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.stage-pair figcaption {
+  position: absolute;
+  left: var(--s-2);
+  bottom: var(--s-3);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  padding: 2px var(--s-2);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  font-size: var(--t-sm);
+  font-weight: 700;
+}
+
+.stage-pair .ok figcaption {
+  color: var(--ok);
+}
+
+.stage-pair .no figcaption {
+  color: var(--bad);
+}
+
+/* A step with no photograph: a drawn sign of the action. */
+.stage-glyph {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--s-3);
+  height: 100%;
+  padding: 0 var(--s-4);
+  background: var(--wash);
+  color: var(--ink-2);
+  font-size: var(--t-base);
+  font-weight: 600;
+  text-align: center;
+}
+
+.stage-glyph-i {
+  width: 56px;
+  height: 56px;
+  color: var(--brand-600);
+}
+
+.stage-glyph b {
+  font-size: var(--t-3xl);
+  line-height: 1;
+}
+
+/* The frame is the button that opens the picture whole; its mark is top right. */
+.stage-open {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+  padding: var(--s-3);
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+}
+
+.stage-open:focus-visible {
+  outline: 3px solid var(--ring);
+  outline-offset: -3px;
+}
+
+.stage-open-i {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-pill);
+  background: var(--scrim-strong);
+  color: var(--on-fill);
+}
+
+/* What is written over the picture never takes the tap. */
+.stage-chip,
+.stage-clip,
+.stage-cap,
+.stage-parts {
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Which step, over the picture. */
+.stage-chip {
+  position: absolute;
+  top: var(--s-3);
+  left: var(--s-3);
+  max-width: calc(100% - 76px);
+  overflow: hidden;
+  padding: 2px var(--s-2);
+  border-radius: var(--r-pill);
+  background: var(--scrim-strong);
+  color: var(--on-fill);
+  font-size: var(--t-sm);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.stage-chip span {
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+.stage-chip.is-crit {
+  background: var(--bad-fill);
+}
+
+.stage-clip,
+.stage-cap {
+  position: absolute;
+  right: var(--s-3);
+  bottom: var(--s-3);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  max-width: calc(100% - var(--s-6));
+  padding: 2px var(--s-2);
+  border-radius: var(--r-sm);
+  background: var(--scrim-strong);
+  color: var(--on-fill);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The method's four parts along the frame's foot, each as wide as it is long,
+   filled as far as the cook has read. */
+.stage-parts {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  gap: 3px;
+  height: 4px;
+  background: var(--surface);
+}
+
+.stage-parts > span {
+  flex-basis: 0;
+  min-width: 0;
+  background: var(--line-3);
+}
+
+.stage-parts i {
+  display: block;
+  height: 100%;
+  background: var(--brand-600);
+  transition: width var(--dur) var(--ease);
+}
+
+/* --- the picture whole ------------------------------------------------------------------
+   Its own dark screen: the photograph uncropped, the step under it. A tap anywhere,
+   the close button, or Escape brings the cook back to the step. */
+
+dialog.viewer {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: calc(var(--s-4) + env(safe-area-inset-top)) var(--s-4) calc(var(--s-5) + env(safe-area-inset-bottom));
+  border: 0;
+  /* The scrim three times over: opaque enough that the page does not show
+     through, in either theme, from tokens alone. */
+  background: linear-gradient(var(--scrim-strong) 0 0), linear-gradient(var(--scrim-strong) 0 0), var(--scrim-strong);
+  color: var(--on-fill);
+  cursor: zoom-out;
+  /* A scroll container that has nothing to scroll: a swipe or a wheel on it
+     stops here instead of moving the page underneath. Pinching still zooms. */
+  overflow: hidden;
+  overscroll-behavior: contain;
+  touch-action: pinch-zoom;
+}
+
+dialog.viewer[open] {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: var(--s-4);
+  animation: viewer-in 160ms var(--ease);
+}
+
+dialog.viewer::backdrop {
+  background: var(--scrim-strong);
+}
+
+@keyframes viewer-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.viewer-close {
+  position: fixed;
+  top: calc(var(--s-2) + env(safe-area-inset-top));
+  right: var(--s-2);
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--scrim-strong);
+  color: var(--on-fill);
+  cursor: pointer;
+}
+
+.viewer-close:focus-visible {
+  outline: 2px solid var(--on-fill);
+  outline-offset: 2px;
+}
+
+.viewer-pic {
+  position: relative;
+  display: grid;
+  min-height: 0;
+  margin-top: var(--s-10);
+}
+
+.viewer-pic .stage-img {
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Right and wrong one above the other on a phone held upright, side by side
+   otherwise; each whole. */
+.viewer-pic .stage-pair {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: var(--s-3);
+  background: none;
+}
+
+.viewer-pic .stage-pair img {
+  object-fit: contain;
+}
+
+@media (orientation: landscape), (min-width: 720px) {
+  .viewer-pic .stage-pair {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: none;
+  }
+}
+
+.viewer-text {
+  display: grid;
+  gap: var(--s-1);
+  max-width: 62ch;
+  margin: 0 auto;
+  width: 100%;
+  font-size: var(--t-md);
+  line-height: var(--lh-body);
+}
+
+/* --on-dark-* are washes, not inks: the quieter lines are white, turned down. */
+.viewer-label {
+  font-size: var(--t-sm);
+  letter-spacing: var(--caps-track);
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+
+.viewer-cap {
+  font-size: var(--t-base);
+  opacity: 0.8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage-layer.is-in,
+  dialog.viewer[open] {
+    animation: none;
+  }
+}
+
+@media print {
+  .stage,
+  .method-hint {
+    display: none;
+  }
+}
