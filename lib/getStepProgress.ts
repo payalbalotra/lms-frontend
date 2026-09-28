@@ -91,14 +91,14 @@ export const getQuizProgress = (state: {
 /** Access (step 3) — three items:
  *
  *  1. A subcategory is picked (the procedure has somewhere to file).
- *  2. For station-specific subcategories, at least one station is picked.
- *     General subcategories skip this item (it counts as already done).
+ *  2. For station-tied categories, at least one station is picked.
+ *     General categories skip this item (it counts as already done).
  *  3. The audience is set — either "everyone" (the default and a deliberate
  *     choice) or specific with at least one person, station, or role.
  */
 export const getAccessProgress = (state: {
   subcategoryId: string;
-  isStationSpecific: boolean;
+  categoryKind: 'general' | 'station-tied';
   audience: ProcedureAudience;
 }): number => {
   if (!filled(state.subcategoryId)) return 0;
@@ -106,7 +106,7 @@ export const getAccessProgress = (state: {
   let total = 2;
   let done = 1; // subcategory is selected
 
-  if (state.isStationSpecific) {
+  if (state.categoryKind === 'station-tied') {
     total += 1;
     if (state.audience.stationIds.length > 0) done += 1;
   }
@@ -144,7 +144,7 @@ export const getAllStepProgress = (state: {
   blocks?: ProcedureBlock[];
   quiz: ProcedureQuiz | null;
   subcategoryId: string;
-  isStationSpecific: boolean;
+  categoryKind: 'general' | 'station-tied';
   audience: ProcedureAudience;
 }): { details: number; quiz: number; access: number; review: number } => {
   const details = getDetailsProgress({
@@ -155,7 +155,7 @@ export const getAllStepProgress = (state: {
   const quiz = getQuizProgress({ quiz: state.quiz });
   const access = getAccessProgress({
     subcategoryId: state.subcategoryId,
-    isStationSpecific: state.isStationSpecific,
+    categoryKind: state.categoryKind,
     audience: state.audience,
   });
   const review = getReviewProgress({ details, quiz, access });

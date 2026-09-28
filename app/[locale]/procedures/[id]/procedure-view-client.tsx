@@ -14,16 +14,11 @@ import * as React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { deleteProcedure, getProcedureBySlug, getQuizById, logRestrictedView, updateQuiz } from '@/lib/api';
-import type { Employee, Procedure, ProcedureBlock } from '@/lib/types';
+import type { Employee, Procedure } from '@/lib/types';
 import { withAs, type ViewAs } from '@/lib/view-as';
-import { BlockRenderer, findAllergen } from '@/components/doc/block-renderer';
-import { QuizAttachBanner, QuizReader } from '@/components/doc/quiz-reader';
-import { Allergen, Cover, DocBar, DocControl, DocHead, DocPurpose, Facts } from '@/components/doc';
-import { LuPrinter } from 'react-icons/lu';
-import { Button } from '@/components/ui/button';
-import { DocBehaviour } from '@/components/doc/doc-behaviour';
+import { DocBar } from '@/components/doc';
+import { ProcedureArticleBody } from '@/components/doc/procedure-article-body';
 import { TabBar } from '@/components/employee/tab-bar';
-import { Watermark } from '@/components/doc/watermark';
 import { recordRecentView } from '@/lib/recent-views';
 import { LuArrowLeft } from 'react-icons/lu';
 
@@ -38,34 +33,13 @@ interface ProcedureViewClientProps {
   viewAs: ViewAs | null;
   locale: string;
   labels: {
-    print: string;
-    updatedOn: string;
     back: string;
-    uncategorised: string;
-    factCategory: string;
-    factStatus: string;
-    factUpdated: string;
-    factLanguages: string;
-    published: string;
-    draft: string;
-    englishOnly: string;
-    ctlReference: string;
-    ctlUpdated: string;
-    ctlStatus: string;
-    ctlLanguages: string;
     tabHome: string;
     tabProcedures: string;
     tabTraining: string;
     tabSoon: string;
     tabsNav: string;
   };
-}
-
-function splitCover(blocks: ProcedureBlock[]): { cover?: { src: string; alt: string }; rest: ProcedureBlock[] } {
-  const i = blocks.findIndex((b) => b.kind === 'image' && b.src);
-  if (i === -1) return { rest: blocks };
-  const b = blocks[i] as Extract<ProcedureBlock, { kind: 'image' }>;
-  return { cover: { src: b.src, alt: b.alt?.en || b.alt?.es || '' }, rest: blocks.filter((_, n) => n !== i) };
 }
 
 export function ProcedureViewClient({
@@ -262,162 +236,57 @@ export function ProcedureViewClient({
 
   const isEs = locale === 'es';
   const title = isEs ? proc.titleEs || proc.titleEn : proc.titleEn || proc.titleEs;
-  const purpose = isEs ? proc.purposeEs || proc.purposeEn : proc.purposeEn || proc.purposeEs;
   const bodyEsBlocks = proc.bodyEs?.blocks ?? [];
-  const bodyEnBlocks = proc.bodyEn?.blocks ?? [];
-  const chosen = isEs && bodyEsBlocks.length > 0 ? proc.bodyEs : proc.bodyEn;
-  const { cover, rest } = splitCover(chosen?.blocks ?? []);
-  const hoisted = findAllergen(rest);
-  const allergen = hoisted?.allergen;
-
-  const cat = proc.category;
-  const categoryLabel = cat ? (isEs ? cat.nameEs || cat.nameEn : cat.nameEn || cat.nameEs) : labels.uncategorised;
-  const iconName = cat?.slug ? `category-${cat.slug}` : 'file-text';
-
-  let updated = '';
-  try {
-    const rawDate = proc.updatedAt || proc.createdAt;
-    if (rawDate) {
-      updated = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', year: 'numeric' }).format(
-        new Date(rawDate),
-      );
-    }
-  } catch {
-    updated = '';
-  }
-
-  const languages = [proc.titleEn?.trim() ? 'EN' : null, bodyEsBlocks.length > 0 ? 'ES' : null]
-    .filter(Boolean)
-    .join(' · ');
-  const englishOnly = isEs && bodyEsBlocks.length === 0;
-
-  // Quiz attach banner: shown to admins when the procedure has a quiz but
-  // neither `quiz.attached` nor `attachedToTraining` is on. Local state
-  // mirrors the patched procedure so we don't re-fetch on click. The read
-  // side resolves `procedure.quizId` to its quiz row via `getQuizById`
-  // on every render (no inline quiz on the procedure shape any more).
-  const quiz = proc.quizId ? getQuizById(proc.quizId) : null;
-  const quizExists = Boolean(quiz && quiz.questions.length > 0);
-  const quizVisible = Boolean(quiz && (quiz.attached || proc.attachedToTraining));
-  const showAttachBanner = quizExists && !quizVisible && effectiveRole === 'admin';
+  const categoryLabel = proc.category
+    ? isEs
+      ? proc.category.nameEs || proc.category.nameEn
+      : proc.category.nameEn || proc.category.nameEs
+    : '';
 
   return (
     <div className={wrapperClass}>
-      {proc.protection === 'confidential' || proc.protection === 'master' ? (
-        <Watermark name={employee.name} locale={locale} />
-      ) : null}
-      {showAttachBanner && !bannerDismissed ? (
-        <div className="mx-auto w-full max-w-doc px-4 pt-6 sm:px-6">
-          <QuizAttachBanner
-            onAttach={handleAttach}
-            onDismiss={() => setBannerDismissed(true)}
-            isAttaching={isAttaching}
-          />
+      {/* The sticky DocBar carries the per-page chrome (back, where, more)
+          for cooks reading on a phone. Inside the AdminShell the shell's own
+          sticky top bar already serves as the surrounding chrome, so we
+          swap the DocBar for an inline "back" link above the article —
+          the same shape other admin detail pages use to climb back out to
+          the list. */}
+      {isAdmin ? (
+        <div className="flex items-center justify-between gap-3 px-4 pt-6 sm:px-6">
+          <Link
+            href={backHref}
+            onClick={(e) => {
+              if (hasReferrer) {
+                e.preventDefault();
+                onBack();
+              }
+            }}
+            className="inline-flex min-h-tap-admin items-center gap-2 text-sm font-semibold text-[var(--color-ink-2)] hover:text-[var(--color-ink)]"
+          >
+            <LuArrowLeft aria-hidden="true" />
+            {labels.back}
+          </Link>
         </div>
-      ) : null}
-      <article className="doc">
-        <DocBehaviour />
-        {/* The sticky DocBar carries the per-page chrome (back, where, more)
-            for cooks reading on a phone. Inside the AdminShell the shell's own
-            sticky top bar already serves as the surrounding chrome, so we
-            swap the DocBar for an inline "back" link that sits above the
-            article — the same shape other admin detail pages use to climb
-            back out to the list. */}
-        {isAdmin ? (
-          <div className="flex items-center justify-between gap-3 px-4 pt-6 sm:px-6">
-            <Link
-              href={backHref}
-              onClick={(e) => {
-                if (hasReferrer) {
-                  e.preventDefault();
-                  onBack();
-                }
-              }}
-              className="inline-flex min-h-tap-admin items-center gap-2 text-sm font-semibold text-[var(--color-ink-2)] hover:text-[var(--color-ink)]"
-            >
-              <LuArrowLeft aria-hidden="true" />
-              {labels.back}
-            </Link>
-            {/* Printing for the station is the manager's job as much as the cook's. */}
-            <Button type="button" variant="neutral" size="sm" icon={LuPrinter} onClick={() => window.print()}>
-              {labels.print}
-            </Button>
-          </div>
-        ) : (
-          <DocBar
-            backHref={backHref}
-            backLabel={labels.back}
-            onBack={hasReferrer ? onBack : undefined}
-            title={title || 'Untitled Procedure'}
-            category={categoryLabel}
-            action={{ label: labels.print, icon: LuPrinter, onClick: () => window.print() }}
-          />
-        )}
-
-        {cover ? <Cover src={cover.src} alt={cover.alt} /> : null}
-
-        {/* For a cook: the category once, with when it last changed, and no
-            tile. The status, the languages and the document control are the
-            manager's facts; they stay on the admin's view. */}
-        <DocHead
-          icon={isAdmin ? iconName : undefined}
-          category={isAdmin ? categoryLabel : `${categoryLabel} · ${labels.updatedOn.replace('{date}', updated)}`}
+      ) : (
+        <DocBar
+          backHref={backHref}
+          backLabel={labels.back}
+          onBack={hasReferrer ? onBack : undefined}
           title={title || 'Untitled Procedure'}
-          withCover={Boolean(cover)}
+          category={categoryLabel}
         />
+      )}
 
-        {allergen ? (
-          <Allergen
-            summary={allergen.summary}
-            detail={allergen.detail}
-            selectedAllergens={allergen.selectedAllergens}
-            locale={isEs ? 'es' : 'en'}
-          />
-        ) : null}
-
-        {purpose ? <DocPurpose>{purpose}</DocPurpose> : null}
-
-        {isAdmin ? (
-        <Facts
-          items={[
-            { icon: 'folder', label: labels.factCategory, value: categoryLabel },
-            {
-              icon: proc.status === 'published' ? 'check' : 'draft',
-              label: labels.factStatus,
-              value: proc.status === 'published' ? labels.published : labels.draft,
-              kind: proc.status === 'published' ? 'ok' : 'default',
-            },
-            { icon: 'clock', label: labels.factUpdated, value: updated },
-            { icon: 'languages', label: labels.factLanguages, value: languages || 'EN' },
-          ]}
-        />
-        ) : null}
-
-        {englishOnly ? (
-          <p className="doc-sec">
-            <span className="pill pill-due">{labels.englishOnly}</span>
-          </p>
-        ) : null}
-
-        <BlockRenderer blocks={rest} locale={isEs ? 'es' : 'en'} hoistedAllergenId={hoisted?.id} />
-
-        {/* Quiz: visible when manually attached OR when the procedure is part
-         *  of training. Admin-only banner when authored but neither flag is on. */}
-        {quiz && (quiz.attached || proc.attachedToTraining) ? (
-          <QuizReader quiz={quiz} locale={isEs ? 'es' : 'en'} />
-        ) : null}
-
-        {isAdmin ? (
-        <DocControl
-          entries={[
-            { label: labels.ctlReference, value: proc.slug },
-            { label: labels.ctlUpdated, value: updated },
-            { label: labels.ctlStatus, value: proc.status === 'published' ? labels.published : labels.draft },
-            { label: labels.ctlLanguages, value: languages || 'EN' },
-          ]}
-        />
-        ) : null}
-      </article>
+      <ProcedureArticleBody
+        proc={proc}
+        employee={employee}
+        effectiveRole={effectiveRole}
+        locale={locale}
+        onAttachQuiz={handleAttach}
+        isAttaching={isAttaching}
+        bannerDismissed={bannerDismissed}
+        onDismissBanner={() => setBannerDismissed(true)}
+      />
 
       {isAdmin ? null : (
         <TabBar

@@ -1,13 +1,5 @@
 'use client';
 
-/**
- * QuizEditor — the "Quiz" step of the procedure wizard.
- *
- * Implements the exact bilingual component effect (one gets bigger, one becomes
- * shorter; active card 100% on top, inactive card 92% centered directly
- * underneath with zero gap) for each question and its options.
- */
-
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';

@@ -6,19 +6,6 @@ import { getCategoryIcon } from '@/lib/category-icons';
 import { StatusPill } from '@/components/ui/status-pill';
 import type { Category } from '@/lib/types';
 
-/**
- * One procedure, as a row a cook taps.
- *
- * There was one of these on the home and a second, slightly different one on the
- * browse page: 80px photo against 64px, flush against inset, flags on one and not
- * the other. Same object, same reader, same action — so it is one component, and
- * a change to it lands on both lists.
- *
- * The photograph fills the row rather than sitting in it as a square: a row with
- * warnings under the title is taller than one without, and a fixed square left a
- * band of empty card beside the flags. Stretching is also what makes the photo
- * read as the procedure's cover rather than as an icon of one.
- */
 
 export interface ProcedureFlags {
   allergens: string[];

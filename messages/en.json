@@ -387,7 +387,7 @@
         "crumbBack": "Library",
         "pageEyebrow": "Library",
         "pageTitle": "Categories",
-        "pageSubtitle": "Categories organise the library. Add, rename, or archive them here; archived categories stay attached to any procedures that already reference them.",
+        "pageSubtitle": "Organize procedures by category and station.",
         "addButton": "Add category",
         "dialogTitle": "New category",
         "renameDialogTitle": "Rename category",
@@ -403,6 +403,8 @@
         "previewHint": "The default icon for an unknown slug is the folder icon. Add the slug to ICON_BY_SLUG to override it.",
         "archivedHeading": "Archived",
         "archivedChip": "Archived",
+        "archivedSubtitle": "Hidden from the library but still attached to any procedures that reference them.",
+        "byStationCrumb": "By station",
         "empty": "No categories yet. Add the first one to organise the library.",
         "errors": {
           "slugTaken": "That slug is already in use at this location. Pick another."
@@ -914,6 +916,24 @@
           "unauthenticated": "Your session ended. Sign in and try again.",
           "generic": "Could not save the procedure. Try again."
         }
+      },
+      "detail": {
+        "eyebrow": "Library",
+        "back": "Back to library",
+        "actionsEdit": "Edit",
+        "actionsLabel": "Actions for {title}",
+        "actionsPublish": "Publish",
+        "actionsMoveToDraft": "Move to drafts",
+        "actionsArchive": "Archive",
+        "actionsUnarchive": "Restore",
+        "actionsRestore": "Restore",
+        "actionsDelete": "Delete",
+        "errorTransition": "Could not update the procedure. Try again.",
+        "errorDelete": "Could not delete the procedure. Try again.",
+        "errorLoad": "This procedure isn't available.",
+        "statusDraft": "Draft",
+        "statusPublished": "Published",
+        "statusArchived": "Archived"
       }
     },
     "shell": {

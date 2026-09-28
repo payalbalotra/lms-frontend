@@ -159,9 +159,6 @@ export function ProcedureEditor({
   const [subcategoryId, setSubcategoryId] = React.useState<string>(
     initial?.subcategoryId ?? "",
   );
-  const [stationIds, setStationIds] = React.useState<string[]>(
-    initial?.stationScope?.stationIds ?? [],
-  );
   const [blocks, setBlocks] = React.useState<ProcedureBlock[]>(
     start?.blocks ?? [],
   );
@@ -180,7 +177,14 @@ export function ProcedureEditor({
       : null,
   );
   const [audience, setAudience] = React.useState<ProcedureAudience>(
-    initial?.audience ?? EVERYONE,
+    initial?.audience ?? {
+      ...EVERYONE,
+      // On edit, surface the saved station scope so the Access step lands
+      // on the same chips the manager picked last time. New procedures
+      // default to EVERYONE until the URL prefill (opened from a
+      // station-tied category card) overrides `stationIds`.
+      stationIds: initial?.stationScope?.stationIds ?? [],
+    },
   );
   const [protection, setProtection] = React.useState<ProcedureProtection>(
     initial?.protection ?? "standard",
@@ -209,7 +213,10 @@ export function ProcedureEditor({
   const isLastStep = stepIdx === STEPS.length - 1;
 
   // Opened from a category page ("Add procedure" on Cleaning → Dishwashing),
-  // the URL names where it goes: ?category=<slug>&subcategory=<slug>&accessStations=<ids>.
+  // the URL names where it goes: ?category=<slug>&subcategory=<slug>&station=<id>.
+  // The `station` param is read for station-tied categories only — general
+  // categories ignore it, so general procedures never pick up an unintended
+  // station scope from a stale link.
   const prefilled = React.useRef(false);
   React.useEffect(() => {
     if (prefilled.current || initial || !categories.length) return;
@@ -221,12 +228,10 @@ export function ProcedureEditor({
     const sub = cat.subcategories?.find((s) => s.slug === q.get("subcategory"));
     if (!sub) return;
     setSubcategoryId(sub.id);
-    const fromUrl = (q.get("accessStations") ?? "")
-      .split(",")
-      .map((x) => x.trim())
-      .filter(Boolean);
-    if (sub.isStationSpecific)
-      setStationIds(fromUrl.length ? fromUrl : (sub.stations ?? []));
+    const urlStation = (q.get("station") ?? "").trim() || null;
+    if (urlStation && cat.kind === "station-tied") {
+      setAudience((prev) => ({ ...prev, stationIds: [urlStation] }));
+    }
   }, [categories, initial]);
 
   // Every edit marks the page dirty; one wrapper instead of a line per field.
@@ -282,10 +287,10 @@ export function ProcedureEditor({
         blocks,
         quiz,
         subcategoryId,
-        isStationSpecific: Boolean(subcategory?.isStationSpecific),
+        categoryKind: category?.kind ?? "general",
         audience,
       }),
-    [title, purpose, blocks, quiz, subcategoryId, subcategory?.isStationSpecific, audience],
+    [title, purpose, blocks, quiz, subcategoryId, category?.kind, audience],
   );
 
   const hasQuizContent = React.useMemo(() => {
@@ -323,11 +328,7 @@ export function ProcedureEditor({
       : t("whoSummaryNobody");
   })();
 
-  /* --------------------------------------------------------------- import -- */
-  /* The "Import a document" button was removed: the underlying extraction
-     pipeline is not part of this build, so exposing the action would let a
-     manager upload a file to nowhere. Adding it back lands as its own slice
-     (extraction service + signed upload + wizard step) when those arrive. */
+
 
   /* ----------------------------------------------------------------- save -- */
 
@@ -367,9 +368,13 @@ export function ProcedureEditor({
           purposeEs: purpose.es.trim(),
           categoryId: categoryId || null,
           subcategoryId: subcategoryId || null,
-          stationScope: subcategory?.isStationSpecific
-            ? { mode: stationIds.length ? "specific" : "all", stationIds }
-            : null,
+          stationScope:
+            category?.kind === "station-tied"
+              ? {
+                  mode: audience.stationIds.length ? "specific" : "all",
+                  stationIds: audience.stationIds,
+                }
+              : null,
           status,
           bodyEn: body,
           bodyEs: body,
@@ -418,12 +423,7 @@ export function ProcedureEditor({
         </div>
       </div>
 
-      {/* Floating Preview button, bottom-right. Always reachable regardless
-          of scroll, sits above the fixed bottom footer (Cancel / Save draft /
-          Next) so it never overlaps the navigation actions. The pill itself
-          is the only thing inside its z-stacked wrapper; the wrapper is
-          pointer-events-none so the empty gutter behind the pill never
-          traps clicks meant for the form. */}
+
       <div className="pointer-events-none fixed bottom-[90px] right-5 z-30 lg:right-6">
         <Button
           type="button"
@@ -553,10 +553,11 @@ export function ProcedureEditor({
 
             {/* Block 2 — Stations. A standalone row so the manager sees
                 where the procedure will land before scrolling into the
-                employee list. General subcategories hide it: "All stations"
+                employee list. General categories hide it: "All stations"
                 is the implicit default and a picker there would invite
-                confusion. */}
-            {subcategory && subcategory.isStationSpecific ? (
+                confusion. The category — not the subcategory — owns the
+                `kind` flag now: subcategories are station-agnostic. */}
+            {category?.kind === "station-tied" ? (
               <section
                 id="proc-stations"
                 className="rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-6"
@@ -608,7 +609,7 @@ export function ProcedureEditor({
                 stations={stations}
                 roles={roles}
                 filterStationIds={
-                  subcategory?.isStationSpecific
+                  category?.kind === "station-tied"
                     ? audience.stationIds
                     : null
                 }
@@ -708,10 +709,10 @@ export function ProcedureEditor({
                             </p>
                             <StatusPill
                               tone={
-                                subcategory.isStationSpecific ? "info" : "neutral"
+                                category?.kind === "station-tied" ? "info" : "neutral"
                               }
                             >
-                              {subcategory.isStationSpecific
+                              {category?.kind === "station-tied"
                                 ? t("reviewStationsStationSpecific")
                                 : t("reviewStationsGeneral")}
                             </StatusPill>
@@ -734,7 +735,7 @@ export function ProcedureEditor({
                       {t("reviewStationsLabel")}
                     </p>
                   </div>
-                  {subcategory && subcategory.isStationSpecific ? (
+                  {category?.kind === "station-tied" ? (
                     audience.stationIds.length > 0 ? (
                       <ul className="mt-2 flex flex-wrap gap-1.5">
                         {audience.stationIds.map((id) => {

@@ -7,22 +7,7 @@ import { listEmployees, listProcedures } from '@/lib/api';
 import { fold } from '@/lib/utils';
 import type { AdminEmployee, Procedure } from '@/lib/types';
 
-/**
- * Find a person or a procedure, from anywhere in the admin area — the search
- * field from /admin-home.html, which the React build never got.
- *
- * It searches over what is already there rather than asking the backend for a
- * search endpoint that does not exist: both lists are fetched once, on the first
- * focus, and filtered in the browser. A restaurant's library is tens of
- * procedures and tens of people, not thousands, so this is the honest shape —
- * and it means results appear as the manager types rather than after a round
- * trip. If the library ever outgrows that, this becomes a query and nothing
- * above it changes.
- *
- * Results are grouped, because "Miguel" and "Mise en place" are different kinds
- * of answer and a single mixed list makes the manager read every row to find out
- * which is which.
- */
+
 
 type Hit =
   | { kind: 'procedure'; id: string; title: string; meta: string; href: string }

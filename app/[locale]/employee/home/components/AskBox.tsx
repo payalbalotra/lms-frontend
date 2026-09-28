@@ -4,19 +4,7 @@ import * as React from 'react';
 import { LuMic, LuSearch } from 'react-icons/lu';
 import { cn } from '@/lib/utils';
 
-/**
- * The reason the screen exists: one question, mid-shift, often with wet or
- * gloved hands (PROJECT_OVERVIEW §02 Ask the Handbook: "by typing or by
- * speaking"). A plain form, so typing works before JavaScript has loaded; the
- * phone keyboard's Search key sends it.
- *
- * The microphone uses the browser's own speech recognition, in the reader's
- * language, and sends what it heard. Where the browser has none it is not
- * shown. Until the answer engine exists the question goes to the library
- * search, which reads it word by word through titles, purposes and every step
- * (lib/procedure-search), and says so -- and sends the cook to their manager --
- * when nothing answers it.
- */
+
 
 interface SpeechRecognitionLike {
   lang: string;

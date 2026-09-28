@@ -78,6 +78,7 @@ const SEED_CATEGORIES: Category[] = [
     nameEs: 'Inducción y Capacitación',
     icon: 'LuClipboardList',
     isArchived: false,
+    kind: 'general',
     subcategories: [
       { id: 'sub-culture', slug: 'culture', nameEn: 'Culture', nameEs: 'Cultura' },
       { id: 'sub-uniform', slug: 'uniform', nameEn: 'Uniform', nameEs: 'Uniforme' },
@@ -91,6 +92,7 @@ const SEED_CATEGORIES: Category[] = [
     nameEs: 'Seguridad Alimentaria',
     icon: 'LuShieldCheck',
     isArchived: false,
+    kind: 'general',
     subcategories: [
       { id: 'sub-hygiene', slug: 'hygiene', nameEn: 'Hygiene', nameEs: 'Higiene' },
       { id: 'sub-cross-contamination', slug: 'cross-contamination', nameEn: 'Cross-Contamination', nameEs: 'Contaminación Cruzada' },
@@ -105,8 +107,9 @@ const SEED_CATEGORIES: Category[] = [
     nameEs: 'Operaciones de Cocina',
     icon: 'LuBuilding2',
     isArchived: false,
+    kind: 'station-tied',
     subcategories: [
-      { id: 'sub-station-setup', slug: 'station-setup', nameEn: 'Station Setup', nameEs: 'Montaje de Estación', isStationSpecific: true, stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'] },
+      { id: 'sub-station-setup', slug: 'station-setup', nameEn: 'Station Setup', nameEs: 'Montaje de Estación' },
       { id: 'sub-kitchen-comm', slug: 'kitchen-communication', nameEn: 'Kitchen Communication', nameEs: 'Comunicación en Cocina' },
     ],
   },
@@ -117,6 +120,7 @@ const SEED_CATEGORIES: Category[] = [
     nameEs: 'Limpieza',
     icon: 'LuBrush',
     isArchived: false,
+    kind: 'general',
     subcategories: [
       { id: 'sub-dishwashing', slug: 'dishwashing', nameEn: 'Dishwashing', nameEs: 'Lavadiscos' },
       { id: 'sub-chemical', slug: 'chemical-handling', nameEn: 'Chemical Handling', nameEs: 'Manejo de Químicos' },
@@ -130,31 +134,11 @@ const SEED_CATEGORIES: Category[] = [
     nameEs: 'Apertura y Cierre',
     icon: 'LuPackage',
     isArchived: false,
+    kind: 'station-tied',
     subcategories: [
-      {
-        id: 'sub-opening',
-        slug: 'opening-procedures',
-        nameEn: 'Opening Procedures',
-        nameEs: 'Procedimientos de Apertura',
-        isStationSpecific: true,
-        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
-      },
-      {
-        id: 'sub-closing',
-        slug: 'closing-procedures',
-        nameEn: 'Closing Procedures',
-        nameEs: 'Procedimientos de Cierre',
-        isStationSpecific: true,
-        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
-      },
-      {
-        id: 'sub-end-day',
-        slug: 'end-of-day-checks',
-        nameEn: 'End of Day Checks',
-        nameEs: 'Verificaciones de Fin de Día',
-        isStationSpecific: true,
-        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
-      },
+      { id: 'sub-opening', slug: 'opening-procedures', nameEn: 'Opening Procedures', nameEs: 'Procedimientos de Apertura' },
+      { id: 'sub-closing', slug: 'closing-procedures', nameEn: 'Closing Procedures', nameEs: 'Procedimientos de Cierre' },
+      { id: 'sub-end-day', slug: 'end-of-day-checks', nameEn: 'End of Day Checks', nameEs: 'Verificaciones de Fin de Día' },
     ],
   },
   {
@@ -164,31 +148,11 @@ const SEED_CATEGORIES: Category[] = [
     nameEs: 'Equipamiento',
     icon: 'LuWrench',
     isArchived: false,
+    kind: 'station-tied',
     subcategories: [
-      {
-        id: 'sub-operation',
-        slug: 'operation',
-        nameEn: 'Operation',
-        nameEs: 'Operación',
-        isStationSpecific: true,
-        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
-      },
-      {
-        id: 'sub-eq-safety',
-        slug: 'equipment-safety',
-        nameEn: 'Safety',
-        nameEs: 'Seguridad',
-        isStationSpecific: true,
-        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
-      },
-      {
-        id: 'sub-eq-cleaning',
-        slug: 'equipment-cleaning',
-        nameEn: 'Cleaning',
-        nameEs: 'Limpieza',
-        isStationSpecific: true,
-        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
-      },
+      { id: 'sub-operation', slug: 'operation', nameEn: 'Operation', nameEs: 'Operación' },
+      { id: 'sub-eq-safety', slug: 'equipment-safety', nameEn: 'Safety', nameEs: 'Seguridad' },
+      { id: 'sub-eq-cleaning', slug: 'equipment-cleaning', nameEn: 'Cleaning', nameEs: 'Limpieza' },
     ],
   },
   {
@@ -198,29 +162,11 @@ const SEED_CATEGORIES: Category[] = [
     nameEs: 'Recetas',
     icon: 'LuUtensils',
     isArchived: false,
+    kind: 'station-tied',
     subcategories: [
-      {
-        id: 'sub-plating',
-        slug: 'plating',
-        nameEn: 'Plating',
-        nameEs: 'Emplatado',
-        isStationSpecific: true,
-        stations: ['stn-gm', 'stn-grill', 'stn-expo'],
-      },
-      {
-        id: 'sub-cooking',
-        slug: 'cooking',
-        nameEn: 'Cooking',
-        nameEs: 'Cocción',
-        isStationSpecific: true,
-        stations: ['stn-gm', 'stn-grill'],
-      },
-      {
-        id: 'sub-portion',
-        slug: 'portion-standards',
-        nameEn: 'Portion Standards',
-        nameEs: 'Estándares de Porción',
-      },
+      { id: 'sub-plating', slug: 'plating', nameEn: 'Plating', nameEs: 'Emplatado' },
+      { id: 'sub-cooking', slug: 'cooking', nameEn: 'Cooking', nameEs: 'Cocción' },
+      { id: 'sub-portion', slug: 'portion-standards', nameEn: 'Portion Standards', nameEs: 'Estándares de Porción' },
     ],
   },
 ];
@@ -856,6 +802,51 @@ function getStored<T>(key: string, seed: T): T {
   }
 }
 
+/** Slugs of categories that should be `kind: 'general'` — they apply at
+ *  every station and never ask the manager to pick one. Used by the local-
+ *  Storage migration (and any future fixtures) to backfill `kind` on
+ *  pre-existing records that predate the field. */
+const GENERAL_CATEGORY_SLUGS = new Set(['onboarding', 'food-safety', 'cleaning']);
+
+/** One-shot normalisation for `categories_v3`. Pre-existing records stored
+ *  before `kind` was introduced get it backfilled by slug, and legacy
+ *  subcategory fields (`isStationSpecific`, `stations`) are stripped so the
+ *  rest of the app never sees the dead shape. Re-saves once so the next
+ *  read is a no-op. Wrapped in try/catch so a corrupted store does not
+ *  brick the page — the seed is the fallback. */
+function normaliseCategories(stored: Category[]): Category[] {
+  let mutated = false;
+  const normalised = stored.map((c) => {
+    let touched = false;
+    const nextKind = c.kind ?? (GENERAL_CATEGORY_SLUGS.has(c.slug) ? 'general' : 'station-tied');
+    if (nextKind !== c.kind) touched = true;
+    const subs = c.subcategories ?? [];
+    const cleanSubs = subs.map((s) => {
+      // Subcategory shape is now `{ id, slug, nameEn, nameEs }` only. The
+      // legacy `isStationSpecific` and `stations` fields were dropped when
+      // scope moved up to the category — strip them on read so nothing
+      // downstream has to defend against them.
+      const hasLegacy =
+        (s as Subcategory & { isStationSpecific?: boolean; stations?: string[] })
+          .isStationSpecific !== undefined ||
+        (s as Subcategory & { isStationSpecific?: boolean; stations?: string[] })
+          .stations !== undefined;
+      if (!hasLegacy) return s;
+      touched = true;
+      return {
+        id: s.id,
+        slug: s.slug,
+        nameEn: s.nameEn,
+        nameEs: s.nameEs,
+      };
+    });
+    if (!touched) return c;
+    mutated = true;
+    return { ...c, kind: nextKind, subcategories: cleanSubs };
+  });
+  return mutated ? normalised : stored;
+}
+
 function setStored<T>(key: string, data: T): void {
   if (typeof window === 'undefined') return;
   try {
@@ -868,7 +859,7 @@ function setStored<T>(key: string, data: T): void {
 let mockLocations: Location[] = getStored('locations', SEED_LOCATIONS);
 let mockRoles: Role[] = getStored('roles_v2', SEED_ROLES);
 let mockStations: Station[] = getStored('stations_v2', SEED_STATIONS);
-let mockCategories: Category[] = getStored('categories_v3', SEED_CATEGORIES);
+let mockCategories: Category[] = normaliseCategories(getStored('categories_v3', SEED_CATEGORIES));
 let mockEmployees: AdminEmployee[] = getStored('employees_v3', SEED_EMPLOYEES);
 let mockProcedures: Procedure[] = getStored('procedures_v2', SEED_PROCEDURES);
 // Centralised quizzes table. The wizard authors quizzes locally in form
@@ -890,7 +881,12 @@ function getStationsStore(): Station[] {
   return mockStations;
 }
 function getCategoriesStore(): Category[] {
-  if (typeof window !== 'undefined') mockCategories = getStored('categories_v3', SEED_CATEGORIES);
+  if (typeof window !== 'undefined') {
+    // Re-read each call so concurrent tab edits surface without a reload.
+    // Normalise every read so a freshly-pasted localStorage entry from a
+    // backup that pre-dates `kind` still renders correctly.
+    mockCategories = normaliseCategories(getStored('categories_v3', SEED_CATEGORIES));
+  }
   return mockCategories;
 }
 function getEmployeesStore(): AdminEmployee[] {
@@ -1551,8 +1547,12 @@ export async function createCategory(input: {
   slug?: string;
   nameEn: string;
   nameEs: string;
+  /** `'general'` → applies at every station. `'station-tied'` → manager
+   *  picks a station on the categories page; the procedure wizard's Access
+   *  step pre-fills with that station. */
+  kind: 'general' | 'station-tied';
   icon?: string;
-  subcategories?: Array<{ nameEn: string; nameEs: string; isStationSpecific?: boolean }>;
+  subcategories?: Array<{ nameEn: string; nameEs: string }>;
 }): Promise<{ category: Category }> {
   const derivedSlug =
     input.slug ??
@@ -1566,14 +1566,13 @@ export async function createCategory(input: {
     nameEn: input.nameEn,
     nameEs: input.nameEs,
     isArchived: false,
+    kind: input.kind,
     icon: input.icon,
     subcategories: input.subcategories?.map((s, i) => ({
       id: `sub-${Date.now()}-${i}`,
       slug: s.nameEn.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
       nameEn: s.nameEn,
       nameEs: s.nameEs,
-      isStationSpecific: s.isStationSpecific,
-      stations: s.isStationSpecific ? [] : undefined,
     })),
   };
   mockCategories = [...getCategoriesStore(), newCat];
@@ -1586,9 +1585,10 @@ export async function updateCategory(
   patch: {
     nameEn?: string;
     nameEs?: string;
+    kind?: 'general' | 'station-tied';
     icon?: string;
     isArchived?: boolean;
-    subcategories?: Array<{ nameEn: string; nameEs: string; isStationSpecific?: boolean }>;
+    subcategories?: Array<{ nameEn: string; nameEs: string }>;
   },
 ): Promise<{ category: Category }> {
   const cats = getCategoriesStore();
@@ -1609,8 +1609,6 @@ export async function updateCategory(
             s.nameEn.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
           nameEn: s.nameEn,
           nameEs: s.nameEs,
-          isStationSpecific: s.isStationSpecific,
-          stations: prev?.stations ?? (s.isStationSpecific ? [] : undefined),
         };
       });
       next.subcategories = rebuilt;

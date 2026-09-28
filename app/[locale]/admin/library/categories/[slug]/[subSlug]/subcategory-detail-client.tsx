@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import type { Category, Subcategory } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,19 @@ import { getCategoryIcon } from '@/lib/category-icons';
 import { cn } from '@/lib/utils';
 import { LuArrowLeft, LuChevronLeft, LuChevronRight, LuClock, LuFileText, LuPlus, LuSearch } from 'react-icons/lu';
 import { IconTile } from '@/components/ui/icon-tile';
+
+/** Stations the wizard's Access step can pre-fill from. Mirrors `SEED_STATIONS`
+ *  in `lib/api.ts` and the categories-page picker — the subcategory detail
+ *  page is a deep-link target reached only when a manager opens a station
+ *  chip from the categories page, so the chosen station arrives as `?station=`
+ *  in the URL rather than via props. */
+const STATIONS: ReadonlyArray<{ id: string; name: string }> = [
+  { id: 'stn-gm', name: 'GM' },
+  { id: 'stn-grill', name: 'Grill' },
+  { id: 'stn-expo', name: 'Expo' },
+  { id: 'stn-prep', name: 'Prep Kitchen' },
+  { id: 'stn-dish', name: 'Dishwasher' },
+];
 
 interface SubcategoryDetailClientProps {
   category: Category;
@@ -64,18 +77,23 @@ export function SubcategoryDetailClient({
   locale,
 }: SubcategoryDetailClientProps): React.ReactElement {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const isEs = locale === 'es';
   const [searchQuery, setSearchQuery] = React.useState('');
-  const [selectedStation, setSelectedStation] = React.useState('all');
   const [sortBy, setSortBy] = React.useState('newest');
 
   const catName = isEs ? category.nameEs : category.nameEn;
   const subName = isEs ? subcategory.nameEs : subcategory.nameEn;
   const subNameSecondary = isEs ? subcategory.nameEn : subcategory.nameEs;
 
-  const stationList = subcategory.stations && subcategory.stations.length > 0
-    ? subcategory.stations
-    : ['GM', 'Grill', 'Expo', 'Prep Kitchen'];
+  // The chosen station from the categories page (`?station=stn-gm`) drives
+  // the scope pill and the wizard URL the manager gets when they click
+  // "Add procedure". Unknown ids fall back to null so a stale link renders
+  // gracefully instead of leaking through into the wizard.
+  const stationFromUrl = searchParams.get('station');
+  const activeStation = stationFromUrl
+    ? STATIONS.find((s) => s.id === stationFromUrl) ?? null
+    : null;
 
   const filteredProcedures = React.useMemo(() => {
     return MOCK_PROCEDURES.filter((proc) => {
@@ -83,12 +101,9 @@ export function SubcategoryDetailClient({
         searchQuery.trim() === '' ||
         proc.titleEn.toLowerCase().includes(searchQuery.toLowerCase()) ||
         proc.titleEs.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchStation =
-        selectedStation === 'all' ||
-        proc.station.toLowerCase() === selectedStation.toLowerCase();
-      return matchSearch && matchStation;
+      return matchSearch;
     });
-  }, [searchQuery, selectedStation]);
+  }, [searchQuery]);
 
   return (
     <div className="mx-auto max-w-page space-y-4 pb-12">
@@ -127,16 +142,23 @@ export function SubcategoryDetailClient({
               )}
             </div>
 
-            {/* Scope badge */}
+            {/* Scope pill — driven by the category's `kind`, not the
+                subcategory (subcategories are now station-agnostic). When the
+                categories page passed a station via `?station=`, the pill
+                names that station instead of saying "All stations". */}
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-[var(--radius-sm)] bg-[var(--color-panel)] px-2 py-0.5 text-xs font-medium text-[var(--color-ink-2)] border border-[var(--color-line)]">
-                {subcategory.isStationSpecific
+                {category.kind === 'station-tied' && activeStation
                   ? isEs
-                    ? `Específico de estación: ${stationList.join(' · ')}`
-                    : `Station-specific: ${stationList.join(' · ')}`
-                  : isEs
-                    ? 'General (se aplica a todas las estaciones)'
-                    : 'General (applies to all stations)'}
+                    ? `Procedimientos para ${activeStation.name}`
+                    : `Procedures for ${activeStation.name}`
+                  : category.kind === 'station-tied'
+                    ? isEs
+                      ? 'Específico de estación'
+                      : 'Station-specific'
+                    : isEs
+                      ? 'General (se aplica a todas las estaciones)'
+                      : 'General (applies to all stations)'}
               </span>
             </div>
 
@@ -150,7 +172,16 @@ export function SubcategoryDetailClient({
 
         <Button
           variant="primary"
-          onClick={() => router.push(`/${locale}/admin/library/new?category=${category.slug}&subcategory=${subcategory.slug}`)}
+          onClick={() => {
+            // Forward `?station=` so the wizard's Access step pre-fills the
+            // same station the manager picked on the categories page.
+            const stationQuery = activeStation
+              ? `&station=${encodeURIComponent(activeStation.id)}`
+              : '';
+            router.push(
+              `/${locale}/admin/library/new?category=${category.slug}&subcategory=${subcategory.slug}${stationQuery}`,
+            );
+          }}
           className="shrink-0 font-semibold shadow-2xs"
         >
           <LuPlus className="text-base" />
@@ -158,7 +189,10 @@ export function SubcategoryDetailClient({
         </Button>
       </div>
 
-      {/* Search & Filter Bar */}
+      {/* Search & Filter Bar — the station filter used to live here; the
+          station now belongs to the procedure (set in the wizard's Access
+          step) and the chosen station already travels via `?station=` from
+          the categories page, so the filter was redundant. */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 bg-[var(--color-surface)] p-2.5 rounded-[var(--radius-lg)] border border-[var(--color-line-2)] shadow-2xs">
         <div className="relative w-full sm:w-80">
           <LuSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-3)] text-sm" />
@@ -172,21 +206,6 @@ export function SubcategoryDetailClient({
         </div>
 
         <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
-          {/* Station Filter */}
-          <select
-            value={selectedStation}
-            onChange={(e) => setSelectedStation(e.target.value)}
-            className="rounded-[var(--radius-md)] border border-[var(--color-line)] bg-[var(--color-surface)] px-2.5 h-9 text-xs font-medium text-[var(--color-ink-2)] focus:outline-none focus:ring-1 focus:ring-[var(--color-ring)]"
-          >
-            <option value="all">{isEs ? 'Todas las estaciones' : 'All stations'}</option>
-            {stationList.map((stn) => (
-              <option key={stn} value={stn}>
-                {stn}
-              </option>
-            ))}
-          </select>
-
-          {/* Sort Dropdown */}
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
@@ -209,7 +228,14 @@ export function SubcategoryDetailClient({
           <Button
             variant="neutral"
             icon={LuPlus}
-            onClick={() => router.push(`/${locale}/admin/library/new?category=${category.slug}&subcategory=${subcategory.slug}`)}
+            onClick={() => {
+              const stationQuery = activeStation
+                ? `&station=${encodeURIComponent(activeStation.id)}`
+                : '';
+              router.push(
+                `/${locale}/admin/library/new?category=${category.slug}&subcategory=${subcategory.slug}${stationQuery}`,
+              );
+            }}
             className="text-xs"
           >
             {isEs ? 'Crear procedimiento' : 'Create procedure'}
@@ -240,9 +266,18 @@ export function SubcategoryDetailClient({
               </div>
 
               <div className="flex items-center gap-3 shrink-0" onClick={(e) => e.stopPropagation()}>
-                <span className="hidden sm:inline-flex min-w-[36px] h-6 items-center justify-center px-2.5 text-[11px] font-semibold tracking-[0.02em] leading-none rounded-md bg-[var(--color-panel-2)] text-[var(--color-ink)] border border-[var(--color-line-2)] shadow-2xs">
-                  {proc.station}
-                </span>
+                {category.kind === 'station-tied' && (
+                  // Show the per-procedure station badge only for station-tied
+                  // categories — subcategories of those mix procedures from
+                  // different stations (e.g. Plating contains Cold Section
+                  // for GM and Grill Plating for Grill), so the badge helps
+                  // a manager scan which row belongs where. For general
+                  // categories every procedure applies to all stations by
+                  // definition; a chip on the row would be misleading.
+                  <span className="hidden sm:inline-flex min-w-[36px] h-6 items-center justify-center px-2.5 text-[11px] font-semibold tracking-[0.02em] leading-none rounded-md bg-[var(--color-panel-2)] text-[var(--color-ink)] border border-[var(--color-line-2)] shadow-2xs">
+                    {proc.station}
+                  </span>
+                )}
                 <span className="text-[11px] text-[var(--color-ink-3)] font-normal hidden sm:inline-flex items-center gap-1">
                   <LuClock className="text-xs" />
                   {isEs ? proc.updatedAgoEs : proc.updatedAgoEn}

@@ -14,50 +14,20 @@ export interface MultiSelectOption {
 }
 
 interface MultiSelectChipsProps {
-  /** The form-field label rendered above the chips. */
   label: string;
-  /** Hint text under the label — explains what the field is for. */
   hint?: string;
-  /** The currently selected values, in insertion order. */
   value: string[];
-  /** Adds, removes, and re-orders selections. */
   onChange: (next: string[]) => void;
-  /** The full list of options the user can pick from. */
   options: MultiSelectOption[];
-  /** Disabled state — disables every chip and the add button. */
   disabled?: boolean;
-  /** Placeholder for the add button when nothing is selected yet. */
   addLabel: string;
-  /** What renders when nothing is selected and the picker is closed.
-   *  Distinct from `hint` — it's the empty state, not the descriptor. */
   emptyText: string;
-  /** Called when the picker would open but is suppressed (e.g. no upstream
-   *  job role selected). Receives a string suitable for an `aria-disabled`
-   *  tooltip / status. */
   blockedReason?: string;
-  /** Aria id for the field group. */
   id?: string;
-  /** Truncates selected chips beyond this count with a "+N more" pill.
-   *  Hidden chips remain in `value` — this is display-only. */
   visibleChipLimit?: number;
-  /** Renders inline beside the label (e.g. required asterisk). */
   labelTrailing?: React.ReactNode;
 }
 
-/**
- * A multi-select chip picker built on `Button` + `Popover` — the same primitives
- * every other admin action uses, so the "+ Add" trigger reads as a secondary
- * action (peach pill with brand-700 text) instead of looking like an input
- * with an orange outline.
- *
- * The shape mirrors the user's mental model from the spec:
- *
- *   [ Line Cook × ]  [ Prep Cook × ]   [+ Add job role]
- *
- * — selected items become removable chips, the add button opens a popover
- * (one pick closes it), and the underlying `Popover` keeps the keyboard /
- * focus / portal behaviour identical to every other menu on the admin side.
- */
 export function MultiSelectChips({
   label,
   hint,
@@ -174,10 +144,6 @@ export function MultiSelectChips({
   );
 }
 
-/** The "+ Add" trigger + popover. Uses Button + Popover (not CustomSelect) so
- *  the trigger reads as a peach pill like every other `[+ Add]` on the admin
- *  side — the CustomSelect trigger was being mistaken for an input with an
- *  error-state orange outline. */
 function PickerTrigger({
   disabled,
   disabledReason,

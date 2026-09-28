@@ -693,7 +693,7 @@ export function LibraryProcedureExplorer({
                     list were six copies of one action. What changes the
                     procedure's state sits in its menu. */}
                 <Link
-                  href={`/${locale}/procedures/${p.slug}`}
+                  href={`/${locale}/admin/library/${p.id}`}
                   className="group flex min-w-0 flex-1 items-center justify-between gap-4 py-5 pl-4"
                 >
                 {/* The icon is a mark, not a framed object: the bordered tile was

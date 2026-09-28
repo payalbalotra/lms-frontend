@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { getCategoryIcon } from '@/lib/category-icons';
 import type { Category, Subcategory } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -183,6 +183,11 @@ export function CategoryDetailClient({
   locale,
 }: CategoryDetailClientProps): React.ReactElement {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // The chosen station from the categories page travels via `?station=`. The
+  // wizard's Access step reads the same param and pre-fills its station
+  // selection (procedure-editor.tsx — handled in Step 6).
+  const stationFromUrl = searchParams.get('station');
   const isEs = locale === 'es';
   const [category, setCategory] = React.useState<Category | null>(initialCategory);
   const [isResolving, setIsResolving] = React.useState<boolean>(initialCategory === null);
@@ -257,8 +262,6 @@ export function CategoryDetailClient({
   async function handleSaveSubcategory(newSub: {
     nameEn: string;
     nameEs: string;
-    isStationSpecific: boolean;
-    stations?: string[];
   }) {
     // The mutation is only ever invoked from inside the main panel render —
     // by that point the loading / not-found guards above have already
@@ -274,8 +277,6 @@ export function CategoryDetailClient({
           ...updatedSubs[idx],
           nameEn: newSub.nameEn,
           nameEs: newSub.nameEs,
-          isStationSpecific: newSub.isStationSpecific,
-          stations: newSub.isStationSpecific ? newSub.stations ?? [] : undefined,
         };
       }
     } else {
@@ -285,8 +286,6 @@ export function CategoryDetailClient({
         slug,
         nameEn: newSub.nameEn,
         nameEs: newSub.nameEs || newSub.nameEn,
-        isStationSpecific: newSub.isStationSpecific,
-        stations: newSub.isStationSpecific ? newSub.stations ?? [] : undefined,
       });
     }
 
@@ -297,35 +296,6 @@ export function CategoryDetailClient({
           subcategories: updatedSubs.map((s) => ({
             nameEn: s.nameEn,
             nameEs: s.nameEs,
-            isStationSpecific: s.isStationSpecific,
-          })),
-        },
-      });
-      setCategory((prev) => (prev ? { ...prev, subcategories: updatedSubs } : prev));
-    } catch {
-      // Optimistic state preserved
-    }
-  }
-
-  const [stationPickerSub, setStationPickerSub] = React.useState<Subcategory | null>(null);
-
-  async function handleSaveStations(subToUpdate: Subcategory, selectedStations: string[]) {
-    if (!category) return;
-    const targetCategory = category;
-    const updatedSubs = subcategories.map((s) =>
-      s.id === subToUpdate.id || s.slug === subToUpdate.slug
-        ? { ...s, stations: selectedStations, isStationSpecific: true }
-        : s
-    );
-
-    try {
-      await updateMutation.mutateAsync({
-        id: targetCategory.id,
-        input: {
-          subcategories: updatedSubs.map((s) => ({
-            nameEn: s.nameEn,
-            nameEs: s.nameEs,
-            isStationSpecific: s.isStationSpecific,
           })),
         },
       });
@@ -428,7 +398,6 @@ export function CategoryDetailClient({
         <div className="space-y-3">
           {subcategories.map((sub, index) => {
             const isExpanded = expandedSubSlug === sub.slug;
-            const isGeneral = !sub.isStationSpecific;
             const SubIcon = getSubcategoryIcon(sub.slug, index);
             const panelId = `subcategory-panel-${sub.id || sub.slug}`;
             const headerId = `subcategory-header-${sub.id || sub.slug}`;
@@ -445,7 +414,10 @@ export function CategoryDetailClient({
                   slug: `${sub.slug}-standard-sop`,
                   titleEn: `${sub.nameEn} Standard Operating Procedure`,
                   titleEs: `Procedimiento de ${sub.nameEs}`,
-                  station: isGeneral ? 'General' : (sub.stations?.[0] ?? 'GM'),
+                  // The chosen station on the categories page drives which
+                  // station the new procedure lands on; demo fallbacks wear
+                  // 'General' so the row simply omits the station pill.
+                  station: stationFromUrl ?? 'General',
                   updatedAgoEn: 'Updated 2 days ago',
                   updatedAgoEs: 'Actualizado hace 2 días',
                 },
@@ -454,7 +426,7 @@ export function CategoryDetailClient({
                   slug: `${sub.slug}-safety-sop`,
                   titleEn: `${sub.nameEn} Safety Checklist`,
                   titleEs: `Lista de Seguridad de ${sub.nameEs}`,
-                  station: isGeneral ? 'General' : (sub.stations?.[1] ?? 'Grill'),
+                  station: stationFromUrl ?? 'General',
                   updatedAgoEn: 'Updated 4 days ago',
                   updatedAgoEs: 'Actualizado hace 4 días',
                 },
@@ -465,14 +437,6 @@ export function CategoryDetailClient({
               ...fixtures.filter((p) => !seen.has(p.id)),
             ];
 
-            // Subcategory records can store either form (the live fixtures
-            // ship `stn-gm`/`st-grill`, the seed stories ship `GM`/`Grill`),
-            // and the Access modal round-trips them as codes — normalise
-            // through `stationCode` so the badge text always lands on the
-            // human-readable form the manager expects.
-            const stationCodes = (sub.stations ?? (isGeneral ? [] : ['GM', 'Grill', 'Expo'])).map(stationCode);
-            const visibleStations = stationCodes.slice(0, 3);
-            const hiddenStationCount = stationCodes.length - visibleStations.length;
             const procedureLabel = isEs ? 'procedimientos' : 'procedures';
 
             return (
@@ -522,36 +486,20 @@ export function CategoryDetailClient({
                   </div>
 
                   <div className="flex shrink-0 items-center gap-3 pl-3">
-                    {/* Where the subcategory applies, in the badge every other
-                        list uses. "General" was the word for a subcategory with no
-                        station of its own, and it did not say what it meant: it
-                        applies at every station. Changing which stations is in
-                        the menu, so the badges are labels, not buttons. */}
+                    {/* Every subcategory now applies at every station — the
+                        station lives on the procedure (set via the wizard's
+                        Access step), not on the subcategory. The pill is the
+                        label every other list uses, never an action target. */}
                     {!isExpanded && (
-                      <div className="hidden flex-wrap items-center gap-2 sm:flex">
-                        {isGeneral ? (
-                          <StatusPill tone="neutral">{isEs ? 'Todas las estaciones' : 'All stations'}</StatusPill>
-                        ) : (
-                          <>
-                            {visibleStations.map((code) => (
-                              <StatusPill key={code} tone="neutral">
-                                {code}
-                              </StatusPill>
-                            ))}
-                            {hiddenStationCount > 0 && <StatusPill tone="neutral">+{hiddenStationCount}</StatusPill>}
-                          </>
-                        )}
-                      </div>
+                      <StatusPill tone="neutral" className="hidden sm:inline-flex">
+                        {isEs ? 'Todas las estaciones' : 'All stations'}
+                      </StatusPill>
                     )}
                     <RowActions
                       items={[
                         {
                           label: isEs ? 'Añadir procedimiento' : 'Add procedure',
                           onSelect: () => setLinkProceduresSub(sub),
-                        },
-                        {
-                          label: isEs ? 'Vincular estaciones' : 'Link stations',
-                          onSelect: () => setStationPickerSub(sub),
                         },
                         {
                           label: isEs ? 'Editar subcategoría' : 'Edit subcategory',
@@ -629,11 +577,19 @@ export function CategoryDetailClient({
                               </div>
 
                               <div className="flex shrink-0 items-center gap-4 pl-2" onClick={(e) => e.stopPropagation()}>
-                                {proc.station !== 'General' && (
-                                  // Subcategory station ids can come in as
-                                  // `stn-gm` (subcategory store), `st-gm`
-                                  // (Access step), or `GM` (seed story).
-                                  // `stationCode` collapses all three onto the
+                                {category.kind === 'station-tied' && (
+                                  // For station-tied categories, every
+                                  // procedure in the subcategory is tied to
+                                  // a specific station — show the badge so
+                                  // the manager can scan which station each
+                                  // row belongs to. For general categories
+                                  // the procedures apply to all stations by
+                                  // definition; a station chip would be
+                                  // misleading, so it's dropped entirely.
+                                  // Procedure catalog station ids are mixed
+                                  // (live fixtures ship `st-gm`/`st-grill`,
+                                  // seed stories ship `GM`/`Grill`).
+                                  // `stationCode` collapses both onto the
                                   // human-readable badge the rest of the
                                   // page uses.
                                   <StatusPill tone="neutral" className="hidden sm:inline-flex">
@@ -682,21 +638,6 @@ export function CategoryDetailClient({
         />
       </Modal>
 
-      {/* Station Picker Modal */}
-      <Modal open={Boolean(stationPickerSub)} onClose={() => setStationPickerSub(null)} size="md">
-        {stationPickerSub && (
-          <StationPickerModal
-            isEs={isEs}
-            sub={stationPickerSub}
-            onSave={(selectedStations) => {
-              void handleSaveStations(stationPickerSub, selectedStations);
-              setStationPickerSub(null);
-            }}
-            onCancel={() => setStationPickerSub(null)}
-          />
-        )}
-      </Modal>
-
       {/* Add Procedure Modal — opens from the "Add procedure" toolbar and
           the row-action menu. Two flows:
           (1) Pick existing/draft procedures from the catalog and link them
@@ -709,6 +650,7 @@ export function CategoryDetailClient({
             isEs={isEs}
             category={category}
             sub={linkProceduresSub}
+            stationFromUrl={stationFromUrl}
             alreadyLinkedIds={new Set(
               (linkedProceduresBySubSlug[linkProceduresSub.slug] ?? []).map((p) => p.id),
             )}
@@ -723,18 +665,18 @@ export function CategoryDetailClient({
               setLinkProceduresSub(null);
             }}
             onCreateNew={() => {
-              const target = linkProceduresSub;
-              // Translate subcategory station ids (e.g. `stn-gm`) into the
-              // wizard's ACCESS_STATIONS ids (e.g. `st-gm`) so the Access
-              // step's pre-fill lands on the right checkboxes. The mapping
-              // strips the trailing `n`; real backend ids will replace both
-              // sides once we wire the fixtures to the database.
-              const accessStations = (target.stations ?? [])
-                .map((id) => id.replace(/^stn-/, 'st-'))
-                .join(',');
+              // Station arrives via `?station=` (single id, `stn-` prefix
+              // matching SEED_STATIONS). The wizard's Access step reads it
+              // and pre-fills `audience.stationIds` for station-tied
+              // categories; general categories ignore it. Replaces the old
+              // `accessStations=st-gm,st-grill` round-trip that translated
+              // between two id schemes.
               setLinkProceduresSub(null);
+              const stationQuery = stationFromUrl
+                ? `&station=${encodeURIComponent(stationFromUrl)}`
+                : '';
               router.push(
-                `/${locale}/admin/library/new?category=${category.slug}&subcategory=${target.slug}&accessLocation=loc-main&accessStations=${encodeURIComponent(accessStations)}`,
+                `/${locale}/admin/library/new?category=${category.slug}&subcategory=${linkProceduresSub.slug}&accessLocation=loc-main${stationQuery}`,
               );
             }}
             onCancel={() => setLinkProceduresSub(null)}
@@ -749,6 +691,7 @@ function AddProcedureModal({
   isEs,
   category,
   sub,
+  stationFromUrl,
   alreadyLinkedIds,
   onAddExisting,
   onCreateNew,
@@ -757,6 +700,9 @@ function AddProcedureModal({
   isEs: boolean;
   category: Category;
   sub: Subcategory;
+  /** Station id forwarded to the wizard as `?station=`; null on general
+   *  categories (the wizard's Access step ignores the param in that case). */
+  stationFromUrl: string | null;
   alreadyLinkedIds: Set<string>;
   onAddExisting: (selected: typeof EXISTING_PROCEDURES) => void;
   onCreateNew: () => void;
@@ -891,12 +837,15 @@ function AddProcedureModal({
                       </span>
                       <span className="block truncate text-sm text-[var(--color-ink-2)]">{proc.titleEs}</span>
                     </span>
-                    {proc.station !== 'General' && (
+                    {category.kind === 'station-tied' && proc.station !== 'General' && (
                       // Same normalisation as the panel row below: the
                       // catalog's station field is the raw id (`st-expo`,
                       // `st-grill`, …) and the badge should read like the
                       // rest of the page (`Expo`, `Grill`). `stationCode`
-                      // covers both `stn-` and `st-` prefixes.
+                      // covers both `stn-` and `st-` prefixes. Gated on the
+                      // category's kind for the same reason as the panel
+                      // row — a station chip is misleading for general
+                      // categories whose procedures apply to all stations.
                       <StatusPill tone="neutral">{stationCode(proc.station)}</StatusPill>
                     )}
                   </label>
@@ -923,8 +872,8 @@ function AddProcedureModal({
           </dl>
           <p className="text-sm text-[var(--color-ink-3)]">
             {isEs
-              ? `La categoría, subcategoría${sub.stations?.length ? ' y las estaciones' : ''} se rellenarán automáticamente.`
-              : `Category, subcategory${sub.stations?.length ? ' and stations' : ''} will be filled in automatically.`}
+              ? 'La categoría, subcategoría y estaciones se rellenarán automáticamente.'
+              : 'Category, subcategory, and stations will be filled in automatically.'}
           </p>
         </section>
       </ModalBody>
@@ -954,103 +903,6 @@ function AddProcedureModal({
   );
 }
 
-/**
- * The stations as a checklist. The station picker and the subcategory form each
- * drew their own -- one with a clickable <div> whose checkbox ignored the
- * keyboard, and both printing the station code twice. A <label> around a real
- * checkbox is clickable, focusable and toggled by Space without any handler.
- */
-function StationChecklist({
-  selected,
-  onToggle,
-  label,
-}: {
-  selected: string[];
-  onToggle: (code: string) => void;
-  label: string;
-}): React.ReactElement {
-  return (
-    <div
-      role="group"
-      aria-label={label}
-      className="divide-y divide-[var(--color-line)] rounded-[var(--radius-md)] border border-[var(--color-line-2)]"
-    >
-      {DEFAULT_STATIONS.map((stn) => (
-        <label
-          key={stn.id}
-          className="flex min-h-tap-admin cursor-pointer items-center gap-3 px-3 py-2 transition-colors hover:bg-[var(--color-wash)]"
-        >
-          <input
-            type="checkbox"
-            checked={selected.includes(stn.code)}
-            onChange={() => onToggle(stn.code)}
-            className="size-4 shrink-0 accent-[var(--color-brand-600)]"
-          />
-          <span className="text-sm font-semibold text-[var(--color-ink)]">{stn.code}</span>
-          <span className="truncate text-sm text-[var(--color-ink-3)]">{stn.description}</span>
-        </label>
-      ))}
-    </div>
-  );
-}
-
-function StationPickerModal({
-  isEs,
-  sub,
-  onSave,
-  onCancel,
-}: {
-  isEs: boolean;
-  sub: Subcategory;
-  onSave: (selectedStationCodes: string[]) => void;
-  onCancel: () => void;
-}) {
-  const [selected, setSelected] = React.useState<string[]>(
-    sub.stations ?? ['GM', 'Grill', 'Expo']
-  );
-
-  const toggleStation = (code: string) => {
-    setSelected((prev) =>
-      prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]
-    );
-  };
-
-  return (
-    <div className="flex flex-col">
-      <ModalHeader
-        title={isEs ? 'Vincular estaciones' : 'Link stations'}
-        description={
-          isEs
-            ? `Selecciona las estaciones para "${sub.nameEs || sub.nameEn}"`
-            : `Select stations for "${sub.nameEn}"`
-        }
-        onClose={onCancel}
-        closeLabel={isEs ? 'Cerrar' : 'Close'}
-      />
-
-      <ModalBody className="space-y-3">
-        <h3 className="text-sm font-semibold text-[var(--color-ink-2)]">
-          {isEs ? 'Estaciones disponibles' : 'Available stations'}
-        </h3>
-        <StationChecklist
-          selected={selected}
-          onToggle={toggleStation}
-          label={isEs ? 'Estaciones disponibles' : 'Available stations'}
-        />
-      </ModalBody>
-
-      <ModalFooter>
-        <Button type="button" variant="neutral" onClick={onCancel}>
-          {isEs ? 'Cancelar' : 'Cancel'}
-        </Button>
-        <Button type="button" variant="primary" onClick={() => onSave(selected)}>
-          {isEs ? 'Guardar estaciones' : 'Save stations'}
-        </Button>
-      </ModalFooter>
-    </div>
-  );
-}
-
 function SubcategoryForm({
   isEs,
   editingSub,
@@ -1059,30 +911,19 @@ function SubcategoryForm({
 }: {
   isEs: boolean;
   editingSub: Subcategory | null;
-  onSave: (data: { nameEn: string; nameEs: string; isStationSpecific: boolean; stations: string[] }) => void;
+  onSave: (data: { nameEn: string; nameEs: string }) => void;
   onCancel: () => void;
 }) {
   const [name, setName] = React.useState<BilingualValue>({
     en: editingSub?.nameEn ?? '',
     es: editingSub?.nameEs ?? '',
   });
-  const [isStationSpecific, setIsStationSpecific] = React.useState(
-    Boolean(editingSub?.isStationSpecific)
-  );
-  const [stations, setStations] = React.useState<string[]>(editingSub?.stations ?? []);
 
   const trimmedEn = name.en.trim();
   const trimmedEs = name.es.trim();
   const enValid = trimmedEn.length > 0 && trimmedEn.length <= 100;
   const esValid = trimmedEs.length <= 100;
-  const stationsValid = !isStationSpecific || stations.length > 0;
-  const canSubmit = enValid && esValid && stationsValid;
-
-  const toggleStation = (code: string) => {
-    setStations((prev) =>
-      prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]
-    );
-  };
+  const canSubmit = enValid && esValid;
 
   return (
     <form
@@ -1092,8 +933,6 @@ function SubcategoryForm({
         onSave({
           nameEn: trimmedEn,
           nameEs: trimmedEs || trimmedEn,
-          isStationSpecific,
-          stations: isStationSpecific ? stations : [],
         });
       }}
       className="flex flex-col"
@@ -1133,51 +972,6 @@ function SubcategoryForm({
             />
           </div>
         </section>
-
-        <section className="space-y-3">
-          <h3 className="text-sm font-semibold text-[var(--color-ink-2)]">{isEs ? 'Alcance' : 'Scope'}</h3>
-
-          <div role="radiogroup" aria-label={isEs ? 'Alcance' : 'Scope'} className="space-y-2">
-            <ScopeCard
-              checked={!isStationSpecific}
-              onSelect={() => {
-                setIsStationSpecific(false);
-                setStations([]);
-              }}
-              title={isEs ? 'Todas las estaciones' : 'All stations'}
-              description={isEs ? 'Se muestra en todas las estaciones.' : 'Shown at every station.'}
-            />
-            <ScopeCard
-              checked={isStationSpecific}
-              onSelect={() => setIsStationSpecific(true)}
-              title={isEs ? 'Específico de estación' : 'Station-specific'}
-              description={isEs ? 'Solo aparece en las estaciones seleccionadas.' : 'Only appears for selected stations.'}
-            />
-          </div>
-
-          {isStationSpecific && (
-            <div className="space-y-3 pt-1">
-              <h3 className="text-sm font-semibold text-[var(--color-ink-2)]">
-                {isEs ? 'Estaciones' : 'Stations'}
-                <span aria-hidden="true" className="ml-1 text-[var(--color-bad)]">*</span>
-              </h3>
-              <StationChecklist
-                selected={stations}
-                onToggle={toggleStation}
-                label={isEs ? 'Estaciones' : 'Stations'}
-              />
-              <p className="text-sm text-[var(--color-ink-3)]">
-                {stations.length === 0
-                  ? isEs
-                    ? 'Selecciona al menos una estación.'
-                    : 'Select at least one station.'
-                  : isEs
-                    ? `${stations.length} ${stations.length === 1 ? 'estación seleccionada' : 'estaciones seleccionadas'}`
-                    : `${stations.length} ${stations.length === 1 ? 'station selected' : 'stations selected'}`}
-              </p>
-            </div>
-          )}
-        </section>
       </ModalBody>
 
       <ModalFooter>
@@ -1190,40 +984,5 @@ function SubcategoryForm({
         </Button>
       </ModalFooter>
     </form>
-  );
-}
-
-function ScopeCard({
-  checked,
-  onSelect,
-  title,
-  description,
-}: {
-  checked: boolean;
-  onSelect: () => void;
-  title: string;
-  description: string;
-}): React.ReactElement {
-  return (
-    <label
-      className={cn(
-        'flex cursor-pointer items-start gap-3 rounded-[var(--radius-md)] border p-3 transition-colors',
-        checked
-          ? 'border-[var(--color-ring)] bg-[var(--color-surface)]'
-          : 'border-[var(--color-line-2)] bg-[var(--color-surface)] hover:bg-[var(--color-wash)]',
-      )}
-    >
-      <input
-        type="radio"
-        name="scope"
-        checked={checked}
-        onChange={onSelect}
-        className="mt-0.5 size-4 shrink-0 accent-[var(--color-brand-600)]"
-      />
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold text-[var(--color-ink)]">{title}</span>
-        <span className="mt-0.5 block text-sm text-[var(--color-ink-3)]">{description}</span>
-      </span>
-    </label>
   );
 }

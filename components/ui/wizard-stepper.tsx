@@ -7,32 +7,10 @@ import { cn } from '@/lib/utils';
 export interface WizardStep {
   id: string;
   label: string;
-  /** A number in [0, 1] — how much of this step the user has filled in.
-   *  The stepper turns it into a connector fill width and a circle state
-   *  (empty / started / complete). The stepper does not compute it — the
-   *  caller passes a value it has already derived from form state. */
   progress: number;
 }
 
-/**
- * Where you are in a multi-step build, and how far there is left to go.
- *
- * Each step has a progress value (0–1) that the caller computes from real
- * form state. The stepper reflects it in two places:
- *
- *  - The connector line AFTER each step fills from left to right according
- *    to THAT step's progress, animated at ~400 ms.
- *  - The circle's state:
- *      empty (p = 0)              — white ground, grey border and number
- *      started (0 < p < 1)        — white ground, brand border and number
- *      complete (p = 1)           — brand fill, white check
- *      current (any p)            — brand fill + soft halo ring,
- *                                   bold brand-coloured label
- *    A current step can also be complete (brand fill, white check, halo).
- *
- * The stepper knows nothing about the form. Anything that can be expressed
- * as "this step is X% done" can drive it.
- */
+
 export function WizardStepper({
   steps,
   current,
@@ -54,10 +32,6 @@ export function WizardStepper({
     setMaxVisited((prev) => Math.max(prev, activeIdx));
   }, [activeIdx]);
 
-  // prefers-reduced-motion — globals.css already collapses every transition
-  // to 0.01 ms under the same media query, but reading it here lets us also
-  // skip the React-side class churn (cheaper render). Initial state matches
-  // the server (false) so hydration doesn't see a mismatch.
   const [reducedMotion, setReducedMotion] = React.useState(false);
   React.useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -91,10 +65,6 @@ export function WizardStepper({
               linePercent = 0;
             }
 
-            // Inline styles for the three colour-critical properties so they
-            // can't be dropped by the Tailwind JIT or `twMerge` if an
-            // arbitrary-value pattern isn't picked up. The layout / ring
-            // sizes stay as utility classes.
             const circleStyle: React.CSSProperties =
               isActive || isComplete
                 ? {
@@ -146,9 +116,7 @@ export function WizardStepper({
               motion,
             );
 
-            // Labels are hidden under the sm breakpoint unless the step is the
-            // current one — the disc + numeric already carries the meaning, the
-            // label is the bonus.
+   
             const labelVisibility = isActive
               ? 'inline-block'
               : 'hidden sm:inline-block';

@@ -75,18 +75,7 @@ import {
   LuX,
 } from 'react-icons/lu';
 
-/**
- * Renders an icon that was chosen somewhere else — a nav row, a category, a
- * block type — where the component itself travels in the data.
- *
- * Icons are decorative here: every one of them sits next to its own label, so
- * this hides them from assistive tech rather than repeating that label. An icon
- * that carries meaning on its own takes a `<span className="sr-only">` beside
- * it instead of being passed through this.
- *
- * Size comes from the surrounding font-size (react-icons default `1em`), so
- * `text-lg` sizes the glyph the same way it sizes text.
- */
+
 export function Icon({
   icon,
   className,
@@ -99,23 +88,12 @@ export function Icon({
   return <Glyph aria-hidden="true" className={className} />;
 }
 
-/**
- * A few icons still arrive from the API as a name — a critical limit says which
- * instrument to reach for. Anything unrecognised falls back to the test strip,
- * which is what a critical limit is checked with more often than not.
- */
 const BY_NAME: Readonly<Record<string, IconType>> = {
-  // instruments a critical limit names, as the API sends them
   'ri-test-tube-line': LuTestTube,
   'ri-temp-cold-line': LuSnowflake,
   'ri-thermometer-line': LuThermometer,
   'ri-time-line': LuClock,
   'ri-scales-2-line': LuScale,
-  // The names the screens merged in from feat/procedures were written against.
-  // That branch predates the move to Lucide components, and the Remix stylesheet
-  // is no longer loaded — so without this table every icon on those screens is an
-  // empty <i>. Mapping here rather than editing nine files keeps their markup and
-  // our icons, and a name that is not in this table falls back to a document.
   'ri-add-line': LuPlus,
   'ri-alert-line': LuTriangleAlert,
   'ri-arrow-down-line': LuArrowDown,

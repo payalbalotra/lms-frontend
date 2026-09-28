@@ -242,6 +242,14 @@ function CategoryForm({
   });
   const [icon, setIcon] = React.useState(category?.icon ?? 'LuFolder');
   const [showIconPicker, setShowIconPicker] = React.useState(false);
+  // `kind` is structural — it gates the Access step in the wizard and
+  // decides whether the category lives under "By station" on the
+  // categories page. Once a category exists with procedures, flipping
+  // it would orphan those procedures, so the picker only appears at
+  // create time; rename mode preserves the existing `kind`.
+  const [kind, setKind] = React.useState<'general' | 'station-tied'>(
+    category?.kind ?? 'general',
+  );
 
   const createMutation = useCreateCategory();
   const updateMutation = useUpdateCategory();
@@ -267,6 +275,7 @@ function CategoryForm({
           locationId,
           nameEn: finalEn,
           nameEs: finalEs,
+          kind,
           icon,
         });
       } else if (category) {
@@ -341,6 +350,46 @@ function CategoryForm({
           </p>
         </div>
 
+        {/* Category-kind picker — only at create time. A radio group (not a
+            dropdown) so the two options sit side by side and the
+            description of each is visible without a second click. Matches
+            the selected-state styling used by the icon picker below. */}
+        {mode === 'create' && (
+          <fieldset className="space-y-1.5">
+            <legend className="text-sm font-semibold text-[var(--color-ink)]">
+              {isEs ? 'Tipo de categoría' : 'Category type'}
+            </legend>
+            <div
+              role="radiogroup"
+              aria-label={isEs ? 'Tipo de categoría' : 'Category type'}
+              className="grid grid-cols-1 sm:grid-cols-2 gap-2"
+            >
+              <KindOption
+                value="general"
+                current={kind}
+                onChange={setKind}
+                title={isEs ? 'General' : 'General'}
+                description={
+                  isEs
+                    ? 'Aplica a todas las estaciones. El wizard no pedirá una estación.'
+                    : 'Applies to all stations. The wizard will not ask for a station.'
+                }
+              />
+              <KindOption
+                value="station-tied"
+                current={kind}
+                onChange={setKind}
+                title={isEs ? 'Por estación' : 'Station-tied'}
+                description={
+                  isEs
+                    ? 'Vive bajo "Por estación". El wizard pre-rellenará la estación elegida.'
+                    : 'Lives under "By station". The wizard will pre-fill the chosen station.'
+                }
+              />
+            </div>
+          </fieldset>
+        )}
+
         <div className="space-y-1.5">
           <Label htmlFor="cat-icon-toggle">{isEs ? 'Icono' : 'Icon'}</Label>
           <div className="flex items-center gap-3">
@@ -407,5 +456,49 @@ function CategoryForm({
         </Button>
       </ModalFooter>
     </form>
+  );
+}
+
+interface KindOptionProps {
+  value: 'general' | 'station-tied';
+  current: 'general' | 'station-tied';
+  onChange: (v: 'general' | 'station-tied') => void;
+  title: string;
+  description: string;
+}
+
+/** Single radio card for the kind picker. Uses a real <input type="radio">
+ *  inside a <label> so keyboard / screen-reader / click-target semantics
+ *  are free, and the surrounding label paints the selected-state chrome. */
+function KindOption({
+  value,
+  current,
+  onChange,
+  title,
+  description,
+}: KindOptionProps): React.ReactElement {
+  const checked = value === current;
+  return (
+    <label
+      className={cn(
+        'flex items-start gap-2.5 rounded-[var(--radius-md)] border p-3 cursor-pointer transition-colors',
+        checked
+          ? 'border-[var(--color-ring)] bg-[var(--color-brand-tint)]'
+          : 'border-[var(--color-line-2)] bg-[var(--color-surface)] hover:bg-[var(--color-panel)]',
+      )}
+    >
+      <input
+        type="radio"
+        name="category-kind"
+        value={value}
+        checked={checked}
+        onChange={() => onChange(value)}
+        className="mt-0.5 accent-[var(--color-brand-600)]"
+      />
+      <span className="flex min-w-0 flex-col gap-0.5">
+        <span className="text-sm font-semibold text-[var(--color-ink)]">{title}</span>
+        <span className="text-xs text-[var(--color-ink-2)] leading-snug">{description}</span>
+      </span>
+    </label>
   );
 }
