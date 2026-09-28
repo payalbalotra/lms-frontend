@@ -7,7 +7,8 @@ import { getCategoryIcon } from '@/lib/category-icons';
 import type { Category } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { CategoryActions } from './category-actions';
-import { LuArrowRight, LuFolders, LuLayers } from 'react-icons/lu';
+import { LuArrowRight, LuFolders } from 'react-icons/lu';
+import { PiSquaresFour } from 'react-icons/pi';
 import { StatusPill } from '@/components/ui/status-pill';
 import { IconTile } from '@/components/ui/icon-tile';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -185,7 +186,7 @@ function StationsCard({
       )}
     >
       <div className="flex items-start gap-3 min-w-0">
-        <IconTile size="md" icon={LuLayers} className="group-hover:text-[var(--color-ink)]" />
+        <IconTile size="md" icon={PiSquaresFour} className="group-hover:text-[var(--color-ink)]" />
         <div className="min-w-0 flex-1 pt-0.5">
           <h3 className="truncate text-sm font-semibold text-[var(--color-ink)]">
             {isEs ? 'Estaciones' : 'Stations'}

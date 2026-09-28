@@ -4,7 +4,7 @@ import { LuChevronRight, LuCircleAlert, LuFocus, LuLanguages } from 'react-icons
 import { Icon } from '@/components/ui/icon';
 import { CategoryArt } from '@/components/admin/category-art';
 import { HoverImagePreview } from '@/components/ui/hover-image-preview';
-import { getCategoryIcon } from '@/lib/category-icons';
+import { getCategoryIcon, getProcedureIcon, getSubcategoryIcon } from '@/lib/category-icons';
 import { StatusPill } from '@/components/ui/status-pill';
 import type { Category } from '@/lib/types';
 
@@ -103,6 +103,4 @@ export function ProcedureRow({
   );
 }
 
-// keep getCategoryIcon in the public re-export surface so callers that still
-// import it via this module continue to work; remove once all callers switch.
-export { getCategoryIcon };
+export { getCategoryIcon, getProcedureIcon, getSubcategoryIcon };

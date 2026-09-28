@@ -10,14 +10,11 @@ import { Icon } from '@/components/ui/icon';
 import { RowActions } from '@/components/ui/row-actions';
 import { getCategoryIcon } from '@/lib/category-icons';
 import { cn } from '@/lib/utils';
-import { LuArrowLeft, LuChevronLeft, LuChevronRight, LuClock, LuFileText, LuPlus, LuSearch } from 'react-icons/lu';
+import { LuChevronLeft, LuChevronRight, LuClock, LuPlus, LuSearch } from 'react-icons/lu';
+import { getProcedureIcon } from '@/lib/category-icons';
 import { IconTile } from '@/components/ui/icon-tile';
 
-/** Stations the wizard's Access step can pre-fill from. Mirrors `SEED_STATIONS`
- *  in `lib/api.ts` and the categories-page picker — the subcategory detail
- *  page is a deep-link target reached only when a manager opens a station
- *  chip from the categories page, so the chosen station arrives as `?station=`
- *  in the URL rather than via props. */
+
 const STATIONS: ReadonlyArray<{ id: string; name: string }> = [
   { id: 'stn-gm', name: 'GM' },
   { id: 'stn-grill', name: 'Grill' },
@@ -32,7 +29,16 @@ interface SubcategoryDetailClientProps {
   locale: string;
 }
 
-const MOCK_PROCEDURES = [
+const MOCK_PROCEDURES: Array<{
+  id: string;
+  slug: string;
+  titleEn: string;
+  titleEs: string;
+  station: string;
+  updatedAgoEn: string;
+  updatedAgoEs: string;
+  iconImageUrl?: string | null;
+}> = [
   {
     id: 'proc-1',
     slug: 'cold-section-plating-sop',
@@ -142,10 +148,7 @@ export function SubcategoryDetailClient({
               )}
             </div>
 
-            {/* Scope pill — driven by the category's `kind`, not the
-                subcategory (subcategories are now station-agnostic). When the
-                categories page passed a station via `?station=`, the pill
-                names that station instead of saying "All stations". */}
+           
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-[var(--radius-sm)] bg-[var(--color-panel)] px-2 py-0.5 text-xs font-medium text-[var(--color-ink-2)] border border-[var(--color-line)]">
                 {category.kind === 'station-tied' && activeStation
@@ -189,10 +192,7 @@ export function SubcategoryDetailClient({
         </Button>
       </div>
 
-      {/* Search & Filter Bar — the station filter used to live here; the
-          station now belongs to the procedure (set in the wizard's Access
-          step) and the chosen station already travels via `?station=` from
-          the categories page, so the filter was redundant. */}
+  
       <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 bg-[var(--color-surface)] p-2.5 rounded-[var(--radius-lg)] border border-[var(--color-line-2)] shadow-2xs">
         <div className="relative w-full sm:w-80">
           <LuSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-3)] text-sm" />
@@ -254,7 +254,12 @@ export function SubcategoryDetailClient({
               )}
             >
               <div className="flex items-center gap-3 min-w-0">
-                <IconTile size="md" icon={LuFileText} className="group-hover:text-[var(--color-ink)]" />
+                <IconTile
+                  size="md"
+                  icon={getProcedureIcon(proc, subcategory)}
+                  image={proc.iconImageUrl ? { src: proc.iconImageUrl } : undefined}
+                  className="group-hover:text-[var(--color-ink)]"
+                />
                 <div className="min-w-0">
                   <h3 className="truncate text-sm font-semibold text-[var(--color-ink)]">
                     {proc.titleEn}
@@ -267,13 +272,7 @@ export function SubcategoryDetailClient({
 
               <div className="flex items-center gap-3 shrink-0" onClick={(e) => e.stopPropagation()}>
                 {category.kind === 'station-tied' && (
-                  // Show the per-procedure station badge only for station-tied
-                  // categories — subcategories of those mix procedures from
-                  // different stations (e.g. Plating contains Cold Section
-                  // for GM and Grill Plating for Grill), so the badge helps
-                  // a manager scan which row belongs where. For general
-                  // categories every procedure applies to all stations by
-                  // definition; a chip on the row would be misleading.
+                
                   <span className="hidden sm:inline-flex min-w-[36px] h-6 items-center justify-center px-2.5 text-[11px] font-semibold tracking-[0.02em] leading-none rounded-md bg-[var(--color-panel-2)] text-[var(--color-ink)] border border-[var(--color-line-2)] shadow-2xs">
                     {proc.station}
                   </span>

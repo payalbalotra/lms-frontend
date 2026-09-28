@@ -3,7 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { getCategoryIcon } from '@/lib/category-icons';
+import { getCategoryIcon, getSubcategoryIcon } from '@/lib/category-icons';
 import type { Category, Subcategory } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Modal, ModalBody, ModalFooter, ModalHeader } from '@/components/ui/modal';
@@ -15,7 +15,7 @@ import { StatusPill } from '@/components/ui/status-pill';
 import { cn } from '@/lib/utils';
 import { BilingualInput, type BilingualValue } from '@/components/ui/bilingual-input';
 import { useUpdateCategory } from '@/services/categories/hooks';
-import { LuArrowLeft, LuChevronRight, LuClock, LuFileText, LuLink, LuPlus, LuSearch, LuShieldAlert, LuShieldCheck, LuSparkles, LuTag, LuX } from 'react-icons/lu';
+import { LuChevronRight, LuPlus, LuSearch, LuX } from 'react-icons/lu';
 import { IconTile } from '@/components/ui/icon-tile';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/admin/page-header';
@@ -167,15 +167,6 @@ const PROCEDURES_BY_SUBCATEGORY: Record<
     },
   ],
 };
-
-function getSubcategoryIcon(slug: string, index: number) {
-  if (slug.includes('hygiene')) return LuShieldCheck;
-  if (slug.includes('cross') || slug.includes('link')) return LuLink;
-  if (slug.includes('label') || slug.includes('tag')) return LuTag;
-  if (slug.includes('allerg')) return LuShieldAlert;
-  const icons = [LuShieldCheck, LuLink, LuTag, LuShieldAlert, LuSparkles];
-  return icons[index % icons.length];
-}
 
 export function CategoryDetailClient({
   initialCategory,
@@ -396,9 +387,9 @@ export function CategoryDetailClient({
         />
       ) : (
         <div className="space-y-3">
-          {subcategories.map((sub, index) => {
+          {subcategories.map((sub) => {
             const isExpanded = expandedSubSlug === sub.slug;
-            const SubIcon = getSubcategoryIcon(sub.slug, index);
+            const SubIcon = getSubcategoryIcon(sub);
             const panelId = `subcategory-panel-${sub.id || sub.slug}`;
             const headerId = `subcategory-header-${sub.id || sub.slug}`;
 

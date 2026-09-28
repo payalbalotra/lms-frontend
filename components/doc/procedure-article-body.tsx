@@ -98,7 +98,13 @@ export function ProcedureArticleBody({
       ? cat.nameEs || cat.nameEn
       : cat.nameEn || cat.nameEs
     : labels.uncategorised;
-  const iconName = cat?.slug ? `category-${cat.slug}` : 'file-text';
+  const procSub =
+    cat?.subcategories?.find((s) => s.id && proc.subcategoryId && s.id === proc.subcategoryId) ?? null;
+  const iconName = proc.iconImageUrl
+    ? 'file-text'
+    : procSub?.slug
+      ? `procedure-${procSub.slug}`
+      : 'file-text';
 
   let updated = '';
   try {

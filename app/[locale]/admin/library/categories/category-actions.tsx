@@ -14,35 +14,60 @@ import { useCreateCategory, useUpdateCategory, useArchiveCategory } from '@/serv
 import type { Category } from '@/lib/types';
 import {
   LuArchive,
-  LuBrush,
-  LuBuilding2,
-  LuChefHat,
-  LuClipboardList,
-  LuFolder,
-  LuPackage,
   LuPencil,
   LuPlus,
-  LuShieldCheck,
-  LuTruck,
   LuUndo2,
-  LuUtensils,
-  LuWrench,
-  LuX,
   LuChevronDown,
 } from 'react-icons/lu';
 import { IconTile } from '@/components/ui/icon-tile';
+import {
+  PiBookOpenText,
+  PiBookOpenUser,
+  PiChatCircle,
+  PiCookingPot,
+  PiDoorOpen,
+  PiFileText,
+  PiFire,
+  PiFlame,
+  PiFolder,
+  PiForkKnife,
+  PiHardHat,
+  PiLightning,
+  PiListChecks,
+  PiPackage,
+  PiShieldCheck,
+  PiSnowflake,
+  PiSparkle,
+  PiThermometer,
+  PiToolbox,
+  PiUserCirclePlus,
+  PiUserPlus,
+  PiUsers,
+} from 'react-icons/pi';
 
 const AVAILABLE_ICONS = [
-  { id: 'LuFolder', label: 'Folder', icon: LuFolder },
-  { id: 'LuUtensils', label: 'Recipes', icon: LuUtensils },
-  { id: 'LuBuilding2', label: 'Station', icon: LuBuilding2 },
-  { id: 'LuWrench', label: 'Equipment', icon: LuWrench },
-  { id: 'LuBrush', label: 'Cleaning', icon: LuBrush },
-  { id: 'LuTruck', label: 'Delivery', icon: LuTruck },
-  { id: 'LuShieldCheck', label: 'Safety', icon: LuShieldCheck },
-  { id: 'LuClipboardList', label: 'Checklist', icon: LuClipboardList },
-  { id: 'LuChefHat', label: 'Chef', icon: LuChefHat },
-  { id: 'LuPackage', label: 'Stock', icon: LuPackage },
+  { id: 'onboarding', label: 'Onboarding', icon: PiUserCirclePlus },
+  { id: 'food-safety', label: 'Food Safety', icon: PiShieldCheck },
+  { id: 'kitchen-operations', label: 'Kitchen Ops', icon: PiCookingPot },
+  { id: 'cleaning', label: 'Cleaning', icon: PiSparkle },
+  { id: 'opening-closing', label: 'Opening / Closing', icon: PiDoorOpen },
+  { id: 'equipment', label: 'Equipment', icon: PiToolbox },
+  { id: 'recipes', label: 'Recipes', icon: PiBookOpenText },
+  { id: 'staff', label: 'Staff', icon: PiUsers },
+  { id: 'training', label: 'Training', icon: PiBookOpenUser },
+  { id: 'temperature', label: 'Temperature', icon: PiThermometer },
+  { id: 'cold-storage', label: 'Cold Storage', icon: PiSnowflake },
+  { id: 'hot-line', label: 'Hot Line', icon: PiFlame },
+  { id: 'prep', label: 'Prep', icon: PiForkKnife },
+  { id: 'service', label: 'Service', icon: PiUserPlus },
+  { id: 'delivery', label: 'Delivery', icon: PiPackage },
+  { id: 'communication', label: 'Communication', icon: PiChatCircle },
+  { id: 'checklist', label: 'Checklist', icon: PiListChecks },
+  { id: 'quick', label: 'Quick Reference', icon: PiLightning },
+  { id: 'safety', label: 'Safety', icon: PiHardHat },
+  { id: 'procedure', label: 'Procedure', icon: PiFileText },
+  { id: 'cooking', label: 'Cooking', icon: PiFire },
+  { id: 'folder', label: 'Other', icon: PiFolder },
 ] as const;
 
 interface CategoryActionsProps {
@@ -240,7 +265,7 @@ function CategoryForm({
     en: category?.nameEn ?? '',
     es: category?.nameEs ?? '',
   });
-  const [icon, setIcon] = React.useState(category?.icon ?? 'LuFolder');
+  const [icon, setIcon] = React.useState(category?.icon ?? 'onboarding');
   const [showIconPicker, setShowIconPicker] = React.useState(false);
   // `kind` is structural — it gates the Access step in the wizard and
   // decides whether the category lives under "By station" on the
