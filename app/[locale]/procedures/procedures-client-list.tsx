@@ -196,6 +196,7 @@ export function ProceduresClientList({
                 <ProcedureRow
                   href={withAs(`/${locale}/procedures/${p.slug}`, viewAs)}
                   cover={cover}
+                  iconImageUrl={p.iconImageUrl ?? null}
                   category={p.category}
                   title={titleOf(p)}
                   meta={p.category ? nameOf(p.category) : labels.uncategorised}

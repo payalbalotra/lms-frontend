@@ -33,6 +33,9 @@ export interface HomeRow {
   updatedAt: string;
   href: string;
   cover?: string;
+  /** Manager-uploaded per-procedure icon override. Renders between the
+   *  recipe photo (when present) and the category's default SVG art. */
+  iconImageUrl?: string | null;
   category: React.ComponentProps<typeof ProcedureRow>['category'];
   title: string;
   meta: string;
@@ -119,6 +122,7 @@ export function EmployeeHome({
             <ProcedureRow
               href={r.href}
               cover={r.cover}
+              iconImageUrl={r.iconImageUrl}
               category={r.category}
               title={r.title}
               meta={r.meta}
@@ -221,6 +225,7 @@ function Rows({
               <ProcedureRow
                 href={r.href}
                 cover={r.cover}
+                iconImageUrl={r.iconImageUrl}
                 category={r.category}
                 title={r.title}
                 meta={r.meta}

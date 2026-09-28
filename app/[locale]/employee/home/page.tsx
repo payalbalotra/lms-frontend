@@ -147,6 +147,7 @@ export default async function EmployeeHomePage({ params }: PageProps): Promise<R
       updatedAt: p.updatedAt,
       href: withAs(`/${locale}/procedures/${p.slug}`, viewAs),
       cover: coverOf(p.bodyEn.blocks.length ? p.bodyEn.blocks : p.bodyEs.blocks),
+      iconImageUrl: p.iconImageUrl ?? null,
       category: p.category,
       title: titleOf(p),
       meta,
@@ -185,7 +186,7 @@ export default async function EmployeeHomePage({ params }: PageProps): Promise<R
 
   return (
     <>
-      <main className="mx-auto w-full max-w-doc px-4 pb-24 pt-6 sm:px-6 sm:pt-8">
+      <main className="mx-auto w-full max-w-doc px-4 pb-20 pt-6 sm:px-6 sm:pt-8">
         <EmployeeHome
           locale={locale}
           readsSpanish={isEs}

@@ -2,6 +2,8 @@ import * as React from 'react';
 import Link from 'next/link';
 import { LuChevronRight, LuCircleAlert, LuFocus, LuLanguages } from 'react-icons/lu';
 import { Icon } from '@/components/ui/icon';
+import { CategoryArt } from '@/components/admin/category-art';
+import { HoverImagePreview } from '@/components/ui/hover-image-preview';
 import { getCategoryIcon } from '@/lib/category-icons';
 import { StatusPill } from '@/components/ui/status-pill';
 import type { Category } from '@/lib/types';
@@ -19,9 +21,11 @@ export interface FlagLabels {
   english: string;
 }
 
+
 export function ProcedureRow({
   href,
   cover,
+  iconImageUrl,
   category,
   title,
   meta,
@@ -30,6 +34,7 @@ export function ProcedureRow({
 }: {
   href: string;
   cover?: string;
+  iconImageUrl?: string | null;
   /** Falls back to the category's icon when there is no photograph. */
   category?: Category | null;
   title: string;
@@ -43,17 +48,29 @@ export function ProcedureRow({
   return (
     <Link
       href={href}
-      className="flex items-stretch gap-4 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] pr-4"
+      className="group flex items-stretch gap-4 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] pr-4"
     >
       {cover ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={cover} alt="" className="w-20 shrink-0 self-stretch object-cover object-top" loading="lazy" />
+        <HoverImagePreview src={cover} alt="">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={cover} alt="" className="w-20 shrink-0 self-stretch rounded-l-[var(--radius-lg)] object-cover object-top" loading="lazy" />
+        </HoverImagePreview>
+      ) : iconImageUrl ? (
+        <HoverImagePreview src={iconImageUrl} alt="">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={iconImageUrl}
+            alt=""
+            className="w-20 shrink-0 self-stretch rounded-l-[var(--radius-lg)] bg-[var(--color-panel)] object-contain p-2"
+            loading="lazy"
+          />
+        </HoverImagePreview>
       ) : (
         <span
           aria-hidden="true"
-          className="flex w-20 shrink-0 items-center justify-center self-stretch bg-[var(--color-panel)] text-[var(--color-ink-2)]"
+          className="flex w-20 shrink-0 items-center justify-center self-stretch rounded-l-[var(--radius-lg)] bg-[var(--color-panel)] p-2"
         >
-          <Icon icon={getCategoryIcon(category ?? { slug: '' })} className="text-xl" />
+          <CategoryArt slug={category?.slug ?? null} className="size-full" />
         </span>
       )}
 
@@ -85,3 +102,7 @@ export function ProcedureRow({
     </Link>
   );
 }
+
+// keep getCategoryIcon in the public re-export surface so callers that still
+// import it via this module continue to work; remove once all callers switch.
+export { getCategoryIcon };

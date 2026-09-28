@@ -10,10 +10,13 @@ import {
   LuChevronRight,
   LuEye,
   LuFileText,
+  LuImagePlus,
   LuLayoutGrid,
   LuSearch,
   LuSignature,
   LuSparkles,
+  LuTrash2,
+  LuUpload,
   LuUsers,
   LuX,
 } from "react-icons/lu";
@@ -28,6 +31,7 @@ import { StatusPill } from "@/components/ui/status-pill";
 import { PageHeader } from "@/components/admin/page-header";
 import { FormSection } from "@/components/admin/form-section";
 import { IconTile } from "@/components/ui/icon-tile";
+import { CategoryArt } from "@/components/admin/category-art";
 import { getCategoryIcon } from "@/lib/category-icons";
 import { QuizEditor } from "@/components/admin/quiz-editor";
 import { type RecipeIngredientItem } from "@/components/admin/recipe-ingredients-editor";
@@ -169,6 +173,9 @@ export function ProcedureEditor({
     start?.yieldItems ?? emptyYieldItems(),
   );
   const [batch, setBatch] = React.useState(1);
+  const [iconImageUrl, setIconImageUrl] = React.useState<string | null>(
+    initial?.iconImageUrl ?? null,
+  );
 
   const savedQuiz = initial?.quizId ? getQuizById(initial.quizId) : null;
   const [quiz, setQuiz] = React.useState<ProcedureQuiz | null>(
@@ -249,6 +256,15 @@ export function ProcedureEditor({
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
+
+  // Revoke any blob URL we created so the browser frees the memory.
+  React.useEffect(() => {
+    return () => {
+      if (iconImageUrl && iconImageUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(iconImageUrl);
+      }
+    };
+  }, [iconImageUrl]);
 
   /* ------------------------------------------------------------ derived -- */
 
@@ -378,6 +394,7 @@ export function ProcedureEditor({
           status,
           bodyEn: body,
           bodyEs: body,
+          iconImageUrl,
           quizId,
           audience: audience.mode === "everyone" ? null : audience,
           protection,
@@ -449,6 +466,19 @@ export function ProcedureEditor({
         {/* ── Step 1 — what it is and what it says ────────────────────── */}
         {step === "details" ? (
           <>
+            <FormSection
+              id="proc-icon"
+              icon={LuImagePlus}
+              title={t("iconTitle")}
+              subtitle={t("iconSubtitle")}
+            >
+              <ProcedureIconPicker
+                categorySlug={category?.slug ?? null}
+                imageUrl={iconImageUrl}
+                onChange={(next) => edit(setIconImageUrl)(next)}
+              />
+            </FormSection>
+
             <FormSection
               id="proc-details"
               icon={LuFileText}
@@ -1407,3 +1437,111 @@ function initialsOf(name: string): string {
   const parts = name.trim().split(/\s+/).slice(0, 2);
   return parts.map((p) => p.charAt(0).toUpperCase()).join("");
 }
+
+/**
+ * The icon override picker. Shows a live preview (uploaded image if set,
+ * otherwise the category's default SVG) and a file input that turns the
+ * picked image into a session-scoped blob URL. The blob URL is replaced
+ * by an R2 URL on save once the backend upload is wired.
+ */
+function ProcedureIconPicker({
+  categorySlug,
+  imageUrl,
+  onChange,
+}: {
+  categorySlug: string | null;
+  imageUrl: string | null;
+  onChange: (next: string | null) => void;
+}): React.ReactElement {
+  const t = useTranslations("admin.library.editor");
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const [error, setError] = React.useState<string | null>(null);
+
+  function pick(): void {
+    setError(null);
+    inputRef.current?.click();
+  }
+
+  function onFile(event: React.ChangeEvent<HTMLInputElement>): void {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError(t("iconFileTypeError"));
+      return;
+    }
+    if (imageUrl && imageUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(imageUrl);
+    }
+    onChange(URL.createObjectURL(file));
+  }
+
+  function clear(): void {
+    if (imageUrl && imageUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(imageUrl);
+    }
+    onChange(null);
+    setError(null);
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-5">
+      {imageUrl ? (
+        <IconTile size="lg" image={{ src: imageUrl, alt: t("iconTitle") }} />
+      ) : (
+        <IconTile
+          size="lg"
+          art={<CategoryArt slug={categorySlug} />}
+        />
+      )}
+
+      <div className="min-w-0 flex-1 space-y-1">
+        <p className="text-sm font-semibold text-[var(--color-ink)]">
+          {imageUrl
+            ? t("iconCustomImage")
+            : categorySlug
+              ? t("iconDefaultArt")
+              : t("iconNoCategory")}
+        </p>
+        <p className="text-xs text-[var(--color-ink-3)]">
+          {t("iconPickerHint")}
+        </p>
+        {error ? (
+          <p className="text-xs font-semibold text-[var(--color-bad)]">{error}</p>
+        ) : null}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          icon={LuUpload}
+          onClick={pick}
+        >
+          {imageUrl ? t("iconReplace") : t("iconUpload")}
+        </Button>
+        {imageUrl ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            icon={LuTrash2}
+            onClick={clear}
+          >
+            {t("iconUseDefault")}
+          </Button>
+        ) : null}
+      </div>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={onFile}
+      />
+    </div>
+  );
+}
+

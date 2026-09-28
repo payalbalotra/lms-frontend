@@ -786,6 +786,606 @@ const SEED_PROCEDURES: Procedure[] = [
     },
     bodyEs: { blocks: [] },
   },
+  // --------------------------------------------------------------------------
+  // Recipe: Guacamole Fresco (REC-014)
+  // The full procedure as it appears in /sop-recipe-format.html. Built with
+  // the standard block vocabulary — image / heading / text / checklist /
+  // warning / recipe / method — so the admin-side article body renders to
+  // the same shape as the static template. Allergen banner hoists from the
+  // first recipe block via findAllergen().
+  // --------------------------------------------------------------------------
+  {
+    id: 'proc-guacamole-fresco',
+    slug: 'guacamole-fresco',
+    titleEn: 'Guacamole Fresco',
+    titleEs: 'Guacamole Fresco',
+    purposeEn: 'To make guacamole that holds its colour and texture through a full service.',
+    purposeEs: 'Para hacer guacamole que mantenga su color y textura durante todo el servicio.',
+    category: SEED_CATEGORIES[6],
+    status: 'published',
+    // Demo image pool is intentionally tiny (four stock photos for ~12
+    // procedures) — pointing at /img/video-cover.jpg so the recipe shows a
+    // photo rather than the Recipes category icon in the admin library,
+    // employee home, and procedures list. The same shot stands in for the
+    // molcajete-and-finished-salsa on the cover tile. No leading image block
+    // in `bodyEn`/`bodyEs` — the cover shot only lives here.
+    iconImageUrl: '/img/video-cover.jpg',
+    createdBy: 'emp-admin',
+    createdAt: '2026-08-12T00:00:00Z',
+    updatedAt: '2026-08-12T00:00:00Z',
+    version: 4,
+    isArchived: false,
+    quizId: null,
+    linkedTrainingId: 'course-recipes',
+    quizMode: 'training',
+    bodyEn: {
+      blocks: [
+        { id: 'gf-who', kind: 'heading', level: 2, text: { en: 'Who this is for', es: 'A quién está dirigido' } },
+        {
+          id: 'gf-who-t',
+          kind: 'text',
+          body: {
+            en: 'Anyone working the cold station or prep. Knife certification is required: the method starts with a knife.',
+            es: 'Cualquiera que trabaje en la estación fría o en la preparación. Se requiere certificación de cuchillo: el método comienza con un cuchillo.',
+          },
+        },
+        { id: 'gf-eq-h', kind: 'heading', level: 2, text: { en: 'Equipment', es: 'Equipo' } },
+        {
+          id: 'gf-eq-t',
+          kind: 'text',
+          body: {
+            en: 'Molcajete and tejolote · bench scraper · quarter pan · digital scale · probe thermometer',
+            es: 'Molcajete y tejolote · raspador de mesa · charola quarter · báscula digital · termómetro de sonda',
+          },
+        },
+        // No leading image block on purpose: every other published procedure
+        // already uses one of the four stock photos, so the home-row cover
+        // would otherwise repeat. ProcedureRow falls back to the Recipes
+        // category icon (LuUtensils) when the first block isn't an image —
+        // visually distinct from any photo, and the right semantic for a
+        // recipe.
+        { id: 'gf-prep-h', kind: 'heading', level: 2, text: { en: 'Before you start', es: 'Antes de empezar' } },
+        {
+          id: 'gf-prep-cl',
+          kind: 'checklist',
+          title: { en: 'Prep checklist', es: 'Lista de preparación' },
+          items: [
+            { id: 'gf-prep-1', text: { en: 'Wash your hands.', es: 'Lávese las manos.' } },
+            {
+              id: 'gf-prep-2',
+              text: { en: 'Sanitise the molcajete, the board and the bench.', es: 'Desinfecte el molcajete, la tabla y la mesa.' },
+            },
+            {
+              id: 'gf-prep-3',
+              text: {
+                en: 'Prep every ingredient as the table describes: dice, chop, seed, juice, strain.',
+                es: 'Prepare cada ingrediente como indica la tabla: corte en cubos, pique, despepite, exprima, cuele.',
+              },
+            },
+          ],
+        },
+        {
+          id: 'gf-prep-note',
+          kind: 'text',
+          body: {
+            en: 'Do all of it before you open an avocado. Cut avocado starts browning within minutes.',
+            es: 'Haga todo esto antes de abrir un aguacate. El aguacate cortado empieza a oscurecerse en minutos.',
+          },
+        },
+        {
+          id: 'gf-knife-warn',
+          kind: 'warning',
+          severity: 'warn',
+          body: {
+            en: 'Step 2 removes an avocado stone with a knife. A blade that slips off a stone goes into your hand. Use the heel, strike once, twist.',
+            es: 'El paso 2 quita el hueso del aguacate con un cuchillo. Si la hoja resbala sobre el hueso, va hacia su mano. Use el talón, golpee una vez, gire.',
+          },
+        },
+        {
+          id: 'gf-recipe',
+          kind: 'recipe',
+          audience: '',
+          allergen: {
+            summary: 'Contains sesame',
+            detail: 'In the finishing oil, step 8. Check the ticket before it leaves the pass.',
+            selectedAllergens: ['sesame'],
+          },
+          factors: [1, 2, 4],
+          yieldItems: [
+            { label: 'Batch weight', value: '2.4', unit: 'kg', scales: true },
+            { label: 'Portions', value: '12', scales: true },
+            { label: 'Portion size', value: '200', unit: 'g' },
+            { label: 'Time', value: '20', unit: 'min' },
+          ],
+          ingredients: [
+            {
+              name: 'Avocado, Hass',
+              form: 'Whole fruit, about 2 kg of flesh. Ripe: gives slightly at the neck',
+              amounts: ['2.8 kg', '5.6 kg', '11.2 kg'],
+            },
+            { name: 'Lime juice', form: 'Fresh, strained', amounts: ['100 ml', '200 ml', '400 ml'] },
+            { name: 'White onion', form: 'Small dice, 5 mm', amounts: ['200 g', '400 g', '800 g'] },
+            {
+              name: 'Cilantro',
+              form: 'Leaves and fine stem, chopped',
+              amounts: ['30 g', '60 g', '120 g'],
+            },
+            { name: 'Serrano chilli', form: 'Seeded, minced', amounts: ['20 g', '40 g', '80 g'] },
+            { name: 'Salt, kosher', amounts: ['20 g', '40 g', '80 g'] },
+            {
+              name: 'Sesame finishing oil',
+              allergen: true,
+              amounts: ['15 ml', '30 ml', '60 ml'],
+            },
+          ],
+          steps: [
+            {
+              id: 'gf-s1',
+              body: {
+                en: 'Cut each avocado lengthwise, all the way round the stone. Twist the halves apart.',
+                es: 'Corte cada aguacate a lo largo, todo alrededor del hueso. Gire las mitades para separarlas.',
+              },
+              videoSegment: { src: '/img/video-cover.jpg', startSec: 0, endSec: 4 },
+            },
+            {
+              id: 'gf-s2',
+              body: {
+                en: 'Strike the stone with the heel of the knife, the corner nearest the handle. Twist to lift it out.',
+                es: 'Golpee el hueso con el talón del cuchillo, en la esquina más cercana al mango. Gire para levantarlo.',
+              },
+              images: [
+                {
+                  src: '/img/video-cover.jpg',
+                  alt: {
+                    en: "A chef's knife blade resting against the stone of a halved avocado, one hand steadying the fruit and the other on the handle, ready to strike.",
+                    es: 'La hoja de un cuchillo de chef apoyada contra el hueso de un aguacate cortado por la mitad, una mano sostiene la fruta y la otra está en el mango, lista para golpear.',
+                  },
+                },
+              ],
+              videoSegment: { src: '/img/video-cover.jpg', startSec: 4, endSec: 12 },
+              note: {
+                severity: 'warn',
+                body: {
+                  en: 'Strike once, then twist. A second strike at a stone that is already loose is how the blade slips.',
+                  es: 'Golpee una vez y luego gire. Un segundo golpe a un hueso ya suelto es como la hoja resbala.',
+                },
+              },
+            },
+            {
+              id: 'gf-s3',
+              body: {
+                en: 'Scoop the flesh into the molcajete. Scrape the skin clean; the flesh nearest the skin is the greenest.',
+                es: 'Vacíe la pulpa en el molcajete. Raspe la cáscara; la pulpa más cercana a la cáscara es la más verde.',
+              },
+              videoSegment: { src: '/img/video-cover.jpg', startSec: 19, endSec: 31 },
+            },
+            {
+              id: 'gf-s4',
+              body: {
+                en: 'Mash to a coarse texture. Stop while pieces are still visible.',
+                es: 'Muela hasta una textura gruesa. Deténgase mientras los trozos aún son visibles.',
+              },
+              images: [
+                {
+                  src: '/img/equipment.jpg',
+                  alt: {
+                    en: 'Avocado in a molcajete mashed coarsely, with distinct pieces still visible through the mixture.',
+                    es: 'Aguacate en un molcajete molido gruesamente, con trozos distintos aún visibles en la mezcla.',
+                  },
+                },
+                {
+                  src: '/img/video-cover.jpg',
+                  alt: {
+                    en: 'Avocado in a molcajete mashed to a smooth, uniform purée with no pieces remaining.',
+                    es: 'Aguacate en un molcajete molido hasta un puré liso y uniforme sin trozos.',
+                  },
+                },
+              ],
+              videoSegment: { src: '/img/video-cover.jpg', startSec: 31, endSec: 48 },
+            },
+            {
+              id: 'gf-s5',
+              body: {
+                en: 'Fold in all of the lime juice straight away. Without it, the avocado browns within minutes.',
+                es: 'Incorpore todo el jugo de limón de inmediato. Sin él, el aguacate se oscurece en minutos.',
+              },
+              videoSegment: { src: '/img/video-cover.jpg', startSec: 48, endSec: 55 },
+            },
+            {
+              id: 'gf-s6',
+              body: {
+                en: 'Fold in the onion, cilantro and serrano.',
+                es: 'Incorpore la cebolla, el cilantro y el serrano.',
+              },
+              videoSegment: { src: '/img/video-cover.jpg', startSec: 55, endSec: 65 },
+            },
+            {
+              id: 'gf-s7',
+              body: {
+                en: 'Add the salt. Taste with a clean spoon, and use a fresh spoon every time you taste again.',
+                es: 'Agregue la sal. Pruebe con una cuchara limpia y use una cuchara nueva cada vez que vuelva a probar.',
+              },
+              videoSegment: { src: '/img/video-cover.jpg', startSec: 65, endSec: 72 },
+            },
+            {
+              id: 'gf-s8',
+              body: {
+                en: 'Add the sesame oil. Fold once, so it streaks rather than blends.',
+                es: 'Agregue el aceite de sésamo. Incorpore una vez, para que haga vetas en lugar de mezclarse.',
+              },
+              videoSegment: { src: '/img/video-cover.jpg', startSec: 72, endSec: 78 },
+              note: {
+                severity: 'allergen',
+                body: {
+                  en: 'Sesame enters here. Anything plated for an allergy ticket is made without it, in a clean molcajete.',
+                  es: 'Aquí entra el sésamo. Todo lo emplatado para un ticket de alergia se hace sin él, en un molcajete limpio.',
+                },
+              },
+            },
+            {
+              id: 'gf-s9',
+              body: {
+                en: 'Transfer to a quarter pan. Press film onto the surface so no air touches the guacamole.',
+                es: 'Transfiera a una charola quarter. Presione film sobre la superficie para que el aire no toque el guacamole.',
+              },
+              images: [
+                {
+                  src: '/img/equipment.jpg',
+                  alt: {
+                    en: 'Both hands pressing cling film flat onto the surface of guacamole in a stainless quarter pan, with no air trapped between the film and the food.',
+                    es: 'Ambas manos presionando film plástico plano sobre la superficie del guacamole en una charola quarter de acero, sin aire atrapado entre el film y la comida.',
+                  },
+                },
+              ],
+              videoSegment: { src: '/img/video-cover.jpg', startSec: 78, endSec: 84 },
+            },
+            {
+              id: 'gf-s10',
+              body: {
+                en: 'Label the pan with today’s date and the time.',
+                es: 'Etiquete la charola con la fecha y hora de hoy.',
+              },
+              videoSegment: { src: '/img/video-cover.jpg', startSec: 84, endSec: 88 },
+            },
+            {
+              id: 'gf-s11',
+              body: {
+                en: 'Refrigerate. Before service, probe the centre of the pan and record the reading.',
+                es: 'Refrigere. Antes del servicio, sondee el centro de la charola y registre la lectura.',
+              },
+              critical: true,
+              criticalLimit: {
+                label: 'Critical limit',
+                icon: 'LuTempCold',
+                value: '4 °C (39 °F) or below',
+                subtitle: 'Into the walk-in within 30 minutes of finishing. Check before service.',
+                howToCheck:
+                  'Probe the centre of the pan with a sanitised thermometer. Record on the Cold Holding Log.',
+                breachLabel: 'If it is above 4 °C',
+                breachResponse:
+                  'Discard. Guacamole is not reheated, so there is no way to bring it back. Tell the chef on duty.',
+              },
+              images: [
+                {
+                  src: '/img/video-cover.jpg',
+                  alt: {
+                    en: 'A labelled stainless quarter pan of guacamole showing prep date and time, with a digital probe thermometer reading 4.0 degrees Celsius inserted into the centre.',
+                    es: 'Una charola quarter de acero etiquetada con guacamole mostrando fecha y hora de preparación, con un termómetro de sonda digital que marca 4.0 grados Celsius insertado en el centro.',
+                  },
+                },
+              ],
+              videoSegment: { src: '/img/video-cover.jpg', startSec: 88, endSec: 94 },
+            },
+          ],
+        },
+        { id: 'gf-shelf-h', kind: 'heading', level: 2, text: { en: 'Shelf life', es: 'Vida útil' } },
+        {
+          id: 'gf-shelf-t',
+          kind: 'text',
+          body: {
+            en: 'Serve or discard within 48 hours of the time on the label. Colour is not the test. The label is.',
+            es: 'Sirva o deseche dentro de las 48 horas posteriores a la hora en la etiqueta. El color no es la prueba. La etiqueta lo es.',
+          },
+        },
+        { id: 'gf-rel-h', kind: 'heading', level: 2, text: { en: 'Related procedures', es: 'Procedimientos relacionados' } },
+        {
+          id: 'gf-rel-1',
+          kind: 'attachment',
+          title: { en: 'Cooling and cold holding', es: 'Enfriamiento y mantenimiento en frío' },
+          href: '#related',
+          meta: 'Food safety',
+        },
+        {
+          id: 'gf-rel-2',
+          kind: 'attachment',
+          title: { en: 'Allergen handling', es: 'Manejo de alérgenos' },
+          href: '#related',
+          meta: 'Front of house',
+        },
+      ],
+    },
+    bodyEs: {
+      blocks: [
+        { id: 'gf-who', kind: 'heading', level: 2, text: { en: 'Who this is for', es: 'A quién está dirigido' } },
+        {
+          id: 'gf-who-t',
+          kind: 'text',
+          body: {
+            en: 'Anyone working the cold station or prep. Knife certification is required.',
+            es: 'Cualquiera que trabaje en la estación fría o en la preparación. Se requiere certificación de cuchillo.',
+          },
+        },
+        { id: 'gf-eq-h', kind: 'heading', level: 2, text: { en: 'Equipment', es: 'Equipo' } },
+        {
+          id: 'gf-eq-t',
+          kind: 'text',
+          body: {
+            en: 'Molcajete and tejolote · bench scraper · quarter pan · digital scale · probe thermometer',
+            es: 'Molcajete y tejolote · raspador de mesa · charola quarter · báscula digital · termómetro de sonda',
+          },
+        },
+        // No leading image block on purpose: every other published procedure
+        // already uses one of the four stock photos, so the home-row cover
+        // would otherwise repeat. ProcedureRow falls back to the Recipes
+        // category icon (LuUtensils) when the first block isn't an image —
+        // visually distinct from any photo, and the right semantic for a
+        // recipe.
+        { id: 'gf-prep-h', kind: 'heading', level: 2, text: { en: 'Before you start', es: 'Antes de empezar' } },
+        {
+          id: 'gf-prep-cl',
+          kind: 'checklist',
+          title: { en: 'Prep checklist', es: 'Lista de preparación' },
+          items: [
+            { id: 'gf-prep-1', text: { en: 'Wash your hands.', es: 'Lávese las manos.' } },
+            {
+              id: 'gf-prep-2',
+              text: { en: 'Sanitise the molcajete, the board and the bench.', es: 'Desinfecte el molcajete, la tabla y la mesa.' },
+            },
+            {
+              id: 'gf-prep-3',
+              text: {
+                en: 'Prep every ingredient as the table describes: dice, chop, seed, juice, strain.',
+                es: 'Prepare cada ingrediente como indica la tabla: corte en cubos, pique, despepite, exprima, cuele.',
+              },
+            },
+          ],
+        },
+        {
+          id: 'gf-prep-note',
+          kind: 'text',
+          body: {
+            en: 'Do all of it before you open an avocado.',
+            es: 'Haga todo esto antes de abrir un aguacate. El aguacate cortado empieza a oscurecerse en minutos.',
+          },
+        },
+        {
+          id: 'gf-knife-warn',
+          kind: 'warning',
+          severity: 'warn',
+          body: {
+            en: 'Step 2 removes an avocado stone with a knife. A blade that slips off a stone goes into your hand.',
+            es: 'El paso 2 quita el hueso del aguacate con un cuchillo. Si la hoja resbala sobre el hueso, va hacia su mano. Use el talón, golpee una vez, gire.',
+          },
+        },
+        {
+          id: 'gf-recipe',
+          kind: 'recipe',
+          audience: '',
+          allergen: {
+            summary: 'Contiene sésamo',
+            detail: 'En el aceite de terminado, paso 8. Revise el ticket antes de que salga del pase.',
+            selectedAllergens: ['sesame'],
+          },
+          factors: [1, 2, 4],
+          yieldItems: [
+            { label: 'Peso del lote', value: '2.4', unit: 'kg', scales: true },
+            { label: 'Porciones', value: '12', scales: true },
+            { label: 'Tamaño de porción', value: '200', unit: 'g' },
+            { label: 'Tiempo', value: '20', unit: 'min' },
+          ],
+          ingredients: [
+            {
+              name: 'Aguacate, Hass',
+              form: 'Fruta entera, aprox. 2 kg de pulpa. Maduro: cede ligeramente al presionar el cuello',
+              amounts: ['2.8 kg', '5.6 kg', '11.2 kg'],
+            },
+            {
+              name: 'Jugo de limón',
+              form: 'Fresco, colado',
+              amounts: ['100 ml', '200 ml', '400 ml'],
+            },
+            { name: 'Cebolla blanca', form: 'Cubo pequeño, 5 mm', amounts: ['200 g', '400 g', '800 g'] },
+            {
+              name: 'Cilantro',
+              form: 'Hojas y tallo fino, picado',
+              amounts: ['30 g', '60 g', '120 g'],
+            },
+            {
+              name: 'Chile serrano',
+              form: 'Sin semillas, picado fino',
+              amounts: ['20 g', '40 g', '80 g'],
+            },
+            { name: 'Sal, kosher', amounts: ['20 g', '40 g', '80 g'] },
+            {
+              name: 'Aceite de sésamo de terminado',
+              allergen: true,
+              amounts: ['15 ml', '30 ml', '60 ml'],
+            },
+          ],
+          steps: [
+            {
+              id: 'gf-s1',
+              body: {
+                en: 'Cut each avocado lengthwise.',
+                es: 'Corte cada aguacate a lo largo, todo alrededor del hueso. Gire las mitades para separarlas.',
+              },
+            },
+            {
+              id: 'gf-s2',
+              body: {
+                en: 'Strike the stone with the heel of the knife.',
+                es: 'Golpee el hueso con el talón del cuchillo, en la esquina más cercana al mango. Gire para levantarlo.',
+              },
+              images: [
+                {
+                  src: '/img/video-cover.jpg',
+                  alt: {
+                    en: "A chef's knife blade resting against the stone of a halved avocado.",
+                    es: 'La hoja de un cuchillo de chef apoyada contra el hueso de un aguacate cortado por la mitad, una mano sostiene la fruta y la otra está en el mango, lista para golpear.',
+                  },
+                },
+              ],
+              note: {
+                severity: 'warn',
+                body: {
+                  en: 'Strike once, then twist.',
+                  es: 'Golpee una vez y luego gire. Un segundo golpe a un hueso ya suelto es como la hoja resbala.',
+                },
+              },
+            },
+            {
+              id: 'gf-s3',
+              body: {
+                en: 'Scoop the flesh into the molcajete.',
+                es: 'Vacíe la pulpa en el molcajete. Raspe la cáscara; la pulpa más cercana a la cáscara es la más verde.',
+              },
+            },
+            {
+              id: 'gf-s4',
+              body: {
+                en: 'Mash to a coarse texture.',
+                es: 'Muela hasta una textura gruesa. Deténgase mientras los trozos aún son visibles.',
+              },
+              images: [
+                {
+                  src: '/img/equipment.jpg',
+                  alt: {
+                    en: 'Avocado in a molcajete mashed coarsely, with distinct pieces still visible.',
+                    es: 'Aguacate en un molcajete molido gruesamente, con trozos distintos aún visibles en la mezcla.',
+                  },
+                },
+                {
+                  src: '/img/video-cover.jpg',
+                  alt: {
+                    en: 'Avocado in a molcajete mashed to a smooth, uniform purée.',
+                    es: 'Aguacate en un molcajete molido hasta un puré liso y uniforme sin trozos.',
+                  },
+                },
+              ],
+            },
+            {
+              id: 'gf-s5',
+              body: {
+                en: 'Fold in all of the lime juice straight away.',
+                es: 'Incorpore todo el jugo de limón de inmediato. Sin él, el aguacate se oscurece en minutos.',
+              },
+            },
+            {
+              id: 'gf-s6',
+              body: {
+                en: 'Fold in the onion, cilantro and serrano.',
+                es: 'Incorpore la cebolla, el cilantro y el serrano.',
+              },
+            },
+            {
+              id: 'gf-s7',
+              body: {
+                en: 'Add the salt. Taste with a clean spoon.',
+                es: 'Agregue la sal. Pruebe con una cuchara limpia y use una cuchara nueva cada vez que vuelva a probar.',
+              },
+            },
+            {
+              id: 'gf-s8',
+              body: {
+                en: 'Add the sesame oil. Fold once, so it streaks rather than blends.',
+                es: 'Agregue el aceite de sésamo. Incorpore una vez, para que haga vetas en lugar de mezclarse.',
+              },
+              note: {
+                severity: 'allergen',
+                body: {
+                  en: 'Sesame enters here. Anything plated for an allergy ticket is made without it, in a clean molcajete.',
+                  es: 'Aquí entra el sésamo. Todo lo emplatado para un ticket de alergia se hace sin él, en un molcajete limpio.',
+                },
+              },
+            },
+            {
+              id: 'gf-s9',
+              body: {
+                en: 'Transfer to a quarter pan. Press film onto the surface.',
+                es: 'Transfiera a una charola quarter. Presione film sobre la superficie para que el aire no toque el guacamole.',
+              },
+              images: [
+                {
+                  src: '/img/equipment.jpg',
+                  alt: {
+                    en: 'Both hands pressing cling film flat onto the surface of guacamole.',
+                    es: 'Ambas manos presionando film plástico plano sobre la superficie del guacamole en una charola quarter de acero, sin aire atrapado entre el film y la comida.',
+                  },
+                },
+              ],
+            },
+            {
+              id: 'gf-s10',
+              body: {
+                en: 'Label the pan with today’s date and the time.',
+                es: 'Etiquete la charola con la fecha y hora de hoy.',
+              },
+            },
+            {
+              id: 'gf-s11',
+              body: {
+                en: 'Refrigerate. Before service, probe the centre of the pan and record the reading.',
+                es: 'Refrigere. Antes del servicio, sondee el centro de la charola y registre la lectura.',
+              },
+              critical: true,
+              criticalLimit: {
+                label: 'Límite crítico',
+                value: '4 °C (39 °F) o menos',
+                subtitle: 'Al refrigerador dentro de 30 minutos de terminar. Verifique antes del servicio.',
+                howToCheck: 'Sondee el centro de la charola con un termómetro desinfectado. Registre en la Bitácora de Frío.',
+                breachLabel: 'Si está por encima de 4 °C',
+                breachResponse:
+                  'Deseche. El guacamole no se recalienta, así que no hay forma de recuperarlo. Avise al chef de turno.',
+              },
+              images: [
+                {
+                  src: '/img/video-cover.jpg',
+                  alt: {
+                    en: 'A labelled stainless quarter pan of guacamole showing prep date and time, with a digital probe thermometer reading 4.0 degrees Celsius.',
+                    es: 'Una charola quarter de acero etiquetada con guacamole mostrando fecha y hora de preparación, con un termómetro de sonda digital que marca 4.0 grados Celsius insertado en el centro.',
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        { id: 'gf-shelf-h', kind: 'heading', level: 2, text: { en: 'Shelf life', es: 'Vida útil' } },
+        {
+          id: 'gf-shelf-t',
+          kind: 'text',
+          body: {
+            en: 'Serve or discard within 48 hours of the time on the label.',
+            es: 'Sirva o deseche dentro de las 48 horas posteriores a la hora en la etiqueta. El color no es la prueba. La etiqueta lo es.',
+          },
+        },
+        { id: 'gf-rel-h', kind: 'heading', level: 2, text: { en: 'Related procedures', es: 'Procedimientos relacionados' } },
+        {
+          id: 'gf-rel-1',
+          kind: 'attachment',
+          title: { en: 'Cooling and cold holding', es: 'Enfriamiento y mantenimiento en frío' },
+          href: '#related',
+          meta: 'Seguridad alimentaria',
+        },
+        {
+          id: 'gf-rel-2',
+          kind: 'attachment',
+          title: { en: 'Allergen handling', es: 'Manejo de alérgenos' },
+          href: '#related',
+          meta: 'Sala',
+        },
+      ],
+    },
+  },
 ];
 
 // ----------------------------------------------------------------------------

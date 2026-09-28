@@ -43,8 +43,10 @@ import type { IconType } from 'react-icons';
 import { StatusPill } from '@/components/ui/status-pill';
 import { FilterChips } from '@/components/ui/filter-chips';
 import { IconTile } from '@/components/ui/icon-tile';
+import { HoverImagePreview } from '@/components/ui/hover-image-preview';
 import { EmptyState } from '@/components/ui/empty-state';
 import { RowActions, type RowActionItem } from '@/components/ui/row-actions';
+import { CategoryArt } from '@/components/admin/category-art';
 
 interface LibraryProcedureExplorerProps {
   procedures: Procedure[];
@@ -699,7 +701,19 @@ export function LibraryProcedureExplorer({
                 {/* The icon is a mark, not a framed object: the bordered tile was
                     the only one of its kind in the product. */}
                 <div className="flex min-w-0 flex-1 items-start gap-4">
-                  <IconTile size="lg" icon={theme.icon} />
+                  {p.iconImageUrl ? (
+                    <HoverImagePreview src={p.iconImageUrl} alt={title}>
+                      <IconTile
+                        size="lg"
+                        image={{ src: p.iconImageUrl, alt: title }}
+                      />
+                    </HoverImagePreview>
+                  ) : (
+                    <IconTile
+                      size="lg"
+                      art={<CategoryArt slug={catSlug} />}
+                    />
+                  )}
 
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">

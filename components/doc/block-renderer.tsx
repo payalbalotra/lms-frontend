@@ -62,16 +62,32 @@ function pickOpt(value: LocalisedOptional | undefined, locale: 'en' | 'es'): str
   return v && v.length > 0 ? v : undefined;
 }
 
-function toMethodStep(step: ProcedureMethodStep, locale: 'en' | 'es'): MethodStep {
+function toMethodStep(step: ProcedureMethodStep, locale: 'en' | 'es', noteLabels: Record<ProcedureNoteKind, string>): MethodStep {
   const out: MethodStep = {
     body: <p>{pickText(step.body, locale)}</p>,
     critical: step.critical,
   };
+  // An inline note attached to the step renders as a `.note-block` immediately
+  // after the body — a warning about a knife slip belongs inside the step that
+  // uses the knife, not floating at the foot of the procedure.
+  const noteNode = step.note
+    ? (() => {
+        const kind: ProcedureNoteKind = NOTE_KINDS.includes(step.note.severity as ProcedureNoteKind)
+          ? (step.note.severity as ProcedureNoteKind)
+          : 'warn';
+        return (
+          <NoteBlock kind={kind} label={noteLabels[kind]}>
+            {pickText(step.note.body, locale)}
+          </NoteBlock>
+        );
+      })()
+    : null;
   if (step.criticalLimit) {
     const l = step.criticalLimit;
     out.body = (
       <>
         <p>{pickText(step.body, locale)}</p>
+        {noteNode}
         <CriticalLimitFull
           icon={l.icon}
           label={l.label}
@@ -81,6 +97,13 @@ function toMethodStep(step: ProcedureMethodStep, locale: 'en' | 'es'): MethodSte
           breachLabel={l.breachLabel}
           breachResponse={l.breachResponse}
         />
+      </>
+    );
+  } else if (noteNode) {
+    out.body = (
+      <>
+        <p>{pickText(step.body, locale)}</p>
+        {noteNode}
       </>
     );
   }
@@ -265,7 +288,7 @@ export function BlockRenderer({
       }
       case 'method': {
         flush();
-        const steps = block.steps.map((s) => toMethodStep(s, locale));
+        const steps = block.steps.map((s) => toMethodStep(s, locale, t.notes));
         out.push(
           <Section key={key} title={t.method} count={t.steps(steps.length)}>
             <MethodSteps steps={steps} />
@@ -275,7 +298,7 @@ export function BlockRenderer({
       }
       case 'recipe': {
         flush();
-        const steps = block.steps.map((s) => toMethodStep(s, locale));
+        const steps = block.steps.map((s) => toMethodStep(s, locale, t.notes));
         out.push(
           <React.Fragment key={key}>
             {block.allergen && key !== hoistedAllergenId ? (

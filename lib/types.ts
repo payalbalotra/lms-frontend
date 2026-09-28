@@ -189,6 +189,13 @@ export interface ProcedureMethodStep {
   criticalLimit?: CriticalLimit;
   videoSegment?: ProcedureVideoSegment;
   /**
+   * Inline note attached to the step body — a warning that belongs to this
+   * step (the avocado-stone knife warning sits inside step 2, the sesame
+   * allergen note sits inside step 8), not a floating block at the foot of
+   * the page. Renders as `.note-block` immediately after the step body.
+   */
+  note?: { severity: ProcedureNoteKind; body: Localised };
+  /**
    * Photos attached directly to a single step. A photo of what the grill marks
    * should look like, a second angle of the plating — these are anchored to the
    * step that needs them, not floated somewhere else in the procedure. The
@@ -363,6 +370,11 @@ export interface Procedure {
   status: ProcedureStatus;
   bodyEn: ProcedureBody;
   bodyEs: ProcedureBody;
+  /** Per-procedure icon override. Stored as an R2 public URL when the
+   *  backend persistence is wired; in the demo (no backend) it carries a
+   *  session-scoped `blob:` URL. `null` means the category's default SVG
+   *  art renders instead. */
+  iconImageUrl?: string | null;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -458,6 +470,9 @@ export interface CreateProcedureInput {
    *  sets this explicitly — archive is a separate admin action (⋯ kebab
    *  → Archive → modal confirm). */
   isArchived?: boolean;
+  /** Per-procedure icon override. R2 public URL when backend is wired;
+   *  session-scoped blob URL in the demo. `null` = use category default. */
+  iconImageUrl?: string | null;
   /** Who can open it. Absent means everyone. */
   audience?: ProcedureAudience | null;
   /** Absent means standard. */
