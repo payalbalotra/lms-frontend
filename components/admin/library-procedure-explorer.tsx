@@ -260,6 +260,7 @@ export function LibraryProcedureExplorer({
         nameEn: 'Recipe',
         nameEs: 'Recetas',
         isArchived: false,
+        kind: 'general',
       },
       {
         id: 'cat-kitchen-ops',
@@ -267,6 +268,7 @@ export function LibraryProcedureExplorer({
         nameEn: 'Kitchen Operations',
         nameEs: 'Operaciones de Cocina',
         isArchived: false,
+        kind: 'general',
       },
       {
         id: 'cat-cleaning',
@@ -274,6 +276,7 @@ export function LibraryProcedureExplorer({
         nameEn: 'Cleaning Schedules',
         nameEs: 'Horarios de Limpieza',
         isArchived: false,
+        kind: 'general',
       },
       {
         id: 'cat-onboarding',
@@ -281,6 +284,7 @@ export function LibraryProcedureExplorer({
         nameEn: 'Onboarding',
         nameEs: 'Inducción y Capacitación',
         isArchived: false,
+        kind: 'general',
       },
     ];
     const rawCategories: Category[] = [...(liveCategories ?? []).filter((c) => !c.isArchived), ...fallback];

@@ -91,7 +91,7 @@ export function MultiSelectChips({
 
       <div
         className={cn(
-          'flex min-h-[54px] flex-wrap items-center gap-x-3 gap-y-2 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3.5 py-2.5 shadow-2xs transition-colors',
+          'flex min-h-12 flex-wrap items-center gap-x-3 gap-y-2 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-4 py-2 shadow-2xs transition-colors',
           isBlocked && 'bg-[var(--color-panel)]',
         )}
         id={id}
@@ -102,7 +102,7 @@ export function MultiSelectChips({
           <span
             key={opt.value}
             className={cn(
-              'inline-flex shrink-0 items-center gap-1.5 px-2.5 py-1 text-xs font-medium transition-colors',
+              'inline-flex shrink-0 items-center gap-2 px-3 py-1 text-xs font-medium transition-colors',
               isPill ? 'rounded-full' : 'rounded-[var(--radius-md)]',
               isNeutral
                 ? 'border border-[var(--color-line-2)] bg-[var(--color-panel)] text-[var(--color-ink)]'
@@ -116,7 +116,7 @@ export function MultiSelectChips({
               onClick={() => handleRemove(opt.value)}
               disabled={disabled}
               className={cn(
-                '-mr-0.5 inline-flex size-3.5 shrink-0 items-center justify-center rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] disabled:opacity-50',
+                'inline-flex size-4 shrink-0 items-center justify-center rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] disabled:opacity-50',
                 isNeutral
                   ? 'text-[var(--color-ink-3)] hover:bg-[var(--color-panel-2)] hover:text-[var(--color-ink)]'
                   : 'text-[var(--color-brand-700)] hover:bg-[var(--color-panel)]',
@@ -130,7 +130,7 @@ export function MultiSelectChips({
         {overflow > 0 ? (
           <span
             className={cn(
-              'inline-flex shrink-0 items-center px-2 py-0.5 text-xs font-semibold text-[var(--color-ink-2)] bg-[var(--color-panel)]',
+              'inline-flex shrink-0 items-center px-3 py-1 text-xs font-semibold text-[var(--color-ink-2)] bg-[var(--color-panel)]',
               isPill ? 'rounded-full' : 'rounded-[var(--radius-md)]',
             )}
           >
@@ -175,7 +175,7 @@ function PickerTrigger({
   const [open, setOpen] = React.useState(false);
 
   const actionClasses = cn(
-    'group inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-[var(--radius-sm)] px-2 py-1 text-xs font-medium transition-colors whitespace-nowrap',
+    'group inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-[var(--radius-md)] px-3 py-1 text-xs font-medium transition-colors whitespace-nowrap',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-1',
     disabled
       ? 'cursor-not-allowed opacity-50 text-[var(--color-ink-3)]'
@@ -190,7 +190,7 @@ function PickerTrigger({
         title={disabledReason}
         className={actionClasses}
       >
-        <LuPlus className="size-3.5 shrink-0 text-[var(--color-ink-3)]" aria-hidden="true" />
+        <LuPlus className="size-4 shrink-0 text-[var(--color-ink-3)]" aria-hidden="true" />
         <span>{addLabel}</span>
       </button>
     );
@@ -206,7 +206,7 @@ function PickerTrigger({
         aria-expanded={open}
         className={actionClasses}
       >
-        <LuPlus className="size-3.5 shrink-0 text-[var(--color-brand-600)] transition-transform group-hover:scale-110" aria-hidden="true" />
+        <LuPlus className="size-4 shrink-0 text-[var(--color-brand-600)] transition-transform group-hover:scale-110" aria-hidden="true" />
         <span>{addLabel}</span>
       </button>
       <Popover
