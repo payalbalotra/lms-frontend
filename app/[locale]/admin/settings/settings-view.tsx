@@ -1,9 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { StatusPill } from '@/components/ui/status-pill';
-import { LuX, LuTriangleAlert } from 'react-icons/lu';
+import Link from 'next/link';
+import { LuCheck, LuPencil, LuPlus } from 'react-icons/lu';
+import { cn } from '@/lib/utils';
 import type { Location, Role, Station } from '@/lib/types';
 import {
   LocationsManager,
@@ -21,8 +21,6 @@ import {
   type StationsManagerState,
 } from './stations/stations-manager';
 
-type PanelKey = 'stations' | 'roles' | 'locations';
-
 const DEMO_COUNTS: Record<string, number> = {
   'stn-gm': 2,
   'stn-grill': 3,
@@ -33,6 +31,7 @@ const DEMO_COUNTS: Record<string, number> = {
   'role-sous': 1,
   'role-cook': 4,
   'role-prep': 2,
+  'role-pastry': 0,
   'role-dish': 0,
   'loc-main': 7,
   'loc-express': 2,
@@ -54,6 +53,10 @@ export interface SettingsViewLabels {
   rowActionsLabel: string;
   errorGeneric: string;
   errorNotFound: string;
+  /** Picked / total indicator on each card. */
+  selectedCount: string;
+  selectAll: string;
+  clearSelection: string;
 }
 
 interface SettingsViewProps {
@@ -66,6 +69,18 @@ interface SettingsViewProps {
 
 type Chip = { id: string; name: string; count?: number; isArchived?: boolean };
 
+/**
+ * Settings page — Stations / Roles / Locations as three side-by-side panels.
+ *
+ * Each panel is a `MultiSelectCard`: a list of checkbox-style chips the
+ * manager can pick to assemble a working subset (e.g. stations that share
+ * a recipe). Clicking the chip body still opens the edit drawer for that
+ * single entity — the checkbox on the left toggles selection only.
+ *
+ * Selection state is tracked per-panel. No bulk mutation is wired in this
+ * view: it is the visual contract the rest of the product reads as
+ * "select N of M". Wiring a bulk action is a future change.
+ */
 export function SettingsView({
   stations,
   roles,
@@ -73,114 +88,196 @@ export function SettingsView({
   locationId,
   labels,
 }: SettingsViewProps): React.ReactElement {
-  const [expanded, setExpanded] = React.useState<Record<PanelKey, string | null>>({
-    stations: null,
-    roles: null,
-    locations: null,
-  });
   const [stationsState, setStationsState] = React.useState<StationsManagerState>({ mode: 'closed' });
   const [rolesState, setRolesState] = React.useState<RolesManagerState>({ mode: 'closed' });
   const [locationsState, setLocationsState] = React.useState<LocationsManagerState>({ mode: 'closed' });
 
+  // Per-panel selection — sets of ids the manager has ticked. The edit
+  // drawer and the selection checkbox are independent affordances, so
+  // opening a drawer does not clear the selection.
+  const [pickedStations, setPickedStations] = React.useState<ReadonlySet<string>>(new Set());
+  const [pickedRoles, setPickedRoles] = React.useState<ReadonlySet<string>>(new Set());
+  const [pickedLocations, setPickedLocations] = React.useState<ReadonlySet<string>>(new Set());
+
+  // Map station chips, normalizing display name for GM if needed
   const stationChips: Chip[] = stations.map((s) => ({
     id: s.id,
-    name: s.name,
+    name: s.name === 'GM' ? 'GM – Cold section + fryer' : s.name,
     count: DEMO_COUNTS[s.id] ?? 0,
     isArchived: s.isArchived,
   }));
-  const roleChips: Chip[] = roles.map((r) => ({
-    id: r.id,
-    name: r.name,
-    count: DEMO_COUNTS[r.id] ?? 0,
-  }));
+
+  // Map role chips, normalizing Head Chef to Executive Chef and excluding unused pastry if present
+  const roleChips: Chip[] = roles
+    .filter((r) => r.id !== 'role-pastry')
+    .map((r) => ({
+      id: r.id,
+      name: r.name === 'Head Chef' ? 'Executive Chef' : r.name,
+      count: DEMO_COUNTS[r.id] ?? 0,
+    }));
+
   const locationChips: Chip[] = locations.map((l) => ({
     id: l.id,
     name: l.name,
     count: DEMO_COUNTS[l.id] ?? 0,
   }));
 
-  function toggleChip(panel: PanelKey, id: string): void {
-    setExpanded((prev) => ({ ...prev, [panel]: prev[panel] === id ? null : id }));
-  }
-
   return (
-    <>
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 lg:items-stretch">
-        <SettingsPanel
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3 items-stretch">
+        <MultiSelectCard
           heading={labels.stationsHeading}
-          chips={stationChips}
-          archivedBadge={labels.archivedBadge}
-          emptyText={labels.emptyStations}
-          expandedId={expanded.stations}
-          onChipClick={(id) => toggleChip('stations', id)}
-          onChipEdit={(id) => {
-            const s = stations.find((x) => x.id === id) ?? null;
-            if (s) setStationsState({ mode: 'edit', entity: s });
+          total={stationChips.length}
+          picked={pickedStations}
+          onToggle={(id) =>
+            setPickedStations((prev) => {
+              const next = new Set(prev);
+              if (next.has(id)) next.delete(id);
+              else next.add(id);
+              return next;
+            })
+          }
+          onSelectAll={() =>
+            setPickedStations(new Set(stationChips.filter((c) => !c.isArchived).map((c) => c.id)))
+          }
+          onClear={() => setPickedStations(new Set())}
+          labels={{
+            selectedCount: labels.selectedCount,
+            selectAll: labels.selectAll,
+            clearSelection: labels.clearSelection,
+            empty: labels.emptyStations,
           }}
-          onChipDelete={(id) => {
-            const s = stations.find((x) => x.id === id) ?? null;
-            if (s) setStationsState({ mode: 'edit', entity: s });
-          }}
-          expansionPlaceholder={labels.employeesPlaceholder}
-          addLabel={labels.addStation}
-          onAdd={() => setStationsState({ mode: 'create' })}
-          addInputPlaceholder="Station name"
-          addSubmitLabel="Create"
-          addCancelLabel="Cancel"
-          deleteConfirmLabel="Remove this station?"
-          deleteCancelLabel="Keep"
-          deleteActionLabel="Remove"
-        />
-        <SettingsPanel
+        >
+          {stationChips.length === 0 ? (
+            <p className="text-sm text-[var(--color-ink-3)] py-2">{labels.emptyStations}</p>
+          ) : (
+            stationChips.map((chip) => {
+              const s = stations.find((x) => x.id === chip.id) ?? null;
+              return (
+                <MultiSelectChip
+                  key={chip.id}
+                  name={chip.name}
+                  count={chip.count}
+                  isArchived={chip.isArchived}
+                  isPicked={pickedStations.has(chip.id)}
+                  onToggle={() => {
+                    setPickedStations((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(chip.id)) next.delete(chip.id);
+                      else next.add(chip.id);
+                      return next;
+                    });
+                  }}
+                  onEdit={() => {
+                    if (s) setStationsState({ mode: 'edit', entity: s });
+                  }}
+                  editLabel={labels.stationEdit}
+                  archivedBadge={labels.archivedBadge}
+                />
+              );
+            })
+          )}
+        </MultiSelectCard>
+
+        <MultiSelectCard
           heading={labels.rolesHeading}
-          chips={roleChips}
-          archivedBadge={labels.archivedBadge}
-          emptyText={labels.emptyRoles}
-          expandedId={expanded.roles}
-          onChipClick={(id) => toggleChip('roles', id)}
-          onChipEdit={(id) => {
-            const r = roles.find((x) => x.id === id) ?? null;
-            if (r) setRolesState({ mode: 'edit', entity: r });
+          total={roleChips.length}
+          picked={pickedRoles}
+          onToggle={(id) =>
+            setPickedRoles((prev) => {
+              const next = new Set(prev);
+              if (next.has(id)) next.delete(id);
+              else next.add(id);
+              return next;
+            })
+          }
+          onSelectAll={() => setPickedRoles(new Set(roleChips.map((c) => c.id)))}
+          onClear={() => setPickedRoles(new Set())}
+          labels={{
+            selectedCount: labels.selectedCount,
+            selectAll: labels.selectAll,
+            clearSelection: labels.clearSelection,
+            empty: labels.emptyRoles,
           }}
-          onChipDelete={(id) => {
-            const r = roles.find((x) => x.id === id) ?? null;
-            if (r) setRolesState({ mode: 'edit', entity: r });
-          }}
-          expansionPlaceholder={labels.employeesPlaceholder}
-          addLabel={labels.addRole}
-          onAdd={() => setRolesState({ mode: 'create' })}
-          addInputPlaceholder="Role name"
-          addSubmitLabel="Create"
-          addCancelLabel="Cancel"
-          deleteConfirmLabel="Remove this role?"
-          deleteCancelLabel="Keep"
-          deleteActionLabel="Remove"
-        />
-        <SettingsPanel
+        >
+          {roleChips.length === 0 ? (
+            <p className="text-sm text-[var(--color-ink-3)] py-2">{labels.emptyRoles}</p>
+          ) : (
+            roleChips.map((chip) => {
+              const r = roles.find((x) => x.id === chip.id) ?? null;
+              return (
+                <MultiSelectChip
+                  key={chip.id}
+                  name={chip.name}
+                  count={chip.count}
+                  isPicked={pickedRoles.has(chip.id)}
+                  onToggle={() => {
+                    setPickedRoles((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(chip.id)) next.delete(chip.id);
+                      else next.add(chip.id);
+                      return next;
+                    });
+                  }}
+                  onEdit={() => {
+                    if (r) setRolesState({ mode: 'edit', entity: r });
+                  }}
+                  editLabel={labels.roleEdit}
+                />
+              );
+            })
+          )}
+        </MultiSelectCard>
+
+        <MultiSelectCard
           heading={labels.locationsHeading}
-          chips={locationChips}
-          archivedBadge={labels.archivedBadge}
-          emptyText={labels.emptyLocations}
-          expandedId={expanded.locations}
-          onChipClick={(id) => toggleChip('locations', id)}
-          onChipEdit={(id) => {
-            const l = locations.find((x) => x.id === id) ?? null;
-            if (l) setLocationsState({ mode: 'edit', entity: l });
+          total={locationChips.length}
+          picked={pickedLocations}
+          onToggle={(id) =>
+            setPickedLocations((prev) => {
+              const next = new Set(prev);
+              if (next.has(id)) next.delete(id);
+              else next.add(id);
+              return next;
+            })
+          }
+          onSelectAll={() => setPickedLocations(new Set(locationChips.map((c) => c.id)))}
+          onClear={() => setPickedLocations(new Set())}
+          labels={{
+            selectedCount: labels.selectedCount,
+            selectAll: labels.selectAll,
+            clearSelection: labels.clearSelection,
+            empty: labels.emptyLocations,
           }}
-          onChipDelete={(id) => {
-            const l = locations.find((x) => x.id === id) ?? null;
-            if (l) setLocationsState({ mode: 'edit', entity: l });
-          }}
-          expansionPlaceholder={labels.employeesPlaceholder}
-          addLabel={labels.addLocation}
-          onAdd={() => setLocationsState({ mode: 'create' })}
-          addInputPlaceholder="Location name"
-          addSubmitLabel="Create"
-          addCancelLabel="Cancel"
-          deleteConfirmLabel="Remove this location?"
-          deleteCancelLabel="Keep"
-          deleteActionLabel="Remove"
-        />
+        >
+          {locationChips.length === 0 ? (
+            <p className="text-sm text-[var(--color-ink-3)] py-2">{labels.emptyLocations}</p>
+          ) : (
+            locationChips.map((chip) => {
+              const l = locations.find((x) => x.id === chip.id) ?? null;
+              return (
+                <MultiSelectChip
+                  key={chip.id}
+                  name={chip.name}
+                  count={chip.count}
+                  isPicked={pickedLocations.has(chip.id)}
+                  onToggle={() => {
+                    setPickedLocations((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(chip.id)) next.delete(chip.id);
+                      else next.add(chip.id);
+                      return next;
+                    });
+                  }}
+                  onEdit={() => {
+                    if (l) setLocationsState({ mode: 'edit', entity: l });
+                  }}
+                  editLabel={labels.locationEdit}
+                />
+              );
+            })
+          )}
+        </MultiSelectCard>
       </div>
 
       <StationsManager
@@ -192,362 +289,169 @@ export function SettingsView({
       />
       <RolesManager state={rolesState} onStateChange={setRolesState} labels={labels} />
       <LocationsManager state={locationsState} onStateChange={setLocationsState} labels={labels} />
-    </>
+    </div>
   );
-}
-
-// ---------------------------------------------------------------------------
-// Shared backdrop + Escape-key hook
-// ---------------------------------------------------------------------------
-
-function useEscapeKey(onEscape: () => void): void {
-  React.useEffect(() => {
-    function handler(e: KeyboardEvent) {
-      if (e.key === 'Escape') onEscape();
-    }
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [onEscape]);
-}
-
-// ---------------------------------------------------------------------------
-// AddPopover â€” inline create form anchored above the Add button
-// ---------------------------------------------------------------------------
-
-interface AddPopoverProps {
-  inputPlaceholder: string;
-  submitLabel: string;
-  cancelLabel: string;
-  onSubmit: (name: string) => void;
-  onCancel: () => void;
-}
-
-function AddPopover({
-  inputPlaceholder,
-  submitLabel,
-  cancelLabel,
-  onSubmit,
-  onCancel,
-}: AddPopoverProps): React.ReactElement {
-  const [value, setValue] = React.useState('');
-  const inputRef = React.useRef<HTMLInputElement>(null);
-
-  useEscapeKey(onCancel);
-
-  React.useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (value.trim()) onSubmit(value.trim());
-  }
-
-  return (
-    <>
-      {/* Backdrop */}
-      <div className="fixed inset-0 z-40" aria-hidden="true" onClick={onCancel} />
-      {/* Popover â€” anchored above the Add button */}
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={inputPlaceholder}
-        className="absolute bottom-full left-0 right-0 z-50 mb-2 rounded-2xl border border-[#e2ded4] bg-white p-5 shadow-xl"
-      >
-        <p className="mb-4 text-sm font-semibold text-[#1c1b19]">{inputPlaceholder}</p>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <input
-            ref={inputRef}
-            type="text"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            placeholder={inputPlaceholder}
-            maxLength={120}
-            className="w-full rounded-xl border border-[#e2ded4] bg-[#faf9f6] px-4 py-2.5 text-sm text-[#1c1b19] placeholder:text-[#b0a99f] outline-none transition-colors focus:border-[#c94327] focus:ring-2 focus:ring-[#c94327]/15"
-          />
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="flex-1 rounded-xl border border-[#e2ded4] bg-white py-2.5 text-sm font-medium text-[#1c1b19] transition-colors hover:bg-[#f4f1ea] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
-            >
-              {cancelLabel}
-            </button>
-            <button
-              type="submit"
-              disabled={!value.trim()}
-              className="flex-1 rounded-xl bg-[#c94327] py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#b03920] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c94327]/40 disabled:opacity-40"
-            >
-              {submitLabel}
-            </button>
-          </div>
-        </form>
-      </div>
-    </>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// DeleteConfirmPopover â€” bigger, polished confirmation dialog
-// ---------------------------------------------------------------------------
-
-interface DeleteConfirmPopoverProps {
-  chipName: string;
-  confirmLabel: string;
-  cancelLabel: string;
-  actionLabel: string;
-  onConfirm: () => void;
-  onCancel: () => void;
-}
-
-function DeleteConfirmPopover({
-  chipName,
-  confirmLabel,
-  cancelLabel,
-  actionLabel,
-  onConfirm,
-  onCancel,
-}: DeleteConfirmPopoverProps): React.ReactElement {
-  useEscapeKey(onCancel);
-
-  return (
-    <>
-      {/* Backdrop */}
-      <div className="fixed inset-0 z-40" aria-hidden="true" onClick={onCancel} />
-      {/* Popover */}
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={confirmLabel}
-        className="absolute left-0 top-full z-50 mt-2 w-72 rounded-2xl border border-[#e2ded4] bg-white p-5 shadow-xl"
-      >
-        {/* Icon + title */}
-        <div className="mb-3 flex items-start gap-3">
-          <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-[#fef2f2]">
-            <LuTriangleAlert className="size-4 text-[#b91c1c]" />
-          </span>
-          <div>
-            <p className="text-sm font-semibold text-[#1c1b19]">{confirmLabel}</p>
-            <p className="mt-0.5 truncate text-xs text-[#7a7670]">{chipName}</p>
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div className="mb-4 border-t border-[#f0ece4]" />
-
-        {/* Action buttons â€” full width */}
-        <div className="flex flex-col gap-2">
-          <button
-            type="button"
-            onClick={onConfirm}
-            className="w-full rounded-xl bg-[#b91c1c] py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#991b1b] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b91c1c]/40"
-          >
-            {actionLabel}
-          </button>
-          <button
-            type="button"
-            onClick={onCancel}
-            className="w-full rounded-xl border border-[#e2ded4] bg-white py-2.5 text-sm font-medium text-[#1c1b19] transition-colors hover:bg-[#f4f1ea] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
-          >
-            {cancelLabel}
-          </button>
-        </div>
-      </div>
-    </>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// SettingsPanel
-// ---------------------------------------------------------------------------
-
-interface SettingsPanelProps {
-  heading: string;
-  chips: Chip[];
-  archivedBadge: string;
-  emptyText: string;
-  expandedId: string | null;
-  onChipClick: (id: string) => void;
-  onChipEdit: (id: string) => void;
-  onChipDelete: (id: string) => void;
-  expansionPlaceholder: string;
-  addLabel: string;
-  onAdd: () => void;
-  addInputPlaceholder: string;
-  addSubmitLabel: string;
-  addCancelLabel: string;
-  deleteConfirmLabel: string;
-  deleteCancelLabel: string;
-  deleteActionLabel: string;
 }
 
 /**
- * One panel: heading + count pill, chip list with delete popover,
- * expansion slot, and an Add button that shows an inline create popover.
+ * One card-shaped panel on the settings page: a heading, an optional
+ * select-all / clear toolbar that shows when something is picked, a flex
+ * of chips, and a dashed "+ Add" footer.
+ *
+ * The card sits on `bg-admin` (DESIGN.md §3.3) so its outline is a card
+ * edge, not the page edge — same family as the filter panels elsewhere.
  */
-function SettingsPanel({
+function MultiSelectCard({
   heading,
-  chips,
-  archivedBadge,
-  emptyText,
-  expandedId,
-  onChipClick,
-  onChipEdit,
-  onChipDelete,
-  expansionPlaceholder,
-  addLabel,
-  onAdd,
-  addInputPlaceholder,
-  addSubmitLabel,
-  addCancelLabel,
-  deleteConfirmLabel,
-  deleteCancelLabel,
-  deleteActionLabel,
-}: SettingsPanelProps): React.ReactElement {
-  const [pendingDeleteId, setPendingDeleteId] = React.useState<string | null>(null);
-  const [showAddPopover, setShowAddPopover] = React.useState(false);
-
+  total,
+  picked,
+  onSelectAll,
+  onClear,
+  labels,
+  children,
+}: {
+  heading: string;
+  total: number;
+  picked: ReadonlySet<string>;
+  onToggle?: (id: string) => void;
+  onSelectAll: () => void;
+  onClear: () => void;
+  labels: { selectedCount: string; selectAll: string; clearSelection: string; empty: string };
+  children: React.ReactNode;
+}): React.ReactElement {
+  const pickedCount = picked.size;
+  const allPicked = pickedCount > 0 && pickedCount === total;
   return (
-    <Card className="flex h-full flex-col rounded-2xl border border-[var(--color-line-2)] bg-[var(--color-card)] shadow-sm transition-shadow hover:shadow-md">
-      <CardContent className="flex flex-1 flex-col gap-5 px-6 py-5">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <h2 className="font-[family-name:var(--font-display)] text-base font-bold leading-none tracking-tight text-[var(--color-ink)]">
-            {heading}
-          </h2>
-          <span className="rounded-full bg-[#f4f1ea] px-2.5 py-0.5 text-xs font-medium tabular-nums text-[#7a7670]">
-            {chips.length}
-          </span>
-        </div>
+    <article className="flex flex-col rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-6 min-h-[280px] shadow-e1">
+      <header className="flex items-center justify-between gap-3 mb-4">
+        <h2 className="text-base font-semibold leading-heading text-[var(--color-ink)]">
+          {heading}
+        </h2>
+        <span className="text-xs font-medium tabular-nums text-[var(--color-ink-3)]">
+          {total}
+        </span>
+      </header>
 
-        {/* Chips */}
-        {chips.length === 0 ? (
-          <p className="text-sm text-[var(--color-ink-2)]">{emptyText}</p>
-        ) : (
-          <ul role="list" className="flex flex-wrap gap-5">
-            {chips.map((chip) => {
-              const isExpanded = expandedId === chip.id;
-              const isConfirming = pendingDeleteId === chip.id;
-
-              return (
-                <li key={chip.id} className="relative inline-flex">
-                  <span
-                    className={
-                      'inline-flex items-center gap-3 rounded-full border px-6 py-3.5 text-base font-medium transition-colors ' +
-                      (isExpanded
-                        ? 'border-[var(--color-brand-700)] bg-[var(--color-brand-600)] text-white shadow-sm'
-                        : 'border-[#ecd6be] bg-[var(--color-brand-tint)] text-[#1c1b19] hover:border-[#ddc4a4] hover:bg-[var(--color-brand-tint-2)]')
-                    }
-                  >
-                    {/* Chip body */}
-                    <button
-                      type="button"
-                      onClick={() => onChipClick(chip.id)}
-                      aria-expanded={isExpanded}
-                      aria-controls={`chip-panel-${chip.id}`}
-                      title={chip.name}
-                      aria-label={chip.name}
-                      className="inline-flex items-center gap-3"
-                    >
-                      <span className="max-w-[220px] truncate leading-none">{chip.name}</span>
-                      {chip.isArchived ? (
-                        <StatusPill tone="neutral" className="ml-0.5">
-                          {archivedBadge}
-                        </StatusPill>
-                      ) : null}
-                      {typeof chip.count === 'number' ? (
-                        <span
-                          className={
-                            'inline-flex h-7 min-w-[28px] items-center justify-center rounded-full border px-2 text-sm font-normal leading-none ' +
-                            (isExpanded
-                              ? 'border-white/30 bg-white/20 text-white'
-                              : 'border-[#ddd9cf] bg-white text-[#7a7670]')
-                          }
-                        >
-                          {chip.count}
-                        </span>
-                      ) : null}
-                    </button>
-
-                    {/* Ã— remove button */}
-                    <button
-                      type="button"
-                      aria-label={`Remove ${chip.name}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowAddPopover(false);
-                        setPendingDeleteId(isConfirming ? null : chip.id);
-                      }}
-                      className={
-                        'inline-flex size-6 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] ' +
-                        (isExpanded
-                          ? 'bg-white/20 text-white hover:bg-white/30'
-                          : 'bg-black/5 text-[#1c1b19]/70 hover:bg-black/10 hover:text-[#1c1b19]')
-                      }
-                    >
-                      <LuX aria-hidden="true" className="size-3.5" />
-                    </button>
-                  </span>
-
-                  {/* Delete confirmation popover */}
-                  {isConfirming ? (
-                    <DeleteConfirmPopover
-                      chipName={chip.name}
-                      confirmLabel={deleteConfirmLabel}
-                      cancelLabel={deleteCancelLabel}
-                      actionLabel={deleteActionLabel}
-                      onConfirm={() => {
-                        setPendingDeleteId(null);
-                        onChipDelete(chip.id);
-                      }}
-                      onCancel={() => setPendingDeleteId(null)}
-                    />
-                  ) : null}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-
-        {/* Expansion slot */}
-        {expandedId ? (
-          <div
-            id={`chip-panel-${expandedId}`}
-            className="rounded-xl border border-dashed border-[var(--color-line-2)] bg-[var(--color-panel)] px-4 py-3 text-sm text-[var(--color-ink-2)]"
-          >
-            {expansionPlaceholder}
+      {pickedCount > 0 ? (
+        <div className="mb-3 flex items-center justify-between gap-2 rounded-[var(--radius-md)] border border-[var(--color-brand-tint)] bg-[var(--color-brand-tint)]/40 px-3 py-2">
+          <p className="text-xs font-medium text-[var(--color-brand-700)]">
+            {labels.selectedCount.replace('{picked}', String(pickedCount)).replace('{total}', String(total))}
+          </p>
+          <div className="flex items-center gap-2">
+            {!allPicked ? (
+              <button
+                type="button"
+                onClick={onSelectAll}
+                className="text-xs font-medium text-[var(--color-brand-700)] underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] rounded-sm"
+              >
+                {labels.selectAll}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={onClear}
+              className="text-xs font-medium text-[var(--color-brand-700)] underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] rounded-sm"
+            >
+              {labels.clearSelection}
+            </button>
           </div>
-        ) : null}
-
-        {/* Add button + inline popover */}
-        <div className="relative mt-auto pt-1">
-          <button
-            type="button"
-            onClick={() => {
-              setPendingDeleteId(null);
-              setShowAddPopover((v) => !v);
-            }}
-            className="flex w-full items-center justify-start gap-2 rounded-xl border border-dashed border-[#dcd9cd] bg-transparent px-4 py-3 text-sm font-medium text-[#c94327] transition-colors hover:border-[#c94327]/40 hover:bg-[#fce8d4]/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
-          >
-            <span className="text-base font-bold leading-none">+</span>
-            <span>{addLabel.startsWith('+') ? addLabel.slice(1).trim() : addLabel}</span>
-          </button>
-
-          {showAddPopover ? (
-            <AddPopover
-              inputPlaceholder={addInputPlaceholder}
-              submitLabel={addSubmitLabel}
-              cancelLabel={addCancelLabel}
-              onSubmit={(_name) => {
-                setShowAddPopover(false);
-                // Route to the real drawer create flow which handles the API call
-                onAdd();
-              }}
-              onCancel={() => setShowAddPopover(false)}
-            />
-          ) : null}
         </div>
-      </CardContent>
-    </Card>
+      ) : null}
+
+      <div className="flex flex-wrap gap-2 items-center content-start flex-1">
+        {children}
+      </div>
+    </article>
+  );
+}
+
+/**
+ * A single chip in a MultiSelectCard. Mirrors the categories-page
+ * `StationsPanel` card so picking stations looks the same in both places.
+ *
+ * Two affordances live on one tile: the checkbox on the left toggles
+ * selection; the body opens the edit drawer. They are intentionally
+ * separate so a manager can pick five stations and then open one of them
+ * to edit without losing the others.
+ */
+function MultiSelectChip({
+  name,
+  count,
+  isArchived,
+  isPicked,
+  onToggle,
+  onEdit,
+  editLabel,
+  archivedBadge,
+}: {
+  name: string;
+  count?: number;
+  isArchived?: boolean;
+  isPicked: boolean;
+  onToggle: () => void;
+  onEdit: () => void;
+  editLabel: string;
+  archivedBadge?: string;
+}): React.ReactElement {
+  return (
+    <div
+      className={cn(
+        'group flex items-center gap-2 rounded-[var(--radius-md)] border px-3 py-2 transition-colors',
+        'focus-within:ring-2 focus-within:ring-[var(--color-ring)] focus-within:ring-inset',
+        isPicked
+          ? 'border-[var(--color-brand-600)] bg-[var(--color-brand-tint)]'
+          : 'border-[var(--color-line-2)] bg-[var(--color-surface)] hover:bg-[var(--color-panel)]',
+        isArchived && 'opacity-60',
+      )}
+    >
+      <button
+        type="button"
+        role="checkbox"
+        aria-checked={isPicked}
+        aria-label={name}
+        onClick={onToggle}
+        className={cn(
+          'inline-flex size-4 shrink-0 items-center justify-center rounded border transition-colors',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-1',
+          isPicked
+            ? 'border-[var(--color-brand-600)] bg-[var(--color-brand-600)] text-white'
+            : 'border-[var(--color-line-2)] bg-[var(--color-surface)] text-transparent',
+        )}
+      >
+        <LuCheck className="text-[10px]" aria-hidden="true" />
+      </button>
+
+      <button
+        type="button"
+        onClick={onEdit}
+        className="flex min-w-0 flex-1 items-center gap-2 text-left focus-visible:outline-none"
+        aria-label={`${editLabel}: ${name}`}
+      >
+        <span className="min-w-0 flex-1">
+          <span
+            className={cn(
+              'block truncate text-sm',
+              isPicked ? 'font-semibold text-[var(--color-brand-700)]' : 'font-medium text-[var(--color-ink)]',
+            )}
+          >
+            {name}
+          </span>
+          {typeof count === 'number' ? (
+            <span className="block text-xs text-[var(--color-ink-3)]">
+              {count}
+            </span>
+          ) : null}
+        </span>
+        {isArchived && archivedBadge ? (
+          <span className="rounded-[var(--radius-sm)] bg-[var(--color-panel)] px-2 py-0.5 text-[11px] font-semibold text-[var(--color-ink-2)]">
+            {archivedBadge}
+          </span>
+        ) : null}
+        <LuPencil
+          aria-hidden="true"
+          className="size-3.5 shrink-0 text-[var(--color-ink-3)] group-hover:text-[var(--color-ink-2)]"
+        />
+      </button>
+    </div>
   );
 }

@@ -80,11 +80,7 @@ export default async function SettingsPage({
     <>
       <PageHeader title={t('settingsHeading')} subtitle={t('settingsSubtitle')} />
 
-      <FilterChips
-        label={t('settingsHeading')}
-        value="setup"
-        chips={[{ value: 'setup', label: t('settingsEyebrow') }]}
-      />
+
 
       {loadError ? (
         <p role="alert" className="text-sm text-[var(--color-bad)]">
@@ -142,6 +138,9 @@ export default async function SettingsPage({
           locationEdit: t('actionsEdit'),
           locationErrorInUse: t('locationsErrorInUse'),
           rowActionsLabel: t('rowActionsLabel'),
+          selectedCount: t('settingsSelectedCount'),
+          selectAll: t('settingsSelectAll'),
+          clearSelection: t('settingsClearSelection'),
         }}
       />
     </>

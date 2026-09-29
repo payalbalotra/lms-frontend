@@ -265,15 +265,13 @@
         "back": "Procedimientos",
         "preview": "Vista previa",
         "detailsTitle": "Sobre este procedimiento",
-        "iconTitle": "Ícono",
-        "iconSubtitle": "Elige el ícono de este procedimiento. Mientras no subas uno, se muestra el arte por defecto de la categoría.",
-        "iconDefaultArt": "Arte por defecto de la categoría",
         "iconCustomImage": "Imagen personalizada",
-        "iconNoCategory": "Sin categoría todavía",
-        "iconPickerHint": "Sube un PNG o JPG para reemplazar el ícono por defecto.",
+        "iconLabelDefault": "Icono predeterminado",
+        "iconPickerHint": "Sube un PNG o JPG para reemplazarlo.",
         "iconUpload": "Subir imagen",
         "iconReplace": "Cambiar imagen",
         "iconUseDefault": "Usar arte por defecto",
+        "iconRemove": "Quitar",
         "iconFileTypeError": "El archivo debe ser una imagen.",
         "language": "Escribiendo en",
         "fieldTitle": "Título",
@@ -369,6 +367,7 @@
         "reviewStationsNone": "Aún no se han elegido estaciones.",
         "reviewStationsStationSpecific": "Por estación",
         "reviewStationsGeneral": "General",
+        "reviewCoverLabel": "Ícono (opcional)",
         "reviewAssignLabel": "Personas asignadas",
         "reviewAssignEveryone": "Todo el equipo",
         "reviewAssignCount": "{count, plural, one {# persona} other {# personas}}",
@@ -419,6 +418,12 @@
         "errors": {
           "slugTaken": "Ese slug ya está en uso en esta ubicación. Elige otro."
         }
+      },
+      "notFound": {
+        "eyebrow": "Biblioteca",
+        "title": "No encontramos esa página",
+        "body": "Puede que se haya eliminado, archivado o que el enlace sea de una versión anterior.",
+        "back": "Volver a procedimientos"
       },
       "new": {
         "crumbBack": "Volver a la biblioteca",
@@ -1057,7 +1062,7 @@
     "empty": "Aún no hay empleados.",
     "errorNotFound": "No encontrado.",
     "settingsHeading": "Configuración",
-    "settingsSubtitle": "Administra los roles, las estaciones y la ubicación que se usan en tu organización.",
+    "settingsSubtitle": "Administra las funciones, estaciones y ubicaciones utilizadas en tu organización.",
     "settingsTabStations": "Estaciones",
     "settingsTabRoles": "Roles",
     "settingsTabLocations": "Ubicaciones",
@@ -1070,6 +1075,9 @@
     "settingsAddLocation": "+ Agregar ubicación",
     "settingsPanelEmployeesPlaceholder": "Los empleados aparecerán aquí.",
     "settingsSearchStations": "Buscar estaciones...",
+    "settingsSelectedCount": "{picked} de {total} seleccionados",
+    "settingsSelectAll": "Seleccionar todo",
+    "settingsClearSelection": "Limpiar",
     "settingsSearchRoles": "Buscar roles...",
     "settingsSearchEmpty": "Sin coincidencias.",
     "settingsChangeLocation": "Cambiar ubicación",
