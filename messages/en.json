@@ -1078,6 +1078,7 @@
     "settingsSelectedCount": "{picked} of {total} selected",
     "settingsSelectAll": "Select all",
     "settingsClearSelection": "Clear",
+    "settingsStaffWord": "staff",
     "settingsSearchRoles": "Search roles...",
     "settingsSearchEmpty": "No matches.",
     "settingsChangeLocation": "Change location",

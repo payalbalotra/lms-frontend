@@ -1,8 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import Link from 'next/link';
-import { LuCheck, LuPencil, LuPlus } from 'react-icons/lu';
+import { LuPencil } from 'react-icons/lu';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { Location, Role, Station } from '@/lib/types';
 import {
@@ -48,15 +48,13 @@ export interface SettingsViewLabels {
   emptyStations: string;
   emptyRoles: string;
   emptyLocations: string;
+  /** Localised "staff" / "del personal" suffix appended after a count. */
+  staffWord: string;
   employeesPlaceholder: string;
   drawerClose: string;
   rowActionsLabel: string;
   errorGeneric: string;
   errorNotFound: string;
-  /** Picked / total indicator on each card. */
-  selectedCount: string;
-  selectAll: string;
-  clearSelection: string;
 }
 
 interface SettingsViewProps {
@@ -70,16 +68,30 @@ interface SettingsViewProps {
 type Chip = { id: string; name: string; count?: number; isArchived?: boolean };
 
 /**
+ * Title-case for entity names. Preserves short all-caps tokens (acronyms like
+ * "GM") and does not mutate the underlying DB values — applied at the display
+ * layer only.
+ */
+function toTitleCase(s: string): string {
+  return s
+    .split(/(\s+)/)
+    .map((part) => {
+      if (/^\s+$/.test(part)) return part;
+      if (/^[A-Z]{2,4}$/.test(part)) return part;
+      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+    })
+    .join('');
+}
+
+/**
  * Settings page — Stations / Roles / Locations as three side-by-side panels.
  *
- * Each panel is a `MultiSelectCard`: a list of checkbox-style chips the
- * manager can pick to assemble a working subset (e.g. stations that share
- * a recipe). Clicking the chip body still opens the edit drawer for that
- * single entity — the checkbox on the left toggles selection only.
- *
- * Selection state is tracked per-panel. No bulk mutation is wired in this
- * view: it is the visual contract the rest of the product reads as
- * "select N of M". Wiring a bulk action is a future change.
+ * Each panel is a `SettingsCard`: a heading + total, an Add button, and a
+ * flex of chips. Clicking a chip opens that entity's edit drawer; the Add
+ * button opens the create drawer for the matching manager. Selection state
+ * is not modelled here — there is no bulk action wired yet, and presenting
+ * checkboxes that do nothing was misleading (DESIGN.md §1.4 "shape is the
+ * only reliable signal of pressability").
  */
 export function SettingsView({
   stations,
@@ -92,192 +104,103 @@ export function SettingsView({
   const [rolesState, setRolesState] = React.useState<RolesManagerState>({ mode: 'closed' });
   const [locationsState, setLocationsState] = React.useState<LocationsManagerState>({ mode: 'closed' });
 
-  // Per-panel selection — sets of ids the manager has ticked. The edit
-  // drawer and the selection checkbox are independent affordances, so
-  // opening a drawer does not clear the selection.
-  const [pickedStations, setPickedStations] = React.useState<ReadonlySet<string>>(new Set());
-  const [pickedRoles, setPickedRoles] = React.useState<ReadonlySet<string>>(new Set());
-  const [pickedLocations, setPickedLocations] = React.useState<ReadonlySet<string>>(new Set());
-
-  // Map station chips, normalizing display name for GM if needed
   const stationChips: Chip[] = stations.map((s) => ({
     id: s.id,
-    name: s.name === 'GM' ? 'GM – Cold section + fryer' : s.name,
+    name: toTitleCase(s.name === 'GM' ? 'GM – Cold section + fryer' : s.name),
     count: DEMO_COUNTS[s.id] ?? 0,
     isArchived: s.isArchived,
   }));
 
-  // Map role chips, normalizing Head Chef to Executive Chef and excluding unused pastry if present
   const roleChips: Chip[] = roles
     .filter((r) => r.id !== 'role-pastry')
     .map((r) => ({
       id: r.id,
-      name: r.name === 'Head Chef' ? 'Executive Chef' : r.name,
+      name: toTitleCase(r.name === 'Head Chef' ? 'Executive Chef' : r.name),
       count: DEMO_COUNTS[r.id] ?? 0,
     }));
 
   const locationChips: Chip[] = locations.map((l) => ({
     id: l.id,
-    name: l.name,
+    name: toTitleCase(l.name),
     count: DEMO_COUNTS[l.id] ?? 0,
   }));
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3 items-stretch">
-        <MultiSelectCard
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <SettingsCard
           heading={labels.stationsHeading}
           total={stationChips.length}
-          picked={pickedStations}
-          onToggle={(id) =>
-            setPickedStations((prev) => {
-              const next = new Set(prev);
-              if (next.has(id)) next.delete(id);
-              else next.add(id);
-              return next;
-            })
-          }
-          onSelectAll={() =>
-            setPickedStations(new Set(stationChips.filter((c) => !c.isArchived).map((c) => c.id)))
-          }
-          onClear={() => setPickedStations(new Set())}
-          labels={{
-            selectedCount: labels.selectedCount,
-            selectAll: labels.selectAll,
-            clearSelection: labels.clearSelection,
-            empty: labels.emptyStations,
-          }}
+          addLabel={labels.addStation}
+          onAdd={() => setStationsState({ mode: 'create' })}
+          emptyLabel={labels.emptyStations}
         >
-          {stationChips.length === 0 ? (
-            <p className="text-sm text-[var(--color-ink-3)] py-2">{labels.emptyStations}</p>
-          ) : (
-            stationChips.map((chip) => {
-              const s = stations.find((x) => x.id === chip.id) ?? null;
-              return (
-                <MultiSelectChip
-                  key={chip.id}
-                  name={chip.name}
-                  count={chip.count}
-                  isArchived={chip.isArchived}
-                  isPicked={pickedStations.has(chip.id)}
-                  onToggle={() => {
-                    setPickedStations((prev) => {
-                      const next = new Set(prev);
-                      if (next.has(chip.id)) next.delete(chip.id);
-                      else next.add(chip.id);
-                      return next;
-                    });
-                  }}
-                  onEdit={() => {
-                    if (s) setStationsState({ mode: 'edit', entity: s });
-                  }}
-                  editLabel={labels.stationEdit}
-                  archivedBadge={labels.archivedBadge}
-                />
-              );
-            })
-          )}
-        </MultiSelectCard>
+          {stationChips.map((chip) => {
+            const s = stations.find((x) => x.id === chip.id) ?? null;
+            return (
+              <EntityChip
+                key={chip.id}
+                name={chip.name}
+                count={chip.count}
+                isArchived={chip.isArchived}
+                staffWord={labels.staffWord}
+                onEdit={() => {
+                  if (s) setStationsState({ mode: 'edit', entity: s });
+                }}
+                editLabel={labels.stationEdit}
+                archivedBadge={labels.archivedBadge}
+              />
+            );
+          })}
+        </SettingsCard>
 
-        <MultiSelectCard
+        <SettingsCard
           heading={labels.rolesHeading}
           total={roleChips.length}
-          picked={pickedRoles}
-          onToggle={(id) =>
-            setPickedRoles((prev) => {
-              const next = new Set(prev);
-              if (next.has(id)) next.delete(id);
-              else next.add(id);
-              return next;
-            })
-          }
-          onSelectAll={() => setPickedRoles(new Set(roleChips.map((c) => c.id)))}
-          onClear={() => setPickedRoles(new Set())}
-          labels={{
-            selectedCount: labels.selectedCount,
-            selectAll: labels.selectAll,
-            clearSelection: labels.clearSelection,
-            empty: labels.emptyRoles,
-          }}
+          addLabel={labels.addRole}
+          onAdd={() => setRolesState({ mode: 'create' })}
+          emptyLabel={labels.emptyRoles}
         >
-          {roleChips.length === 0 ? (
-            <p className="text-sm text-[var(--color-ink-3)] py-2">{labels.emptyRoles}</p>
-          ) : (
-            roleChips.map((chip) => {
-              const r = roles.find((x) => x.id === chip.id) ?? null;
-              return (
-                <MultiSelectChip
-                  key={chip.id}
-                  name={chip.name}
-                  count={chip.count}
-                  isPicked={pickedRoles.has(chip.id)}
-                  onToggle={() => {
-                    setPickedRoles((prev) => {
-                      const next = new Set(prev);
-                      if (next.has(chip.id)) next.delete(chip.id);
-                      else next.add(chip.id);
-                      return next;
-                    });
-                  }}
-                  onEdit={() => {
-                    if (r) setRolesState({ mode: 'edit', entity: r });
-                  }}
-                  editLabel={labels.roleEdit}
-                />
-              );
-            })
-          )}
-        </MultiSelectCard>
+          {roleChips.map((chip) => {
+            const r = roles.find((x) => x.id === chip.id) ?? null;
+            return (
+              <EntityChip
+                key={chip.id}
+                name={chip.name}
+                count={chip.count}
+                staffWord={labels.staffWord}
+                onEdit={() => {
+                  if (r) setRolesState({ mode: 'edit', entity: r });
+                }}
+                editLabel={labels.roleEdit}
+              />
+            );
+          })}
+        </SettingsCard>
 
-        <MultiSelectCard
+        <SettingsCard
           heading={labels.locationsHeading}
           total={locationChips.length}
-          picked={pickedLocations}
-          onToggle={(id) =>
-            setPickedLocations((prev) => {
-              const next = new Set(prev);
-              if (next.has(id)) next.delete(id);
-              else next.add(id);
-              return next;
-            })
-          }
-          onSelectAll={() => setPickedLocations(new Set(locationChips.map((c) => c.id)))}
-          onClear={() => setPickedLocations(new Set())}
-          labels={{
-            selectedCount: labels.selectedCount,
-            selectAll: labels.selectAll,
-            clearSelection: labels.clearSelection,
-            empty: labels.emptyLocations,
-          }}
+          addLabel={labels.addLocation}
+          onAdd={() => setLocationsState({ mode: 'create' })}
+          emptyLabel={labels.emptyLocations}
         >
-          {locationChips.length === 0 ? (
-            <p className="text-sm text-[var(--color-ink-3)] py-2">{labels.emptyLocations}</p>
-          ) : (
-            locationChips.map((chip) => {
-              const l = locations.find((x) => x.id === chip.id) ?? null;
-              return (
-                <MultiSelectChip
-                  key={chip.id}
-                  name={chip.name}
-                  count={chip.count}
-                  isPicked={pickedLocations.has(chip.id)}
-                  onToggle={() => {
-                    setPickedLocations((prev) => {
-                      const next = new Set(prev);
-                      if (next.has(chip.id)) next.delete(chip.id);
-                      else next.add(chip.id);
-                      return next;
-                    });
-                  }}
-                  onEdit={() => {
-                    if (l) setLocationsState({ mode: 'edit', entity: l });
-                  }}
-                  editLabel={labels.locationEdit}
-                />
-              );
-            })
-          )}
-        </MultiSelectCard>
+          {locationChips.map((chip) => {
+            const l = locations.find((x) => x.id === chip.id) ?? null;
+            return (
+              <EntityChip
+                key={chip.id}
+                name={chip.name}
+                count={chip.count}
+                staffWord={labels.staffWord}
+                onEdit={() => {
+                  if (l) setLocationsState({ mode: 'edit', entity: l });
+                }}
+                editLabel={labels.locationEdit}
+              />
+            );
+          })}
+        </SettingsCard>
       </div>
 
       <StationsManager
@@ -294,92 +217,63 @@ export function SettingsView({
 }
 
 /**
- * One card-shaped panel on the settings page: a heading, an optional
- * select-all / clear toolbar that shows when something is picked, a flex
- * of chips, and a dashed "+ Add" footer.
- *
- * The card sits on `bg-admin` (DESIGN.md §3.3) so its outline is a card
- * edge, not the page edge — same family as the filter panels elsewhere.
+ * One card-shaped panel on the settings page: a heading with total, an Add
+ * button, and a flex of chips. Sits on the page ground (DESIGN.md §2.1
+ * `--bg-admin`), card surface is white with a hairline border. Height is
+ * driven by content — no min-height, no flex-1 — so a panel with two
+ * locations does not stretch to match a panel with five stations.
  */
-function MultiSelectCard({
+function SettingsCard({
   heading,
   total,
-  picked,
-  onSelectAll,
-  onClear,
-  labels,
+  addLabel,
+  onAdd,
+  emptyLabel,
   children,
 }: {
   heading: string;
   total: number;
-  picked: ReadonlySet<string>;
-  onToggle?: (id: string) => void;
-  onSelectAll: () => void;
-  onClear: () => void;
-  labels: { selectedCount: string; selectAll: string; clearSelection: string; empty: string };
+  addLabel: string;
+  onAdd: () => void;
+  emptyLabel: string;
   children: React.ReactNode;
 }): React.ReactElement {
-  const pickedCount = picked.size;
-  const allPicked = pickedCount > 0 && pickedCount === total;
   return (
-    <article className="flex flex-col rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-6 min-h-[280px] shadow-e1">
-      <header className="flex items-center justify-between gap-3 mb-4">
-        <h2 className="text-base font-semibold leading-heading text-[var(--color-ink)]">
+    <article className="rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-6">
+      <header className="flex items-center justify-between gap-3 mb-3">
+        <h2 className="flex items-baseline gap-2 text-base font-semibold leading-heading text-[var(--color-ink)]">
           {heading}
+          <span className="text-sm font-medium tabular-nums text-[var(--color-ink-3)]">
+            · {total}
+          </span>
         </h2>
-        <span className="text-xs font-medium tabular-nums text-[var(--color-ink-3)]">
-          {total}
-        </span>
+        <Button variant="secondary" onClick={onAdd}>
+          {addLabel}
+        </Button>
       </header>
 
-      {pickedCount > 0 ? (
-        <div className="mb-3 flex items-center justify-between gap-2 rounded-[var(--radius-md)] border border-[var(--color-brand-tint)] bg-[var(--color-brand-tint)]/40 px-3 py-2">
-          <p className="text-xs font-medium text-[var(--color-brand-700)]">
-            {labels.selectedCount.replace('{picked}', String(pickedCount)).replace('{total}', String(total))}
-          </p>
-          <div className="flex items-center gap-2">
-            {!allPicked ? (
-              <button
-                type="button"
-                onClick={onSelectAll}
-                className="text-xs font-medium text-[var(--color-brand-700)] underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] rounded-sm"
-              >
-                {labels.selectAll}
-              </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={onClear}
-              className="text-xs font-medium text-[var(--color-brand-700)] underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] rounded-sm"
-            >
-              {labels.clearSelection}
-            </button>
-          </div>
+      {total === 0 ? (
+        <p className="text-sm text-[var(--color-ink-3)] py-2">{emptyLabel}</p>
+      ) : (
+        <div className="flex flex-wrap gap-2 items-start">
+          {children}
         </div>
-      ) : null}
-
-      <div className="flex flex-wrap gap-2 items-center content-start flex-1">
-        {children}
-      </div>
+      )}
     </article>
   );
 }
 
 /**
- * A single chip in a MultiSelectCard. Mirrors the categories-page
- * `StationsPanel` card so picking stations looks the same in both places.
- *
- * Two affordances live on one tile: the checkbox on the left toggles
- * selection; the body opens the edit drawer. They are intentionally
- * separate so a manager can pick five stations and then open one of them
- * to edit without losing the others.
+ * A single entity chip in a SettingsCard. The whole tile is one button that
+ * opens the edit drawer for the entity. Mirrors the categories-page row
+ * shape so the settings page reads as the same family as the rest of the
+ * admin surfaces.
  */
-function MultiSelectChip({
+function EntityChip({
   name,
   count,
   isArchived,
-  isPicked,
-  onToggle,
+  staffWord,
   onEdit,
   editLabel,
   archivedBadge,
@@ -387,71 +281,41 @@ function MultiSelectChip({
   name: string;
   count?: number;
   isArchived?: boolean;
-  isPicked: boolean;
-  onToggle: () => void;
+  staffWord: string;
   onEdit: () => void;
   editLabel: string;
   archivedBadge?: string;
 }): React.ReactElement {
   return (
-    <div
+    <button
+      type="button"
+      onClick={onEdit}
+      aria-label={`${editLabel}: ${name}`}
       className={cn(
-        'group flex items-center gap-2 rounded-[var(--radius-md)] border px-3 py-2 transition-colors',
-        'focus-within:ring-2 focus-within:ring-[var(--color-ring)] focus-within:ring-inset',
-        isPicked
-          ? 'border-[var(--color-brand-600)] bg-[var(--color-brand-tint)]'
+        'group flex min-w-0 items-center gap-2 rounded-[var(--radius-md)] border px-3 py-2 text-left transition-colors',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-inset',
+        isArchived
+          ? 'border-[var(--color-line-2)] bg-[var(--color-surface)] opacity-60'
           : 'border-[var(--color-line-2)] bg-[var(--color-surface)] hover:bg-[var(--color-panel)]',
-        isArchived && 'opacity-60',
       )}
     >
-      <button
-        type="button"
-        role="checkbox"
-        aria-checked={isPicked}
-        aria-label={name}
-        onClick={onToggle}
-        className={cn(
-          'inline-flex size-4 shrink-0 items-center justify-center rounded border transition-colors',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-1',
-          isPicked
-            ? 'border-[var(--color-brand-600)] bg-[var(--color-brand-600)] text-white'
-            : 'border-[var(--color-line-2)] bg-[var(--color-surface)] text-transparent',
-        )}
-      >
-        <LuCheck className="text-[10px]" aria-hidden="true" />
-      </button>
-
-      <button
-        type="button"
-        onClick={onEdit}
-        className="flex min-w-0 flex-1 items-center gap-2 text-left focus-visible:outline-none"
-        aria-label={`${editLabel}: ${name}`}
-      >
-        <span className="min-w-0 flex-1">
-          <span
-            className={cn(
-              'block truncate text-sm',
-              isPicked ? 'font-semibold text-[var(--color-brand-700)]' : 'font-medium text-[var(--color-ink)]',
-            )}
-          >
-            {name}
-          </span>
-          {typeof count === 'number' ? (
-            <span className="block text-xs text-[var(--color-ink-3)]">
-              {count}
-            </span>
-          ) : null}
-        </span>
-        {isArchived && archivedBadge ? (
-          <span className="rounded-[var(--radius-sm)] bg-[var(--color-panel)] px-2 py-0.5 text-[11px] font-semibold text-[var(--color-ink-2)]">
-            {archivedBadge}
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-medium text-[var(--color-ink)]">{name}</span>
+        {typeof count === 'number' ? (
+          <span className="block text-xs text-[var(--color-ink-3)]">
+            {count} {staffWord}
           </span>
         ) : null}
-        <LuPencil
-          aria-hidden="true"
-          className="size-3.5 shrink-0 text-[var(--color-ink-3)] group-hover:text-[var(--color-ink-2)]"
-        />
-      </button>
-    </div>
+      </span>
+      {isArchived && archivedBadge ? (
+        <span className="rounded-[var(--radius-sm)] bg-[var(--color-panel)] px-2 py-0.5 text-[11px] font-semibold text-[var(--color-ink-2)]">
+          {archivedBadge}
+        </span>
+      ) : null}
+      <LuPencil
+        aria-hidden="true"
+        className="size-3.5 shrink-0 text-[var(--color-ink-3)] group-hover:text-[var(--color-ink-2)]"
+      />
+    </button>
   );
 }

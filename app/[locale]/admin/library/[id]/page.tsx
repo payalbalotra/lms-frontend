@@ -46,12 +46,6 @@ export default async function AdminLibraryDetailPage({
   }
 
   if (!procedure) notFound();
-
-  // The viewer is needed by the body's Watermark (confidential / master
-  // recipes carry the reader's name on the page). The AdminShell already
-  // gates this route to admins; we still pull the cookie-resolved employee
-  // here so the same name renders whether the cook route or this one opened
-  // the document.
   let employee;
   try {
     const me = await fetchMe(cookieHeader);

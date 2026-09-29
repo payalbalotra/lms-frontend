@@ -129,9 +129,7 @@ export default async function SettingsPage({
           locationEdit: t('actionsEdit'),
           locationErrorInUse: t('locationsErrorInUse'),
           rowActionsLabel: t('rowActionsLabel'),
-          selectedCount: t('settingsSelectedCount'),
-          selectAll: t('settingsSelectAll'),
-          clearSelection: t('settingsClearSelection'),
+          staffWord: t('settingsStaffWord'),
         }}
       />
     </>
