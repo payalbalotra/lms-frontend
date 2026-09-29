@@ -12,16 +12,6 @@ interface PageProps {
 
 export const dynamic = 'force-dynamic';
 
-/**
- * The admin-side procedure detail page. Same article body the cook sees,
- * surfaced inside the AdminShell, with the manager's Edit / Publish / Draft /
- * Archive / Delete actions stacked above. Edit target lives at
- * `/admin/library/[id]/edit`; this page is the read view.
- *
- * Procedure not found renders Next.js' built-in 404; the explorer's "View"
- * link always targets an id that exists at click time, so the
- * `PROCEDURE_NOT_FOUND` path is reserved for hand-typed URLs and stale tabs.
- */
 export default async function AdminLibraryDetailPage({
   params,
 }: PageProps): Promise<React.ReactElement> {

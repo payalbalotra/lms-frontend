@@ -3,14 +3,14 @@ import { fold } from '@/lib/utils';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { listEmployees, ApiException } from '@/lib/api';
+import { listEmployees, listRoles, listStations, ApiException } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
 } from '@/components/ui/card';
 import { EmployeesClientTable } from './employees-client-table';
-import type { AdminEmployee, EmployeeStatus } from '@/lib/types';
+import type { AdminEmployee, EmployeeStatus, Role, Station } from '@/lib/types';
 import { PageHeader } from '@/components/admin/page-header';
 import { FilterChips } from '@/components/ui/filter-chips';
 import { LuPlus } from 'react-icons/lu';
@@ -52,11 +52,22 @@ export default async function AdminEmployeesPage({
     .join('; ');
 
   let employees: AdminEmployee[];
+  let roles: Role[];
+  let stations: Station[];
   try {
-    const result = await listEmployees({ status }, cookieHeader);
+    // Run the three list calls in parallel — they all hit the in-memory
+    // mock store, so the wall-clock is the slowest one. The roles and
+    // stations are small (a handful of rows) and stable for the page.
+    const [emps, rolesRes, stationsRes] = await Promise.all([
+      listEmployees({ status }, cookieHeader),
+      listRoles(cookieHeader),
+      listStations('loc-main', cookieHeader),
+    ]);
     employees = q
-      ? result.employees.filter((e) => fold(`${e.name} ${e.employeeCode ?? ''}`).includes(fold(q)))
-      : result.employees;
+      ? emps.employees.filter((e) => fold(`${e.name} ${e.employeeCode ?? ''} ${e.email ?? ''}`).includes(fold(q)))
+      : emps.employees;
+    roles = rolesRes.roles;
+    stations = stationsRes.stations;
   } catch (err) {
     if (err instanceof ApiException) {
       return (
@@ -76,15 +87,18 @@ export default async function AdminEmployeesPage({
 
   const labels = {
     empty: t('empty'),
-    thName: t('thName'),
-    thCode: t('thCode'),
-    thLocation: t('thLocation'),
-    thClearance: t('thClearance'),
+    thEmployee: t('thEmployee'),
+    thJobRole: t('thJobRole'),
+    thStation: t('thStation'),
+    thTraining: t('thTraining'),
     thStatus: t('thStatus'),
     thActions: t('thActions'),
     statusPending: t('statusPending'),
     statusActive: t('statusActive'),
     statusDeactivated: t('statusDeactivated'),
+    jobRolesEmpty: t('jobRolesEmpty'),
+    stationsEmpty: t('stationsEmpty'),
+    emailMissing: t('emailMissing'),
   };
 
   const statusBadge = (s: EmployeeStatus): string => {
@@ -94,7 +108,7 @@ export default async function AdminEmployeesPage({
   };
 
   return (
-    <div className="mx-auto max-w-page space-y-6">
+    <div className="mx-auto max-w-page space-y-6 pb-12">
       <PageHeader
         title={t('listHeading')}
         subtitle={t('peopleSubtitle')}
@@ -132,6 +146,8 @@ export default async function AdminEmployeesPage({
         statusFilter={status}
         searchQuery={q}
         locale={locale}
+        roles={roles}
+        stations={stations}
         labels={labels}
       />
     </div>

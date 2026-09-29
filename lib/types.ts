@@ -50,6 +50,12 @@ export interface AdminEmployee extends Employee {
   createdAt: string;
   deactivatedAt: string | null;
   locationName: string | null;
+  /** Billed email. Optional because the create flow in
+   *  `lib/api.ts → createEmployee` accepts an optional email — records
+   *  seeded by the legacy mock layer carry no email until the next edit.
+   *  The list page renders the value as a plain address when present and
+   *  "No email on file" italic otherwise; the detail page falls back to `—`. */
+  email?: string | null;
   /** Highest clearance level across all assigned job roles, surfaced in
    *  the admin list. `null` when the employee has no job roles. */
   roleClearance: ClearanceLevel | null;

@@ -26,6 +26,8 @@ interface MultiSelectChipsProps {
   id?: string;
   visibleChipLimit?: number;
   labelTrailing?: React.ReactNode;
+  tone?: 'brand' | 'neutral';
+  shape?: 'pill' | 'badge';
 }
 
 export function MultiSelectChips({
@@ -41,7 +43,11 @@ export function MultiSelectChips({
   id,
   visibleChipLimit = 6,
   labelTrailing,
+  tone = 'neutral',
+  shape = 'badge',
 }: MultiSelectChipsProps): React.ReactElement {
+  const isNeutral = tone === 'neutral';
+  const isPill = shape === 'pill';
   const labelsById = React.useMemo(
     () => new Map(options.map((o) => [o.value, o.label])),
     [options],
@@ -73,64 +79,70 @@ export function MultiSelectChips({
 
   return (
     <div className="grid gap-2" data-slot="multi-select-chips">
-      <div className="flex items-baseline justify-between gap-3">
+      <div className="flex flex-col gap-0.5">
         <span className="text-sm font-semibold text-[var(--color-ink)]">
           {label}
           {labelTrailing}
         </span>
         {hint ? (
-          <span className="text-sm text-[var(--color-ink-2)]">{hint}</span>
+          <span className="text-xs text-[var(--color-ink-2)] leading-relaxed">{hint}</span>
         ) : null}
       </div>
 
       <div
         className={cn(
-          'flex min-h-tap-admin flex-wrap items-center gap-2 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-4 py-3 shadow-e1',
+          'flex min-h-[54px] flex-wrap items-center gap-x-3 gap-y-2 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3.5 py-2.5 shadow-2xs transition-colors',
           isBlocked && 'bg-[var(--color-panel)]',
         )}
         id={id}
         role="group"
         aria-label={label}
       >
-        {selectedOptions.length === 0 ? (
+        {visibleChips.map((opt) => (
           <span
+            key={opt.value}
             className={cn(
-              'text-sm',
-              isBlocked
-                ? 'italic text-[var(--color-ink-3)]'
-                : 'text-[var(--color-ink-3)]',
+              'inline-flex shrink-0 items-center gap-1.5 px-2.5 py-1 text-xs font-medium transition-colors',
+              isPill ? 'rounded-full' : 'rounded-[var(--radius-md)]',
+              isNeutral
+                ? 'border border-[var(--color-line-2)] bg-[var(--color-panel)] text-[var(--color-ink)]'
+                : 'bg-[var(--color-brand-tint)] font-semibold text-[var(--color-brand-700)] shadow-[inset_0_0_0_1px_var(--color-brand-600)]',
             )}
           >
-            {isBlocked ? blockedReason : emptyText}
+            <span className="truncate">{opt.label}</span>
+            <button
+              type="button"
+              aria-label={`Remove ${opt.label}`}
+              onClick={() => handleRemove(opt.value)}
+              disabled={disabled}
+              className={cn(
+                '-mr-0.5 inline-flex size-3.5 shrink-0 items-center justify-center rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] disabled:opacity-50',
+                isNeutral
+                  ? 'text-[var(--color-ink-3)] hover:bg-[var(--color-panel-2)] hover:text-[var(--color-ink)]'
+                  : 'text-[var(--color-brand-700)] hover:bg-[var(--color-panel)]',
+              )}
+            >
+              <LuX className="size-3" aria-hidden="true" />
+            </button>
+          </span>
+        ))}
+
+        {overflow > 0 ? (
+          <span
+            className={cn(
+              'inline-flex shrink-0 items-center px-2 py-0.5 text-xs font-semibold text-[var(--color-ink-2)] bg-[var(--color-panel)]',
+              isPill ? 'rounded-full' : 'rounded-[var(--radius-md)]',
+            )}
+          >
+            +{overflow}
+          </span>
+        ) : null}
+
+        {isBlocked ? (
+          <span className="text-xs italic text-[var(--color-ink-3)]">
+            {blockedReason}
           </span>
         ) : (
-          <>
-            {visibleChips.map((opt) => (
-              <span
-                key={opt.value}
-                className="inline-flex items-center gap-1 rounded-full bg-[var(--color-brand-tint)] px-3 py-1 text-sm font-semibold text-[var(--color-brand-700)] shadow-[inset_0_0_0_1px_var(--color-brand-600)]"
-              >
-                <span className="truncate">{opt.label}</span>
-                <button
-                  type="button"
-                  aria-label={`Remove ${opt.label}`}
-                  onClick={() => handleRemove(opt.value)}
-                  disabled={disabled}
-                  className="-mr-1 ml-1 inline-flex size-5 shrink-0 items-center justify-center rounded-full text-[var(--color-brand-700)] transition-colors hover:bg-[var(--color-panel)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] disabled:opacity-50"
-                >
-                  <LuX className="text-sm" aria-hidden="true" />
-                </button>
-              </span>
-            ))}
-            {overflow > 0 ? (
-              <span className="inline-flex items-center rounded-full bg-[var(--color-panel)] px-3 py-1 text-sm font-semibold text-[var(--color-ink-2)]">
-                +{overflow}
-              </span>
-            ) : null}
-          </>
-        )}
-
-        <div className="ml-auto">
           <PickerTrigger
             disabled={triggerDisabled}
             disabledReason={isBlocked ? blockedReason : undefined}
@@ -138,7 +150,7 @@ export function MultiSelectChips({
             addLabel={addLabel}
             onPick={handleAdd}
           />
-        </div>
+        )}
       </div>
     </div>
   );
@@ -156,39 +168,47 @@ function PickerTrigger({
   options: MultiSelectOption[];
   addLabel: string;
   onPick: (value: string) => void;
+  triggerVariant?: 'neutral' | 'secondary';
+  isPill?: boolean;
 }): React.ReactElement {
   const triggerRef = React.useRef<HTMLButtonElement>(null);
   const [open, setOpen] = React.useState(false);
 
+  const actionClasses = cn(
+    'group inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-[var(--radius-sm)] px-2 py-1 text-xs font-medium transition-colors whitespace-nowrap',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-1',
+    disabled
+      ? 'cursor-not-allowed opacity-50 text-[var(--color-ink-3)]'
+      : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)] hover:bg-[var(--color-panel)] active:bg-[var(--color-panel-2)]',
+  );
+
   if (disabled) {
     return (
-      <Button
+      <button
         type="button"
-        variant="secondary"
-        size="sm"
         disabled
         title={disabledReason}
-        icon={LuPlus}
+        className={actionClasses}
       >
-        {addLabel}
-      </Button>
+        <LuPlus className="size-3.5 shrink-0 text-[var(--color-ink-3)]" aria-hidden="true" />
+        <span>{addLabel}</span>
+      </button>
     );
   }
 
   return (
     <>
-      <Button
+      <button
         ref={triggerRef}
         type="button"
-        variant="secondary"
-        size="sm"
         onClick={() => setOpen((p) => !p)}
         aria-haspopup="menu"
         aria-expanded={open}
-        icon={LuPlus}
+        className={actionClasses}
       >
-        {addLabel}
-      </Button>
+        <LuPlus className="size-3.5 shrink-0 text-[var(--color-brand-600)] transition-transform group-hover:scale-110" aria-hidden="true" />
+        <span>{addLabel}</span>
+      </button>
       <Popover
         open={open}
         onClose={() => setOpen(false)}

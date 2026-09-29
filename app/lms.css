@@ -251,6 +251,10 @@
                              other. It was three Tailwind defaults (7xl, 6xl, 5xl) picked
                              per page, which is why moving between them felt like moving
                              between products. */
+   --page-wide-w: 84rem;
+   /* the wider work surface for data tables and explorers — 1344px.
+                            Same vertical rhythm as --page-w; only the column
+                            widens so multi-column rows have room to breathe. */
    --doc-w: 680px;
    /* the reading column: document, employee app, tab bar */
    --narrow-w: 560px;

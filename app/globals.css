@@ -121,6 +121,7 @@
      one width, and it is the width the HTML templates use. */
   --max-width-doc: var(--doc-w);
   --max-width-page: var(--page-w);
+  --max-width-page-wide: var(--page-wide-w);
   --max-width-narrow: var(--narrow-w);
   --max-width-field-md: var(--field-md);
   --max-width-card: var(--card-w);
