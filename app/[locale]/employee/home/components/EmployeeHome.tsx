@@ -110,9 +110,9 @@ export function EmployeeHome({
         </>
       )}
 
-      {/* Back to a recipe left half-read: read on the device, absent until one is opened. */}
-      <BackTo locale={locale} heading={backTo.heading} openedLabel={backTo.opened} readsSpanish={readsSpanish} />
-
+      {/* Changed for your station — anything updated in the last 14 days. Surfaces
+          the procedure-side work ahead of "Back to a half-read recipe", because
+          a fresh update is what you may need to act on this shift. */}
       <ChangedLately
         heading={changed.heading}
         items={changed.rows.map((r) => ({
@@ -134,6 +134,9 @@ export function EmployeeHome({
           ),
         }))}
       />
+
+      {/* Back to a recipe left half-read: read on the device, absent until one is opened. */}
+      <BackTo locale={locale} heading={backTo.heading} openedLabel={backTo.opened} readsSpanish={readsSpanish} />
 
       <Rows
         id="station-h"
