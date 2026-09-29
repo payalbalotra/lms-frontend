@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
-import { Drawer } from '@/components/ui/drawer';
+import { Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui/modal';
 import {
   archiveStation,
   createStation,
@@ -183,14 +183,51 @@ export function StationsManager({
 
   return (
     <>
-      <Drawer
-        open={isCreateOpen}
-        onClose={closeDrawer}
-        title={labels.stationCreateHeading}
-        closeLabel={labels.drawerClose}
-        size="md"
-        footer={
-          <>
+      {/* Create Station Modal */}
+      <Modal open={isCreateOpen} onClose={closeDrawer} size="sm">
+        <ModalHeader
+          title={labels.stationCreateHeading}
+          onClose={closeDrawer}
+          closeLabel={labels.drawerClose}
+        />
+        <form onSubmit={onCreate} noValidate>
+          <ModalBody className="space-y-4">
+            <div className="grid gap-2">
+              <Label htmlFor="newStationName">{labels.stationName}</Label>
+              <Input
+                id="newStationName"
+                required
+                maxLength={120}
+                value={createForm.name}
+                onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                disabled={isPending}
+                autoFocus
+              />
+            </div>
+            {locations.length > 1 ? (
+              <div className="grid gap-2">
+                <Label htmlFor="newStationLocation">{labels.stationLocation}</Label>
+                <Select
+                  id="newStationLocation"
+                  value={createForm.locationId}
+                  onChange={(e) => setCreateForm({ ...createForm, locationId: e.target.value })}
+                  disabled={isPending}
+                >
+                  {locations.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.name}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            ) : null}
+            {createError ? (
+              <p role="alert" className="text-sm text-[var(--color-bad)]">
+                {createError}
+              </p>
+            ) : null}
+          </ModalBody>
+          <ModalFooter>
             <Button
               type="button"
               variant="neutral"
@@ -201,61 +238,70 @@ export function StationsManager({
             </Button>
             <Button
               type="submit"
-              form="create-station-form"
-              disabled={isPending || !createForm.name}
+              disabled={isPending || !createForm.name.trim()}
             >
               {isPending ? labels.stationCreating : labels.stationCreate}
             </Button>
-          </>
-        }
-      >
-        <form id="create-station-form" onSubmit={onCreate} noValidate className="grid gap-4">
-          <div className="grid gap-2">
-            <Label htmlFor="newStationName">{labels.stationName}</Label>
-            <Input
-              id="newStationName"
-              required
-              maxLength={120}
-              value={createForm.name}
-              onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
-              disabled={isPending}
-              autoFocus
-            />
-          </div>
-          {locations.length > 1 ? (
-            <div className="grid gap-2">
-              <Label htmlFor="newStationLocation">{labels.stationLocation}</Label>
-              <Select
-                id="newStationLocation"
-                value={createForm.locationId}
-                onChange={(e) => setCreateForm({ ...createForm, locationId: e.target.value })}
-                disabled={isPending}
-              >
-                {locations.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.name}
-                  </option>
-                ))}
-              </Select>
-            </div>
-          ) : null}
-          {createError ? (
-            <p role="alert" className="text-sm text-[var(--color-bad)]">
-              {createError}
-            </p>
-          ) : null}
+          </ModalFooter>
         </form>
-      </Drawer>
+      </Modal>
 
-      <Drawer
-        open={isEditOpen}
-        onClose={closeDrawer}
-        title={editingStation?.name ?? labels.stationEdit}
-        closeLabel={labels.drawerClose}
-        size="md"
-        footer={
-          editingStation ? (
-            <>
+      {/* Edit Station Modal */}
+      <Modal open={isEditOpen} onClose={closeDrawer} size="sm">
+        <ModalHeader
+          title={editingStation?.name ?? labels.stationEdit}
+          onClose={closeDrawer}
+          closeLabel={labels.drawerClose}
+        />
+        {editingStation && editForm ? (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (editForm.name.trim()) saveEdit(editingStation);
+            }}
+          >
+            <ModalBody className="space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="editStationName">{labels.stationName}</Label>
+                <Input
+                  id="editStationName"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  maxLength={120}
+                  disabled={isPending}
+                  autoFocus
+                />
+              </div>
+              <label className="flex items-center gap-2 text-sm text-[var(--color-ink)] cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={editForm.isArchived}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, isArchived: e.target.checked })
+                  }
+                  disabled={isPending}
+                  className="rounded border-[var(--color-line-2)] text-[var(--color-brand)] focus:ring-[var(--color-ring)]"
+                />
+                <span>{editingStation.isArchived ? labels.stationUnarchive : labels.stationArchive}</span>
+              </label>
+              {editError ? (
+                <p role="alert" className="text-sm text-[var(--color-bad)]">
+                  {editError}
+                </p>
+              ) : null}
+            </ModalBody>
+            <ModalFooter>
+              <div className="mr-auto">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={isPending}
+                  onClick={() => (editingStation.isArchived ? doUnarchive(editingStation) : doArchive(editingStation))}
+                  className="text-xs text-[var(--color-ink-3)] hover:text-[var(--color-bad)]"
+                >
+                  {editingStation.isArchived ? labels.stationUnarchive : labels.stationArchive}
+                </Button>
+              </div>
               <Button
                 type="button"
                 variant="neutral"
@@ -265,60 +311,15 @@ export function StationsManager({
                 {labels.stationCancel}
               </Button>
               <Button
-                type="button"
-                onClick={() => editingStation && saveEdit(editingStation)}
-                disabled={isPending || !editForm?.name}
+                type="submit"
+                disabled={isPending || !editForm.name.trim()}
               >
                 {labels.stationSave}
               </Button>
-            </>
-          ) : null
-        }
-      >
-        {editingStation && editForm ? (
-          <div className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="editStationName">{labels.stationName}</Label>
-              <Input
-                id="editStationName"
-                value={editForm.name}
-                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                maxLength={120}
-                disabled={isPending}
-              />
-            </div>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={editForm.isArchived}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, isArchived: e.target.checked })
-                }
-                disabled={isPending}
-              />
-              <span>{editingStation.isArchived ? labels.stationUnarchive : labels.stationArchive}</span>
-            </label>
-            {editError ? (
-              <p role="alert" className="text-sm text-[var(--color-bad)]">
-                {editError}
-              </p>
-            ) : null}
-            {/* Archive / unarchive actions live inside the drawer because
-                the chip row is not a destructive-actions surface — those
-                stay one click deeper than the chip × icon. */}
-            <div className="flex gap-2 border-t border-[var(--color-line)] pt-3">
-              <Button
-                type="button"
-                variant="ghost"
-                disabled={isPending}
-                onClick={() => editingStation && (editingStation.isArchived ? doUnarchive(editingStation) : doArchive(editingStation))}
-              >
-                {editingStation.isArchived ? labels.stationUnarchive : labels.stationArchive}
-              </Button>
-            </div>
-          </div>
+            </ModalFooter>
+          </form>
         ) : null}
-      </Drawer>
+      </Modal>
     </>
   );
 }

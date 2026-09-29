@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Drawer } from '@/components/ui/drawer';
+import { Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui/modal';
 import {
   createRole,
   deleteRole,
@@ -166,14 +166,34 @@ export function RolesManager({
 
   return (
     <>
-      <Drawer
-        open={isCreateOpen}
-        onClose={closeDrawer}
-        title={labels.roleCreateHeading}
-        closeLabel={labels.drawerClose}
-        size="md"
-        footer={
-          <>
+      {/* Create Role Modal */}
+      <Modal open={isCreateOpen} onClose={closeDrawer} size="sm">
+        <ModalHeader
+          title={labels.roleCreateHeading}
+          onClose={closeDrawer}
+          closeLabel={labels.drawerClose}
+        />
+        <form onSubmit={onCreate} noValidate>
+          <ModalBody className="space-y-4">
+            <div className="grid gap-2">
+              <Label htmlFor="newRoleName">{labels.roleName}</Label>
+              <Input
+                id="newRoleName"
+                required
+                maxLength={120}
+                value={createForm.name}
+                onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                disabled={isPending}
+                autoFocus
+              />
+            </div>
+            {createError ? (
+              <p role="alert" className="text-sm text-[var(--color-bad)]">
+                {createError}
+              </p>
+            ) : null}
+          </ModalBody>
+          <ModalFooter>
             <Button
               type="button"
               variant="neutral"
@@ -184,44 +204,58 @@ export function RolesManager({
             </Button>
             <Button
               type="submit"
-              form="create-role-form"
-              disabled={isPending || !createForm.name}
+              disabled={isPending || !createForm.name.trim()}
             >
               {isPending ? labels.roleCreating : labels.roleCreate}
             </Button>
-          </>
-        }
-      >
-        <form id="create-role-form" onSubmit={onCreate} noValidate className="grid gap-4">
-          <div className="grid gap-2">
-            <Label htmlFor="newRoleName">{labels.roleName}</Label>
-            <Input
-              id="newRoleName"
-              required
-              maxLength={120}
-              value={createForm.name}
-              onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
-              disabled={isPending}
-              autoFocus
-            />
-          </div>
-          {createError ? (
-            <p role="alert" className="text-sm text-[var(--color-bad)]">
-              {createError}
-            </p>
-          ) : null}
+          </ModalFooter>
         </form>
-      </Drawer>
+      </Modal>
 
-      <Drawer
-        open={isEditOpen}
-        onClose={closeDrawer}
-        title={editingRole?.name ?? labels.roleEdit}
-        closeLabel={labels.drawerClose}
-        size="md"
-        footer={
-          editingRole ? (
-            <>
+      {/* Edit Role Modal */}
+      <Modal open={isEditOpen} onClose={closeDrawer} size="sm">
+        <ModalHeader
+          title={editingRole?.name ?? labels.roleEdit}
+          onClose={closeDrawer}
+          closeLabel={labels.drawerClose}
+        />
+        {editingRole && editForm ? (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (editForm.name.trim()) saveEdit(editingRole);
+            }}
+          >
+            <ModalBody className="space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="editRoleName">{labels.roleName}</Label>
+                <Input
+                  id="editRoleName"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  maxLength={120}
+                  disabled={isPending}
+                  autoFocus
+                />
+              </div>
+              {editError ? (
+                <p role="alert" className="text-sm text-[var(--color-bad)]">
+                  {editError}
+                </p>
+              ) : null}
+            </ModalBody>
+            <ModalFooter>
+              <div className="mr-auto">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={isPending}
+                  onClick={() => editingRole && onDelete(editingRole)}
+                  className="text-xs text-[var(--color-ink-3)] hover:text-[var(--color-bad)]"
+                >
+                  {labels.roleDelete}
+                </Button>
+              </div>
               <Button
                 type="button"
                 variant="neutral"
@@ -231,50 +265,15 @@ export function RolesManager({
                 {labels.roleCancel}
               </Button>
               <Button
-                type="button"
-                onClick={() => editingRole && saveEdit(editingRole)}
-                disabled={isPending || !editForm?.name}
+                type="submit"
+                disabled={isPending || !editForm.name.trim()}
               >
                 {labels.roleSave}
               </Button>
-            </>
-          ) : null
-        }
-      >
-        {editingRole && editForm ? (
-          <div className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="editRoleName">{labels.roleName}</Label>
-              <Input
-                id="editRoleName"
-                value={editForm.name}
-                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                maxLength={120}
-                disabled={isPending}
-              />
-            </div>
-            {editError ? (
-              <p role="alert" className="text-sm text-[var(--color-bad)]">
-                {editError}
-              </p>
-            ) : null}
-            {/* Delete is one click deeper than edit (DESIGN.md §3.6). It
-                surfaces inside the same edit drawer so the destructive
-                action lives one level under the chip × icon, never on
-                the chip row directly. */}
-            <div className="flex justify-end border-t border-[var(--color-line)] pt-3">
-              <Button
-                type="button"
-                variant="destructive"
-                disabled={isPending}
-                onClick={() => editingRole && onDelete(editingRole)}
-              >
-                {labels.roleDelete}
-              </Button>
-            </div>
-          </div>
+            </ModalFooter>
+          </form>
         ) : null}
-      </Drawer>
+      </Modal>
     </>
   );
 }
