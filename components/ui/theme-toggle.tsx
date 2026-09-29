@@ -6,32 +6,17 @@ import { LuMoon, LuSun } from 'react-icons/lu';
 import { cn } from '@/lib/utils';
 import { THEME_COOKIE, THEME_MAX_AGE } from '@/lib/theme';
 
-/**
- * Light or dark, for one person on one device.
- *
- * With nothing stored the operating system decides, which is what the
- * stylesheet does on its own; pressing this pins a choice and remembers it.
- * There is no third "system" seat: a cook mid-shift is not going to reason
- * about a preference cascade, and the system is already the default.
- *
- * The icon shows what pressing it will do, not what is on — a moon while you
- * are in daylight. The label says the same thing, because an icon alone is a
- * guess.
- */
 export function ThemeToggle({ labels, className }: {
   labels: { toDark: string; toLight: string };
   className?: string;
 }): React.ReactElement {
-  // Rendered dark-agnostic on the server: the real value is only knowable in
-  // the browser, and guessing it is what makes a toggle flicker on hydration.
+
   const [dark, setDark] = React.useState<boolean | null>(null);
 
   React.useEffect(() => {
     const root = document.documentElement;
     let pinned = root.getAttribute('data-theme');
 
-    // The choice moved from localStorage to a cookie when the server started
-    // rendering it. Carry an old one across once, so nobody's setting is lost.
     if (!pinned) {
       try {
         const legacy = localStorage.getItem(THEME_COOKIE);
@@ -42,7 +27,6 @@ export function ThemeToggle({ labels, className }: {
         }
         localStorage.removeItem(THEME_COOKIE);
       } catch {
-        // A private window refuses storage; there is nothing to carry across.
       }
     }
 

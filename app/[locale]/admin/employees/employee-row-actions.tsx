@@ -12,14 +12,20 @@ import {
 } from '@/lib/api';
 import { RowActions, type RowActionItem } from '@/components/ui/row-actions';
 import type { AdminEmployee, InviteResult } from '@/lib/types';
-import { LuBan, LuRotateCw, LuSend } from 'react-icons/lu';
+import { LuBan, LuPencil, LuRotateCw, LuSend } from 'react-icons/lu';
 
 interface EmployeeRowActionsProps {
   locale: string;
   employee: AdminEmployee;
+  /** When provided, the kebab's Edit item calls this instead of
+   *  navigating. The detail page passes its `openEdit` so the kebab Edit
+   *  opens the modal directly — without it, clicking Edit on a page
+   *  you're already on would just re-route to itself. The list page
+   *  omits this and falls back to navigation. */
+  onEdit?: () => void;
 }
 
-export function EmployeeRowActions({ locale, employee }: EmployeeRowActionsProps): React.ReactElement {
+export function EmployeeRowActions({ locale, employee, onEdit }: EmployeeRowActionsProps): React.ReactElement {
   const t = useTranslations('admin');
   const router = useRouter();
   const [_pending, startTransition] = useTransition();
@@ -28,6 +34,17 @@ export function EmployeeRowActions({ locale, employee }: EmployeeRowActionsProps
 
   function refresh(): void {
     router.refresh();
+  }
+
+  function handleEdit(): void {
+    if (onEdit) {
+      onEdit();
+      return;
+    }
+    // No callback provided — assume the caller is the list and the user
+    // needs to navigate to the detail page. Use the locale-aware path
+    // so the same row in the EN and ES routes lands on the right page.
+    router.push(`/${locale}/admin/employees/${employee.id}`);
   }
 
   function onResend(): void {
@@ -68,8 +85,17 @@ export function EmployeeRowActions({ locale, employee }: EmployeeRowActionsProps
   }
 
   function buildItems(): RowActionItem[] {
+    // Edit is always the first item — non-destructive, navigation. The
+    // pending/active/deactivated paths keep their existing kebab items.
+    const editItem: RowActionItem = {
+      label: t('actionsEdit'),
+      icon: LuPencil,
+      onSelect: handleEdit,
+    };
+
     if (employee.status === 'pending') {
       return [
+        editItem,
         {
           label: t('actionsResend'),
           icon: LuSend,
@@ -85,6 +111,7 @@ export function EmployeeRowActions({ locale, employee }: EmployeeRowActionsProps
     }
     if (employee.status === 'active') {
       return [
+        editItem,
         {
           label: t('actionsDeactivate'),
           icon: LuBan,
@@ -95,6 +122,7 @@ export function EmployeeRowActions({ locale, employee }: EmployeeRowActionsProps
     }
     // deactivated
     return [
+      editItem,
       {
         label: t('actionsReactivate'),
         icon: LuRotateCw,

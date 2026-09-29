@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Drawer } from '@/components/ui/drawer';
+import { Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui/modal';
 import {
   createLocation,
   deleteLocation,
@@ -150,14 +150,34 @@ export function LocationsManager({
 
   return (
     <>
-      <Drawer
-        open={isCreateOpen}
-        onClose={closeDrawer}
-        title={labels.locationCreateHeading}
-        closeLabel={labels.drawerClose}
-        size="md"
-        footer={
-          <>
+      {/* Create Location Modal */}
+      <Modal open={isCreateOpen} onClose={closeDrawer} size="sm">
+        <ModalHeader
+          title={labels.locationCreateHeading}
+          onClose={closeDrawer}
+          closeLabel={labels.drawerClose}
+        />
+        <form onSubmit={onCreate} noValidate>
+          <ModalBody className="space-y-4">
+            <div className="grid gap-2">
+              <Label htmlFor="newLocationName">{labels.locationName}</Label>
+              <Input
+                id="newLocationName"
+                required
+                maxLength={120}
+                value={createForm.name}
+                onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                disabled={isPending}
+                autoFocus
+              />
+            </div>
+            {createError ? (
+              <p role="alert" className="text-sm text-[var(--color-bad)]">
+                {createError}
+              </p>
+            ) : null}
+          </ModalBody>
+          <ModalFooter>
             <Button
               type="button"
               variant="neutral"
@@ -168,44 +188,58 @@ export function LocationsManager({
             </Button>
             <Button
               type="submit"
-              form="create-location-form"
-              disabled={isPending || !createForm.name}
+              disabled={isPending || !createForm.name.trim()}
             >
               {isPending ? labels.locationCreating : labels.locationCreate}
             </Button>
-          </>
-        }
-      >
-        <form id="create-location-form" onSubmit={onCreate} noValidate className="grid gap-4">
-          <div className="grid gap-2">
-            <Label htmlFor="newLocationName">{labels.locationName}</Label>
-            <Input
-              id="newLocationName"
-              required
-              maxLength={120}
-              value={createForm.name}
-              onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
-              disabled={isPending}
-              autoFocus
-            />
-          </div>
-          {createError ? (
-            <p role="alert" className="text-sm text-[var(--color-bad)]">
-              {createError}
-            </p>
-          ) : null}
+          </ModalFooter>
         </form>
-      </Drawer>
+      </Modal>
 
-      <Drawer
-        open={isEditOpen}
-        onClose={closeDrawer}
-        title={editingLocation?.name ?? labels.locationEdit}
-        closeLabel={labels.drawerClose}
-        size="md"
-        footer={
-          editingLocation ? (
-            <>
+      {/* Edit Location Modal */}
+      <Modal open={isEditOpen} onClose={closeDrawer} size="sm">
+        <ModalHeader
+          title={editingLocation?.name ?? labels.locationEdit}
+          onClose={closeDrawer}
+          closeLabel={labels.drawerClose}
+        />
+        {editingLocation ? (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (editName.trim()) saveEdit(editingLocation);
+            }}
+          >
+            <ModalBody className="space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="editLocationName">{labels.locationName}</Label>
+                <Input
+                  id="editLocationName"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  maxLength={120}
+                  disabled={isPending}
+                  autoFocus
+                />
+              </div>
+              {editError ? (
+                <p role="alert" className="text-sm text-[var(--color-bad)]">
+                  {editError}
+                </p>
+              ) : null}
+            </ModalBody>
+            <ModalFooter>
+              <div className="mr-auto">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={isPending}
+                  onClick={() => editingLocation && onDelete(editingLocation)}
+                  className="text-xs text-[var(--color-ink-3)] hover:text-[var(--color-bad)]"
+                >
+                  {labels.locationDelete}
+                </Button>
+              </div>
               <Button
                 type="button"
                 variant="neutral"
@@ -215,46 +249,15 @@ export function LocationsManager({
                 {labels.locationCancel}
               </Button>
               <Button
-                type="button"
-                onClick={() => editingLocation && saveEdit(editingLocation)}
+                type="submit"
                 disabled={isPending || !editName.trim()}
               >
                 {labels.locationSave}
               </Button>
-            </>
-          ) : null
-        }
-      >
-        {editingLocation ? (
-          <div className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="editLocationName">{labels.locationName}</Label>
-              <Input
-                id="editLocationName"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                maxLength={120}
-                disabled={isPending}
-              />
-            </div>
-            {editError ? (
-              <p role="alert" className="text-sm text-[var(--color-bad)]">
-                {editError}
-              </p>
-            ) : null}
-            <div className="flex justify-end border-t border-[var(--color-line)] pt-3">
-              <Button
-                type="button"
-                variant="destructive"
-                disabled={isPending}
-                onClick={() => editingLocation && onDelete(editingLocation)}
-              >
-                {labels.locationDelete}
-              </Button>
-            </div>
-          </div>
+            </ModalFooter>
+          </form>
         ) : null}
-      </Drawer>
+      </Modal>
     </>
   );
 }

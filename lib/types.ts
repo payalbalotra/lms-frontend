@@ -1,46 +1,23 @@
-// Mirror backend types (no shared package). Backend source of truth:
-//   lms-backend/src/db/schema.ts (enums + table shapes)
-//   lms-backend/src/controllers/admin/employees.ts (public row)
 
 export type ClearanceLevel = 'general' | 'station' | 'confidential' | 'master';
 export type LanguagePref = 'en' | 'es';
 export type EmployeeStatus = 'pending' | 'active' | 'deactivated';
-
-/** Coarse product-role gate — the only thing the frontend uses for routing,
- *  chrome visibility, and back-link target. Backend will return this from
- *  `fetchMe` once the session shape is redesigned; in mock data the seed
- *  marks one employee `admin` and the rest `employee`. `clearanceLevel`
- *  remains the fine-grained tier (general / station / confidential / master)
- *  and is still surfaced in admin tables, but is not used for navigation. */
 export type EmployeeRole = 'admin' | 'employee';
-
-/** LMS access tier assigned at invite time — what this person can do in the
- *  app, distinct from the kitchen job they do. "Admin" is intentionally
- *  absent here; system admins are bootstrapped separately, not invited
- *  through the employee flow. */
 export type AccessLevel = 'employee' | 'manager';
 
 export interface Employee {
   id: string;
   name: string;
   locationId: string;
-  /** LMS access tier. Distinct from `roleIds` (what job they do). */
   accessLevel: AccessLevel;
-  /** One or more job roles (Line Cook, Prep Cook, ...). Sourced from the
-   *  `Role` table; an employee's primary role is the first entry. */
   roleIds: string[];
-  /** One or more stations the employee is assigned to. Stations are still
-   *  scoped to a single `locationId`; multi-location station assignment is
-   *  out of scope for stage 1. */
   stationIds: string[];
   clearanceLevel: ClearanceLevel;
   role: EmployeeRole;
   languagePref: LanguagePref;
-  /** When the account was made. The employee home counts a new hire's first
-   *  weeks from it. */
+
   createdAt?: string;
 }
-
 export interface Role {
   id: string;
   name: string;
@@ -73,6 +50,12 @@ export interface AdminEmployee extends Employee {
   createdAt: string;
   deactivatedAt: string | null;
   locationName: string | null;
+  /** Billed email. Optional because the create flow in
+   *  `lib/api.ts → createEmployee` accepts an optional email — records
+   *  seeded by the legacy mock layer carry no email until the next edit.
+   *  The list page renders the value as a plain address when present and
+   *  "No email on file" italic otherwise; the detail page falls back to `—`. */
+  email?: string | null;
   /** Highest clearance level across all assigned job roles, surfaced in
    *  the admin list. `null` when the employee has no job roles. */
   roleClearance: ClearanceLevel | null;
@@ -156,8 +139,6 @@ export interface Subcategory {
   nameEn: string;
   nameEs: string;
   categoryId?: string;
-  isStationSpecific?: boolean;
-  stations?: string[];
 }
 
 export interface Category {
@@ -167,6 +148,11 @@ export interface Category {
   nameEs: string;
   icon?: string;
   isArchived: boolean;
+  /** Whether the category applies to every station or is station-tied.
+   *  `general` → subcategory procedures save with `stationScope: null`.
+   *  `station-tied` → the procedure wizard's Access step pre-fills with the
+   *  station the manager picked on the categories page. */
+  kind: 'general' | 'station-tied';
   subcategories?: Subcategory[];
 }
 
@@ -208,6 +194,13 @@ export interface ProcedureMethodStep {
   critical?: boolean;
   criticalLimit?: CriticalLimit;
   videoSegment?: ProcedureVideoSegment;
+  /**
+   * Inline note attached to the step body — a warning that belongs to this
+   * step (the avocado-stone knife warning sits inside step 2, the sesame
+   * allergen note sits inside step 8), not a floating block at the foot of
+   * the page. Renders as `.note-block` immediately after the step body.
+   */
+  note?: { severity: ProcedureNoteKind; body: Localised };
   /**
    * Photos attached directly to a single step. A photo of what the grill marks
    * should look like, a second angle of the plating — these are anchored to the
@@ -383,6 +376,11 @@ export interface Procedure {
   status: ProcedureStatus;
   bodyEn: ProcedureBody;
   bodyEs: ProcedureBody;
+  /** Per-procedure icon override. Stored as an R2 public URL when the
+   *  backend persistence is wired; in the demo (no backend) it carries a
+   *  session-scoped `blob:` URL. `null` means the category's default SVG
+   *  art renders instead. */
+  iconImageUrl?: string | null;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -478,6 +476,9 @@ export interface CreateProcedureInput {
    *  sets this explicitly — archive is a separate admin action (⋯ kebab
    *  → Archive → modal confirm). */
   isArchived?: boolean;
+  /** Per-procedure icon override. R2 public URL when backend is wired;
+   *  session-scoped blob URL in the demo. `null` = use category default. */
+  iconImageUrl?: string | null;
   /** Who can open it. Absent means everyone. */
   audience?: ProcedureAudience | null;
   /** Absent means standard. */

@@ -4,15 +4,6 @@ import { LuBookOpen, LuGraduationCap, LuHouse } from 'react-icons/lu';
 
 export type EmployeeTab = 'home' | 'procedures' | 'training';
 
-/**
- * The cook's navigation, as designed in /employee-home.html: three tabs, fixed to
- * the bottom of the screen where a thumb reaches without the hand leaving the
- * phone. Each target is 60px tall — taller than the 48px floor, because this is
- * used with wet or gloved hands.
- *
- * On a desk it stays at the bottom but stops spanning the whole width, so it
- * reads as the app's bar rather than a strip glued to the browser.
- */
 export function TabBar({
   locale,
   active,

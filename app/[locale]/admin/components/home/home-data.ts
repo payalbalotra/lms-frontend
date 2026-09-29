@@ -3,12 +3,7 @@ import type { AdminEmployee, Category, Procedure, Role, Station, TrainingAssignm
 import { LuFileText, LuLanguages } from 'react-icons/lu';
 import type { IconType } from 'react-icons';
 
-/**
- * Everything on the admin home is derived here from the four lists the API
- * already returns: employees, procedures, categories and roles/stations.
- * Nothing is typed in. A number on this page that the data cannot produce
- * does not appear, because a manager acts on what the home tells them.
- */
+
 
 export type AttentionKind = 'invite' | 'spanish' | 'resume' | 'draft';
 

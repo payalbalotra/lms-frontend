@@ -121,6 +121,7 @@
      one width, and it is the width the HTML templates use. */
   --max-width-doc: var(--doc-w);
   --max-width-page: var(--page-w);
+  --max-width-page-wide: var(--page-wide-w);
   --max-width-narrow: var(--narrow-w);
   --max-width-field-md: var(--field-md);
   --max-width-card: var(--card-w);
@@ -194,7 +195,10 @@
   --radius-sm: var(--r-sm);
   --radius-md: var(--r-md);
   --radius-lg: var(--r-lg);
+  --radius-xl: 14px;
+  --radius-2xl: 20px;
   --radius-pill: var(--r-pill);
+  --radius-full: var(--r-pill);
 
   /* Layers, by name. Tailwind still accepts a bare z-30, so the audit bans it. */
   --z-index-dropdown: var(--z-dropdown);

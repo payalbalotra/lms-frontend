@@ -5,46 +5,47 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { deleteProcedure, listCategories, listProcedures, setProcedureState } from '@/lib/api';
-import type { Procedure, Category, ProcedureStatus, Subcategory } from '@/lib/types';
+import type { Procedure, Category, ProcedureStatus, Subcategory, ProcedureBlock } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CustomSelect } from '@/components/ui/custom-select';
 import {
   LuArchive,
   LuArchiveRestore,
-  LuBrush,
-  LuBuilding2,
   LuCircleCheck,
   LuCircleDashed,
-  LuEye,
   LuFilePen,
   LuFileSearch,
-  LuFileText,
   LuLock,
   LuPencil,
   LuPlus,
   LuFilter,
-  LuFolder,
-  LuGlobe,
-  LuLayers,
-  LuLayoutGrid,
   LuRefreshCw,
   LuSearch,
-  LuShieldAlert,
-  LuStore,
-  LuTrash2,
-  LuTruck,
-  LuUtensils,
-  LuWrench,
   LuX,
 } from 'react-icons/lu';
+import {
+  PiBookOpenText,
+  PiBookOpenUser,
+  PiCookingPot,
+  PiDoorOpen,
+  PiFileText,
+  PiFolder,
+  PiFolders,
+  PiShieldCheck,
+  PiSparkle,
+  PiSquaresFour,
+  PiToolbox,
+} from 'react-icons/pi';
 import { Icon } from '@/components/ui/icon';
 import type { IconType } from 'react-icons';
 import { StatusPill } from '@/components/ui/status-pill';
 import { FilterChips } from '@/components/ui/filter-chips';
 import { IconTile } from '@/components/ui/icon-tile';
+import { HoverImagePreview } from '@/components/ui/hover-image-preview';
 import { EmptyState } from '@/components/ui/empty-state';
 import { RowActions, type RowActionItem } from '@/components/ui/row-actions';
+import { getProcedureIcon } from '@/lib/category-icons';
 
 interface LibraryProcedureExplorerProps {
   procedures: Procedure[];
@@ -73,7 +74,7 @@ export function getCategoryTheme(slug: string): {
     case 'recipes':
     case 'recipe':
       return {
-        icon: LuUtensils,
+        icon: PiBookOpenText,
         badgeBg: 'bg-[var(--color-panel)] text-[var(--color-ink-2)]',
         badgeText: 'text-[var(--color-ink-2)]',
         badgeBorder: 'border-[var(--color-line)]',
@@ -81,7 +82,7 @@ export function getCategoryTheme(slug: string): {
     case 'station':
     case 'station-procedures':
       return {
-        icon: LuStore,
+        icon: PiSquaresFour,
         badgeBg: 'bg-[var(--color-panel)] text-[var(--color-ink-2)]',
         badgeText: 'text-[var(--color-ink-2)]',
         badgeBorder: 'border-[var(--color-line)]',
@@ -89,7 +90,7 @@ export function getCategoryTheme(slug: string): {
     case 'cleaning':
     case 'cleaning-schedules':
       return {
-        icon: LuBrush,
+        icon: PiSparkle,
         badgeBg: 'bg-[var(--color-panel)] text-[var(--color-ink-2)]',
         badgeText: 'text-[var(--color-ink-2)]',
         badgeBorder: 'border-[var(--color-line)]',
@@ -98,7 +99,7 @@ export function getCategoryTheme(slug: string): {
     case 'general':
     case 'general-procedures':
       return {
-        icon: LuFileText,
+        icon: PiFileText,
         badgeBg: 'bg-[var(--color-panel)] text-[var(--color-ink-2)]',
         badgeText: 'text-[var(--color-ink-2)]',
         badgeBorder: 'border-[var(--color-line)]',
@@ -106,7 +107,7 @@ export function getCategoryTheme(slug: string): {
     case 'delivery':
     case 'delivery-receiving':
       return {
-        icon: LuTruck,
+        icon: PiFolders,
         badgeBg: 'bg-[var(--color-panel)] text-[var(--color-ink-2)]',
         badgeText: 'text-[var(--color-ink-2)]',
         badgeBorder: 'border-[var(--color-line)]',
@@ -114,7 +115,7 @@ export function getCategoryTheme(slug: string): {
     case 'food-safety':
     case 'safety':
       return {
-        icon: LuShieldAlert,
+        icon: PiShieldCheck,
         badgeBg: 'bg-[var(--color-panel)] text-[var(--color-ink-2)]',
         badgeText: 'text-[var(--color-ink-2)]',
         badgeBorder: 'border-[var(--color-line)]',
@@ -122,14 +123,35 @@ export function getCategoryTheme(slug: string): {
     case 'equipment':
     case 'equipment-handling':
       return {
-        icon: LuWrench,
+        icon: PiToolbox,
+        badgeBg: 'bg-[var(--color-panel)] text-[var(--color-ink-2)]',
+        badgeText: 'text-[var(--color-ink-2)]',
+        badgeBorder: 'border-[var(--color-line)]',
+      };
+    case 'kitchen-operations':
+      return {
+        icon: PiCookingPot,
+        badgeBg: 'bg-[var(--color-panel)] text-[var(--color-ink-2)]',
+        badgeText: 'text-[var(--color-ink-2)]',
+        badgeBorder: 'border-[var(--color-line)]',
+      };
+    case 'opening-closing':
+      return {
+        icon: PiDoorOpen,
+        badgeBg: 'bg-[var(--color-panel)] text-[var(--color-ink-2)]',
+        badgeText: 'text-[var(--color-ink-2)]',
+        badgeBorder: 'border-[var(--color-line)]',
+      };
+    case 'onboarding':
+      return {
+        icon: PiBookOpenUser,
         badgeBg: 'bg-[var(--color-panel)] text-[var(--color-ink-2)]',
         badgeText: 'text-[var(--color-ink-2)]',
         badgeBorder: 'border-[var(--color-line)]',
       };
     default:
       return {
-        icon: LuFolder,
+        icon: PiFileText,
         badgeBg: 'bg-[var(--color-panel)] text-[var(--color-ink-2)]',
         badgeText: 'text-[var(--color-ink-2)]',
         badgeBorder: 'border-[var(--color-line)]',
@@ -238,6 +260,7 @@ export function LibraryProcedureExplorer({
         nameEn: 'Recipe',
         nameEs: 'Recetas',
         isArchived: false,
+        kind: 'general',
       },
       {
         id: 'cat-kitchen-ops',
@@ -245,6 +268,7 @@ export function LibraryProcedureExplorer({
         nameEn: 'Kitchen Operations',
         nameEs: 'Operaciones de Cocina',
         isArchived: false,
+        kind: 'general',
       },
       {
         id: 'cat-cleaning',
@@ -252,6 +276,7 @@ export function LibraryProcedureExplorer({
         nameEn: 'Cleaning Schedules',
         nameEs: 'Horarios de Limpieza',
         isArchived: false,
+        kind: 'general',
       },
       {
         id: 'cat-onboarding',
@@ -259,6 +284,7 @@ export function LibraryProcedureExplorer({
         nameEn: 'Onboarding',
         nameEs: 'Inducción y Capacitación',
         isArchived: false,
+        kind: 'general',
       },
     ];
     const rawCategories: Category[] = [...(liveCategories ?? []).filter((c) => !c.isArchived), ...fallback];
@@ -308,12 +334,22 @@ export function LibraryProcedureExplorer({
   }, [categories, allProcedures]);
 
   // Options for CustomSelect dropdowns
+  const subById = React.useMemo(() => {
+    const map = new Map<string, Subcategory>();
+    for (const cat of categoryList) {
+      for (const sub of cat.subcategories ?? []) {
+        if (sub.id) map.set(sub.id, sub);
+      }
+    }
+    return map;
+  }, [categoryList]);
+
   const categoryOptions = React.useMemo(() => {
     return [
       {
         value: 'all',
         label: `${isEs ? 'Todas las categorías' : 'All Categories'} (${categoryCounts.all || 0})`,
-        icon: LuLayoutGrid,
+        icon: PiSquaresFour,
       },
       ...categoryList.map((cat) => {
         const theme = getCategoryTheme(cat.slug);
@@ -359,14 +395,14 @@ export function LibraryProcedureExplorer({
       {
         value: 'all',
         label: isEs ? 'Todas las subcategorías' : 'All subcategories',
-        icon: LuLayers,
+        icon: PiFolders,
       },
       ...unique.map((sub) => {
         const name = isEs ? sub.nameEs : sub.nameEn;
         return {
           value: sub.id,
           label: name,
-          icon: LuLayers,
+          icon: PiFolder,
         };
       }),
     ];
@@ -377,7 +413,7 @@ export function LibraryProcedureExplorer({
       {
         value: 'all',
         label: isEs ? 'Todos los estados' : 'All statuses',
-        icon: LuLayers,
+        icon: PiFolder,
       },
       {
         value: 'published',
@@ -634,7 +670,7 @@ export function LibraryProcedureExplorer({
       {/* Empty State */}
       {allProcedures.length === 0 ? (
         <EmptyState
-          icon={LuFileText}
+          icon={PiFileText}
           title={isEs ? 'Aún no hay procedimientos' : 'No procedures yet'}
           body={
             isEs
@@ -693,13 +729,37 @@ export function LibraryProcedureExplorer({
                     list were six copies of one action. What changes the
                     procedure's state sits in its menu. */}
                 <Link
-                  href={`/${locale}/procedures/${p.slug}`}
+                  href={`/${locale}/admin/library/${p.id}`}
                   className="group flex min-w-0 flex-1 items-center justify-between gap-4 py-5 pl-4"
                 >
                 {/* The icon is a mark, not a framed object: the bordered tile was
                     the only one of its kind in the product. */}
                 <div className="flex min-w-0 flex-1 items-start gap-4">
-                  <IconTile size="lg" icon={theme.icon} />
+                  {(() => {
+                    // The card icon follows the same priority as the employee
+                    // procedure list: the body's first image (the recipe photo
+                    // or, here, the buckets) is the most specific so it wins;
+                    // then the manager's iconImageUrl override; then the
+                    // category's default SVG via getProcedureIcon.
+                    const findCover = (blocks: ProcedureBlock[] | undefined): string | null => {
+                      const block = blocks?.find(
+                        (b): b is Extract<ProcedureBlock, { kind: 'image' }> => b.kind === 'image',
+                      );
+                      return block?.src ?? null;
+                    };
+                    const bodyCover = findCover(p.bodyEn?.blocks) ?? findCover(p.bodyEs?.blocks);
+                    const iconSrc = bodyCover ?? p.iconImageUrl ?? null;
+                    return iconSrc ? (
+                      <HoverImagePreview src={iconSrc} alt={title}>
+                        <IconTile size="lg" image={{ src: iconSrc, alt: title }} />
+                      </HoverImagePreview>
+                    ) : (
+                      <IconTile
+                        size="lg"
+                        icon={getProcedureIcon(p, p.subcategoryId ? subById.get(p.subcategoryId) ?? null : null)}
+                      />
+                    );
+                  })()}
 
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">

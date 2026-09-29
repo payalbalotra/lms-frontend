@@ -10,10 +10,13 @@ import {
   LuChevronRight,
   LuEye,
   LuFileText,
+  LuImagePlus,
   LuLayoutGrid,
   LuSearch,
   LuSignature,
   LuSparkles,
+  LuTrash2,
+  LuUpload,
   LuUsers,
   LuX,
 } from "react-icons/lu";
@@ -28,7 +31,8 @@ import { StatusPill } from "@/components/ui/status-pill";
 import { PageHeader } from "@/components/admin/page-header";
 import { FormSection } from "@/components/admin/form-section";
 import { IconTile } from "@/components/ui/icon-tile";
-import { getCategoryIcon } from "@/lib/category-icons";
+
+import { getCategoryIcon, getProcedureGlyphForSubcategory } from "@/lib/category-icons";
 import { QuizEditor } from "@/components/admin/quiz-editor";
 import { type RecipeIngredientItem } from "@/components/admin/recipe-ingredients-editor";
 import { BlockRenderer } from "@/components/doc/block-renderer";
@@ -159,9 +163,6 @@ export function ProcedureEditor({
   const [subcategoryId, setSubcategoryId] = React.useState<string>(
     initial?.subcategoryId ?? "",
   );
-  const [stationIds, setStationIds] = React.useState<string[]>(
-    initial?.stationScope?.stationIds ?? [],
-  );
   const [blocks, setBlocks] = React.useState<ProcedureBlock[]>(
     start?.blocks ?? [],
   );
@@ -172,6 +173,9 @@ export function ProcedureEditor({
     start?.yieldItems ?? emptyYieldItems(),
   );
   const [batch, setBatch] = React.useState(1);
+  const [iconImageUrl, setIconImageUrl] = React.useState<string | null>(
+    initial?.iconImageUrl ?? null,
+  );
 
   const savedQuiz = initial?.quizId ? getQuizById(initial.quizId) : null;
   const [quiz, setQuiz] = React.useState<ProcedureQuiz | null>(
@@ -180,7 +184,14 @@ export function ProcedureEditor({
       : null,
   );
   const [audience, setAudience] = React.useState<ProcedureAudience>(
-    initial?.audience ?? EVERYONE,
+    initial?.audience ?? {
+      ...EVERYONE,
+      // On edit, surface the saved station scope so the Access step lands
+      // on the same chips the manager picked last time. New procedures
+      // default to EVERYONE until the URL prefill (opened from a
+      // station-tied category card) overrides `stationIds`.
+      stationIds: initial?.stationScope?.stationIds ?? [],
+    },
   );
   const [protection, setProtection] = React.useState<ProcedureProtection>(
     initial?.protection ?? "standard",
@@ -209,7 +220,10 @@ export function ProcedureEditor({
   const isLastStep = stepIdx === STEPS.length - 1;
 
   // Opened from a category page ("Add procedure" on Cleaning → Dishwashing),
-  // the URL names where it goes: ?category=<slug>&subcategory=<slug>&accessStations=<ids>.
+  // the URL names where it goes: ?category=<slug>&subcategory=<slug>&station=<id>.
+  // The `station` param is read for station-tied categories only — general
+  // categories ignore it, so general procedures never pick up an unintended
+  // station scope from a stale link.
   const prefilled = React.useRef(false);
   React.useEffect(() => {
     if (prefilled.current || initial || !categories.length) return;
@@ -221,12 +235,18 @@ export function ProcedureEditor({
     const sub = cat.subcategories?.find((s) => s.slug === q.get("subcategory"));
     if (!sub) return;
     setSubcategoryId(sub.id);
-    const fromUrl = (q.get("accessStations") ?? "")
-      .split(",")
-      .map((x) => x.trim())
-      .filter(Boolean);
-    if (sub.isStationSpecific)
-      setStationIds(fromUrl.length ? fromUrl : (sub.stations ?? []));
+    const urlStations = Array.from(
+      new Set(
+        q
+          .getAll("station")
+          .flatMap((s) => s.split(","))
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0),
+      ),
+    );
+    if (urlStations.length > 0 && cat.kind === "station-tied") {
+      setAudience((prev) => ({ ...prev, stationIds: urlStations }));
+    }
   }, [categories, initial]);
 
   // Every edit marks the page dirty; one wrapper instead of a line per field.
@@ -244,6 +264,15 @@ export function ProcedureEditor({
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
+
+  // Revoke any blob URL we created so the browser frees the memory.
+  React.useEffect(() => {
+    return () => {
+      if (iconImageUrl && iconImageUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(iconImageUrl);
+      }
+    };
+  }, [iconImageUrl]);
 
   /* ------------------------------------------------------------ derived -- */
 
@@ -282,10 +311,10 @@ export function ProcedureEditor({
         blocks,
         quiz,
         subcategoryId,
-        isStationSpecific: Boolean(subcategory?.isStationSpecific),
+        categoryKind: category?.kind ?? "general",
         audience,
       }),
-    [title, purpose, blocks, quiz, subcategoryId, subcategory?.isStationSpecific, audience],
+    [title, purpose, blocks, quiz, subcategoryId, category?.kind, audience],
   );
 
   const hasQuizContent = React.useMemo(() => {
@@ -323,11 +352,7 @@ export function ProcedureEditor({
       : t("whoSummaryNobody");
   })();
 
-  /* --------------------------------------------------------------- import -- */
-  /* The "Import a document" button was removed: the underlying extraction
-     pipeline is not part of this build, so exposing the action would let a
-     manager upload a file to nowhere. Adding it back lands as its own slice
-     (extraction service + signed upload + wizard step) when those arrive. */
+
 
   /* ----------------------------------------------------------------- save -- */
 
@@ -367,12 +392,17 @@ export function ProcedureEditor({
           purposeEs: purpose.es.trim(),
           categoryId: categoryId || null,
           subcategoryId: subcategoryId || null,
-          stationScope: subcategory?.isStationSpecific
-            ? { mode: stationIds.length ? "specific" : "all", stationIds }
-            : null,
+          stationScope:
+            category?.kind === "station-tied"
+              ? {
+                  mode: audience.stationIds.length ? "specific" : "all",
+                  stationIds: audience.stationIds,
+                }
+              : null,
           status,
           bodyEn: body,
           bodyEs: body,
+          iconImageUrl,
           quizId,
           audience: audience.mode === "everyone" ? null : audience,
           protection,
@@ -418,12 +448,7 @@ export function ProcedureEditor({
         </div>
       </div>
 
-      {/* Floating Preview button, bottom-right. Always reachable regardless
-          of scroll, sits above the fixed bottom footer (Cancel / Save draft /
-          Next) so it never overlaps the navigation actions. The pill itself
-          is the only thing inside its z-stacked wrapper; the wrapper is
-          pointer-events-none so the empty gutter behind the pill never
-          traps clicks meant for the form. */}
+
       <div className="pointer-events-none fixed bottom-[90px] right-5 z-30 lg:right-6">
         <Button
           type="button"
@@ -553,10 +578,11 @@ export function ProcedureEditor({
 
             {/* Block 2 — Stations. A standalone row so the manager sees
                 where the procedure will land before scrolling into the
-                employee list. General subcategories hide it: "All stations"
+                employee list. General categories hide it: "All stations"
                 is the implicit default and a picker there would invite
-                confusion. */}
-            {subcategory && subcategory.isStationSpecific ? (
+                confusion. The category — not the subcategory — owns the
+                `kind` flag now: subcategories are station-agnostic. */}
+            {category?.kind === "station-tied" ? (
               <section
                 id="proc-stations"
                 className="rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-6"
@@ -608,7 +634,7 @@ export function ProcedureEditor({
                 stations={stations}
                 roles={roles}
                 filterStationIds={
-                  subcategory?.isStationSpecific
+                  category?.kind === "station-tied"
                     ? audience.stationIds
                     : null
                 }
@@ -708,10 +734,10 @@ export function ProcedureEditor({
                             </p>
                             <StatusPill
                               tone={
-                                subcategory.isStationSpecific ? "info" : "neutral"
+                                category?.kind === "station-tied" ? "info" : "neutral"
                               }
                             >
-                              {subcategory.isStationSpecific
+                              {category?.kind === "station-tied"
                                 ? t("reviewStationsStationSpecific")
                                 : t("reviewStationsGeneral")}
                             </StatusPill>
@@ -734,9 +760,9 @@ export function ProcedureEditor({
                       {t("reviewStationsLabel")}
                     </p>
                   </div>
-                  {subcategory && subcategory.isStationSpecific ? (
+                  {category?.kind === "station-tied" ? (
                     audience.stationIds.length > 0 ? (
-                      <ul className="mt-2 flex flex-wrap gap-1.5">
+                      <ul className="mt-2 flex flex-wrap gap-2">
                         {audience.stationIds.map((id) => {
                           const station = stations.find((s) => s.id === id);
                           return (
@@ -857,6 +883,27 @@ export function ProcedureEditor({
                   <p className="mt-1 text-sm text-[var(--color-ink-2)]">
                     {t("protectionHint")}
                   </p>
+                </li>
+
+                {/* The picker card. The picker resolves the default glyph itself
+                    from PROCEDURE_ICON_MAP (slug -> IconType), shows the
+                    uploaded file's name when an image is set, and offers
+                    Upload / Replace / Remove. No "category" or "mark" wording
+                    shows up here. */}
+                <li className="rounded-[var(--radius-md)] border border-[var(--color-line)] bg-[var(--color-wash)] p-4 sm:col-span-2">
+                  <div className="flex items-center gap-2">
+                    <IconTile size="xs" icon={LuImagePlus} />
+                    <p className="text-sm font-semibold text-[var(--color-ink-3)]">
+                      {t("reviewCoverLabel")}
+                    </p>
+                  </div>
+                  <div className="mt-3">
+                    <ProcedureIconPicker
+                      subcategorySlug={subcategory?.slug ?? null}
+                      imageUrl={iconImageUrl}
+                      onChange={(next) => edit(setIconImageUrl)(next)}
+                    />
+                  </div>
                 </li>
               </ul>
             </section>
@@ -1406,3 +1453,115 @@ function initialsOf(name: string): string {
   const parts = name.trim().split(/\s+/).slice(0, 2);
   return parts.map((p) => p.charAt(0).toUpperCase()).join("");
 }
+
+/**
+ * The icon override picker. The default glyph the tile shows comes from
+ * PROCEDURE_ICON_MAP via the parent's chosen subcategory slug (or PiFileText
+ * when none is picked). When the manager uploads an image, the tile swaps to
+ * the image and the bold label below it switches to the file's name, with
+ * Replace/Remove buttons to its right. Persistence to R2 is wired in a later
+ * change; until then the upload is a session-scoped blob URL.
+ */
+function ProcedureIconPicker({
+  subcategorySlug,
+  imageUrl,
+  onChange,
+}: {
+  subcategorySlug: string | null;
+  imageUrl: string | null;
+  onChange: (next: string | null, fileName?: string | null) => void;
+}): React.ReactElement {
+  const t = useTranslations("admin.library.editor");
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const [error, setError] = React.useState<string | null>(null);
+  // File name is tracked locally: blob: URLs don't carry one, and the
+  // manager-readable label below the tile has to come from somewhere.
+  const [fileName, setFileName] = React.useState<string | null>(null);
+
+  // Look up the glyph for the chosen subcategory, or fall back to the neutral
+  // doc icon. The "uploading is on top" caveat in the comment above is what
+  // makes this safe to call from JSX without a useMemo — the lookup is a
+  // constant-time map hit.
+  const DefaultGlyph = getProcedureGlyphForSubcategory(subcategorySlug);
+
+  function pick(): void {
+    setError(null);
+    inputRef.current?.click();
+  }
+
+  function onFile(event: React.ChangeEvent<HTMLInputElement>): void {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError(t("iconFileTypeError"));
+      return;
+    }
+    if (imageUrl && imageUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(imageUrl);
+    }
+    setFileName(file.name);
+    onChange(URL.createObjectURL(file), file.name);
+  }
+
+  function clear(): void {
+    if (imageUrl && imageUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(imageUrl);
+    }
+    setFileName(null);
+    onChange(null, null);
+    setError(null);
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-4">
+      {imageUrl ? (
+        <IconTile size="lg" image={{ src: imageUrl, alt: fileName ?? t("iconLabelDefault") }} />
+      ) : (
+        <IconTile size="lg" icon={DefaultGlyph} />
+      )}
+
+      <div className="min-w-0 flex-1 space-y-1">
+        <p className="text-sm font-bold leading-tight text-[var(--color-ink)]">
+          {imageUrl ? (fileName ?? t("iconLabelDefault")) : t("iconLabelDefault")}
+        </p>
+        <p className="text-xs text-[var(--color-ink-3)]">{t("iconPickerHint")}</p>
+        {error ? (
+          <p className="text-xs font-semibold text-[var(--color-bad)]">{error}</p>
+        ) : null}
+      </div>
+
+      <div className="ml-auto flex flex-wrap items-center gap-2">
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          icon={LuUpload}
+          onClick={pick}
+        >
+          {imageUrl ? t("iconReplace") : t("iconUpload")}
+        </Button>
+        {imageUrl ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            icon={LuTrash2}
+            onClick={clear}
+          >
+            {t("iconRemove")}
+          </Button>
+        ) : null}
+      </div>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={onFile}
+      />
+    </div>
+  );
+}
+

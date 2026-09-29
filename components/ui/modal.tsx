@@ -16,13 +16,15 @@ interface ModalProps {
   title?: string;
   children: React.ReactNode;
   className?: string;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 }
 
 const sizeClasses: Record<NonNullable<ModalProps['size']>, string> = {
   sm: 'max-w-card',
   md: 'max-w-note',
   lg: 'max-w-narrow',
+  xl: 'max-w-doc',
+  '2xl': 'max-w-[860px]',
 };
 
 export function Modal({
@@ -78,7 +80,7 @@ export function Modal({
         ref={modalRef}
         tabIndex={-1}
         className={cn(
-          'dialog-in relative w-full overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] shadow-e3 focus:outline-none',
+          'dialog-in relative flex max-h-[calc(100vh-2.5rem)] w-full flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] shadow-e3 focus:outline-none sm:max-h-[calc(100vh-4rem)]',
           sizeClasses[size],
           className,
         )}
@@ -125,7 +127,7 @@ export function ModalHeader({
 
 /** The dialog's content, at the padding every dialog shares. */
 export function ModalBody({ children, className }: { children: React.ReactNode; className?: string }): React.ReactElement {
-  return <div className={cn('space-y-5 p-5', className)}>{children}</div>;
+  return <div className={cn('min-h-0 flex-1 overflow-y-auto overflow-x-hidden space-y-4 p-5 sm:p-6', className)}>{children}</div>;
 }
 
 /**

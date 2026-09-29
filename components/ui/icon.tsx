@@ -6,7 +6,6 @@ import {
   LuArrowRight,
   LuArrowUp,
   LuBell,
-  LuBrush,
   LuBuilding2,
   LuCake,
   LuChartColumn,
@@ -19,7 +18,6 @@ import {
   LuCopy,
   LuCrown,
   LuEllipsis,
-  LuFileLock2,
   LuFilePen,
   LuFileText,
   LuFilter,
@@ -74,19 +72,32 @@ import {
   LuWrench,
   LuX,
 } from 'react-icons/lu';
+import {
+  PiArrowsLeftRight,
+  PiChatCircleDots,
+  PiCircleHalf,
+  PiClipboardText,
+  PiDrop,
+  PiFileText,
+  PiFire,
+  PiFlask,
+  PiHandSoap,
+  PiLightning,
+  PiListChecks,
+  PiMoonStars,
+  PiPlayCircle,
+  PiRuler,
+  PiSparkle,
+  PiSunHorizon,
+  PiTagChevron,
+  PiTrash,
+  PiTShirt,
+  PiUsers,
+  PiWarningOctagon,
+  PiWarning,
+} from 'react-icons/pi';
 
-/**
- * Renders an icon that was chosen somewhere else — a nav row, a category, a
- * block type — where the component itself travels in the data.
- *
- * Icons are decorative here: every one of them sits next to its own label, so
- * this hides them from assistive tech rather than repeating that label. An icon
- * that carries meaning on its own takes a `<span className="sr-only">` beside
- * it instead of being passed through this.
- *
- * Size comes from the surrounding font-size (react-icons default `1em`), so
- * `text-lg` sizes the glyph the same way it sizes text.
- */
+
 export function Icon({
   icon,
   className,
@@ -99,23 +110,12 @@ export function Icon({
   return <Glyph aria-hidden="true" className={className} />;
 }
 
-/**
- * A few icons still arrive from the API as a name — a critical limit says which
- * instrument to reach for. Anything unrecognised falls back to the test strip,
- * which is what a critical limit is checked with more often than not.
- */
 const BY_NAME: Readonly<Record<string, IconType>> = {
-  // instruments a critical limit names, as the API sends them
   'ri-test-tube-line': LuTestTube,
   'ri-temp-cold-line': LuSnowflake,
   'ri-thermometer-line': LuThermometer,
   'ri-time-line': LuClock,
   'ri-scales-2-line': LuScale,
-  // The names the screens merged in from feat/procedures were written against.
-  // That branch predates the move to Lucide components, and the Remix stylesheet
-  // is no longer loaded — so without this table every icon on those screens is an
-  // empty <i>. Mapping here rather than editing nine files keeps their markup and
-  // our icons, and a name that is not in this table falls back to a document.
   'ri-add-line': LuPlus,
   'ri-alert-line': LuTriangleAlert,
   'ri-arrow-down-line': LuArrowDown,
@@ -191,14 +191,28 @@ const BY_NAME: Readonly<Record<string, IconType>> = {
   'ri-video-fill': LuVideo,
   'ri-video-line': LuVideo,
   'ri-vip-crown-line': LuCrown,
-  // the document sheet: its header, and the facts readout under the purpose
-  'category-recipes': LuUtensils,
-  'category-equipment': LuWrench,
-  'category-station': LuBuilding2,
-  'category-cleaning': LuBrush,
-  'category-admin': LuFileLock2,
-  'category-delivery': LuTruck,
-  'file-text': LuFileText,
+  'procedure-culture': PiClipboardText,
+  'procedure-uniform': PiTShirt,
+  'procedure-conduct': PiUsers,
+  'procedure-hygiene': PiHandSoap,
+  'procedure-cross-contamination': PiArrowsLeftRight,
+  'procedure-labeling-dating': PiTagChevron,
+  'procedure-allergy': PiWarning,
+  'procedure-station-setup': PiPlayCircle,
+  'procedure-kitchen-communication': PiChatCircleDots,
+  'procedure-dishwashing': PiDrop,
+  'procedure-chemical-handling': PiFlask,
+  'procedure-waste-disposal': PiTrash,
+  'procedure-opening-procedures': PiSunHorizon,
+  'procedure-closing-procedures': PiMoonStars,
+  'procedure-end-of-day-checks': PiListChecks,
+  'procedure-operation': PiLightning,
+  'procedure-equipment-safety': PiWarningOctagon,
+  'procedure-equipment-cleaning': PiSparkle,
+  'procedure-plating': PiCircleHalf,
+  'procedure-cooking': PiFire,
+  'procedure-portion-standards': PiRuler,
+  'file-text': PiFileText,
   folder: LuFolder,
   check: LuCheck,
   draft: LuFilePen,

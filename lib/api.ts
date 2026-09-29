@@ -54,19 +54,16 @@ const SEED_LOCATIONS: Location[] = [
 ];
 
 const SEED_ROLES: Role[] = [
-  { id: 'role-exec', name: 'Head Chef', clearanceLevel: 'master', createdAt: '2026-01-01T00:00:00Z' },
-  { id: 'role-sous', name: 'Sous Chef', clearanceLevel: 'master', createdAt: '2026-01-01T00:00:00Z' },
   { id: 'role-cook', name: 'Line Cook', clearanceLevel: 'station', createdAt: '2026-01-01T00:00:00Z' },
   { id: 'role-prep', name: 'Prep Cook', clearanceLevel: 'station', createdAt: '2026-01-01T00:00:00Z' },
-  { id: 'role-pastry', name: 'Pastry Chef', clearanceLevel: 'station', createdAt: '2026-01-01T00:00:00Z' },
   { id: 'role-dish', name: 'Dishwasher', clearanceLevel: 'general', createdAt: '2026-01-01T00:00:00Z' },
 ];
 
 const SEED_STATIONS: Station[] = [
-  { id: 'stn-gm', name: 'GM', locationId: 'loc-main', sortOrder: 1, isArchived: false },
+  { id: 'stn-gm', name: 'GM – Cold section + fryer', locationId: 'loc-main', sortOrder: 1, isArchived: false },
   { id: 'stn-grill', name: 'Grill', locationId: 'loc-main', sortOrder: 2, isArchived: false },
   { id: 'stn-expo', name: 'Expo', locationId: 'loc-main', sortOrder: 3, isArchived: false },
-  { id: 'stn-prep', name: 'Prep Kitchen', locationId: 'loc-main', sortOrder: 4, isArchived: false },
+  { id: 'stn-prep', name: 'Prep kitchen', locationId: 'loc-main', sortOrder: 4, isArchived: false },
   { id: 'stn-dish', name: 'Dishwasher', locationId: 'loc-main', sortOrder: 5, isArchived: false },
 ];
 
@@ -76,8 +73,9 @@ const SEED_CATEGORIES: Category[] = [
     slug: 'onboarding',
     nameEn: 'Onboarding',
     nameEs: 'Inducción y Capacitación',
-    icon: 'LuClipboardList',
+    icon: 'onboarding',
     isArchived: false,
+    kind: 'general',
     subcategories: [
       { id: 'sub-culture', slug: 'culture', nameEn: 'Culture', nameEs: 'Cultura' },
       { id: 'sub-uniform', slug: 'uniform', nameEn: 'Uniform', nameEs: 'Uniforme' },
@@ -89,8 +87,9 @@ const SEED_CATEGORIES: Category[] = [
     slug: 'food-safety',
     nameEn: 'Food Safety',
     nameEs: 'Seguridad Alimentaria',
-    icon: 'LuShieldCheck',
+    icon: 'food-safety',
     isArchived: false,
+    kind: 'general',
     subcategories: [
       { id: 'sub-hygiene', slug: 'hygiene', nameEn: 'Hygiene', nameEs: 'Higiene' },
       { id: 'sub-cross-contamination', slug: 'cross-contamination', nameEn: 'Cross-Contamination', nameEs: 'Contaminación Cruzada' },
@@ -103,10 +102,11 @@ const SEED_CATEGORIES: Category[] = [
     slug: 'kitchen-operations',
     nameEn: 'Kitchen Operations',
     nameEs: 'Operaciones de Cocina',
-    icon: 'LuBuilding2',
+    icon: 'kitchen-operations',
     isArchived: false,
+    kind: 'station-tied',
     subcategories: [
-      { id: 'sub-station-setup', slug: 'station-setup', nameEn: 'Station Setup', nameEs: 'Montaje de Estación', isStationSpecific: true, stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'] },
+      { id: 'sub-station-setup', slug: 'station-setup', nameEn: 'Station Setup', nameEs: 'Montaje de Estación' },
       { id: 'sub-kitchen-comm', slug: 'kitchen-communication', nameEn: 'Kitchen Communication', nameEs: 'Comunicación en Cocina' },
     ],
   },
@@ -115,8 +115,9 @@ const SEED_CATEGORIES: Category[] = [
     slug: 'cleaning',
     nameEn: 'Cleaning',
     nameEs: 'Limpieza',
-    icon: 'LuBrush',
+    icon: 'cleaning',
     isArchived: false,
+    kind: 'general',
     subcategories: [
       { id: 'sub-dishwashing', slug: 'dishwashing', nameEn: 'Dishwashing', nameEs: 'Lavadiscos' },
       { id: 'sub-chemical', slug: 'chemical-handling', nameEn: 'Chemical Handling', nameEs: 'Manejo de Químicos' },
@@ -128,33 +129,13 @@ const SEED_CATEGORIES: Category[] = [
     slug: 'opening-closing',
     nameEn: 'Opening and Closing',
     nameEs: 'Apertura y Cierre',
-    icon: 'LuPackage',
+    icon: 'opening-closing',
     isArchived: false,
+    kind: 'station-tied',
     subcategories: [
-      {
-        id: 'sub-opening',
-        slug: 'opening-procedures',
-        nameEn: 'Opening Procedures',
-        nameEs: 'Procedimientos de Apertura',
-        isStationSpecific: true,
-        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
-      },
-      {
-        id: 'sub-closing',
-        slug: 'closing-procedures',
-        nameEn: 'Closing Procedures',
-        nameEs: 'Procedimientos de Cierre',
-        isStationSpecific: true,
-        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
-      },
-      {
-        id: 'sub-end-day',
-        slug: 'end-of-day-checks',
-        nameEn: 'End of Day Checks',
-        nameEs: 'Verificaciones de Fin de Día',
-        isStationSpecific: true,
-        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
-      },
+      { id: 'sub-opening', slug: 'opening-procedures', nameEn: 'Opening Procedures', nameEs: 'Procedimientos de Apertura' },
+      { id: 'sub-closing', slug: 'closing-procedures', nameEn: 'Closing Procedures', nameEs: 'Procedimientos de Cierre' },
+      { id: 'sub-end-day', slug: 'end-of-day-checks', nameEn: 'End of Day Checks', nameEs: 'Verificaciones de Fin de Día' },
     ],
   },
   {
@@ -162,33 +143,13 @@ const SEED_CATEGORIES: Category[] = [
     slug: 'equipment',
     nameEn: 'Equipment',
     nameEs: 'Equipamiento',
-    icon: 'LuWrench',
+    icon: 'equipment',
     isArchived: false,
+    kind: 'station-tied',
     subcategories: [
-      {
-        id: 'sub-operation',
-        slug: 'operation',
-        nameEn: 'Operation',
-        nameEs: 'Operación',
-        isStationSpecific: true,
-        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
-      },
-      {
-        id: 'sub-eq-safety',
-        slug: 'equipment-safety',
-        nameEn: 'Safety',
-        nameEs: 'Seguridad',
-        isStationSpecific: true,
-        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
-      },
-      {
-        id: 'sub-eq-cleaning',
-        slug: 'equipment-cleaning',
-        nameEn: 'Cleaning',
-        nameEs: 'Limpieza',
-        isStationSpecific: true,
-        stations: ['stn-gm', 'stn-grill', 'stn-expo', 'stn-prep', 'stn-dish'],
-      },
+      { id: 'sub-operation', slug: 'operation', nameEn: 'Operation', nameEs: 'Operación' },
+      { id: 'sub-eq-safety', slug: 'equipment-safety', nameEn: 'Safety', nameEs: 'Seguridad' },
+      { id: 'sub-eq-cleaning', slug: 'equipment-cleaning', nameEn: 'Cleaning', nameEs: 'Limpieza' },
     ],
   },
   {
@@ -196,31 +157,13 @@ const SEED_CATEGORIES: Category[] = [
     slug: 'recipes',
     nameEn: 'Recipes',
     nameEs: 'Recetas',
-    icon: 'LuUtensils',
+    icon: 'recipes',
     isArchived: false,
+    kind: 'station-tied',
     subcategories: [
-      {
-        id: 'sub-plating',
-        slug: 'plating',
-        nameEn: 'Plating',
-        nameEs: 'Emplatado',
-        isStationSpecific: true,
-        stations: ['stn-gm', 'stn-grill', 'stn-expo'],
-      },
-      {
-        id: 'sub-cooking',
-        slug: 'cooking',
-        nameEn: 'Cooking',
-        nameEs: 'Cocción',
-        isStationSpecific: true,
-        stations: ['stn-gm', 'stn-grill'],
-      },
-      {
-        id: 'sub-portion',
-        slug: 'portion-standards',
-        nameEn: 'Portion Standards',
-        nameEs: 'Estándares de Porción',
-      },
+      { id: 'sub-plating', slug: 'plating', nameEn: 'Plating', nameEs: 'Emplatado' },
+      { id: 'sub-cooking', slug: 'cooking', nameEn: 'Cooking', nameEs: 'Cocción' },
+      { id: 'sub-portion', slug: 'portion-standards', nameEn: 'Portion Standards', nameEs: 'Estándares de Porción' },
     ],
   },
 ];
@@ -248,8 +191,8 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     name: 'James Carter',
     locationId: 'loc-main',
     accessLevel: 'employee',
-    roleIds: ['role-cook'],
-    stationIds: ['stn-gm'],
+    roleIds: ['role-cook', 'role-prep'],
+    stationIds: ['stn-gm', 'stn-grill'],
     clearanceLevel: 'station',
     role: 'employee',
     languagePref: 'en',
@@ -299,9 +242,9 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     name: 'Sofía Hernández',
     locationId: 'loc-main',
     accessLevel: 'manager',
-    roleIds: ['role-exec'],
-    stationIds: ['stn-expo'],
-    clearanceLevel: 'master',
+    roleIds: ['role-cook'],
+    stationIds: ['stn-expo', 'stn-gm'],
+    clearanceLevel: 'station',
     role: 'admin',
     languagePref: 'es',
     employeeCode: 'EMP-005',
@@ -309,7 +252,7 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     createdAt: '2026-01-05T00:00:00Z',
     deactivatedAt: null,
     locationName: 'Almentria Mexicana - Main Kitchen',
-    roleClearance: 'master',
+    roleClearance: 'station',
   },
   {
     id: 'emp-lucas',
@@ -385,7 +328,7 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     name: 'Chef Raúl Medina',
     locationId: 'loc-main',
     accessLevel: 'manager',
-    roleIds: ['role-exec'],
+    roleIds: ['role-cook'],
     stationIds: ['stn-expo'],
     clearanceLevel: 'master',
     role: 'admin',
@@ -403,7 +346,7 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     locationId: 'loc-main',
     accessLevel: 'employee',
     roleIds: ['role-cook'],
-    stationIds: ['stn-grill'],
+    stationIds: ['stn-grill', 'stn-gm'],
     clearanceLevel: 'station',
     role: 'employee',
     languagePref: 'es',
@@ -562,6 +505,7 @@ const SEED_PROCEDURES: Procedure[] = [
     purposeEn: 'To prevent foodborne illness by making sure every surface that touches food is cleaned and sanitised before it is used.',
     purposeEs: 'Para prevenir enfermedades transmitidas por alimentos asegurando que cada superficie que toque alimentos se limpie y desinfecte.',
     category: SEED_CATEGORIES[3],
+    subcategoryId: 'sub-dishwashing',
     status: 'published',
     createdBy: 'emp-admin',
     createdAt: '2026-09-04T00:00:00Z',
@@ -646,6 +590,7 @@ const SEED_PROCEDURES: Procedure[] = [
     purposeEn: 'Ensure all team members clean hands thoroughly before handling food.',
     purposeEs: 'Garantizar que todos se laven las manos antes de manipular alimentos.',
     category: SEED_CATEGORIES[1],
+    subcategoryId: 'sub-hygiene',
     status: 'published',
     createdBy: 'emp-admin',
     createdAt: '2026-09-01T00:00:00Z',
@@ -680,6 +625,7 @@ const SEED_PROCEDURES: Procedure[] = [
     purposeEn: 'Ensure all station refrigeration, hot holding, and prep lines are verified before service.',
     purposeEs: 'Asegurar la refrigeración, mantenimiento en caliente y líneas de preparación antes del servicio.',
     category: SEED_CATEGORIES[4],
+    subcategoryId: 'sub-opening',
     status: 'published',
     createdBy: 'emp-admin',
     createdAt: '2026-09-02T00:00:00Z',
@@ -720,6 +666,7 @@ const SEED_PROCEDURES: Procedure[] = [
     purposeEn: 'Standard procedure for roasting tomatillos, blending fresh ingredients, and storing salsa verde.',
     purposeEs: 'Procedimiento estándar para asar tomatillos, licuar e ingredientes y almacenar salsa verde.',
     category: SEED_CATEGORIES[6],
+    subcategoryId: 'sub-cooking',
     status: 'published',
     createdBy: 'emp-admin',
     createdAt: '2026-09-03T00:00:00Z',
@@ -762,6 +709,7 @@ const SEED_PROCEDURES: Procedure[] = [
     purposeEn: 'Ensure grill line safety standards, grease trap inspection, and core cooking temperature compliance.',
     purposeEs: 'Garantizar normas de seguridad en la parrilla, inspección de trampa de grasa y temperaturas de cocción.',
     category: SEED_CATEGORIES[2],
+    subcategoryId: 'sub-station-setup',
     status: 'published',
     createdBy: 'emp-admin',
     createdAt: '2026-09-05T00:00:00Z',
@@ -798,6 +746,7 @@ const SEED_PROCEDURES: Procedure[] = [
     purposeEn: 'When and how to filter the fryer oil, and when to change it.',
     purposeEs: '',
     category: SEED_CATEGORIES[5] ?? null,
+    subcategoryId: 'sub-operation',
     status: 'draft',
     createdBy: 'emp-admin',
     createdAt: '2026-09-21T00:00:00Z',
@@ -824,6 +773,7 @@ const SEED_PROCEDURES: Procedure[] = [
     purposeEn: 'Check and record the walk-in temperature twice a shift.',
     purposeEs: '',
     category: SEED_CATEGORIES[1] ?? null,
+    subcategoryId: 'sub-hygiene',
     status: 'published',
     createdBy: 'emp-admin',
     createdAt: '2026-09-10T00:00:00Z',
@@ -839,6 +789,607 @@ const SEED_PROCEDURES: Procedure[] = [
       ],
     },
     bodyEs: { blocks: [] },
+  },
+  // --------------------------------------------------------------------------
+  // Recipe: Guacamole Fresco (REC-014)
+  // The full procedure as it appears in /sop-recipe-format.html. Built with
+  // the standard block vocabulary — image / heading / text / checklist /
+  // warning / recipe / method — so the admin-side article body renders to
+  // the same shape as the static template. Allergen banner hoists from the
+  // first recipe block via findAllergen().
+  // --------------------------------------------------------------------------
+  {
+    id: 'proc-guacamole-fresco',
+    slug: 'guacamole-fresco',
+    titleEn: 'Guacamole Fresco',
+    titleEs: 'Guacamole Fresco',
+    purposeEn: 'To make guacamole that holds its colour and texture through a full service.',
+    purposeEs: 'Para hacer guacamole que mantenga su color y textura durante todo el servicio.',
+    category: SEED_CATEGORIES[6],
+    subcategoryId: 'sub-plating',
+    status: 'published',
+    // Demo image pool is intentionally tiny (four stock photos for ~12
+    // procedures) — pointing at /img/video-cover.jpg so the recipe shows a
+    // photo rather than the Recipes category icon in the admin library,
+    // employee home, and procedures list. The same shot stands in for the
+    // molcajete-and-finished-salsa on the cover tile. No leading image block
+    // in `bodyEn`/`bodyEs` — the cover shot only lives here.
+    iconImageUrl: '/img/video-cover.jpg',
+    createdBy: 'emp-admin',
+    createdAt: '2026-08-12T00:00:00Z',
+    updatedAt: '2026-08-12T00:00:00Z',
+    version: 4,
+    isArchived: false,
+    quizId: null,
+    linkedTrainingId: 'course-recipes',
+    quizMode: 'training',
+    bodyEn: {
+      blocks: [
+        { id: 'gf-who', kind: 'heading', level: 2, text: { en: 'Who this is for', es: 'A quién está dirigido' } },
+        {
+          id: 'gf-who-t',
+          kind: 'text',
+          body: {
+            en: 'Anyone working the cold station or prep. Knife certification is required: the method starts with a knife.',
+            es: 'Cualquiera que trabaje en la estación fría o en la preparación. Se requiere certificación de cuchillo: el método comienza con un cuchillo.',
+          },
+        },
+        { id: 'gf-eq-h', kind: 'heading', level: 2, text: { en: 'Equipment', es: 'Equipo' } },
+        {
+          id: 'gf-eq-t',
+          kind: 'text',
+          body: {
+            en: 'Molcajete and tejolote · bench scraper · quarter pan · digital scale · probe thermometer',
+            es: 'Molcajete y tejolote · raspador de mesa · charola quarter · báscula digital · termómetro de sonda',
+          },
+        },
+        // No leading image block on purpose: every other published procedure
+        // already uses one of the four stock photos, so the home-row cover
+        // would otherwise repeat. ProcedureRow falls back to the Recipes
+        // category icon (LuUtensils) when the first block isn't an image —
+        // visually distinct from any photo, and the right semantic for a
+        // recipe.
+        { id: 'gf-prep-h', kind: 'heading', level: 2, text: { en: 'Before you start', es: 'Antes de empezar' } },
+        {
+          id: 'gf-prep-cl',
+          kind: 'checklist',
+          title: { en: 'Prep checklist', es: 'Lista de preparación' },
+          items: [
+            { id: 'gf-prep-1', text: { en: 'Wash your hands.', es: 'Lávese las manos.' } },
+            {
+              id: 'gf-prep-2',
+              text: { en: 'Sanitise the molcajete, the board and the bench.', es: 'Desinfecte el molcajete, la tabla y la mesa.' },
+            },
+            {
+              id: 'gf-prep-3',
+              text: {
+                en: 'Prep every ingredient as the table describes: dice, chop, seed, juice, strain.',
+                es: 'Prepare cada ingrediente como indica la tabla: corte en cubos, pique, despepite, exprima, cuele.',
+              },
+            },
+          ],
+        },
+        {
+          id: 'gf-prep-note',
+          kind: 'text',
+          body: {
+            en: 'Do all of it before you open an avocado. Cut avocado starts browning within minutes.',
+            es: 'Haga todo esto antes de abrir un aguacate. El aguacate cortado empieza a oscurecerse en minutos.',
+          },
+        },
+        {
+          id: 'gf-knife-warn',
+          kind: 'warning',
+          severity: 'warn',
+          body: {
+            en: 'Step 2 removes an avocado stone with a knife. A blade that slips off a stone goes into your hand. Use the heel, strike once, twist.',
+            es: 'El paso 2 quita el hueso del aguacate con un cuchillo. Si la hoja resbala sobre el hueso, va hacia su mano. Use el talón, golpee una vez, gire.',
+          },
+        },
+        {
+          id: 'gf-recipe',
+          kind: 'recipe',
+          audience: '',
+          allergen: {
+            summary: 'Contains sesame',
+            detail: 'In the finishing oil, step 8. Check the ticket before it leaves the pass.',
+            selectedAllergens: ['sesame'],
+          },
+          factors: [1, 2, 4],
+          yieldItems: [
+            { label: 'Batch weight', value: '2.4', unit: 'kg', scales: true },
+            { label: 'Portions', value: '12', scales: true },
+            { label: 'Portion size', value: '200', unit: 'g' },
+            { label: 'Time', value: '20', unit: 'min' },
+          ],
+          ingredients: [
+            {
+              name: 'Avocado, Hass',
+              form: 'Whole fruit, about 2 kg of flesh. Ripe: gives slightly at the neck',
+              amounts: ['2.8 kg', '5.6 kg', '11.2 kg'],
+            },
+            { name: 'Lime juice', form: 'Fresh, strained', amounts: ['100 ml', '200 ml', '400 ml'] },
+            { name: 'White onion', form: 'Small dice, 5 mm', amounts: ['200 g', '400 g', '800 g'] },
+            {
+              name: 'Cilantro',
+              form: 'Leaves and fine stem, chopped',
+              amounts: ['30 g', '60 g', '120 g'],
+            },
+            { name: 'Serrano chilli', form: 'Seeded, minced', amounts: ['20 g', '40 g', '80 g'] },
+            { name: 'Salt, kosher', amounts: ['20 g', '40 g', '80 g'] },
+            {
+              name: 'Sesame finishing oil',
+              allergen: true,
+              amounts: ['15 ml', '30 ml', '60 ml'],
+            },
+          ],
+          steps: [
+            {
+              id: 'gf-s1',
+              body: {
+                en: 'Cut each avocado lengthwise, all the way round the stone. Twist the halves apart.',
+                es: 'Corte cada aguacate a lo largo, todo alrededor del hueso. Gire las mitades para separarlas.',
+              },
+              videoSegment: { src: '/img/video-cover.jpg', startSec: 0, endSec: 4 },
+            },
+            {
+              id: 'gf-s2',
+              body: {
+                en: 'Strike the stone with the heel of the knife, the corner nearest the handle. Twist to lift it out.',
+                es: 'Golpee el hueso con el talón del cuchillo, en la esquina más cercana al mango. Gire para levantarlo.',
+              },
+              images: [
+                {
+                  src: '/img/video-cover.jpg',
+                  alt: {
+                    en: "A chef's knife blade resting against the stone of a halved avocado, one hand steadying the fruit and the other on the handle, ready to strike.",
+                    es: 'La hoja de un cuchillo de chef apoyada contra el hueso de un aguacate cortado por la mitad, una mano sostiene la fruta y la otra está en el mango, lista para golpear.',
+                  },
+                },
+              ],
+              videoSegment: { src: '/img/video-cover.jpg', startSec: 4, endSec: 12 },
+              note: {
+                severity: 'warn',
+                body: {
+                  en: 'Strike once, then twist. A second strike at a stone that is already loose is how the blade slips.',
+                  es: 'Golpee una vez y luego gire. Un segundo golpe a un hueso ya suelto es como la hoja resbala.',
+                },
+              },
+            },
+            {
+              id: 'gf-s3',
+              body: {
+                en: 'Scoop the flesh into the molcajete. Scrape the skin clean; the flesh nearest the skin is the greenest.',
+                es: 'Vacíe la pulpa en el molcajete. Raspe la cáscara; la pulpa más cercana a la cáscara es la más verde.',
+              },
+              videoSegment: { src: '/img/video-cover.jpg', startSec: 19, endSec: 31 },
+            },
+            {
+              id: 'gf-s4',
+              body: {
+                en: 'Mash to a coarse texture. Stop while pieces are still visible.',
+                es: 'Muela hasta una textura gruesa. Deténgase mientras los trozos aún son visibles.',
+              },
+              images: [
+                {
+                  src: '/img/equipment.jpg',
+                  alt: {
+                    en: 'Avocado in a molcajete mashed coarsely, with distinct pieces still visible through the mixture.',
+                    es: 'Aguacate en un molcajete molido gruesamente, con trozos distintos aún visibles en la mezcla.',
+                  },
+                },
+                {
+                  src: '/img/video-cover.jpg',
+                  alt: {
+                    en: 'Avocado in a molcajete mashed to a smooth, uniform purée with no pieces remaining.',
+                    es: 'Aguacate en un molcajete molido hasta un puré liso y uniforme sin trozos.',
+                  },
+                },
+              ],
+              videoSegment: { src: '/img/video-cover.jpg', startSec: 31, endSec: 48 },
+            },
+            {
+              id: 'gf-s5',
+              body: {
+                en: 'Fold in all of the lime juice straight away. Without it, the avocado browns within minutes.',
+                es: 'Incorpore todo el jugo de limón de inmediato. Sin él, el aguacate se oscurece en minutos.',
+              },
+              videoSegment: { src: '/img/video-cover.jpg', startSec: 48, endSec: 55 },
+            },
+            {
+              id: 'gf-s6',
+              body: {
+                en: 'Fold in the onion, cilantro and serrano.',
+                es: 'Incorpore la cebolla, el cilantro y el serrano.',
+              },
+              videoSegment: { src: '/img/video-cover.jpg', startSec: 55, endSec: 65 },
+            },
+            {
+              id: 'gf-s7',
+              body: {
+                en: 'Add the salt. Taste with a clean spoon, and use a fresh spoon every time you taste again.',
+                es: 'Agregue la sal. Pruebe con una cuchara limpia y use una cuchara nueva cada vez que vuelva a probar.',
+              },
+              videoSegment: { src: '/img/video-cover.jpg', startSec: 65, endSec: 72 },
+            },
+            {
+              id: 'gf-s8',
+              body: {
+                en: 'Add the sesame oil. Fold once, so it streaks rather than blends.',
+                es: 'Agregue el aceite de sésamo. Incorpore una vez, para que haga vetas en lugar de mezclarse.',
+              },
+              videoSegment: { src: '/img/video-cover.jpg', startSec: 72, endSec: 78 },
+              note: {
+                severity: 'allergen',
+                body: {
+                  en: 'Sesame enters here. Anything plated for an allergy ticket is made without it, in a clean molcajete.',
+                  es: 'Aquí entra el sésamo. Todo lo emplatado para un ticket de alergia se hace sin él, en un molcajete limpio.',
+                },
+              },
+            },
+            {
+              id: 'gf-s9',
+              body: {
+                en: 'Transfer to a quarter pan. Press film onto the surface so no air touches the guacamole.',
+                es: 'Transfiera a una charola quarter. Presione film sobre la superficie para que el aire no toque el guacamole.',
+              },
+              images: [
+                {
+                  src: '/img/equipment.jpg',
+                  alt: {
+                    en: 'Both hands pressing cling film flat onto the surface of guacamole in a stainless quarter pan, with no air trapped between the film and the food.',
+                    es: 'Ambas manos presionando film plástico plano sobre la superficie del guacamole en una charola quarter de acero, sin aire atrapado entre el film y la comida.',
+                  },
+                },
+              ],
+              videoSegment: { src: '/img/video-cover.jpg', startSec: 78, endSec: 84 },
+            },
+            {
+              id: 'gf-s10',
+              body: {
+                en: 'Label the pan with today’s date and the time.',
+                es: 'Etiquete la charola con la fecha y hora de hoy.',
+              },
+              videoSegment: { src: '/img/video-cover.jpg', startSec: 84, endSec: 88 },
+            },
+            {
+              id: 'gf-s11',
+              body: {
+                en: 'Refrigerate. Before service, probe the centre of the pan and record the reading.',
+                es: 'Refrigere. Antes del servicio, sondee el centro de la charola y registre la lectura.',
+              },
+              critical: true,
+              criticalLimit: {
+                label: 'Critical limit',
+                icon: 'LuTempCold',
+                value: '4 °C (39 °F) or below',
+                subtitle: 'Into the walk-in within 30 minutes of finishing. Check before service.',
+                howToCheck:
+                  'Probe the centre of the pan with a sanitised thermometer. Record on the Cold Holding Log.',
+                breachLabel: 'If it is above 4 °C',
+                breachResponse:
+                  'Discard. Guacamole is not reheated, so there is no way to bring it back. Tell the chef on duty.',
+              },
+              images: [
+                {
+                  src: '/img/video-cover.jpg',
+                  alt: {
+                    en: 'A labelled stainless quarter pan of guacamole showing prep date and time, with a digital probe thermometer reading 4.0 degrees Celsius inserted into the centre.',
+                    es: 'Una charola quarter de acero etiquetada con guacamole mostrando fecha y hora de preparación, con un termómetro de sonda digital que marca 4.0 grados Celsius insertado en el centro.',
+                  },
+                },
+              ],
+              videoSegment: { src: '/img/video-cover.jpg', startSec: 88, endSec: 94 },
+            },
+          ],
+        },
+        { id: 'gf-shelf-h', kind: 'heading', level: 2, text: { en: 'Shelf life', es: 'Vida útil' } },
+        {
+          id: 'gf-shelf-t',
+          kind: 'text',
+          body: {
+            en: 'Serve or discard within 48 hours of the time on the label. Colour is not the test. The label is.',
+            es: 'Sirva o deseche dentro de las 48 horas posteriores a la hora en la etiqueta. El color no es la prueba. La etiqueta lo es.',
+          },
+        },
+        { id: 'gf-rel-h', kind: 'heading', level: 2, text: { en: 'Related procedures', es: 'Procedimientos relacionados' } },
+        {
+          id: 'gf-rel-1',
+          kind: 'attachment',
+          title: { en: 'Cooling and cold holding', es: 'Enfriamiento y mantenimiento en frío' },
+          href: '#related',
+          meta: 'Food safety',
+        },
+        {
+          id: 'gf-rel-2',
+          kind: 'attachment',
+          title: { en: 'Allergen handling', es: 'Manejo de alérgenos' },
+          href: '#related',
+          meta: 'Front of house',
+        },
+      ],
+    },
+    bodyEs: {
+      blocks: [
+        { id: 'gf-who', kind: 'heading', level: 2, text: { en: 'Who this is for', es: 'A quién está dirigido' } },
+        {
+          id: 'gf-who-t',
+          kind: 'text',
+          body: {
+            en: 'Anyone working the cold station or prep. Knife certification is required.',
+            es: 'Cualquiera que trabaje en la estación fría o en la preparación. Se requiere certificación de cuchillo.',
+          },
+        },
+        { id: 'gf-eq-h', kind: 'heading', level: 2, text: { en: 'Equipment', es: 'Equipo' } },
+        {
+          id: 'gf-eq-t',
+          kind: 'text',
+          body: {
+            en: 'Molcajete and tejolote · bench scraper · quarter pan · digital scale · probe thermometer',
+            es: 'Molcajete y tejolote · raspador de mesa · charola quarter · báscula digital · termómetro de sonda',
+          },
+        },
+        // No leading image block on purpose: every other published procedure
+        // already uses one of the four stock photos, so the home-row cover
+        // would otherwise repeat. ProcedureRow falls back to the Recipes
+        // category icon (LuUtensils) when the first block isn't an image —
+        // visually distinct from any photo, and the right semantic for a
+        // recipe.
+        { id: 'gf-prep-h', kind: 'heading', level: 2, text: { en: 'Before you start', es: 'Antes de empezar' } },
+        {
+          id: 'gf-prep-cl',
+          kind: 'checklist',
+          title: { en: 'Prep checklist', es: 'Lista de preparación' },
+          items: [
+            { id: 'gf-prep-1', text: { en: 'Wash your hands.', es: 'Lávese las manos.' } },
+            {
+              id: 'gf-prep-2',
+              text: { en: 'Sanitise the molcajete, the board and the bench.', es: 'Desinfecte el molcajete, la tabla y la mesa.' },
+            },
+            {
+              id: 'gf-prep-3',
+              text: {
+                en: 'Prep every ingredient as the table describes: dice, chop, seed, juice, strain.',
+                es: 'Prepare cada ingrediente como indica la tabla: corte en cubos, pique, despepite, exprima, cuele.',
+              },
+            },
+          ],
+        },
+        {
+          id: 'gf-prep-note',
+          kind: 'text',
+          body: {
+            en: 'Do all of it before you open an avocado.',
+            es: 'Haga todo esto antes de abrir un aguacate. El aguacate cortado empieza a oscurecerse en minutos.',
+          },
+        },
+        {
+          id: 'gf-knife-warn',
+          kind: 'warning',
+          severity: 'warn',
+          body: {
+            en: 'Step 2 removes an avocado stone with a knife. A blade that slips off a stone goes into your hand.',
+            es: 'El paso 2 quita el hueso del aguacate con un cuchillo. Si la hoja resbala sobre el hueso, va hacia su mano. Use el talón, golpee una vez, gire.',
+          },
+        },
+        {
+          id: 'gf-recipe',
+          kind: 'recipe',
+          audience: '',
+          allergen: {
+            summary: 'Contiene sésamo',
+            detail: 'En el aceite de terminado, paso 8. Revise el ticket antes de que salga del pase.',
+            selectedAllergens: ['sesame'],
+          },
+          factors: [1, 2, 4],
+          yieldItems: [
+            { label: 'Peso del lote', value: '2.4', unit: 'kg', scales: true },
+            { label: 'Porciones', value: '12', scales: true },
+            { label: 'Tamaño de porción', value: '200', unit: 'g' },
+            { label: 'Tiempo', value: '20', unit: 'min' },
+          ],
+          ingredients: [
+            {
+              name: 'Aguacate, Hass',
+              form: 'Fruta entera, aprox. 2 kg de pulpa. Maduro: cede ligeramente al presionar el cuello',
+              amounts: ['2.8 kg', '5.6 kg', '11.2 kg'],
+            },
+            {
+              name: 'Jugo de limón',
+              form: 'Fresco, colado',
+              amounts: ['100 ml', '200 ml', '400 ml'],
+            },
+            { name: 'Cebolla blanca', form: 'Cubo pequeño, 5 mm', amounts: ['200 g', '400 g', '800 g'] },
+            {
+              name: 'Cilantro',
+              form: 'Hojas y tallo fino, picado',
+              amounts: ['30 g', '60 g', '120 g'],
+            },
+            {
+              name: 'Chile serrano',
+              form: 'Sin semillas, picado fino',
+              amounts: ['20 g', '40 g', '80 g'],
+            },
+            { name: 'Sal, kosher', amounts: ['20 g', '40 g', '80 g'] },
+            {
+              name: 'Aceite de sésamo de terminado',
+              allergen: true,
+              amounts: ['15 ml', '30 ml', '60 ml'],
+            },
+          ],
+          steps: [
+            {
+              id: 'gf-s1',
+              body: {
+                en: 'Cut each avocado lengthwise.',
+                es: 'Corte cada aguacate a lo largo, todo alrededor del hueso. Gire las mitades para separarlas.',
+              },
+            },
+            {
+              id: 'gf-s2',
+              body: {
+                en: 'Strike the stone with the heel of the knife.',
+                es: 'Golpee el hueso con el talón del cuchillo, en la esquina más cercana al mango. Gire para levantarlo.',
+              },
+              images: [
+                {
+                  src: '/img/video-cover.jpg',
+                  alt: {
+                    en: "A chef's knife blade resting against the stone of a halved avocado.",
+                    es: 'La hoja de un cuchillo de chef apoyada contra el hueso de un aguacate cortado por la mitad, una mano sostiene la fruta y la otra está en el mango, lista para golpear.',
+                  },
+                },
+              ],
+              note: {
+                severity: 'warn',
+                body: {
+                  en: 'Strike once, then twist.',
+                  es: 'Golpee una vez y luego gire. Un segundo golpe a un hueso ya suelto es como la hoja resbala.',
+                },
+              },
+            },
+            {
+              id: 'gf-s3',
+              body: {
+                en: 'Scoop the flesh into the molcajete.',
+                es: 'Vacíe la pulpa en el molcajete. Raspe la cáscara; la pulpa más cercana a la cáscara es la más verde.',
+              },
+            },
+            {
+              id: 'gf-s4',
+              body: {
+                en: 'Mash to a coarse texture.',
+                es: 'Muela hasta una textura gruesa. Deténgase mientras los trozos aún son visibles.',
+              },
+              images: [
+                {
+                  src: '/img/equipment.jpg',
+                  alt: {
+                    en: 'Avocado in a molcajete mashed coarsely, with distinct pieces still visible.',
+                    es: 'Aguacate en un molcajete molido gruesamente, con trozos distintos aún visibles en la mezcla.',
+                  },
+                },
+                {
+                  src: '/img/video-cover.jpg',
+                  alt: {
+                    en: 'Avocado in a molcajete mashed to a smooth, uniform purée.',
+                    es: 'Aguacate en un molcajete molido hasta un puré liso y uniforme sin trozos.',
+                  },
+                },
+              ],
+            },
+            {
+              id: 'gf-s5',
+              body: {
+                en: 'Fold in all of the lime juice straight away.',
+                es: 'Incorpore todo el jugo de limón de inmediato. Sin él, el aguacate se oscurece en minutos.',
+              },
+            },
+            {
+              id: 'gf-s6',
+              body: {
+                en: 'Fold in the onion, cilantro and serrano.',
+                es: 'Incorpore la cebolla, el cilantro y el serrano.',
+              },
+            },
+            {
+              id: 'gf-s7',
+              body: {
+                en: 'Add the salt. Taste with a clean spoon.',
+                es: 'Agregue la sal. Pruebe con una cuchara limpia y use una cuchara nueva cada vez que vuelva a probar.',
+              },
+            },
+            {
+              id: 'gf-s8',
+              body: {
+                en: 'Add the sesame oil. Fold once, so it streaks rather than blends.',
+                es: 'Agregue el aceite de sésamo. Incorpore una vez, para que haga vetas en lugar de mezclarse.',
+              },
+              note: {
+                severity: 'allergen',
+                body: {
+                  en: 'Sesame enters here. Anything plated for an allergy ticket is made without it, in a clean molcajete.',
+                  es: 'Aquí entra el sésamo. Todo lo emplatado para un ticket de alergia se hace sin él, en un molcajete limpio.',
+                },
+              },
+            },
+            {
+              id: 'gf-s9',
+              body: {
+                en: 'Transfer to a quarter pan. Press film onto the surface.',
+                es: 'Transfiera a una charola quarter. Presione film sobre la superficie para que el aire no toque el guacamole.',
+              },
+              images: [
+                {
+                  src: '/img/equipment.jpg',
+                  alt: {
+                    en: 'Both hands pressing cling film flat onto the surface of guacamole.',
+                    es: 'Ambas manos presionando film plástico plano sobre la superficie del guacamole en una charola quarter de acero, sin aire atrapado entre el film y la comida.',
+                  },
+                },
+              ],
+            },
+            {
+              id: 'gf-s10',
+              body: {
+                en: 'Label the pan with today’s date and the time.',
+                es: 'Etiquete la charola con la fecha y hora de hoy.',
+              },
+            },
+            {
+              id: 'gf-s11',
+              body: {
+                en: 'Refrigerate. Before service, probe the centre of the pan and record the reading.',
+                es: 'Refrigere. Antes del servicio, sondee el centro de la charola y registre la lectura.',
+              },
+              critical: true,
+              criticalLimit: {
+                label: 'Límite crítico',
+                value: '4 °C (39 °F) o menos',
+                subtitle: 'Al refrigerador dentro de 30 minutos de terminar. Verifique antes del servicio.',
+                howToCheck: 'Sondee el centro de la charola con un termómetro desinfectado. Registre en la Bitácora de Frío.',
+                breachLabel: 'Si está por encima de 4 °C',
+                breachResponse:
+                  'Deseche. El guacamole no se recalienta, así que no hay forma de recuperarlo. Avise al chef de turno.',
+              },
+              images: [
+                {
+                  src: '/img/video-cover.jpg',
+                  alt: {
+                    en: 'A labelled stainless quarter pan of guacamole showing prep date and time, with a digital probe thermometer reading 4.0 degrees Celsius.',
+                    es: 'Una charola quarter de acero etiquetada con guacamole mostrando fecha y hora de preparación, con un termómetro de sonda digital que marca 4.0 grados Celsius insertado en el centro.',
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        { id: 'gf-shelf-h', kind: 'heading', level: 2, text: { en: 'Shelf life', es: 'Vida útil' } },
+        {
+          id: 'gf-shelf-t',
+          kind: 'text',
+          body: {
+            en: 'Serve or discard within 48 hours of the time on the label.',
+            es: 'Sirva o deseche dentro de las 48 horas posteriores a la hora en la etiqueta. El color no es la prueba. La etiqueta lo es.',
+          },
+        },
+        { id: 'gf-rel-h', kind: 'heading', level: 2, text: { en: 'Related procedures', es: 'Procedimientos relacionados' } },
+        {
+          id: 'gf-rel-1',
+          kind: 'attachment',
+          title: { en: 'Cooling and cold holding', es: 'Enfriamiento y mantenimiento en frío' },
+          href: '#related',
+          meta: 'Seguridad alimentaria',
+        },
+        {
+          id: 'gf-rel-2',
+          kind: 'attachment',
+          title: { en: 'Allergen handling', es: 'Manejo de alérgenos' },
+          href: '#related',
+          meta: 'Sala',
+        },
+      ],
+    },
   },
 ];
 
@@ -856,6 +1407,61 @@ function getStored<T>(key: string, seed: T): T {
   }
 }
 
+/** Slugs of categories that should be `kind: 'general'` — they apply at
+ *  every station and never ask the manager to pick one. Used by the local-
+ *  Storage migration (and any future fixtures) to backfill `kind` on
+ *  pre-existing records that predate the field. */
+const GENERAL_CATEGORY_SLUGS = new Set(['onboarding', 'food-safety', 'cleaning']);
+
+/** One-shot normalisation for `categories_v3`. Pre-existing records stored
+ *  before `kind` was introduced get it backfilled by slug, and legacy
+ *  subcategory fields (`isStationSpecific`, `stations`) are stripped so the
+ *  rest of the app never sees the dead shape. Re-saves once so the next
+ *  read is a no-op. Wrapped in try/catch so a corrupted store does not
+ *  brick the page — the seed is the fallback. */
+function normaliseCategories(stored: Category[]): Category[] {
+  let mutated = false;
+  // Discard any empty/corrupted category entries (e.g. without a name)
+  const valid = (stored || []).filter(
+    (c) => Boolean(c && (c.nameEn?.trim() || c.nameEs?.trim())),
+  );
+  if (valid.length !== (stored || []).length) {
+    mutated = true;
+  }
+  const normalised = valid.map((c) => {
+    let touched = false;
+    const nextKind = c.kind ?? (GENERAL_CATEGORY_SLUGS.has(c.slug) ? 'general' : 'station-tied');
+    if (nextKind !== c.kind) touched = true;
+    const subs = c.subcategories ?? [];
+    const cleanSubs = subs.map((s) => {
+      // Subcategory shape is now `{ id, slug, nameEn, nameEs }` only. The
+      // legacy `isStationSpecific` and `stations` fields were dropped when
+      // scope moved up to the category — strip them on read so nothing
+      // downstream has to defend against them.
+      const hasLegacy =
+        (s as Subcategory & { isStationSpecific?: boolean; stations?: string[] })
+          .isStationSpecific !== undefined ||
+        (s as Subcategory & { isStationSpecific?: boolean; stations?: string[] })
+          .stations !== undefined;
+      if (!hasLegacy) return s;
+      touched = true;
+      return {
+        id: s.id,
+        slug: s.slug,
+        nameEn: s.nameEn,
+        nameEs: s.nameEs,
+      };
+    });
+    if (!touched) return c;
+    mutated = true;
+    return { ...c, kind: nextKind, subcategories: cleanSubs };
+  });
+  if (mutated) {
+    setStored('categories_v3', normalised);
+  }
+  return mutated ? normalised : stored;
+}
+
 function setStored<T>(key: string, data: T): void {
   if (typeof window === 'undefined') return;
   try {
@@ -868,7 +1474,7 @@ function setStored<T>(key: string, data: T): void {
 let mockLocations: Location[] = getStored('locations', SEED_LOCATIONS);
 let mockRoles: Role[] = getStored('roles_v2', SEED_ROLES);
 let mockStations: Station[] = getStored('stations_v2', SEED_STATIONS);
-let mockCategories: Category[] = getStored('categories_v3', SEED_CATEGORIES);
+let mockCategories: Category[] = normaliseCategories(getStored('categories_v3', SEED_CATEGORIES));
 let mockEmployees: AdminEmployee[] = getStored('employees_v3', SEED_EMPLOYEES);
 let mockProcedures: Procedure[] = getStored('procedures_v2', SEED_PROCEDURES);
 // Centralised quizzes table. The wizard authors quizzes locally in form
@@ -890,7 +1496,12 @@ function getStationsStore(): Station[] {
   return mockStations;
 }
 function getCategoriesStore(): Category[] {
-  if (typeof window !== 'undefined') mockCategories = getStored('categories_v3', SEED_CATEGORIES);
+  if (typeof window !== 'undefined') {
+    // Re-read each call so concurrent tab edits surface without a reload.
+    // Normalise every read so a freshly-pasted localStorage entry from a
+    // backup that pre-dates `kind` still renders correctly.
+    mockCategories = normaliseCategories(getStored('categories_v3', SEED_CATEGORIES));
+  }
   return mockCategories;
 }
 function getEmployeesStore(): AdminEmployee[] {
@@ -1551,8 +2162,12 @@ export async function createCategory(input: {
   slug?: string;
   nameEn: string;
   nameEs: string;
+  /** `'general'` → applies at every station. `'station-tied'` → manager
+   *  picks a station on the categories page; the procedure wizard's Access
+   *  step pre-fills with that station. */
+  kind: 'general' | 'station-tied';
   icon?: string;
-  subcategories?: Array<{ nameEn: string; nameEs: string; isStationSpecific?: boolean }>;
+  subcategories?: Array<{ nameEn: string; nameEs: string }>;
 }): Promise<{ category: Category }> {
   const derivedSlug =
     input.slug ??
@@ -1566,14 +2181,13 @@ export async function createCategory(input: {
     nameEn: input.nameEn,
     nameEs: input.nameEs,
     isArchived: false,
+    kind: input.kind,
     icon: input.icon,
     subcategories: input.subcategories?.map((s, i) => ({
       id: `sub-${Date.now()}-${i}`,
       slug: s.nameEn.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
       nameEn: s.nameEn,
       nameEs: s.nameEs,
-      isStationSpecific: s.isStationSpecific,
-      stations: s.isStationSpecific ? [] : undefined,
     })),
   };
   mockCategories = [...getCategoriesStore(), newCat];
@@ -1586,9 +2200,10 @@ export async function updateCategory(
   patch: {
     nameEn?: string;
     nameEs?: string;
+    kind?: 'general' | 'station-tied';
     icon?: string;
     isArchived?: boolean;
-    subcategories?: Array<{ nameEn: string; nameEs: string; isStationSpecific?: boolean }>;
+    subcategories?: Array<{ nameEn: string; nameEs: string }>;
   },
 ): Promise<{ category: Category }> {
   const cats = getCategoriesStore();
@@ -1609,8 +2224,6 @@ export async function updateCategory(
             s.nameEn.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
           nameEn: s.nameEn,
           nameEs: s.nameEs,
-          isStationSpecific: s.isStationSpecific,
-          stations: prev?.stations ?? (s.isStationSpecific ? [] : undefined),
         };
       });
       next.subcategories = rebuilt;

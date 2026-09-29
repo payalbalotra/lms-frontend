@@ -16,16 +16,7 @@ interface PageProps {
   params: Promise<{ locale: string }>;
 }
 
-/**
- * Admin Settings — a single page that shows Stations / Roles / Locations
- * inline as three side-by-side panels. The subroute folders
- * (`stations/`, `roles/`, `locations/`) were folded into this view in the
- * same change so the Settings sidebar entry stays a single row.
- *
- * The fetch is parallel and failure-tolerant — the spec says a cook mid-shift
- * needs the page more than the trimmings, and the same logic applies to a
- * manager mid-config: a Stations outage should not blank the Roles panel.
- */
+
 export default async function SettingsPage({
   params,
 }: PageProps): Promise<React.ReactElement> {
@@ -80,14 +71,10 @@ export default async function SettingsPage({
     <>
       <PageHeader title={t('settingsHeading')} subtitle={t('settingsSubtitle')} />
 
-      <FilterChips
-        label={t('settingsHeading')}
-        value="setup"
-        chips={[{ value: 'setup', label: t('settingsEyebrow') }]}
-      />
+
 
       {loadError ? (
-        <p role="alert" className="text-sm text-[var(--color-bad)]">
+        <p role="alert" className="text-sm text-[var(--color-bad)]">  
           {loadError}
         </p>
       ) : null}
@@ -142,6 +129,7 @@ export default async function SettingsPage({
           locationEdit: t('actionsEdit'),
           locationErrorInUse: t('locationsErrorInUse'),
           rowActionsLabel: t('rowActionsLabel'),
+          staffWord: t('settingsStaffWord'),
         }}
       />
     </>

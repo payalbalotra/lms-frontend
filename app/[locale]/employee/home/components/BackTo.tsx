@@ -44,6 +44,7 @@ export function BackTo({
             <ProcedureRow
               href={`/${locale}/procedures/${v.slug}`}
               cover={v.cover}
+              subcategory={v.subcategory ?? null}
               title={readsSpanish ? v.titleEs || v.titleEn : v.titleEn || v.titleEs}
               meta={openedLabel.replace('{when}', ago(v.at))}
             />

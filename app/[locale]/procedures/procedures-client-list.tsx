@@ -191,12 +191,17 @@ export function ProceduresClientList({
         <ul className="mt-4 space-y-3">
           {results.map((p) => {
             const cover = coverOf(p);
+            const sub = p.subcategoryId
+              ? p.category?.subcategories?.find((s) => s.id === p.subcategoryId) ?? null
+              : null;
             return (
               <li key={p.id}>
                 <ProcedureRow
                   href={withAs(`/${locale}/procedures/${p.slug}`, viewAs)}
                   cover={cover}
+                  iconImageUrl={p.iconImageUrl ?? null}
                   category={p.category}
+                  subcategory={sub}
                   title={titleOf(p)}
                   meta={p.category ? nameOf(p.category) : labels.uncategorised}
                   flags={{

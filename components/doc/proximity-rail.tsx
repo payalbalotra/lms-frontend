@@ -3,28 +3,7 @@
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
 
-/**
- * A map of the document down its right edge: one line per section, and a
- * shorter one per step of the method. As the pointer comes near, the lines
- * under it reach out on a spring, and the nearest one says what it is --
- * "Yield", "Step 4 · Mash to a coarse texture". Click a line to go there; while
- * reading, the current one stays marked. A critical step's line is red.
- *
- * The reach is the proximity sidebar's (rare-ui): width follows the pointer's
- * distance from each line, eased by the same spring (stiffness 320, damping 34,
- * mass 0.7). It is written here rather than installed, so the app takes on no
- * animation library: one requestAnimationFrame loop moves every line, and the
- * lines are sized directly, so nothing re-renders while the pointer moves.
- *
- * The pointer is followed on the window, not on an invisible strip beside the
- * lines, so the reach costs no clicks on the page underneath it.
- *
- * The items are read from the page after mount (sections with a heading, and
- * the method's steps), so the map cannot describe a page that has changed; the
- * chip's words are read again when it shows, so a step whose amounts changed
- * with the batch size says the new amounts. Wide screens only: on a phone there
- * is no margin for it, and the thumb is already the navigation.
- */
+
 
 type Item = { id: string; kind: 'section' | 'step'; n: number; critical: boolean; label: string };
 

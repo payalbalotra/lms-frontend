@@ -8,24 +8,9 @@ import { Icon } from '@/components/ui/icon';
 export interface Segment {
   value: string;
   label: string;
-  /** Optional mark before the label, where the seats name a mechanism. */
   icon?: IconType | string;
 }
 
-/**
- * A few seats on one tray, one of them filled: which language am I writing,
- * which view am I looking at, which batch size am I scaling to.
- *
- * The same control as the admin bar's EN/ES switch and the recipe scaler —
- * `.segbar` — so every place the app asks "which one of these few?" looks alike.
- * For an open-ended set (categories, statuses) use `FilterChips` instead: a tray
- * of seven seats becomes a white bar across the page.
- *
- * The fill is one object that slides between seats rather than switching off in
- * one place and on in another. It is the same information either way; sliding
- * keeps the answer trackable. The measurement runs before paint, and the pill is
- * not drawn until it has a position, so nothing flies in from the left on load.
- */
 export function SegmentedControl({
   label,
   segments,

@@ -39,6 +39,7 @@ export async function createCategory(
     locationId: input.locationId,
     nameEn: input.nameEn,
     nameEs: input.nameEs,
+    kind: input.kind,
     icon: input.icon,
     subcategories: input.subcategories,
   });
@@ -52,6 +53,7 @@ export async function updateCategory(
   const { category } = await mockUpdateCategory(id, {
     nameEn: input.nameEn,
     nameEs: input.nameEs,
+    kind: input.kind,
     icon: input.icon,
     isArchived: input.isArchived,
     subcategories: input.subcategories,

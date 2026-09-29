@@ -3,15 +3,7 @@ import Link from 'next/link';
 import { LuArrowUpRight, LuLogOut } from 'react-icons/lu';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 
-/**
- * The bar across the top of every page a cook reads: who is signed in, the
- * theme, the way to the admin side for someone who has one, and sign out.
- *
- * It lived inline in the /employee layout, and /procedures sits outside that
- * tree, so a cook reading a procedure lost the whole bar -- no way to switch to
- * dark in a dark kitchen, no way to sign out -- on the pages they spend the most
- * time on. One bar, worn by both layouts.
- */
+
 export function EmployeeTopBar({
   locale,
   name,

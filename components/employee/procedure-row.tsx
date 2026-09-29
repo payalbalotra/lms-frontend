@@ -2,23 +2,11 @@ import * as React from 'react';
 import Link from 'next/link';
 import { LuChevronRight, LuCircleAlert, LuFocus, LuLanguages } from 'react-icons/lu';
 import { Icon } from '@/components/ui/icon';
-import { getCategoryIcon } from '@/lib/category-icons';
+import { HoverImagePreview } from '@/components/ui/hover-image-preview';
+import { getCategoryIcon, getProcedureIcon, getSubcategoryIcon } from '@/lib/category-icons';
 import { StatusPill } from '@/components/ui/status-pill';
-import type { Category } from '@/lib/types';
+import type { Category, Subcategory } from '@/lib/types';
 
-/**
- * One procedure, as a row a cook taps.
- *
- * There was one of these on the home and a second, slightly different one on the
- * browse page: 80px photo against 64px, flush against inset, flags on one and not
- * the other. Same object, same reader, same action — so it is one component, and
- * a change to it lands on both lists.
- *
- * The photograph fills the row rather than sitting in it as a square: a row with
- * warnings under the title is taller than one without, and a fixed square left a
- * band of empty card beside the flags. Stretching is also what makes the photo
- * read as the procedure's cover rather than as an icon of one.
- */
 
 export interface ProcedureFlags {
   allergens: string[];
@@ -32,10 +20,13 @@ export interface FlagLabels {
   english: string;
 }
 
+
 export function ProcedureRow({
   href,
   cover,
+  iconImageUrl,
   category,
+  subcategory,
   title,
   meta,
   flags,
@@ -43,8 +34,10 @@ export function ProcedureRow({
 }: {
   href: string;
   cover?: string;
-  /** Falls back to the category's icon when there is no photograph. */
+  iconImageUrl?: string | null;
   category?: Category | null;
+  /** Slim subcategory — id and slug are all the icon resolver needs. */
+  subcategory?: Pick<Subcategory, 'id' | 'slug'> | null;
   title: string;
   meta: string;
   flags?: ProcedureFlags;
@@ -56,19 +49,62 @@ export function ProcedureRow({
   return (
     <Link
       href={href}
-      className="flex items-stretch gap-4 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] pr-4"
+      className="group flex items-stretch gap-4 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] pr-4"
     >
-      {cover ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={cover} alt="" className="w-20 shrink-0 self-stretch object-cover object-top" loading="lazy" />
-      ) : (
-        <span
-          aria-hidden="true"
-          className="flex w-20 shrink-0 items-center justify-center self-stretch bg-[var(--color-panel)] text-[var(--color-ink-2)]"
-        >
-          <Icon icon={getCategoryIcon(category ?? { slug: '' })} className="text-xl" />
-        </span>
-      )}
+      {/*
+        Icon priority, mirroring the admin library card:
+          1. the body's first image (the recipe photo / buckets for cleaning) — cover
+          2. the manager's iconImageUrl override
+          3. the per-subcategory Phosphor mark via getProcedureIcon
+             (procedures under different subcategories wear different glyphs;
+             categories stay visually distinct from subcategories and procedures)
+        Stale `blob:` URLs from a previous session fall through to the icon
+        tile instead of a broken <img>, so the row never shows a tile with no image.
+      */}
+      {(() => {
+        const isRenderable = (u?: string | null): u is string =>
+          typeof u === 'string' && u.length > 0 && !u.startsWith('blob:');
+        const photo = isRenderable(cover) ? cover : null;
+        const override = isRenderable(iconImageUrl) ? iconImageUrl : null;
+        if (photo) {
+          return (
+            <HoverImagePreview src={photo} alt="">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={photo}
+                alt=""
+                className="w-20 shrink-0 self-stretch rounded-l-[var(--radius-lg)] object-cover object-top"
+                loading="lazy"
+              />
+            </HoverImagePreview>
+          );
+        }
+        if (override) {
+          return (
+            <HoverImagePreview src={override} alt="">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={override}
+                alt=""
+                className="w-20 shrink-0 self-stretch rounded-l-[var(--radius-lg)] bg-[var(--color-panel)] object-contain p-2"
+                loading="lazy"
+              />
+            </HoverImagePreview>
+          );
+        }
+        const fallbackIcon = getProcedureIcon(
+          { iconImageUrl: null, subcategoryId: subcategory?.id ?? null },
+          subcategory ?? null,
+        );
+        return (
+          <span
+            aria-hidden="true"
+            className="flex w-20 shrink-0 items-center justify-center self-stretch rounded-l-[var(--radius-lg)] bg-[var(--color-panel)] p-2 text-[var(--color-ink-2)]"
+          >
+            <Icon icon={fallbackIcon} className="text-3xl" />
+          </span>
+        );
+      })()}
 
       <span className="min-w-0 flex-1 py-3">
         <span className="block text-base font-semibold leading-heading text-[var(--color-ink)]">{title}</span>
@@ -98,3 +134,5 @@ export function ProcedureRow({
     </Link>
   );
 }
+
+export { getCategoryIcon, getProcedureIcon, getSubcategoryIcon };
