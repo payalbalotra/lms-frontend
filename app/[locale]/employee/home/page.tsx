@@ -141,6 +141,9 @@ export default async function EmployeeHomePage({ params }: PageProps): Promise<R
     );
   const toRow = (p: Procedure, meta: string): HomeRow => {
     const facts = factsOf(p, isEs);
+    const sub = p.subcategoryId
+      ? p.category?.subcategories?.find((s) => s.id === p.subcategoryId) ?? null
+      : null;
     return {
       key: p.id,
       slug: p.slug,
@@ -149,6 +152,7 @@ export default async function EmployeeHomePage({ params }: PageProps): Promise<R
       cover: coverOf(p.bodyEn.blocks.length ? p.bodyEn.blocks : p.bodyEs.blocks),
       iconImageUrl: p.iconImageUrl ?? null,
       category: p.category,
+      subcategory: sub,
       title: titleOf(p),
       meta,
       flags: { ...facts, allergens: allergenWords(facts.allergens, isEs ? 'es' : 'en') },

@@ -88,11 +88,16 @@ export function ProcedureViewClient({
     if (!proc) return;
     const blocks = proc.bodyEn.blocks.length ? proc.bodyEn.blocks : proc.bodyEs.blocks;
     const img = blocks.find((b) => b.kind === 'image' && b.src);
+    const sub = proc.subcategoryId
+      ? proc.category?.subcategories?.find((s) => s.id === proc.subcategoryId) ?? undefined
+      : undefined;
     recordRecentView({
       slug: proc.slug,
       titleEn: proc.titleEn,
       titleEs: proc.titleEs,
       cover: img && img.kind === 'image' ? img.src : undefined,
+      subcategoryId: proc.subcategoryId ?? undefined,
+      subcategory: sub ? { id: sub.id, slug: sub.slug } : undefined,
     });
     // Once per procedure opened.
     // eslint-disable-next-line react-hooks/exhaustive-deps

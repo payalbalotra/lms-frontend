@@ -34,9 +34,10 @@ export interface HomeRow {
   href: string;
   cover?: string;
   /** Manager-uploaded per-procedure icon override. Renders between the
-   *  recipe photo (when present) and the category's default SVG art. */
+   *  recipe photo (when present) and the per-subcategory Phosphor mark. */
   iconImageUrl?: string | null;
   category: React.ComponentProps<typeof ProcedureRow>['category'];
+  subcategory?: React.ComponentProps<typeof ProcedureRow>['subcategory'];
   title: string;
   meta: string;
   flags: ProcedureFlags;
@@ -124,6 +125,7 @@ export function EmployeeHome({
               cover={r.cover}
               iconImageUrl={r.iconImageUrl}
               category={r.category}
+              subcategory={r.subcategory}
               title={r.title}
               meta={r.meta}
               flags={r.flags}
@@ -227,6 +229,7 @@ function Rows({
                 cover={r.cover}
                 iconImageUrl={r.iconImageUrl}
                 category={r.category}
+                subcategory={r.subcategory}
                 title={r.title}
                 meta={r.meta}
                 flags={r.flags}

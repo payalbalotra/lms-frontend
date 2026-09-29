@@ -10,6 +10,14 @@ export interface RecentView {
   titleEn: string;
   titleEs: string;
   cover?: string;
+  /** Optional subcategory fields captured at record time so the "Back to"
+   *  section on the home can render the per-subcategory Phosphor mark
+   *  without re-fetching the procedure. Older entries without these fields
+   *  simply fall back to the universal procedure glyph. */
+  subcategoryId?: string;
+  /** Shape of the parent category's subcategories[] entry; slug + id are
+   *  enough for the icon resolver. */
+  subcategory?: { id: string; slug: string };
   at: string;
 }
 

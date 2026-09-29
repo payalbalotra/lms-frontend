@@ -64,11 +64,8 @@ export default async function AdminLibraryDetailPage({
   }
 
   return (
-    // Standard admin page width. The chrome bar (back + actions) spans the
-    // full width; the title and body underneath sit in the doc reading
-    // column (`max-w-doc`) so the H1 lands directly above the body's own
-    // DocHead. See AdminProcedureView.
-    <div className="mx-auto max-w-page space-y-6 pb-12">
+    // Matches the demo procedure view reading column width (`max-w-doc`).
+    <div className="mx-auto max-w-doc space-y-6 pb-12">
       <AdminProcedureView
         locale={locale}
         procedure={procedure}

@@ -54,19 +54,18 @@ const SEED_LOCATIONS: Location[] = [
 ];
 
 const SEED_ROLES: Role[] = [
-  { id: 'role-exec', name: 'Head Chef', clearanceLevel: 'master', createdAt: '2026-01-01T00:00:00Z' },
+  { id: 'role-exec', name: 'Executive Chef', clearanceLevel: 'master', createdAt: '2026-01-01T00:00:00Z' },
   { id: 'role-sous', name: 'Sous Chef', clearanceLevel: 'master', createdAt: '2026-01-01T00:00:00Z' },
   { id: 'role-cook', name: 'Line Cook', clearanceLevel: 'station', createdAt: '2026-01-01T00:00:00Z' },
   { id: 'role-prep', name: 'Prep Cook', clearanceLevel: 'station', createdAt: '2026-01-01T00:00:00Z' },
-  { id: 'role-pastry', name: 'Pastry Chef', clearanceLevel: 'station', createdAt: '2026-01-01T00:00:00Z' },
   { id: 'role-dish', name: 'Dishwasher', clearanceLevel: 'general', createdAt: '2026-01-01T00:00:00Z' },
 ];
 
 const SEED_STATIONS: Station[] = [
-  { id: 'stn-gm', name: 'GM', locationId: 'loc-main', sortOrder: 1, isArchived: false },
+  { id: 'stn-gm', name: 'GM – Cold section + fryer', locationId: 'loc-main', sortOrder: 1, isArchived: false },
   { id: 'stn-grill', name: 'Grill', locationId: 'loc-main', sortOrder: 2, isArchived: false },
   { id: 'stn-expo', name: 'Expo', locationId: 'loc-main', sortOrder: 3, isArchived: false },
-  { id: 'stn-prep', name: 'Prep Kitchen', locationId: 'loc-main', sortOrder: 4, isArchived: false },
+  { id: 'stn-prep', name: 'Prep kitchen', locationId: 'loc-main', sortOrder: 4, isArchived: false },
   { id: 'stn-dish', name: 'Dishwasher', locationId: 'loc-main', sortOrder: 5, isArchived: false },
 ];
 
@@ -1424,7 +1423,14 @@ const GENERAL_CATEGORY_SLUGS = new Set(['onboarding', 'food-safety', 'cleaning']
  *  brick the page — the seed is the fallback. */
 function normaliseCategories(stored: Category[]): Category[] {
   let mutated = false;
-  const normalised = stored.map((c) => {
+  // Discard any empty/corrupted category entries (e.g. without a name)
+  const valid = (stored || []).filter(
+    (c) => Boolean(c && (c.nameEn?.trim() || c.nameEs?.trim())),
+  );
+  if (valid.length !== (stored || []).length) {
+    mutated = true;
+  }
+  const normalised = valid.map((c) => {
     let touched = false;
     const nextKind = c.kind ?? (GENERAL_CATEGORY_SLUGS.has(c.slug) ? 'general' : 'station-tied');
     if (nextKind !== c.kind) touched = true;
@@ -1452,6 +1458,9 @@ function normaliseCategories(stored: Category[]): Category[] {
     mutated = true;
     return { ...c, kind: nextKind, subcategories: cleanSubs };
   });
+  if (mutated) {
+    setStored('categories_v3', normalised);
+  }
   return mutated ? normalised : stored;
 }
 

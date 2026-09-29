@@ -44,20 +44,6 @@ export function AdminProcedureView({
   const [bannerDismissed, setBannerDismissed] = React.useState(false);
   const [isAttaching, setIsAttaching] = React.useState(false);
 
-  const isEs = locale === 'es';
-  const title = isEs ? proc.titleEs || proc.titleEn : proc.titleEn || proc.titleEs;
-  const categoryLabel = proc.category
-    ? isEs
-      ? proc.category.nameEs || proc.category.nameEn
-      : proc.category.nameEn || proc.category.nameEs
-    : '';
-  const statusLabel = proc.isArchived
-    ? t('statusArchived')
-    : proc.status === 'published'
-      ? t('statusPublished')
-      : t('statusDraft');
-  const subtitle = categoryLabel ? `${categoryLabel} · ${statusLabel}` : statusLabel;
-
   const transition = React.useCallback(
     async (change: { status?: ProcedureStatus; isArchived?: boolean }): Promise<void> => {
       setError(null);
@@ -149,11 +135,8 @@ export function AdminProcedureView({
   }, [proc.isArchived, proc.status, t, transition, handleDelete]);
 
   return (
-    <div className="space-y-6">
-      {/* Top chrome bar: back arrow + breadcrumb on the left, Edit + kebab on
-          the right. Spans the full page width so the actions pin to the
-          top-right corner of the AdminShell's main column, not the right
-          edge of the reading column below. */}
+    <div className="mx-auto w-full max-w-doc space-y-6">
+      {/* Top chrome bar: back arrow + breadcrumb on the left, Edit + kebab on the right */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           <Button
@@ -183,40 +166,25 @@ export function AdminProcedureView({
         </div>
       </div>
 
-      {/* Title block in the reading column so it lines up vertically with
-          the article body's own DocHead. */}
-      <div className="mx-auto max-w-doc space-y-3">
-        <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold leading-display tracking-tight text-[var(--color-ink)]">
-          {title || 'Untitled procedure'}
-        </h1>
-        {subtitle ? (
-          <p className="text-sm leading-body text-[var(--color-ink-2)]">{subtitle}</p>
-        ) : null}
-      </div>
-
       {error ? (
-        <div className="mx-auto max-w-doc">
-          <p
-            role="alert"
-            className="rounded-md border border-[var(--color-line)] bg-[var(--color-bad-tint)] px-4 py-2 text-sm font-semibold text-[var(--color-bad)]"
-          >
-            {error}
-          </p>
-        </div>
+        <p
+          role="alert"
+          className="rounded-md border border-[var(--color-line)] bg-[var(--color-bad-tint)] px-4 py-2 text-sm font-semibold text-[var(--color-bad)]"
+        >
+          {error}
+        </p>
       ) : null}
 
-      <div className="mx-auto max-w-doc">
-        <ProcedureArticleBody
-          proc={proc}
-          employee={employee}
-          effectiveRole="admin"
-          locale={locale}
-          onAttachQuiz={handleAttach}
-          isAttaching={isAttaching}
-          bannerDismissed={bannerDismissed}
-          onDismissBanner={() => setBannerDismissed(true)}
-        />
-      </div>
+      <ProcedureArticleBody
+        proc={proc}
+        employee={employee}
+        effectiveRole="admin"
+        locale={locale}
+        onAttachQuiz={handleAttach}
+        isAttaching={isAttaching}
+        bannerDismissed={bannerDismissed}
+        onDismissBanner={() => setBannerDismissed(true)}
+      />
     </div>
   );
 }

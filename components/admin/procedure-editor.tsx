@@ -31,8 +31,8 @@ import { StatusPill } from "@/components/ui/status-pill";
 import { PageHeader } from "@/components/admin/page-header";
 import { FormSection } from "@/components/admin/form-section";
 import { IconTile } from "@/components/ui/icon-tile";
-import { CategoryArt } from "@/components/admin/category-art";
-import { getCategoryIcon } from "@/lib/category-icons";
+
+import { getCategoryIcon, getProcedureGlyphForSubcategory } from "@/lib/category-icons";
 import { QuizEditor } from "@/components/admin/quiz-editor";
 import { type RecipeIngredientItem } from "@/components/admin/recipe-ingredients-editor";
 import { BlockRenderer } from "@/components/doc/block-renderer";
@@ -235,9 +235,17 @@ export function ProcedureEditor({
     const sub = cat.subcategories?.find((s) => s.slug === q.get("subcategory"));
     if (!sub) return;
     setSubcategoryId(sub.id);
-    const urlStation = (q.get("station") ?? "").trim() || null;
-    if (urlStation && cat.kind === "station-tied") {
-      setAudience((prev) => ({ ...prev, stationIds: [urlStation] }));
+    const urlStations = Array.from(
+      new Set(
+        q
+          .getAll("station")
+          .flatMap((s) => s.split(","))
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0),
+      ),
+    );
+    if (urlStations.length > 0 && cat.kind === "station-tied") {
+      setAudience((prev) => ({ ...prev, stationIds: urlStations }));
     }
   }, [categories, initial]);
 
@@ -466,19 +474,6 @@ export function ProcedureEditor({
         {/* ── Step 1 — what it is and what it says ────────────────────── */}
         {step === "details" ? (
           <>
-            <FormSection
-              id="proc-icon"
-              icon={LuImagePlus}
-              title={t("iconTitle")}
-              subtitle={t("iconSubtitle")}
-            >
-              <ProcedureIconPicker
-                categorySlug={category?.slug ?? null}
-                imageUrl={iconImageUrl}
-                onChange={(next) => edit(setIconImageUrl)(next)}
-              />
-            </FormSection>
-
             <FormSection
               id="proc-details"
               icon={LuFileText}
@@ -767,7 +762,7 @@ export function ProcedureEditor({
                   </div>
                   {category?.kind === "station-tied" ? (
                     audience.stationIds.length > 0 ? (
-                      <ul className="mt-2 flex flex-wrap gap-1.5">
+                      <ul className="mt-2 flex flex-wrap gap-2">
                         {audience.stationIds.map((id) => {
                           const station = stations.find((s) => s.id === id);
                           return (
@@ -888,6 +883,27 @@ export function ProcedureEditor({
                   <p className="mt-1 text-sm text-[var(--color-ink-2)]">
                     {t("protectionHint")}
                   </p>
+                </li>
+
+                {/* The picker card. The picker resolves the default glyph itself
+                    from PROCEDURE_ICON_MAP (slug -> IconType), shows the
+                    uploaded file's name when an image is set, and offers
+                    Upload / Replace / Remove. No "category" or "mark" wording
+                    shows up here. */}
+                <li className="rounded-[var(--radius-md)] border border-[var(--color-line)] bg-[var(--color-wash)] p-4 sm:col-span-2">
+                  <div className="flex items-center gap-2">
+                    <IconTile size="xs" icon={LuImagePlus} />
+                    <p className="text-sm font-semibold text-[var(--color-ink-3)]">
+                      {t("reviewCoverLabel")}
+                    </p>
+                  </div>
+                  <div className="mt-3">
+                    <ProcedureIconPicker
+                      subcategorySlug={subcategory?.slug ?? null}
+                      imageUrl={iconImageUrl}
+                      onChange={(next) => edit(setIconImageUrl)(next)}
+                    />
+                  </div>
                 </li>
               </ul>
             </section>
@@ -1439,23 +1455,34 @@ function initialsOf(name: string): string {
 }
 
 /**
- * The icon override picker. Shows a live preview (uploaded image if set,
- * otherwise the category's default SVG) and a file input that turns the
- * picked image into a session-scoped blob URL. The blob URL is replaced
- * by an R2 URL on save once the backend upload is wired.
+ * The icon override picker. The default glyph the tile shows comes from
+ * PROCEDURE_ICON_MAP via the parent's chosen subcategory slug (or PiFileText
+ * when none is picked). When the manager uploads an image, the tile swaps to
+ * the image and the bold label below it switches to the file's name, with
+ * Replace/Remove buttons to its right. Persistence to R2 is wired in a later
+ * change; until then the upload is a session-scoped blob URL.
  */
 function ProcedureIconPicker({
-  categorySlug,
+  subcategorySlug,
   imageUrl,
   onChange,
 }: {
-  categorySlug: string | null;
+  subcategorySlug: string | null;
   imageUrl: string | null;
-  onChange: (next: string | null) => void;
+  onChange: (next: string | null, fileName?: string | null) => void;
 }): React.ReactElement {
   const t = useTranslations("admin.library.editor");
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [error, setError] = React.useState<string | null>(null);
+  // File name is tracked locally: blob: URLs don't carry one, and the
+  // manager-readable label below the tile has to come from somewhere.
+  const [fileName, setFileName] = React.useState<string | null>(null);
+
+  // Look up the glyph for the chosen subcategory, or fall back to the neutral
+  // doc icon. The "uploading is on top" caveat in the comment above is what
+  // makes this safe to call from JSX without a useMemo — the lookup is a
+  // constant-time map hit.
+  const DefaultGlyph = getProcedureGlyphForSubcategory(subcategorySlug);
 
   function pick(): void {
     setError(null);
@@ -1473,45 +1500,38 @@ function ProcedureIconPicker({
     if (imageUrl && imageUrl.startsWith("blob:")) {
       URL.revokeObjectURL(imageUrl);
     }
-    onChange(URL.createObjectURL(file));
+    setFileName(file.name);
+    onChange(URL.createObjectURL(file), file.name);
   }
 
   function clear(): void {
     if (imageUrl && imageUrl.startsWith("blob:")) {
       URL.revokeObjectURL(imageUrl);
     }
-    onChange(null);
+    setFileName(null);
+    onChange(null, null);
     setError(null);
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-5">
+    <div className="flex flex-wrap items-center gap-4">
       {imageUrl ? (
-        <IconTile size="lg" image={{ src: imageUrl, alt: t("iconTitle") }} />
+        <IconTile size="lg" image={{ src: imageUrl, alt: fileName ?? t("iconLabelDefault") }} />
       ) : (
-        <IconTile
-          size="lg"
-          art={<CategoryArt slug={categorySlug} />}
-        />
+        <IconTile size="lg" icon={DefaultGlyph} />
       )}
 
       <div className="min-w-0 flex-1 space-y-1">
-        <p className="text-sm font-semibold text-[var(--color-ink)]">
-          {imageUrl
-            ? t("iconCustomImage")
-            : categorySlug
-              ? t("iconDefaultArt")
-              : t("iconNoCategory")}
+        <p className="text-sm font-bold leading-tight text-[var(--color-ink)]">
+          {imageUrl ? (fileName ?? t("iconLabelDefault")) : t("iconLabelDefault")}
         </p>
-        <p className="text-xs text-[var(--color-ink-3)]">
-          {t("iconPickerHint")}
-        </p>
+        <p className="text-xs text-[var(--color-ink-3)]">{t("iconPickerHint")}</p>
         {error ? (
           <p className="text-xs font-semibold text-[var(--color-bad)]">{error}</p>
         ) : null}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="ml-auto flex flex-wrap items-center gap-2">
         <Button
           type="button"
           variant="secondary"
@@ -1529,7 +1549,7 @@ function ProcedureIconPicker({
             icon={LuTrash2}
             onClick={clear}
           >
-            {t("iconUseDefault")}
+            {t("iconRemove")}
           </Button>
         ) : null}
       </div>
