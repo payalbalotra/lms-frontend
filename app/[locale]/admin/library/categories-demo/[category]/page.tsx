@@ -3,11 +3,11 @@ import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { setRequestLocale } from 'next-intl/server';
 import { listCategories, listLocations, ApiException, fetchMe } from '@/lib/api';
-import type { Category, Subcategory } from '@/lib/types';
-import { SubcategoryDetailClient } from './subcategory-detail-client';
+import type { Category } from '@/lib/types';
+import { CategoryDemoClient } from './category-demo-client';
 
 interface PageProps {
-  params: Promise<{ locale: string; slug: string; subSlug: string }>;
+  params: Promise<{ locale: string; category: string }>;
 }
 
 export const dynamic = 'force-dynamic';
@@ -22,17 +22,27 @@ async function readFirstManagedLocation(cookieHeader: string): Promise<string | 
 }
 
 /**
- * Dedicated subcategory page. The category page lists every subcategory
- * inline; clicking one lands here so the manager sees only that
- * subcategory's procedures (filtered by the `?station=` picked on the
- * categories page) with an "Add procedure" button and nothing else —
- * no add-station affordances, since the station is already determined
- * by the URL.
+ * Demo drilldown at `/[locale]/admin/library/categories-demo/[category]`.
+ *
+ * Mirrors the production `/categories/[slug]` page (list of subcategories
+ * with one expanded accordion) but adds the new station-tagging affordances:
+ *
+ *   - Aggregated stations strip at the top of the header recomputes live
+ *     from the procedures below.
+ *   - Each procedure row carries removable station chips and an
+ *     "Add station" popover picker.
+ *
+ * The drilldown only renders the add-station demo when the category has
+ * the demo fixture data (Recipes → Plating). For other categories the
+ * accordion still works — the row just shows a small note that the
+ * add-station demo is only wired for the Plating subcategory today.
+ *
+ * Lives under `categories-demo/...` and is hidden from the sidebar.
  */
-export default async function AdminSubcategoryDetailPage({
+export default async function CategoryDemoPage({
   params,
 }: PageProps): Promise<React.ReactElement> {
-  const { locale, slug, subSlug } = await params;
+  const { locale, category: slug } = await params;
   setRequestLocale(locale);
 
   const cookieStore = await cookies();
@@ -54,8 +64,6 @@ export default async function AdminSubcategoryDetailPage({
   }
 
   let category: Category | null = null;
-  let subcategory: Subcategory | null = null;
-
   if (locationId) {
     try {
       const result = await listCategories(
@@ -63,28 +71,15 @@ export default async function AdminSubcategoryDetailPage({
         { includeArchived: true },
         cookieHeader,
       );
-      const match = result.categories.find((c) => c.slug === slug);
-      if (match) {
-        const sub = (match.subcategories ?? []).find((s) => s.slug === subSlug);
-        if (sub) {
-          category = match;
-          subcategory = sub;
-        }
-      }
+      category = result.categories.find((c) => c.slug === slug) ?? null;
     } catch {
       // Fall through to notFound().
     }
   }
 
-  if (!category || !subcategory) {
+  if (!category) {
     notFound();
   }
 
-  return (
-    <SubcategoryDetailClient
-      category={category}
-      subcategory={subcategory}
-      locale={locale}
-    />
-  );
+  return <CategoryDemoClient category={category} locale={locale} />;
 }

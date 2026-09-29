@@ -172,4 +172,13 @@ export function getProcedureIcon(
   return PROCEDURE_FALLBACK;
 }
 
+/** Same glyph `getProcedureIcon` would return when no image is uploaded.
+ *  Exposed standalone so wizard surfaces that don't have a Procedure row yet
+ *  (new-procedure step before save) can still show the right per-subcategory
+ *  glyph. Slug must match PROCEDURE_ICON_MAP; otherwise PiFileText. */
+export function getProcedureGlyphForSubcategory(slug: string | null | undefined): IconType {
+  if (slug && PROCEDURE_ICON_MAP[slug]) return PROCEDURE_ICON_MAP[slug];
+  return PiFileText;
+}
+
 export const StationsTileIcon = PiSquaresFour;

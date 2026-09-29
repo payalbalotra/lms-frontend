@@ -15,7 +15,7 @@ import { StatusPill } from '@/components/ui/status-pill';
 import { cn } from '@/lib/utils';
 import { BilingualInput, type BilingualValue } from '@/components/ui/bilingual-input';
 import { useUpdateCategory } from '@/services/categories/hooks';
-import { LuChevronRight, LuPlus, LuSearch, LuX } from 'react-icons/lu';
+import { LuChevronRight, LuClock, LuFileText, LuPlus, LuSearch, LuX } from 'react-icons/lu';
 import { IconTile } from '@/components/ui/icon-tile';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/admin/page-header';
@@ -175,10 +175,24 @@ export function CategoryDetailClient({
 }: CategoryDetailClientProps): React.ReactElement {
   const router = useRouter();
   const searchParams = useSearchParams();
-  // The chosen station from the categories page travels via `?station=`. The
-  // wizard's Access step reads the same param and pre-fills its station
-  // selection (procedure-editor.tsx — handled in Step 6).
-  const stationFromUrl = searchParams.get('station');
+  // The chosen station(s) from the categories page travel via repeated
+  // `?station=` params (multi-select on the categories list). The wizard's
+  // Access step reads the same params and pre-fills its station selection
+  // (procedure-editor.tsx — handled in Step 6). We dedupe + intersect with
+  // the known stations list so a stale/unknown id never leaks through.
+  const stationIdsFromUrl = React.useMemo(() => {
+    const seen = new Set<string>();
+    return searchParams
+      .getAll('station')
+      .filter((id) => {
+        if (seen.has(id)) return false;
+        seen.add(id);
+        return STATION_CODE_BY_ID[id] !== undefined;
+      });
+  }, [searchParams]);
+  // Legacy alias kept for the single-id wizard URL — passes the first
+  // picked station (the wizard opens one station at a time).
+  const stationFromUrl = stationIdsFromUrl[0] ?? null;
   const isEs = locale === 'es';
   const [category, setCategory] = React.useState<Category | null>(initialCategory);
   const [isResolving, setIsResolving] = React.useState<boolean>(initialCategory === null);
@@ -217,19 +231,13 @@ export function CategoryDetailClient({
     };
   }, [initialCategory, slug]);
 
-  // State for the single expanded subcategory (accordion). One open at a time —
-  // multi-expand fragments the manager's focus and turns the panel into a list.
-  // `initialCategory` is nullable on first render (the server may not have seen
-  // a category created only in the client mock store); the lazy initializer
-  // short-circuits to `null` in that case and the first real expanded sub is
-  // decided after the client-side resolve lands.
-  const [expandedSubSlug, setExpandedSubSlug] = React.useState<string | null>(() => {
-    return initialCategory?.subcategories?.[0]?.slug ?? null;
-  });
-
-  const toggleExpand = (subSlug: string) => {
-    setExpandedSubSlug((prev) => (prev === subSlug ? null : subSlug));
-  };
+  // Subcategory rows now expand inline as accordions (same pattern as the
+  // categories-demo drilldown). The dedicated subcategory page
+  // (`/[locale]/admin/library/categories/[slug]/[subSlug]`) still exists for
+  // deep-links but is no longer the primary surface — the manager stays on
+  // this page to browse and edit. For station-tied categories the expanded
+  // panel also shows the station strip + per-row station chips; for general
+  // categories there is no station stuff (procedures apply to all stations).
 
   const updateMutation = useUpdateCategory();
   // `category` is `Category | null` while the client-side resolve is in flight
@@ -238,6 +246,13 @@ export function CategoryDetailClient({
   // before any code below touches `category.subcategories` / `category.id`.
   const subcategories = category?.subcategories ?? [];
   const totalProcedures = subcategories.length > 0 ? subcategories.length * 5 + 4 : 0;
+
+  // Default the open subcategory to the first one so the page never lands
+  // fully collapsed — the manager sees what the category contains without
+  // an extra click. Set to `null` to land collapsed.
+  const [openSubSlug, setOpenSubSlug] = React.useState<string | null>(
+    subcategories[0]?.slug ?? null,
+  );
 
   // Procedures the manager has linked into a subcategory via the "Add
   // procedure" modal. Keyed by subcategory slug. Linked procedures are
@@ -388,10 +403,10 @@ export function CategoryDetailClient({
       ) : (
         <div className="space-y-3">
           {subcategories.map((sub) => {
-            const isExpanded = expandedSubSlug === sub.slug;
             const SubIcon = getSubcategoryIcon(sub);
-            const panelId = `subcategory-panel-${sub.id || sub.slug}`;
             const headerId = `subcategory-header-${sub.id || sub.slug}`;
+            const panelId = `subcategory-panel-${sub.id || sub.slug}`;
+            const isOpen = openSubSlug === sub.slug;
 
             // Resolve the visible procedure list: linked procedures (added via
             // the Add Procedure modal) first, then the per-slug fixtures as
@@ -429,63 +444,70 @@ export function CategoryDetailClient({
             ];
 
             const procedureLabel = isEs ? 'procedimientos' : 'procedures';
+            const subName = isEs ? sub.nameEs : sub.nameEn;
 
             return (
               <div
                 key={sub.id || sub.slug}
                 className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] shadow-2xs"
               >
-                {/* Subcategory Row Header — div with role=button so the RowActions
-                    button can live inside without nesting <button> in <button>. */}
+                {/* Accordion header. Click toggles the expanded panel;
+                    right-side controls (kebab, etc.) stop propagation so
+                    they don't double as nav triggers. */}
                 <div
                   id={headerId}
                   role="button"
                   tabIndex={0}
-                  aria-expanded={isExpanded}
+                  aria-expanded={isOpen}
                   aria-controls={panelId}
-                  onClick={() => toggleExpand(sub.slug)}
+                  onClick={() =>
+                    setOpenSubSlug((prev) => (prev === sub.slug ? null : sub.slug))
+                  }
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
-                      toggleExpand(sub.slug);
+                      setOpenSubSlug((prev) =>
+                        prev === sub.slug ? null : sub.slug,
+                      );
                     }
                   }}
                   className={cn(
                     'flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-3 text-left transition-colors',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-ring)]',
-                    isExpanded ? 'bg-[var(--color-wash)]' : 'hover:bg-[var(--color-wash)]',
+                    isOpen ? 'bg-[var(--color-wash)]' : 'hover:bg-[var(--color-wash)]',
                   )}
                 >
                   <div className="flex min-w-0 flex-1 items-center gap-3">
                     <IconTile size="md" icon={SubIcon} />
-
                     <div className="min-w-0">
-                      <div className="flex items-baseline gap-2">
-                        <h2 className="truncate text-base font-semibold text-[var(--color-ink)]">
-                          {isEs ? sub.nameEs : sub.nameEn}
-                        </h2>
-                        {sub.nameEs !== sub.nameEn && (
-                          <span className="hidden truncate text-sm text-[var(--color-ink-3)] sm:inline">
-                            ({isEs ? sub.nameEn : sub.nameEs})
-                          </span>
-                        )}
-                      </div>
+                      <h2 className="truncate text-base font-semibold text-[var(--color-ink)]">
+                        {subName}
+                      </h2>
                       <p className="mt-0.5 truncate text-sm leading-meta text-[var(--color-ink-3)]">
                         {procedures.length} {procedureLabel}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex shrink-0 items-center gap-3 pl-3">
-                    {/* Every subcategory now applies at every station — the
-                        station lives on the procedure (set via the wizard's
-                        Access step), not on the subcategory. The pill is the
-                        label every other list uses, never an action target. */}
-                    {!isExpanded && (
-                      <StatusPill tone="neutral" className="hidden sm:inline-flex">
-                        {isEs ? 'Todas las estaciones' : 'All stations'}
-                      </StatusPill>
-                    )}
+                  <div
+                    className="flex shrink-0 items-center gap-3 pl-3"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setLinkProceduresSub(sub);
+                      }}
+                      className="shrink-0 font-semibold shadow-2xs"
+                    >
+                      <LuPlus className="text-base" />
+                      <span>
+                        {isEs ? 'Añadir procedimiento' : 'Add procedure'}
+                      </span>
+                    </Button>
+
                     <RowActions
                       items={[
                         {
@@ -507,34 +529,21 @@ export function CategoryDetailClient({
                       aria-hidden="true"
                       className={cn(
                         'size-4 shrink-0 text-[var(--color-ink-3)] transition-transform',
-                        isExpanded && 'rotate-90 text-[var(--color-ink-2)]',
+                        isOpen && 'rotate-90',
                       )}
                     />
                   </div>
                 </div>
 
-                {/* The procedures, as rows inside the card they belong to. Each
-                    was a bordered card of its own inside this one, with the same
-                    file icon and a clock on every row. */}
-                {isExpanded && (
-                  <div id={panelId} role="region" aria-labelledby={headerId} className="border-t border-[var(--color-line)]">
-                    <div className="flex items-center justify-between gap-3 px-4 py-2">
-                      <h3 className="text-sm font-semibold text-[var(--color-ink-2)]">
-                        {isEs ? 'Procedimientos' : 'Procedures'}
-                      </h3>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        icon={LuPlus}
-                        onClick={() => setLinkProceduresSub(sub)}
-                      >
-                        {isEs ? 'Añadir procedimiento' : 'Add procedure'}
-                      </Button>
-                    </div>
-
+                {isOpen && (
+                  <div
+                    id={panelId}
+                    role="region"
+                    aria-labelledby={headerId}
+                    className="border-t border-[var(--color-line-2)] bg-[var(--color-surface)]"
+                  >
                     {procedures.length === 0 ? (
-                      <div className="px-4 pb-4">
+                      <div className="p-6">
                         <EmptyState
                           compact
                           title={
@@ -545,69 +554,89 @@ export function CategoryDetailClient({
                         />
                       </div>
                     ) : (
-                      <ul className="divide-y divide-[var(--color-line)] border-t border-[var(--color-line)]">
-                        {procedures.map((proc) => (
-                          <li key={proc.id}>
-                            <div
-                              role="button"
-                              tabIndex={0}
-                              onClick={() => router.push(`/${locale}/admin/library/${proc.slug}`)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                  e.preventDefault();
-                                  router.push(`/${locale}/admin/library/${proc.slug}`);
-                                }
-                              }}
-                              className="flex cursor-pointer items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-[var(--color-wash)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-ring)]"
+                      <div>
+                        <ul className="divide-y divide-[var(--color-line)]">
+                          {procedures.map((proc) => (
+                            <li
+                              key={proc.id}
+                              className="transition-colors hover:bg-[var(--color-wash)]"
                             >
-                              <div className="min-w-0">
-                                <h4 className="truncate text-sm font-semibold text-[var(--color-ink)]">
-                                  {proc.titleEn}
-                                </h4>
-                                <p className="truncate text-sm text-[var(--color-ink-2)]">{proc.titleEs}</p>
-                              </div>
+                              <div className="flex items-center justify-between gap-4 px-4 py-3">
+                                <div
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={() =>
+                                    router.push(`/${locale}/admin/library/${proc.slug}`)
+                                  }
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                      e.preventDefault();
+                                      router.push(`/${locale}/admin/library/${proc.slug}`);
+                                    }
+                                  }}
+                                  className="min-w-0 flex-1 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-ring)] rounded-[var(--radius-sm)]"
+                                >
+                                  <h4 className="truncate text-sm font-semibold text-[var(--color-ink)]">
+                                    {isEs ? proc.titleEs : proc.titleEn}
+                                  </h4>
+                                  <p className="truncate text-sm text-[var(--color-ink-2)]">
+                                    {isEs ? proc.titleEn : proc.titleEs}
+                                  </p>
+                                </div>
 
-                              <div className="flex shrink-0 items-center gap-4 pl-2" onClick={(e) => e.stopPropagation()}>
-                                {category.kind === 'station-tied' && (
-                                  // For station-tied categories, every
-                                  // procedure in the subcategory is tied to
-                                  // a specific station — show the badge so
-                                  // the manager can scan which station each
-                                  // row belongs to. For general categories
-                                  // the procedures apply to all stations by
-                                  // definition; a station chip would be
-                                  // misleading, so it's dropped entirely.
-                                  // Procedure catalog station ids are mixed
-                                  // (live fixtures ship `st-gm`/`st-grill`,
-                                  // seed stories ship `GM`/`Grill`).
-                                  // `stationCode` collapses both onto the
-                                  // human-readable badge the rest of the
-                                  // page uses.
-                                  <StatusPill tone="neutral" className="hidden sm:inline-flex">
-                                    {stationCode(proc.station)}
-                                  </StatusPill>
-                                )}
-                                <span className="hidden text-sm leading-meta text-[var(--color-ink-3)] md:inline">
-                                  {isEs ? proc.updatedAgoEs : proc.updatedAgoEn}
-                                </span>
-                                <RowActions
-                                  items={[
-                                    {
-                                      label: isEs ? 'Ver procedimiento' : 'View procedure',
-                                      onSelect: () => router.push(`/${locale}/admin/library/${proc.slug}`),
-                                    },
-                                    {
-                                      label: isEs ? 'Editar' : 'Edit',
-                                      onSelect: () => router.push(`/${locale}/admin/library/${proc.slug}/edit`),
-                                    },
-                                  ]}
-                                  triggerLabel={proc.titleEn}
-                                />
+                                <div
+                                  className="flex shrink-0 items-center gap-4 pl-2"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {category.kind === 'station-tied' &&
+                                    proc.station !== 'General' && (
+                                      <span className="hidden sm:inline-flex min-w-[36px] items-center justify-center px-3 py-1 text-xs font-semibold rounded-md bg-[var(--color-panel-2)] text-[var(--color-ink)] border border-[var(--color-line-2)]">
+                                        {stationCode(proc.station)}
+                                      </span>
+                                    )}
+
+                                  <span className="hidden text-sm leading-meta text-[var(--color-ink-3)] sm:inline">
+                                    {isEs ? proc.updatedAgoEs : proc.updatedAgoEn}
+                                  </span>
+
+                                  <RowActions
+                                    items={[
+                                      {
+                                        label: isEs
+                                          ? 'Ver procedimiento'
+                                          : 'View procedure',
+                                        onSelect: () =>
+                                          router.push(
+                                            `/${locale}/admin/library/${proc.slug}`,
+                                          ),
+                                      },
+                                      {
+                                        label: isEs ? 'Editar' : 'Edit',
+                                        onSelect: () =>
+                                          router.push(
+                                            `/${locale}/admin/library/${proc.slug}/edit`,
+                                          ),
+                                      },
+                                    ]}
+                                    triggerLabel={proc.titleEn}
+                                  />
+                                </div>
                               </div>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
+                            </li>
+                          ))}
+                        </ul>
+
+                        <div className="flex items-center justify-between border-t border-[var(--color-line)] px-4 py-3 text-xs font-medium text-[var(--color-ink-3)]">
+                          <span>
+                            {procedures.length}{' '}
+                            {procedures.length === 1
+                              ? isEs
+                                ? 'procedimiento'
+                                : 'procedure'
+                              : procedureLabel}
+                          </span>
+                        </div>
+                      </div>
                     )}
                   </div>
                 )}
@@ -663,9 +692,10 @@ export function CategoryDetailClient({
               // `accessStations=st-gm,st-grill` round-trip that translated
               // between two id schemes.
               setLinkProceduresSub(null);
-              const stationQuery = stationFromUrl
-                ? `&station=${encodeURIComponent(stationFromUrl)}`
-                : '';
+              const stationQuery =
+                stationIdsFromUrl.length > 0
+                  ? `&${stationIdsFromUrl.map((id) => `station=${encodeURIComponent(id)}`).join('&')}`
+                  : '';
               router.push(
                 `/${locale}/admin/library/new?category=${category.slug}&subcategory=${linkProceduresSub.slug}&accessLocation=loc-main${stationQuery}`,
               );

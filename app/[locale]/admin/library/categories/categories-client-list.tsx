@@ -7,7 +7,7 @@ import { getCategoryIcon } from '@/lib/category-icons';
 import type { Category } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { CategoryActions } from './category-actions';
-import { LuArrowRight, LuFolders } from 'react-icons/lu';
+import { LuArrowRight, LuCheck, LuFolders } from 'react-icons/lu';
 import { PiSquaresFour } from 'react-icons/pi';
 import { StatusPill } from '@/components/ui/status-pill';
 import { IconTile } from '@/components/ui/icon-tile';
@@ -41,40 +41,75 @@ export function CategoriesClientList({
   );
   const router = useRouter();
   const searchParams = useSearchParams();
-  const chosenStation = searchParams.get('station');
+  // Multi-select: the URL carries one `?station=` param per picked
+  // station (`?station=stn-gm&station=stn-grill`). `getAll` returns
+  // every value the URL defines for that key. We intersect with the
+  // known STATIONS list so a stale/unknown id never leaks through to
+  // the downstream filter logic.
+  const chosenStationIds = React.useMemo(() => {
+    const ids = searchParams.getAll('station');
+    const known = new Set(STATIONS.map((s) => s.id));
+    return ids.filter((id) => known.has(id));
+  }, [searchParams]);
   const isEs = locale === 'es';
 
-  const active = categories.filter((c) => !c.isArchived);
-  const archived = categories.filter((c) => c.isArchived);
+  const validCategories = categories.filter(
+    (c) => Boolean(c && (c.nameEn?.trim() || c.nameEs?.trim())),
+  );
+  const active = validCategories.filter((c) => !c.isArchived);
+  const archived = validCategories.filter((c) => c.isArchived);
 
   // The categories page renders two views off the same route:
-  //   - no `?station=` → 3 general category cards + 1 'Stations' card
-  //   - `?station=stn-gm` → two-panel (stations left + station-tied
-  //     categories with subcategories inline right).
+  //   - no `?station=` → general category cards + 1 'Stations' card
+  //   - at least one `?station=` → two-panel (stations left + station-
+  //     tied categories with subcategories inline right).
   // The 4 station-tied categories only appear in the two-panel view; they
-  // are not browseable from the main card grid because picking a station
-  // is mandatory before their subcategories make sense.
+  // are not browseable from the main card grid because picking at least
+  // one station is required before their subcategories make sense.
   const generalCategories = active.filter((c) => c.kind === 'general');
   const stationTiedCategories = active.filter((c) => c.kind === 'station-tied');
 
-  const activeStation = chosenStation
-    ? STATIONS.find((s) => s.id === chosenStation) ?? null
-    : null;
-  const showingTwoPanel = activeStation !== null;
+  const activeStations = chosenStationIds
+    .map((id) => STATIONS.find((s) => s.id === id))
+    .filter((s): s is { id: string; name: string; description: string } => s !== undefined);
+  const showingTwoPanel = activeStations.length > 0;
+
+  /** Build a `?station=…&station=…` query string from an id list, or empty
+   *  string when none — preserves order, dedupes, drops unknowns. */
+  function stationsQuery(ids: ReadonlyArray<string>): string {
+    const seen = new Set<string>();
+    const known = new Set(STATIONS.map((s) => s.id));
+    const clean = ids.filter((id) => {
+      if (seen.has(id) || !known.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+    if (clean.length === 0) return '';
+    return `?${clean.map((id) => `station=${encodeURIComponent(id)}`).join('&')}`;
+  }
 
   // Click the Stations card on the main view → land in the two-panel
   // view with the first station pre-picked so the right side is
   // immediately useful instead of showing an empty state.
   function openStationsView(): void {
     const params = new URLSearchParams(window.location.search);
-    params.set('station', STATIONS[0].id);
+    params.append('station', STATIONS[0].id);
     router.push(`?${params.toString()}`);
   }
 
-  function pickStation(stationId: string): void {
-    const params = new URLSearchParams(window.location.search);
-    params.set('station', stationId);
-    router.push(`?${params.toString()}`);
+  /** Toggle a station in/out of the picked set. Empty set returns the
+   *  manager to the single-panel main view implicitly via the disabled
+   *  state, so we never produce a `?station=` URL with zero values. */
+  function toggleStation(stationId: string): void {
+    const next = chosenStationIds.includes(stationId)
+      ? chosenStationIds.filter((id) => id !== stationId)
+      : [...chosenStationIds, stationId];
+    const otherParams = new URLSearchParams(window.location.search);
+    otherParams.delete('station');
+    const rest = otherParams.toString();
+    const stationQs = stationsQuery(next);
+    const qs = [rest, stationQs.replace(/^\?/, '')].filter(Boolean).join('&');
+    router.push(qs ? `?${qs}` : window.location.pathname);
   }
 
   function backToMain(): void {
@@ -91,9 +126,8 @@ export function CategoriesClientList({
           isEs={isEs}
           locale={locale}
           stationTiedCategories={stationTiedCategories}
-          activeStationId={activeStation?.id ?? STATIONS[0].id}
-          activeStation={activeStation}
-          onPickStation={pickStation}
+          activeStations={activeStations}
+          onToggleStation={toggleStation}
           onBack={backToMain}
         />
       ) : (
@@ -215,27 +249,27 @@ function StationsCard({
  *  duplicated here). The right pane uses the same accordion pattern as
  *  `category-detail-client.tsx`: each row shows icon + name + subcategory
  *  count + chevron, and expands to list subcategories as clickable pills.
- *  The section is disabled (greyed out, non-interactive) until a station
- *  is picked — the manager cannot browse subcategories for a station
- *  they have not chosen yet. */
+ *  The section is disabled (greyed out, non-interactive) until at least
+ *  one station is picked — the manager cannot browse subcategories for
+ *  stations they have not chosen yet. */
 function TwoPanelView({
   isEs,
   locale,
   stationTiedCategories,
-  activeStationId,
-  activeStation,
-  onPickStation,
+  activeStations,
+  onToggleStation,
   onBack,
 }: {
   isEs: boolean;
   locale: string;
   stationTiedCategories: Category[];
-  activeStationId: string;
-  activeStation: { id: string; name: string } | null;
-  onPickStation: (id: string) => void;
+  activeStations: ReadonlyArray<{ id: string; name: string; description: string }>;
+  onToggleStation: (id: string) => void;
   onBack: () => void;
 }): React.ReactElement {
   const sectionEmpty = isEs ? 'Sin categorías' : 'No categories found';
+  const stationNames = activeStations.map((s) => s.name).join(', ');
+  const activeStationIds = activeStations.map((s) => s.id);
   return (
     <section className="space-y-3" aria-labelledby="stations-view-heading">
       <nav
@@ -258,36 +292,36 @@ function TwoPanelView({
       <div className="flex flex-col gap-4">
         <StationsPanel
           isEs={isEs}
-          activeStationId={activeStationId}
-          onPickStation={onPickStation}
+          activeStationIds={activeStationIds}
+          onToggleStation={onToggleStation}
         />
 
         <CategorySection
           title={
-            activeStation
+            activeStations.length > 0
               ? isEs
-                ? `Por estación (${activeStation.name})`
-                : `By station (${activeStation.name})`
+                ? `Por estación (${stationNames})`
+                : `By station (${stationNames})`
               : isEs
                 ? 'Por estación'
                 : 'By station'
           }
           caption={
-            activeStation
+            activeStations.length > 0
               ? isEs
                 ? 'Elige una categoría para ver sus subcategorías.'
                 : 'Pick a category to see its subcategories.'
               : isEs
-                ? 'Selecciona una estación para habilitar.'
-                : 'Pick a station to enable.'
+                ? 'Selecciona al menos una estación para habilitar.'
+                : 'Pick at least one station to enable.'
           }
           categories={stationTiedCategories}
-          enabled={Boolean(activeStation)}
+          enabled={activeStations.length > 0}
           emptyHeading={sectionEmpty}
           locale={locale}
-          stationId={activeStationId}
+          stationIds={activeStationIds}
           initiallyExpandedId={
-            activeStation
+            activeStations.length > 0
               ? stationTiedCategories[0]?.id ?? null
               : null
           }
@@ -300,7 +334,7 @@ function TwoPanelView({
 /** One of the two stacked sections in the two-panel view. Each section
  *  owns its own accordion state (one row open at a time) and is either
  *  enabled (interactive) or disabled (greyed out, no clicks). Subcategory
- *  pills forward the picked station id when present so the procedures
+ *  pills forward the picked station ids when present so the procedures
  *  page can scope itself. */
 function CategorySection({
   title,
@@ -309,7 +343,7 @@ function CategorySection({
   enabled,
   emptyHeading,
   locale,
-  stationId,
+  stationIds,
   initiallyExpandedId,
 }: {
   title: string;
@@ -318,7 +352,7 @@ function CategorySection({
   enabled: boolean;
   emptyHeading: string;
   locale: string;
-  stationId: string | null;
+  stationIds: ReadonlyArray<string>;
   initiallyExpandedId: string | null;
 }): React.ReactElement {
   const isEs = locale === 'es';
@@ -359,7 +393,7 @@ function CategorySection({
                 onToggle={() =>
                   setExpandedId((prev) => (prev === c.id ? null : c.id))
                 }
-                stationId={stationId}
+                stationIds={stationIds}
               />
             ))}
           </ul>
@@ -382,13 +416,13 @@ function CategoryAccordionRow({
   locale,
   isExpanded,
   onToggle,
-  stationId,
+  stationIds,
 }: {
   category: Category;
   locale: string;
   isExpanded: boolean;
   onToggle: () => void;
-  stationId: string | null;
+  stationIds: ReadonlyArray<string>;
 }): React.ReactElement {
   const router = useRouter();
   const isEs = locale === 'es';
@@ -396,6 +430,15 @@ function CategoryAccordionRow({
   const subcategories = category.subcategories ?? [];
   const headerId = `cat-row-${category.id}`;
   const panelId = `cat-panel-${category.id}`;
+
+  // Forward every picked station so the drilldown / subcategory pages
+  // scope their procedure lists by the same selection. Each `station=`
+  // appears once per id, matching the multi-select convention on the
+  // categories page.
+  const stationQuery =
+    stationIds.length > 0
+      ? `?${stationIds.map((id) => `station=${encodeURIComponent(id)}`).join('&')}`
+      : '';
 
   return (
     <li>
@@ -449,12 +492,9 @@ function CategoryAccordionRow({
           aria-labelledby={headerId}
           className="px-3 pb-3 pt-1"
         >
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-2">
             {subcategories.map((s) => {
               const sName = isEs ? s.nameEs : s.nameEn;
-              const stationQuery = stationId
-                ? `?station=${encodeURIComponent(stationId)}`
-                : '';
               return (
                 <button
                   key={s.id}
@@ -479,19 +519,19 @@ function CategoryAccordionRow({
 }
 
 /** Stations row at the top of the two-panel view — rendered as a
- *  horizontal strip of card buttons. Picking a station rewrites
- *  `?station=` so the URL stays the source of truth and the subcategory
- *  pills below forward the chosen id. Each card uses the same chrome as
- *  a category card so the row reads as a peer to the cards on the main
- *  view. */
+ *  horizontal strip of checkbox cards. Multi-select: each click toggles
+ *  that station in/out of the URL's `?station=` set (one param per id).
+ *  Picked stations wear the brand-tint card with a filled check; idle
+ *  stations are inert cards. The subcategory pills below forward every
+ *  picked id so the drilldown scopes itself to the same selection. */
 function StationsPanel({
   isEs,
-  activeStationId,
-  onPickStation,
+  activeStationIds,
+  onToggleStation,
 }: {
   isEs: boolean;
-  activeStationId: string;
-  onPickStation: (id: string) => void;
+  activeStationIds: ReadonlyArray<string>;
+  onToggleStation: (id: string) => void;
 }): React.ReactElement {
   return (
     <nav aria-label={isEs ? 'Estaciones' : 'Stations'}>
@@ -500,15 +540,15 @@ function StationsPanel({
       </p>
       <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
         {STATIONS.map((s) => {
-          const isActive = s.id === activeStationId;
+          const isActive = activeStationIds.includes(s.id);
           return (
             <li key={s.id}>
               <button
                 type="button"
-                onClick={() => onPickStation(s.id)}
+                onClick={() => onToggleStation(s.id)}
                 aria-pressed={isActive}
                 className={cn(
-                  'group flex w-full flex-col gap-0.5 rounded-[var(--radius-md)] border px-3 py-2 text-left transition-colors',
+                  'group flex w-full items-center gap-2 rounded-[var(--radius-md)] border px-3 py-2 text-left transition-colors',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-ring)]',
                   isActive
                     ? 'border-[var(--color-ring)] bg-[var(--color-brand-tint)]'
@@ -516,17 +556,30 @@ function StationsPanel({
                 )}
               >
                 <span
+                  aria-hidden="true"
                   className={cn(
-                    'block text-sm',
+                    'inline-flex size-4 shrink-0 items-center justify-center rounded border transition-colors',
                     isActive
-                      ? 'font-semibold text-[var(--color-brand-700)]'
-                      : 'font-medium text-[var(--color-ink)]',
+                      ? 'border-[var(--color-brand-600)] bg-[var(--color-brand-600)] text-white'
+                      : 'border-[var(--color-line-2)] bg-[var(--color-surface)] text-transparent',
                   )}
                 >
-                  {s.name}
+                  <LuCheck className="text-[10px]" />
                 </span>
-                <span className="block truncate text-xs text-[var(--color-ink-3)]">
-                  {s.description}
+                <span className="min-w-0 flex-1">
+                  <span
+                    className={cn(
+                      'block text-sm',
+                      isActive
+                        ? 'font-semibold text-[var(--color-brand-700)]'
+                        : 'font-medium text-[var(--color-ink)]',
+                    )}
+                  >
+                    {s.name}
+                  </span>
+                  <span className="block truncate text-xs text-[var(--color-ink-3)]">
+                    {s.description}
+                  </span>
                 </span>
               </button>
             </li>
