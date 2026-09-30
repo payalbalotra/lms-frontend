@@ -200,7 +200,13 @@ export function ProcedureEditor({
   const [previewOpen, setPreviewOpen] = React.useState(false);
   const [dirty, setDirty] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [stationsError, setStationsError] = React.useState<boolean>(false);
   const [pending, startTransition] = React.useTransition();
+  // Ref to the stations section in the Access step. Publish-time
+  // validation scrolls here (not to top) so the manager sees the inline
+  // error next to the picker they need to touch, instead of having to
+  // scroll up from the sticky footer.
+  const stationsSectionRef = React.useRef<HTMLElement | null>(null);
   /* The four steps of the new-procedure wizard, in build order. The category
      and subcategory selects used to sit at the top of step 1 — they were
      lifted out so the writer meets "what is this and what does it say" before
@@ -220,10 +226,12 @@ export function ProcedureEditor({
   const isLastStep = stepIdx === STEPS.length - 1;
 
   // Opened from a category page ("Add procedure" on Cleaning → Dishwashing),
-  // the URL names where it goes: ?category=<slug>&subcategory=<slug>&station=<id>.
-  // The `station` param is read for station-tied categories only — general
-  // categories ignore it, so general procedures never pick up an unintended
-  // station scope from a stale link.
+  // the URL names where it goes: ?category=<slug>&subcategory=<slug>. Stations
+  // are no longer pre-filled from the categories page — the wizard's Access
+  // step is where the manager attaches them. The kind of the chosen category
+  // decides the default: general procedures broadcast to every station
+  // (all stationIds pre-selected), station-tied ones start blank so the
+  // manager picks.
   const prefilled = React.useRef(false);
   React.useEffect(() => {
     if (prefilled.current || initial || !categories.length) return;
@@ -233,20 +241,7 @@ export function ProcedureEditor({
     if (!cat) return;
     setCategoryId(cat.id);
     const sub = cat.subcategories?.find((s) => s.slug === q.get("subcategory"));
-    if (!sub) return;
-    setSubcategoryId(sub.id);
-    const urlStations = Array.from(
-      new Set(
-        q
-          .getAll("station")
-          .flatMap((s) => s.split(","))
-          .map((s) => s.trim())
-          .filter((s) => s.length > 0),
-      ),
-    );
-    if (urlStations.length > 0 && cat.kind === "station-tied") {
-      setAudience((prev) => ({ ...prev, stationIds: urlStations }));
-    }
+    if (sub) setSubcategoryId(sub.id);
   }, [categories, initial]);
 
   // Every edit marks the page dirty; one wrapper instead of a line per field.
@@ -280,6 +275,22 @@ export function ProcedureEditor({
   const subcategory = category?.subcategories?.find(
     (s) => s.id === subcategoryId,
   );
+
+  // Whenever the chosen category changes (or stations first finish
+  // loading), default the station picker to match its kind: general
+  // → every station pre-selected (broadcast), station-tied → empty
+  // (the manager picks). Skipped on edit (the saved audience already
+  // exists) so we never clobber a real selection with a default.
+  const lastDefaultedFor = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    if (initial || !category || stations.length === 0) return;
+    if (lastDefaultedFor.current === category.id) return;
+    lastDefaultedFor.current = category.id;
+    setAudience((prev) => ({
+      ...prev,
+      stationIds: category.kind === "general" ? stations.map((s) => s.id) : [],
+    }));
+  }, [category?.id, stations.length, initial]);
   const isRecipe = Boolean(
     category && /recipe/i.test(`${category.slug} ${category.nameEn}`),
   );
@@ -363,6 +374,27 @@ export function ProcedureEditor({
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
+    // Publish requires at least one station — the categories page renders
+    // the chip for the one the manager attached, but it's set here in the
+    // Access step. Drafts skip the rule: a half-finished procedure can
+    // still save without a station picked yet. The error is surfaced
+    // inline inside the stations block (and the page scrolls there)
+    // rather than at the top, since the manager clicked Publish from the
+    // sticky footer and the top banner would otherwise be off-screen.
+    if (status === "published" && audience.stationIds.length === 0) {
+      setStep("access");
+      setError(null);
+      setStationsError(true);
+      // Wait a frame so the Access step has rendered before scrolling.
+      requestAnimationFrame(() => {
+        stationsSectionRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      });
+      return;
+    }
+    setStationsError(false);
     startTransition(async () => {
       try {
         // The quiz lives in its own table: keep its row, make one, or drop it.
@@ -576,23 +608,36 @@ export function ProcedureEditor({
               />
             </FormSection>
 
-            {/* Block 2 — Stations. A standalone row so the manager sees
-                where the procedure will land before scrolling into the
-                employee list. General categories hide it: "All stations"
-                is the implicit default and a picker there would invite
-                confusion. The category — not the subcategory — owns the
-                `kind` flag now: subcategories are station-agnostic. */}
-            {category?.kind === "station-tied" ? (
+            {/* Block 2 — Stations. Always shown: general procedures broadcast to
+                every station (chips come pre-selected), station-specific
+                ones start blank so the manager picks. The picker is the
+                place where exactly-one-station-attached is enforced at
+                publish time, so it has to be visible regardless of kind.
+                When publish-time validation fails, the section swaps to a
+                red border and renders an inline error here (not just in
+                the top banner) so the manager sees the problem next to
+                the control they need to touch. */}
+            {category ? (
               <section
+                ref={stationsSectionRef}
                 id="proc-stations"
-                className="rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-6"
+                aria-invalid={stationsError}
+                className={cn(
+                  "rounded-[var(--radius-lg)] border bg-[var(--color-surface)] p-6 transition-colors",
+                  stationsError
+                    ? "border-[var(--color-bad)] ring-2 ring-[var(--color-bad-tint)]"
+                    : "border-[var(--color-line)]",
+                )}
               >
                 <div className="flex items-center gap-2">
                   <IconTile size="xs" icon={LuLayoutGrid} />
                   <h3 className="text-sm font-semibold text-[var(--color-ink)]">
                     {t("stationsRowTitle")}
                   </h3>
-                  <StatusPill tone="info">
+                  <StatusPill
+                    tone={stationsError ? "bad" : "info"}
+                    withDot={stationsError}
+                  >
                     {audience.stationIds.length === 0
                       ? t("stationsRowNone")
                       : t("stationsRowCount", {
@@ -600,14 +645,30 @@ export function ProcedureEditor({
                       })}
                   </StatusPill>
                 </div>
+                <p className="mt-2 text-xs leading-meta text-[var(--color-ink-3)]">
+                  {category.kind === "general"
+                    ? t("stationsHintGeneral")
+                    : t("stationsHintStationSpecific")}
+                </p>
+                {stationsError ? (
+                  <p
+                    role="alert"
+                    className="mt-3 rounded-[var(--radius-md)] bg-[var(--color-bad-tint)] px-3 py-2 text-xs font-semibold text-[var(--color-bad)]"
+                  >
+                    {t("stationsRequired")}
+                  </p>
+                ) : null}
                 <div className="mt-3">
                   <MultiSelectChips
                     id="who-stations"
                     label={t("stationsAddTitle")}
                     value={audience.stationIds}
-                    onChange={(v) =>
-                      edit(setAudience)({ ...audience, stationIds: v })
-                    }
+                    onChange={(v) => {
+                      // Picking any station clears the publish-time error
+                      // — the manager has acted on the inline hint.
+                      if (v.length > 0) setStationsError(false);
+                      edit(setAudience)({ ...audience, stationIds: v });
+                    }}
                     options={stations.map((s) => ({
                       value: s.id,
                       label: s.name,

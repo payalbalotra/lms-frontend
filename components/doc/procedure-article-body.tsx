@@ -12,6 +12,7 @@ import {
 } from '@/components/doc';
 import { DocBehaviour } from '@/components/doc/doc-behaviour';
 import { BlockRenderer, findAllergen } from '@/components/doc/block-renderer';
+import { CookModeLauncher } from '@/components/doc/cook-mode-launcher';
 import { QuizAttachBanner, QuizReader } from '@/components/doc/quiz-reader';
 import { Watermark } from '@/components/doc/watermark';
 import { getQuizById } from '@/lib/api';
@@ -27,6 +28,7 @@ interface ProcedureArticleBodyProps {
   isAttaching?: boolean;
   bannerDismissed?: boolean;
   onDismissBanner?: () => void;
+  docBar?: React.ReactNode;
 }
 
 function splitCover(blocks: ProcedureBlock[]): {
@@ -62,6 +64,7 @@ export function ProcedureArticleBody({
   isAttaching,
   bannerDismissed,
   onDismissBanner,
+  docBar,
 }: ProcedureArticleBodyProps): React.ReactElement {
   const t = useTranslations('employee.doc');
   const labels = {
@@ -156,6 +159,7 @@ export function ProcedureArticleBody({
   return (
     <article className="doc">
       <DocBehaviour />
+      {docBar}
       {proc.protection === 'confidential' || proc.protection === 'master' ? (
         <Watermark name={employee.name} locale={locale} />
       ) : null}
@@ -176,6 +180,7 @@ export function ProcedureArticleBody({
           facts; they stay on the admin's view. */}
       <DocHead
         icon={isAdmin ? iconName : undefined}
+        iconImageUrl={proc.iconImageUrl}
         category={
           isAdmin
             ? categoryLabel
@@ -204,7 +209,39 @@ export function ProcedureArticleBody({
         </p>
       ) : null}
 
-      <BlockRenderer blocks={rest} locale={isEs ? 'es' : 'en'} hoistedAllergenId={hoisted?.id} />
+      {/* One cook-mode launcher per recipe block. The launcher owns the block's
+       *  full body (allergen banner, Yield section, Method list with side
+       *  thumbnails, modal) and exposes a CTA inside the Yield section. We
+       *  collect the consumed recipe ids so `<BlockRenderer>` can skip them
+       *  below — otherwise the same recipe body would render twice. */}
+      {(() => {
+        const recipeBlocks = (rest ?? []).filter(
+          (b): b is Extract<ProcedureBlock, { kind: 'recipe' }> => b.kind === 'recipe',
+        );
+        return recipeBlocks.map((b) => (
+          <CookModeLauncher
+            key={b.id ?? 'recipe'}
+            block={b}
+            procedureId={proc.id}
+            procedureTitle={title || 'Recipe'}
+            locale={isEs ? 'es' : 'en'}
+            skipAllergen={Boolean(allergen && (hoisted?.id === b.id || !hoisted?.id))}
+          />
+        ));
+      })()}
+
+      <BlockRenderer
+        blocks={rest}
+        locale={isEs ? 'es' : 'en'}
+        hoistedAllergenId={hoisted?.id}
+        consumedRecipeIds={
+          new Set(
+            (rest ?? [])
+              .filter((b): b is Extract<ProcedureBlock, { kind: 'recipe' }> => b.kind === 'recipe')
+              .map((b) => b.id ?? ''),
+          )
+        }
+      />
 
       {/* Quiz: visible when manually attached OR when the procedure is part of
        *  training. Admin-only banner when authored but neither flag is on. */}

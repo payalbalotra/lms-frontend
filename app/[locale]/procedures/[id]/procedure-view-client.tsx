@@ -13,13 +13,16 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { deleteProcedure, getProcedureBySlug, getQuizById, logRestrictedView, updateQuiz } from '@/lib/api';
-import type { Employee, Procedure } from '@/lib/types';
+import { deleteProcedure, getProcedureBySlug, getQuizById, logRestrictedView, logout, updateQuiz } from '@/lib/api';
+import type { Employee, Procedure, ProcedureBlock } from '@/lib/types';
 import { withAs, type ViewAs } from '@/lib/view-as';
 import { ProcedureArticleBody } from '@/components/doc/procedure-article-body';
 import { TabBar } from '@/components/employee/tab-bar';
+import { CookBarAction } from '@/components/doc/cook-bar-action';
+import { DocBar } from '@/components/doc';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { recordRecentView } from '@/lib/recent-views';
-import { LuArrowLeft } from 'react-icons/lu';
+import { LuArrowLeft, LuArrowUpRight, LuCheck, LuCopy, LuEllipsisVertical, LuLogOut } from 'react-icons/lu';
 
 interface ProcedureViewClientProps {
   slugOrId: string;
@@ -189,6 +192,21 @@ export function ProcedureViewClient({
   // branch keeps --bg because the phone shell already runs edge-to-edge
   // white and the doc fills the viewport.
   const isAdmin = effectiveRole === 'admin';
+
+  // The cook-mode CTA in the doc-bar belongs to the page's first recipe block.
+  // The body is rendered by `<CookModeLauncher>` further down, but the
+  // doc-bar lives here (page chrome), so it needs the block's id to read the
+  // same localStorage slot the launcher writes to. Multiple recipes in one
+  // procedure would each need their own slot — for now the first one owns
+  // the doc-bar CTA; the rest show as side-thumbs only.
+  const firstRecipeBlock = React.useMemo<
+    Extract<ProcedureBlock, { kind: 'recipe' }> | null
+  >(() => {
+    if (!proc) return null;
+    const blocks = proc.bodyEn.blocks.length ? proc.bodyEn.blocks : proc.bodyEs.blocks;
+    const found = blocks.find((b): b is Extract<ProcedureBlock, { kind: 'recipe' }> => b.kind === 'recipe');
+    return found ?? null;
+  }, [proc]);
   const wrapperClass = isAdmin
     ? 'min-h-screen bg-[var(--color-bg-admin)]'
     : 'min-h-screen bg-[var(--color-bg)] pb-20';
@@ -238,34 +256,43 @@ export function ProcedureViewClient({
     );
   }
 
+  const [menuOpen, setMenuOpen] = React.useState(false);
+  const [copied, setCopied] = React.useState(false);
+  const menuRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!menuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [menuOpen]);
+
+  const handleCopyLink = () => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await logout();
+    window.location.href = `/${locale}/login`;
+  };
+
   return (
     <div className={wrapperClass}>
-      {/*
-       * Inside the AdminShell the shell's own sticky top bar already serves
-       * as the surrounding chrome, so we render an inline "back" link above
-       * the article — the same shape other admin detail pages use to climb
-       * back out to the list. Employees get the back control in the top bar
-       * (see EmployeeTopBarBackButton), so they need no extra chrome here:
-       * the article body shows its own heading once.
-       */}
-      {isAdmin ? (
-        <div className="flex items-center justify-between gap-3 px-4 pt-6 sm:px-6">
-          <Link
-            href={backHref}
-            onClick={(e) => {
-              if (hasReferrer) {
-                e.preventDefault();
-                onBack();
-              }
-            }}
-            className="inline-flex min-h-tap-admin items-center gap-2 text-sm font-semibold text-[var(--color-ink-2)] hover:text-[var(--color-ink)]"
-          >
-            <LuArrowLeft aria-hidden="true" />
-            {labels.back}
-          </Link>
-        </div>
-      ) : null}
-
       <ProcedureArticleBody
         proc={proc}
         employee={employee}
@@ -275,6 +302,101 @@ export function ProcedureViewClient({
         isAttaching={isAttaching}
         bannerDismissed={bannerDismissed}
         onDismissBanner={() => setBannerDismissed(true)}
+        docBar={
+          proc ? (
+            <DocBar
+              backHref={backHref}
+              backLabel={labels.back}
+              onBack={onBack}
+              title={proc.titleEn || proc.titleEs || ''}
+              category={proc.category?.nameEn || proc.category?.nameEs || ''}
+              rightSlot={
+                <div className="flex items-center gap-2">
+                  {firstRecipeBlock ? (
+                    <CookBarAction
+                      procedureId={proc.id}
+                      recipeBlockId={firstRecipeBlock.id ?? `recipe-${firstRecipeBlock.factors?.length ?? 0}`}
+                      locale={locale === 'es' ? 'es' : 'en'}
+                    />
+                  ) : null}
+                  <ThemeToggle
+                    labels={{
+                      toDark: locale === 'es' ? 'Modo oscuro' : 'Dark mode',
+                      toLight: locale === 'es' ? 'Modo claro' : 'Light mode',
+                    }}
+                  />
+                  <div className="relative" ref={menuRef}>
+                    <button
+                      type="button"
+                      onClick={() => setMenuOpen((o) => !o)}
+                      className="btn btn-ghost btn-icon btn-lg"
+                      aria-label="More options"
+                      aria-haspopup="menu"
+                      aria-expanded={menuOpen}
+                    >
+                      <LuEllipsisVertical aria-hidden="true" className="i" />
+                    </button>
+                    {menuOpen && (
+                      <div
+                        role="menu"
+                        className="absolute right-0 top-full mt-2 w-64 rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] p-2 shadow-e3 z-50 animate-in fade-in zoom-in-95 text-left"
+                      >
+                        <div className="px-3 py-2 border-b border-[var(--color-line)] mb-1">
+                          <p className="text-xs text-[var(--color-ink-3)] font-medium">
+                            {locale === 'es' ? 'Sesión iniciada como' : 'Signed in as'}
+                          </p>
+                          <p className="text-sm font-semibold text-[var(--color-ink)] truncate">
+                            {employee.name}
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={handleCopyLink}
+                          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-[var(--color-ink-2)] hover:bg-[var(--color-panel)] hover:text-[var(--color-ink)] transition-colors"
+                        >
+                          {copied ? (
+                            <>
+                              <LuCheck aria-hidden="true" className="text-base text-[var(--color-good)]" />
+                              <span>{locale === 'es' ? '¡Enlace copiado!' : 'Link copied!'}</span>
+                            </>
+                          ) : (
+                            <>
+                              <LuCopy aria-hidden="true" className="text-base" />
+                              <span>{locale === 'es' ? 'Copiar enlace' : 'Copy link'}</span>
+                            </>
+                          )}
+                        </button>
+
+                        {employee.role === 'admin' || employee.accessLevel === 'manager' ? (
+                          <Link
+                            href={`/${locale}/admin`}
+                            role="menuitem"
+                            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-[var(--color-ink-2)] hover:bg-[var(--color-panel)] hover:text-[var(--color-ink)] transition-colors"
+                          >
+                            <LuArrowUpRight aria-hidden="true" className="text-base" />
+                            <span>{locale === 'es' ? 'Administración' : 'Admin library'}</span>
+                          </Link>
+                        ) : null}
+
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={handleSignOut}
+                          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-[var(--color-bad)] hover:bg-[var(--color-bad-tint)] transition-colors mt-1 border-t border-[var(--color-line)] pt-2"
+                        >
+                          <LuLogOut aria-hidden="true" className="text-base" />
+                          <span>{locale === 'es' ? 'Cerrar sesión' : 'Sign out'}</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              }
+            />
+          ) : null
+        }
       />
 
       {isAdmin ? null : (

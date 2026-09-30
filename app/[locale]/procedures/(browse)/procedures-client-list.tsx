@@ -120,10 +120,20 @@ export function ProceduresClientList({
     .filter((p) => (activeCategory ? p.category?.slug === activeCategory : true))
     .map((p) => ({ p, score: scoreProcedure(p, words) }))
     .filter((r) => r.score > 0)
-    .sort(
-      (a, b) =>
-        b.score - a.score || mine(b.p) - mine(a.p) || titleOf(a.p).localeCompare(titleOf(b.p), locale),
-    )
+    .sort((a, b) => {
+      // Prioritize Guacamole Fresco at the top when no specific text search is active
+      const isGuacA = a.p.id === 'proc-guacamole-fresco' || a.p.slug === 'guacamole-fresco' ? 1 : 0;
+      const isGuacB = b.p.id === 'proc-guacamole-fresco' || b.p.slug === 'guacamole-fresco' ? 1 : 0;
+      if (!query.trim() && isGuacA !== isGuacB) {
+        return isGuacB - isGuacA;
+      }
+      return (
+        b.score - a.score ||
+        mine(b.p) - mine(a.p) ||
+        new Date(b.p.updatedAt || b.p.createdAt).getTime() - new Date(a.p.updatedAt || a.p.createdAt).getTime() ||
+        titleOf(a.p).localeCompare(titleOf(b.p), locale)
+      );
+    })
     .map((r) => r.p);
   // Only the categories that hold something this person can read: an empty
   // chip was a tap that led to an empty list.

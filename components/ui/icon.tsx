@@ -164,6 +164,7 @@ const BY_NAME: Readonly<Record<string, IconType>> = {
   'ri-notification-3-line': LuBell,
   'ri-pencil-line': LuPencil,
   'ri-plane-line': LuPlane,
+  'ri-price-tag-3-line': PiTagChevron,
   'ri-restaurant-2-line': LuUtensils,
   'ri-restaurant-line': LuUtensils,
   'ri-rocket-2-line': LuRocket,

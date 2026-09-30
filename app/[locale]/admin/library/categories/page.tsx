@@ -62,13 +62,10 @@ export default async function AdminLibraryCategoriesPage({
     }
   }
 
-  const isEs = locale === 'es';
-
   return (
     <div className="mx-auto max-w-page space-y-6">
       <PageHeader
         title={t('pageTitle')}
-        subtitle={t('pageSubtitle')}
         actions={locationId ? <CreateCategoryButton locationId={locationId} /> : null}
       />
 
@@ -89,8 +86,6 @@ export default async function AdminLibraryCategoriesPage({
         locationId={locationId}
         locale={locale}
       />
-
-      <span className="sr-only">{isEs ? 'es' : 'en'}</span>
     </div>
   );
 }
