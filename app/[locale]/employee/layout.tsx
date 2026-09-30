@@ -53,7 +53,10 @@ export default async function EmployeeLayout({ children, params }: EmployeeLayou
       <EmployeeTopBar
         locale={locale}
         name={employee.name}
-        isAdmin={employee.role === 'admin'}
+        // Admins are seeded (Raúl) and managers are the heads of station —
+        // both can enter the admin chrome. Plain employees don't get the
+        // link; they only have Sign out.
+        canEnterAdmin={employee.role === 'admin' || employee.accessLevel === 'manager'}
         signOutAction={signOut}
         labels={{
           signedInAs: t('signedInAs', { name: employee.name }),
@@ -61,6 +64,7 @@ export default async function EmployeeLayout({ children, params }: EmployeeLayou
           admin: tCommon('admin'),
           toDark: tCommon('themeToDark'),
           toLight: tCommon('themeToLight'),
+          back: t('back'),
         }}
       />
 

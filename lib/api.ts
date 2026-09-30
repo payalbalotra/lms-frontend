@@ -512,6 +512,14 @@ const SEED_PROCEDURES: Procedure[] = [
     updatedAt: '2026-09-20T00:00:00Z',
     version: 1,
     isArchived: false,
+    // Dishwashing hygiene belongs to every line, not just one station —
+    // including Dishwasher explicitly because they own it, and leaving the
+    // scope non-narrowing for everyone else (mode: 'all' would over-promise
+    // to the line; mode: 'specific' with the dishwasher station lets the
+    // filter narrow to "who runs this" without hiding the procedure from
+    // the rest of the floor, because the explorer keeps mode:'all' rows).
+    // Using mode: 'all' here is the cleanest "everyone follows this" marker.
+    stationScope: { mode: 'all', stationIds: [] },
     quizId: 'quiz-cleaning',
     linkedTrainingId: 'course-food-safety',
     quizMode: 'training',
@@ -597,6 +605,7 @@ const SEED_PROCEDURES: Procedure[] = [
     updatedAt: '2026-09-01T00:00:00Z',
     version: 1,
     isArchived: false,
+    stationScope: { mode: 'all', stationIds: [] },
     quizId: null,
     linkedTrainingId: 'course-food-safety',
     quizMode: 'training',
@@ -632,6 +641,7 @@ const SEED_PROCEDURES: Procedure[] = [
     updatedAt: '2026-09-02T00:00:00Z',
     version: 1,
     isArchived: false,
+    stationScope: { mode: 'all', stationIds: [] },
     quizId: null,
     linkedTrainingId: 'course-kitchen-ops',
     quizMode: 'training',
@@ -673,6 +683,7 @@ const SEED_PROCEDURES: Procedure[] = [
     updatedAt: '2026-09-03T00:00:00Z',
     version: 1,
     isArchived: false,
+    stationScope: { mode: 'specific', stationIds: ['stn-gm'] },
     // The house salsa is a confidential recipe: confidential clearance and up.
     protection: 'confidential',
     quizId: null,
@@ -718,6 +729,7 @@ const SEED_PROCEDURES: Procedure[] = [
     isArchived: false,
     // Only the grill needs its own setup.
     audience: { mode: 'some', stationIds: ['stn-grill'], roleIds: [], employeeIds: [] },
+    stationScope: { mode: 'specific', stationIds: ['stn-grill'] },
     quizId: null,
     linkedTrainingId: 'course-kitchen-ops',
     quizMode: 'training',
@@ -753,6 +765,7 @@ const SEED_PROCEDURES: Procedure[] = [
     updatedAt: '2026-09-22T00:00:00Z',
     version: 1,
     isArchived: false,
+    stationScope: { mode: 'specific', stationIds: ['stn-gm'] },
     quizId: null,
     linkedTrainingId: null,
     quizMode: 'training',
@@ -780,6 +793,7 @@ const SEED_PROCEDURES: Procedure[] = [
     updatedAt: '2026-09-10T00:00:00Z',
     version: 1,
     isArchived: false,
+    stationScope: { mode: 'specific', stationIds: ['stn-prep'] },
     quizId: null,
     linkedTrainingId: null,
     quizMode: 'training',
@@ -820,6 +834,9 @@ const SEED_PROCEDURES: Procedure[] = [
     updatedAt: '2026-08-12T00:00:00Z',
     version: 4,
     isArchived: false,
+    // Recipe owns the cold station (GM) and the pass (Expo) — anyone in the
+    // room who can plate it.
+    stationScope: { mode: 'specific', stationIds: ['stn-gm', 'stn-expo'] },
     quizId: null,
     linkedTrainingId: 'course-recipes',
     quizMode: 'training',

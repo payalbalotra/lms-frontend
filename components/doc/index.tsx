@@ -34,8 +34,11 @@ export function DocBar({
   onBack,
   action,
 }: {
-  backHref: string;
-  backLabel: string;
+  /** When omitted (along with `onBack`), the bar skips its left slot and
+   *  starts straight at the title — the caller already renders the back
+   *  control in its own chrome (e.g. the procedure page's top bar). */
+  backHref?: string;
+  backLabel?: string;
   title: string;
   category: string;
   /** When provided, the back control calls this instead of following
@@ -47,9 +50,10 @@ export function DocBar({
    *  the station. It replaced a "More options" button that opened nothing. */
   action?: { label: string; icon: IconType; onClick: () => void };
 }) {
+  const showBack = Boolean(onBack ?? backHref);
   return (
     <div className="doc-bar" id="bar">
-      {onBack ? (
+      {showBack && onBack ? (
         <button
           type="button"
           onClick={onBack}
@@ -58,7 +62,7 @@ export function DocBar({
         >
           <LuArrowLeft aria-hidden="true" className="i" />
         </button>
-      ) : (
+      ) : showBack && backHref ? (
         <a
           className="btn btn-ghost btn-icon btn-lg"
           href={backHref}
@@ -66,7 +70,7 @@ export function DocBar({
         >
           <LuArrowLeft aria-hidden="true" className="i" />
         </a>
-      )}
+      ) : null}
       <div className="where">
         <b>{title}</b>
         <span>{category}</span>

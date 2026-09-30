@@ -27,6 +27,7 @@
     "assignedStatusEmpty": "Aún no hay capacitación asignada",
     "signedInAs": "Sesión iniciada como {name}",
     "signOut": "Cerrar sesión",
+    "back": "Volver",
     "dashboard": {
       "welcome": "Hola, {name}.",
       "heroEyebrow": "Hoy en turno",

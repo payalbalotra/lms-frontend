@@ -3,8 +3,8 @@ import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Button } from '@/components/ui/button';
-import { listProcedures, listCategories, listLocations, fetchMe, ApiException } from '@/lib/api';
-import type { Procedure, Category } from '@/lib/types';
+import { listProcedures, listCategories, listLocations, listStations, fetchMe, ApiException } from '@/lib/api';
+import type { Procedure, Category, Station } from '@/lib/types';
 import { LibraryProcedureExplorer } from '@/components/admin/library-procedure-explorer';
 import { LuBook, LuFolders, LuPlus } from 'react-icons/lu';
 import { PageHeader } from '@/components/admin/page-header';
@@ -145,6 +145,7 @@ export default async function AdminLibraryPage({
 
   let procedures: Procedure[] = [];
   let categories: Category[] = [];
+  let stations: Station[] = [];
   let loadError: string | null = null;
 
   let locationId: string | null = null;
@@ -169,6 +170,12 @@ export default async function AdminLibraryPage({
         categories = catResult.categories;
       } catch {
         // Keep fallback categories
+      }
+      try {
+        const stationResult = await listStations(locationId, cookieHeader);
+        stations = stationResult.stations;
+      } catch {
+        // Stations filter will hide itself when empty.
       }
     }
   } catch (err) {
@@ -204,6 +211,7 @@ export default async function AdminLibraryPage({
         <LibraryProcedureExplorer
           procedures={procedures}
           categories={finalCategories}
+          stations={stations}
           locale={locale}
         />
       )}
