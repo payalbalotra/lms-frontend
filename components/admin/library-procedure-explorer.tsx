@@ -4,8 +4,8 @@ import * as React from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { deleteProcedure, listCategories, listProcedures, setProcedureState } from '@/lib/api';
-import type { Procedure, Category, ProcedureStatus, Subcategory, ProcedureBlock } from '@/lib/types';
+import { deleteProcedure, listCategories, listProcedures, listStations, setProcedureState } from '@/lib/api';
+import type { Procedure, Category, ProcedureStatus, Station, Subcategory, ProcedureBlock } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CustomSelect } from '@/components/ui/custom-select';
@@ -50,6 +50,10 @@ import { getProcedureIcon } from '@/lib/category-icons';
 interface LibraryProcedureExplorerProps {
   procedures: Procedure[];
   categories: Category[];
+  /** Stations at the manager's location — drives the Station filter dropdown.
+   *  Optional so callers that don't need the filter can keep passing the
+   *  existing shape; when omitted the filter is hidden. */
+  stations?: Station[];
   locale: string;
 }
 
@@ -162,6 +166,7 @@ export function getCategoryTheme(slug: string): {
 export function LibraryProcedureExplorer({
   procedures,
   categories,
+  stations,
   locale,
 }: LibraryProcedureExplorerProps): React.ReactElement {
   const isEs = locale === 'es';
@@ -169,6 +174,7 @@ export function LibraryProcedureExplorer({
 
   const [liveCategories, setLiveCategories] = React.useState<Category[]>(categories ?? []);
   const [liveProcedures, setLiveProcedures] = React.useState<Procedure[]>(procedures ?? []);
+  const [liveStations, setLiveStations] = React.useState<Station[]>(stations ?? []);
 
   React.useEffect(() => {
     let isMounted = true;
@@ -178,12 +184,16 @@ export function LibraryProcedureExplorer({
           includeArchived: true,
         });
         const procRes = await listProcedures({});
+        const stationRes = await listStations('loc-main');
         if (isMounted) {
           if (catRes.categories && catRes.categories.length > 0) {
             setLiveCategories(catRes.categories);
           }
           if (procRes.procedures && procRes.procedures.length > 0) {
             setLiveProcedures(procRes.procedures);
+          }
+          if (stationRes.stations) {
+            setLiveStations(stationRes.stations);
           }
         }
       } catch {
@@ -237,6 +247,11 @@ export function LibraryProcedureExplorer({
   // Archived is its own choice: out of the list by default, one pick away for
   // the audit.
   const [statusFilter, setStatusFilter] = React.useState<'all' | ProcedureStatus | 'archived'>('all');
+  // Station filter: narrows the list to procedures whose stationScope covers
+  // the chosen station. `mode: 'all'` procedures are always kept because they
+  // apply to every station; `mode: 'specific'` matches when stationIds contains
+  // the picked id. The 'all' option restores the un-narrowed view.
+  const [stationFilter, setStationFilter] = React.useState<string>('all');
   const [sortBy, setSortBy] = React.useState<'updated_desc' | 'updated_asc' | 'title_asc' | 'title_desc'>(
     'updated_desc',
   );
@@ -433,6 +448,28 @@ export function LibraryProcedureExplorer({
     ];
   }, [isEs]);
 
+  // Station options for the filter dropdown. Sorted by the station's
+  // `sortOrder` so the picker reads in the same order the kitchen sees them.
+  // Returns an empty list (and the dropdown is hidden) when no stations exist
+  // at the current location — a single-station location doesn't need a picker.
+  const stationOptions = React.useMemo(() => {
+    const visible = (liveStations ?? []).filter((s) => !s.isArchived);
+    if (visible.length === 0) return [];
+    const sorted = [...visible].sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
+    return [
+      {
+        value: 'all',
+        label: isEs ? 'Todas las estaciones' : 'All stations',
+        icon: PiSquaresFour,
+      },
+      ...sorted.map((s) => ({
+        value: s.id,
+        label: s.name,
+        icon: PiSquaresFour,
+      })),
+    ];
+  }, [liveStations, isEs]);
+
   // Filtered procedures
   const filteredProcedures = React.useMemo(() => {
     return allProcedures
@@ -461,6 +498,16 @@ export function LibraryProcedureExplorer({
         // so an empty result means "no procedures in this subcategory yet".
         if (selectedSubcategoryId !== 'all') {
           if (!p.subcategoryId || p.subcategoryId !== selectedSubcategoryId) {
+            return false;
+          }
+        }
+
+        // Station Filter — keep kitchen-wide procedures (mode: 'all') and the
+        // ones whose stationScope explicitly names the picked station.
+        // Procedures with no stationScope are treated as kitchen-wide.
+        if (stationFilter !== 'all') {
+          const scope = p.stationScope;
+          if (scope && scope.mode === 'specific' && !scope.stationIds.includes(stationFilter)) {
             return false;
           }
         }
@@ -504,18 +551,20 @@ export function LibraryProcedureExplorer({
         }
         return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
       });
-  }, [allProcedures, selectedCategorySlug, selectedSubcategoryId, statusFilter, searchQuery, sortBy, isEs, categorySlugMap]);
+  }, [allProcedures, selectedCategorySlug, selectedSubcategoryId, statusFilter, stationFilter, searchQuery, sortBy, isEs, categorySlugMap]);
 
   const hasActiveFilters =
     selectedCategorySlug !== 'all' ||
     selectedSubcategoryId !== 'all' ||
     statusFilter !== 'all' ||
+    stationFilter !== 'all' ||
     searchQuery.trim().length > 0;
 
   const resetFilters = (): void => {
     setSelectedCategorySlug('all');
     setSelectedSubcategoryId('all');
     setStatusFilter('all');
+    setStationFilter('all');
     setSearchQuery('');
     setCurrentPage(1);
   };
@@ -628,6 +677,20 @@ export function LibraryProcedureExplorer({
               className="h-tap-admin text-sm"
             />
           </div>
+          {stationOptions.length > 1 ? (
+            <div className="w-field-sm shrink-0">
+              <CustomSelect
+                value={stationFilter}
+                onChange={(val) => {
+                  setStationFilter(val);
+                  setCurrentPage(1);
+                }}
+                options={stationOptions}
+                size="sm"
+                className="h-tap-admin text-sm"
+              />
+            </div>
+          ) : null}
           <div className="w-field-md shrink-0">
             <CustomSelect
               value={selectedSubcategoryId}
@@ -702,26 +765,28 @@ export function LibraryProcedureExplorer({
         />
       ) : (
         <ul className="divide-y divide-[var(--color-line)] rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)]">
-          {paginatedProcedures.map((p, index) => {
+          {paginatedProcedures.map((p) => {
             const catName = p.category ? (isEs ? p.category.nameEs : p.category.nameEn) : 'General';
-            const catSlug = p.category?.slug ?? 'general';
-            const theme = getCategoryTheme(catSlug);
             const title = (isEs ? p.titleEs || p.titleEn : p.titleEn || p.titleEs) || p.slug;
             const purpose = isEs ? p.purposeEs || p.purposeEn : p.purposeEn || p.purposeEs;
-            const isRecipe = catSlug === 'recipes' || catSlug === 'recipe' || p.slug.includes('recipe');
             // The same test the admin home uses: a Spanish-reading cook cannot
             // read it. A bare "EN" beside "EN / ES" did not say that was a gap.
             const noSpanish = !p.titleEs.trim() || (p.bodyEn.blocks.length > 0 && p.bodyEs.blocks.length === 0);
-            const subCategory =
-              (p as any).subCategory ||
-              (isRecipe
-                ? 'Main Menu'
-                : catSlug.includes('station')
-                  ? 'Kitchen Stations'
-                  : catSlug.includes('clean')
-                    ? 'Maintenance'
-                    : 'Food Safety');
-            const isFirstCard = index === 0 && validCurrentPage === 1;
+            // Subcategory resolves from the FK via the map the catalog already
+            // builds; absent subcategories just don't render, no string-sniffing
+            // fallback that used to lie about recipe sections.
+            const sub = p.subcategoryId ? subById.get(p.subcategoryId) ?? null : null;
+            const subName = sub ? (isEs ? sub.nameEs : sub.nameEn) : null;
+            // Station names — only for procedures with an explicit narrow scope
+            // (mode: 'specific' with at least one station). Kitchen-wide
+            // procedures don't carry a station in the meta line because the
+            // whole floor follows them.
+            const scopeStations =
+              p.stationScope && p.stationScope.mode === 'specific' && p.stationScope.stationIds.length > 0
+                ? p.stationScope.stationIds
+                    .map((id) => liveStations.find((s) => s.id === id)?.name)
+                    .filter((n): n is string => Boolean(n))
+                : [];
 
             return (
               <li key={p.id} className="flex items-center gap-2 pr-3 transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:bg-[var(--color-wash)]">
@@ -777,23 +842,40 @@ export function LibraryProcedureExplorer({
                       <p className="mt-1 line-clamp-2 text-sm leading-body text-[var(--color-ink-2)]">{purpose}</p>
                     ) : null}
 
-                    {/* One meta line: what it is, what languages it exists in, and
-                        when it last moved. The category was also a badge above and
-                        a column to the right; it is said once, here. */}
+                    {/* One meta line: what it is, what slice of the kitchen it lives
+                        in (subcategory + station), what languages it exists in,
+                        and when it last moved. The category was also a badge above
+                        and a column to the right; it is said once, here. */}
                     <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm leading-meta text-[var(--color-ink-3)]">
                       <span>{catName}</span>
-                      <span aria-hidden="true">·</span>
+                      {subName ? (
+                        <>
+                          <span aria-hidden="true">·</span>
+                          <span>{subName}</span>
+                        </>
+                      ) : null}
+                      {scopeStations.length > 0 ? (
+                        <>
+                          <span aria-hidden="true">·</span>
+                          <span>
+                            {scopeStations.length === 1
+                              ? scopeStations[0]
+                              : `${scopeStations[0]} + ${scopeStations.length - 1}`}
+                          </span>
+                        </>
+                      ) : null}
                       {p.protection === 'confidential' || p.protection === 'master' ? (
                         <>
+                          <span aria-hidden="true">·</span>
                           <span className="inline-flex items-center gap-1 font-semibold text-[var(--color-ink-2)]">
                             <LuLock aria-hidden="true" />
                             {p.protection === 'master'
                               ? isEs ? 'Receta maestra' : 'Master recipe'
                               : isEs ? 'Confidencial' : 'Confidential'}
                           </span>
-                          <span aria-hidden="true">·</span>
                         </>
                       ) : null}
+                      <span aria-hidden="true">·</span>
                       {noSpanish ? (
                         <span className="font-semibold text-[var(--color-warn-ink)]">
                           {isEs ? 'Sin español' : 'No Spanish yet'}

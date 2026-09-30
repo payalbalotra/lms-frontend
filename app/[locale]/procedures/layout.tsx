@@ -80,7 +80,7 @@ export default async function ProceduresLayout({ children, params }: ProceduresL
         <EmployeeTopBar
           locale={locale}
           name={employee.name}
-          isAdmin={employee.role === 'admin'}
+          canEnterAdmin={employee.role === 'admin' || employee.accessLevel === 'manager'}
           signOutAction={signOut}
           labels={{
             signedInAs: t('signedInAs', { name: employee.name }),
@@ -88,6 +88,7 @@ export default async function ProceduresLayout({ children, params }: ProceduresL
             admin: tCommon('admin'),
             toDark: tCommon('themeToDark'),
             toLight: tCommon('themeToLight'),
+            back: t('back'),
           }}
         />
         <div className="flex-1">{children}</div>

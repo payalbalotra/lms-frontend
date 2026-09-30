@@ -2,9 +2,9 @@
 
 // Role-aware chrome: when the viewer is an admin the surrounding AdminShell
 // (see /procedures/layout.tsx) already provides the sidebar + sticky top bar,
-// so the page skips the employee `<TabBar>` and swaps the sticky `<DocBar>`
-// for an inline "back" link above the article. Employees get the full DocBar
-// and bottom TabBar unchanged.
+// so the page skips the employee `<TabBar>` and renders an inline "back"
+// link above the article. Employees get the back control in the top bar
+// (see EmployeeTopBarBackButton) and the bottom TabBar.
 //
 // `effectiveRole` and `viewAs` come from the server: they reflect the
 // `?as=` query-param override on top of the real session role, so both
@@ -16,7 +16,6 @@ import { useRouter } from 'next/navigation';
 import { deleteProcedure, getProcedureBySlug, getQuizById, logRestrictedView, updateQuiz } from '@/lib/api';
 import type { Employee, Procedure } from '@/lib/types';
 import { withAs, type ViewAs } from '@/lib/view-as';
-import { DocBar } from '@/components/doc';
 import { ProcedureArticleBody } from '@/components/doc/procedure-article-body';
 import { TabBar } from '@/components/employee/tab-bar';
 import { recordRecentView } from '@/lib/recent-views';
@@ -239,23 +238,16 @@ export function ProcedureViewClient({
     );
   }
 
-  const isEs = locale === 'es';
-  const title = isEs ? proc.titleEs || proc.titleEn : proc.titleEn || proc.titleEs;
-  const bodyEsBlocks = proc.bodyEs?.blocks ?? [];
-  const categoryLabel = proc.category
-    ? isEs
-      ? proc.category.nameEs || proc.category.nameEn
-      : proc.category.nameEn || proc.category.nameEs
-    : '';
-
   return (
     <div className={wrapperClass}>
-      {/* The sticky DocBar carries the per-page chrome (back, where, more)
-          for cooks reading on a phone. Inside the AdminShell the shell's own
-          sticky top bar already serves as the surrounding chrome, so we
-          swap the DocBar for an inline "back" link above the article —
-          the same shape other admin detail pages use to climb back out to
-          the list. */}
+      {/*
+       * Inside the AdminShell the shell's own sticky top bar already serves
+       * as the surrounding chrome, so we render an inline "back" link above
+       * the article — the same shape other admin detail pages use to climb
+       * back out to the list. Employees get the back control in the top bar
+       * (see EmployeeTopBarBackButton), so they need no extra chrome here:
+       * the article body shows its own heading once.
+       */}
       {isAdmin ? (
         <div className="flex items-center justify-between gap-3 px-4 pt-6 sm:px-6">
           <Link
@@ -272,15 +264,7 @@ export function ProcedureViewClient({
             {labels.back}
           </Link>
         </div>
-      ) : (
-        <DocBar
-          backHref={backHref}
-          backLabel={labels.back}
-          onBack={hasReferrer ? onBack : undefined}
-          title={title || 'Untitled Procedure'}
-          category={categoryLabel}
-        />
-      )}
+      ) : null}
 
       <ProcedureArticleBody
         proc={proc}

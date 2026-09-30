@@ -27,6 +27,7 @@
     "assignedStatusEmpty": "No training assigned yet",
     "signedInAs": "Signed in as {name}",
     "signOut": "Sign out",
+    "back": "Back",
     "dashboard": {
       "welcome": "Welcome, {name}.",
       "heroEyebrow": "Today on shift",

@@ -38,8 +38,8 @@ interface EditRolesModalProps {
 
 /**
  * Full edit modal for an existing employee. Lets the admin change name,
- * email, location, access tier (Admin / Manager / Employee), kitchen job
- * role(s), and station(s) in one save.
+ * email, location, access tier (Manager / Employee), kitchen job role(s),
+ * and station(s) in one save.
  *
  * Behaviour parity with the invite form (`new/new-employee-form.tsx`):
  *   - Job roles first.
@@ -47,13 +47,10 @@ interface EditRolesModalProps {
  *   - Stations scoped to the selected location (re-fetched on change).
  *   - Save disabled until name, location, access level, and ≥1 role.
  *
- * The three access tiers (Admin / Manager / Employee) are surfaced as a
- * radio group — the invite form only exposes Manager / Employee, but the
- * edit modal also needs Admin because admins are seeded (Raúl) and need a
- * way to demote / re-promote without a separate flow. Admin isn't an
- * `AccessLevel` value, so we drive the radio with a local union that
- * combines `role: 'admin' | 'employee'` and `accessLevel: 'manager'` into
- * a single 3-way choice.
+ * Access level is exposed as a Manager / Employee radio. Admin is a seeded
+ * role (Raúl) and is not editable here — the picker cannot move anyone
+ * into or out of the Admin tier; it only moves Manager ⇄ Employee inside
+ * the standard 'employee' role bucket.
  *
  * Focus on open lands on Cancel, not Save (DESIGN.md §3.6). The body's
  * first interactive control is the Name input — so a sighted user can
@@ -73,15 +70,17 @@ export function EditRolesModal({
   const t = useTranslations('admin');
   const [_pending, startTransition] = useTransition();
 
-  // Working form state — mirrors the invite form's shape with two
-  // additions: the three-tier access choice and email-as-string (the
-  // type carries `null` for "no email" which we materialise as '').
-  type Tier = 'admin' | 'manager' | 'employee';
+  // Working form state — mirrors the invite form's shape, plus email-as-string
+  // (the type carries `null` for "no email" which we materialise as '').
+  // Access is a two-way Manager / Employee choice — Admin is a seeded role
+  // only and is not exposed as a destination; anyone already an admin keeps
+  // their tier (the radio just won't let you change to / away from it).
+  type Tier = 'manager' | 'employee';
 
   const [name, setName] = useState<string>(employee.name);
   const [email, setEmail] = useState<string>(employee.email ?? '');
   const [locationId, setLocationId] = useState<string>(employee.locationId);
-  const [tier, setTier] = useState<Tier>(employee.role === 'admin' ? 'admin' : employee.accessLevel);
+  const [tier, setTier] = useState<Tier>(employee.accessLevel);
   const [roleIds, setRoleIds] = useState<string[]>(employee.roleIds);
   const [stationIds, setStationIds] = useState<string[]>(employee.stationIds);
 
@@ -92,7 +91,7 @@ export function EditRolesModal({
     setName(employee.name);
     setEmail(employee.email ?? '');
     setLocationId(employee.locationId);
-    setTier(employee.role === 'admin' ? 'admin' : employee.accessLevel);
+    setTier(employee.accessLevel);
     setRoleIds(employee.roleIds);
     setStationIds(employee.stationIds);
   }, [open, employee]);
@@ -147,8 +146,8 @@ export function EditRolesModal({
     name: name.trim(),
     email: email.trim(),
     locationId,
-    role: tier === 'admin' ? 'admin' : 'employee',
-    accessLevel: tier === 'admin' ? employee.accessLevel : tier,
+    role: employee.role,
+    accessLevel: tier,
     roleIds,
     stationIds,
   });
@@ -169,8 +168,11 @@ export function EditRolesModal({
       name: name.trim(),
       email: email.trim() ? email.trim() : null,
       locationId,
-      accessLevel: tier === 'admin' ? employee.accessLevel : tier,
-      role: tier === 'admin' ? 'admin' : 'employee',
+      accessLevel: tier,
+      // Role ('admin' | 'employee') is not editable from this modal — admin
+      // stays admin; everyone else is 'employee'. The picker only moves
+      // them between Manager and Employee inside that 'employee' bucket.
+      role: employee.role,
       roleIds: [...roleIds],
       stationIds: [...stationIds],
     };
@@ -255,7 +257,7 @@ export function EditRolesModal({
               aria-labelledby="edit-accessLevel-label"
               className="mt-3 flex flex-wrap items-center gap-3"
             >
-              {(['admin', 'manager', 'employee'] as Tier[]).map((opt) => {
+              {(['manager', 'employee'] as Tier[]).map((opt) => {
                 const selected = tier === opt;
                 return (
                   <label
@@ -285,11 +287,9 @@ export function EditRolesModal({
                       ].join(' ')}
                     />
                     <span>
-                      {opt === 'admin'
-                        ? t('accessLevelAdmin')
-                        : opt === 'manager'
-                          ? t('accessLevelManager')
-                          : t('accessLevelEmployee')}
+                      {opt === 'manager'
+                        ? t('accessLevelManager')
+                        : t('accessLevelEmployee')}
                     </span>
                   </label>
                 );
