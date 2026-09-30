@@ -209,12 +209,18 @@ export interface ProcedureMethodStep {
    * renderer still reads the legacy fields so procedures written before the
    * array shipped keep rendering until they're re-saved.
    */
-  images?: Array<{ src: string; alt: Localised }>;
+  images?: Array<{ src: string; alt: Localised; caption?: Localised }>;
   /** @deprecated Read by the renderer as the first image for back-compat. Use
    *  `images` instead. New writes go through `images`. */
   imageSrc?: string;
   /** @deprecated Read by the renderer as the first image's alt for back-compat. */
   imageAlt?: Localised;
+  /** Optional phase label for the cook-mode eyebrow — e.g. "Prep", "Make",
+   *  "Store". The cook-mode modal renders `{n} {phase}` instead of the bare
+   *  `phaseFallback` label when this is set, so the cook can tell at a glance
+   *  which section of the recipe they're in. The document view can also use
+   *  it (e.g. a sub-heading) but it's primarily for cook mode. */
+  phase?: Localised;
   /** Optional video attached to the step. Single-slot — a cook rarely needs two
    *  clips on the same step, and a second clip usually means it should be its
    *  own step. */
@@ -222,6 +228,22 @@ export interface ProcedureMethodStep {
   /** Short caption for the video (single string; bilingual is overkill here —
    *  the step body already carries the bilingual text). */
   videoCaption?: string;
+  /** Optional timer the cook can start on this step. The chip floats in the
+   *  header and the cook-mode screen while running; buzzes when it runs out.
+   *  Persists across page reloads via the recipe block's localStorage slot. */
+  timer?: { seconds: number; label: string };
+  /** When true, the step's screen shows a "Labelled now, discard at …" label
+   *  computed via Intl.DateTimeFormat for `now + discardAtHours`. */
+  discardAt?: boolean;
+  /** Number of hours from "now" until the batch must be discarded. Defaults
+   *  to 48 when `discardAt: true` and this is omitted. */
+  discardAtHours?: number;
+  /** Pair of photos for a "right vs wrong" comparison. Renders as a side-by-
+   *  side compare thumb in the document view and a side-by-side panel in
+   *  cook mode, with the ok-half carrying a green bottom border and the
+   *  no-half carrying a red one. Both photos still live in `images[]` for
+   *  back-compat; this flag just groups them as a pair. */
+  compareImages?: boolean;
 }
 
 export interface ProcedureAllergen {

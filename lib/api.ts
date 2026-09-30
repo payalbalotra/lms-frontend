@@ -831,7 +831,7 @@ const SEED_PROCEDURES: Procedure[] = [
     iconImageUrl: '/img/video-cover.jpg',
     createdBy: 'emp-admin',
     createdAt: '2026-08-12T00:00:00Z',
-    updatedAt: '2026-08-12T00:00:00Z',
+    updatedAt: '2026-09-30T12:00:00Z',
     version: 4,
     isArchived: false,
     // Recipe owns the cold station (GM) and the pass (Expo) — anyone in the
@@ -947,7 +947,13 @@ const SEED_PROCEDURES: Procedure[] = [
                 en: 'Cut each avocado lengthwise, all the way round the stone. Twist the halves apart.',
                 es: 'Corte cada aguacate a lo largo, todo alrededor del hueso. Gire las mitades para separarlas.',
               },
-              videoSegment: { src: '/img/video-cover.jpg', startSec: 0, endSec: 4 },
+              images: [
+                {
+                  src: '/demo/guacamole/crop-cut.jpg',
+                  alt: { en: 'An avocado cut in half, the stone in one half.', es: 'Un aguacate cortado a la mitad con el hueso en una de ellas.' },
+                },
+              ],
+              videoSegment: { src: '/demo/guacamole/crop-cut.jpg', startSec: 0, endSec: 8 },
             },
             {
               id: 'gf-s2',
@@ -957,14 +963,13 @@ const SEED_PROCEDURES: Procedure[] = [
               },
               images: [
                 {
-                  src: '/img/video-cover.jpg',
+                  src: '/demo/guacamole/step-1-stone.jpg',
                   alt: {
                     en: "A chef's knife blade resting against the stone of a halved avocado, one hand steadying the fruit and the other on the handle, ready to strike.",
                     es: 'La hoja de un cuchillo de chef apoyada contra el hueso de un aguacate cortado por la mitad, una mano sostiene la fruta y la otra está en el mango, lista para golpear.',
                   },
                 },
               ],
-              videoSegment: { src: '/img/video-cover.jpg', startSec: 4, endSec: 12 },
               note: {
                 severity: 'warn',
                 body: {
@@ -979,7 +984,13 @@ const SEED_PROCEDURES: Procedure[] = [
                 en: 'Scoop the flesh into the molcajete. Scrape the skin clean; the flesh nearest the skin is the greenest.',
                 es: 'Vacíe la pulpa en el molcajete. Raspe la cáscara; la pulpa más cercana a la cáscara es la más verde.',
               },
-              videoSegment: { src: '/img/video-cover.jpg', startSec: 19, endSec: 31 },
+              images: [
+                {
+                  src: '/demo/guacamole/crop-molcajete.jpg',
+                  alt: { en: 'Avocado flesh scooped into a volcanic stone molcajete.', es: 'Pulpa de aguacate vaciada en un molcajete de piedra volcánica.' },
+                },
+              ],
+              videoSegment: { src: '/demo/guacamole/crop-molcajete.jpg', startSec: 0, endSec: 10 },
             },
             {
               id: 'gf-s4',
@@ -987,31 +998,36 @@ const SEED_PROCEDURES: Procedure[] = [
                 en: 'Mash to a coarse texture. Stop while pieces are still visible.',
                 es: 'Muela hasta una textura gruesa. Deténgase mientras los trozos aún son visibles.',
               },
+              compareImages: true,
               images: [
                 {
-                  src: '/img/equipment.jpg',
+                  src: '/demo/guacamole/step-3-correct.jpg',
                   alt: {
                     en: 'Avocado in a molcajete mashed coarsely, with distinct pieces still visible through the mixture.',
                     es: 'Aguacate en un molcajete molido gruesamente, con trozos distintos aún visibles en la mezcla.',
                   },
                 },
                 {
-                  src: '/img/video-cover.jpg',
+                  src: '/demo/guacamole/step-3-overmashed.jpg',
                   alt: {
                     en: 'Avocado in a molcajete mashed to a smooth, uniform purée with no pieces remaining.',
                     es: 'Aguacate en un molcajete molido hasta un puré liso y uniforme sin trozos.',
                   },
                 },
               ],
-              videoSegment: { src: '/img/video-cover.jpg', startSec: 31, endSec: 48 },
             },
             {
               id: 'gf-s5',
               body: {
-                en: 'Fold in all of the lime juice straight away. Without it, the avocado browns within minutes.',
-                es: 'Incorpore todo el jugo de limón de inmediato. Sin él, el aguacate se oscurece en minutos.',
+                en: 'Fold in all of the lime juice (100 ml) straight away. Without it, the avocado browns within minutes.',
+                es: 'Incorpore todo el jugo de limón (100 ml) de inmediato. Sin él, el aguacate se oscurece en minutos.',
               },
-              videoSegment: { src: '/img/video-cover.jpg', startSec: 48, endSec: 55 },
+              images: [
+                {
+                  src: '/demo/guacamole/crop-limes.jpg',
+                  alt: { en: 'Two whole limes and a cut half on the kitchen bench.', es: 'Dos limones enteros y una mitad cortada en la mesa de cocina.' },
+                },
+              ],
             },
             {
               id: 'gf-s6',
@@ -1019,7 +1035,12 @@ const SEED_PROCEDURES: Procedure[] = [
                 en: 'Fold in the onion, cilantro and serrano.',
                 es: 'Incorpore la cebolla, el cilantro y el serrano.',
               },
-              videoSegment: { src: '/img/video-cover.jpg', startSec: 55, endSec: 65 },
+              images: [
+                {
+                  src: '/demo/guacamole/crop-cilantro.jpg',
+                  alt: { en: 'Finely chopped cilantro and fresh ingredients ready to fold.', es: 'Cilantro finamente picado e ingredientes frescos listos para incorporar.' },
+                },
+              ],
             },
             {
               id: 'gf-s7',
@@ -1027,7 +1048,12 @@ const SEED_PROCEDURES: Procedure[] = [
                 en: 'Add the salt. Taste with a clean spoon, and use a fresh spoon every time you taste again.',
                 es: 'Agregue la sal. Pruebe con una cuchara limpia y use una cuchara nueva cada vez que vuelva a probar.',
               },
-              videoSegment: { src: '/img/video-cover.jpg', startSec: 65, endSec: 72 },
+              images: [
+                {
+                  src: '/demo/guacamole/crop-bowl.jpg',
+                  alt: { en: 'Tasting spoon alongside seasoned guacamole in molcajete.', es: 'Cuchara de prueba junto al guacamole sazonado en el molcajete.' },
+                },
+              ],
             },
             {
               id: 'gf-s8',
@@ -1035,7 +1061,12 @@ const SEED_PROCEDURES: Procedure[] = [
                 en: 'Add the sesame oil. Fold once, so it streaks rather than blends.',
                 es: 'Agregue el aceite de sésamo. Incorpore una vez, para que haga vetas en lugar de mezclarse.',
               },
-              videoSegment: { src: '/img/video-cover.jpg', startSec: 72, endSec: 78 },
+              images: [
+                {
+                  src: '/demo/guacamole/crop-chilli.jpg',
+                  alt: { en: 'Sesame oil drizzled over seasoned guacamole.', es: 'Aceite de sésamo rociado sobre guacamole sazonado.' },
+                },
+              ],
               note: {
                 severity: 'allergen',
                 body: {
@@ -1052,14 +1083,13 @@ const SEED_PROCEDURES: Procedure[] = [
               },
               images: [
                 {
-                  src: '/img/equipment.jpg',
+                  src: '/demo/guacamole/step-8-film.jpg',
                   alt: {
                     en: 'Both hands pressing cling film flat onto the surface of guacamole in a stainless quarter pan, with no air trapped between the film and the food.',
                     es: 'Ambas manos presionando film plástico plano sobre la superficie del guacamole en una charola quarter de acero, sin aire atrapado entre el film y la comida.',
                   },
                 },
               ],
-              videoSegment: { src: '/img/video-cover.jpg', startSec: 78, endSec: 84 },
             },
             {
               id: 'gf-s10',
@@ -1067,7 +1097,12 @@ const SEED_PROCEDURES: Procedure[] = [
                 en: 'Label the pan with today’s date and the time.',
                 es: 'Etiquete la charola con la fecha y hora de hoy.',
               },
-              videoSegment: { src: '/img/video-cover.jpg', startSec: 84, endSec: 88 },
+              images: [
+                {
+                  src: '/demo/guacamole/crop-label.jpg',
+                  alt: { en: 'Prep date and time label affixed to pan.', es: 'Etiqueta con fecha y hora de preparación adherida a la charola.' },
+                },
+              ],
             },
             {
               id: 'gf-s11',
@@ -1089,14 +1124,13 @@ const SEED_PROCEDURES: Procedure[] = [
               },
               images: [
                 {
-                  src: '/img/video-cover.jpg',
+                  src: '/demo/guacamole/step-8-label.jpg',
                   alt: {
                     en: 'A labelled stainless quarter pan of guacamole showing prep date and time, with a digital probe thermometer reading 4.0 degrees Celsius inserted into the centre.',
                     es: 'Una charola quarter de acero etiquetada con guacamole mostrando fecha y hora de preparación, con un termómetro de sonda digital que marca 4.0 grados Celsius insertado en el centro.',
                   },
                 },
               ],
-              videoSegment: { src: '/img/video-cover.jpg', startSec: 88, endSec: 94 },
             },
           ],
         },
@@ -1526,7 +1560,18 @@ function getEmployeesStore(): AdminEmployee[] {
   return mockEmployees;
 }
 function getProceduresStore(): Procedure[] {
-  if (typeof window !== 'undefined') mockProcedures = getStored('procedures_v2', SEED_PROCEDURES);
+  if (typeof window !== 'undefined') {
+    mockProcedures = getStored('procedures_v2', SEED_PROCEDURES);
+    const guacIdx = mockProcedures.findIndex(
+      (p) => p.id === 'proc-guacamole-fresco' || p.slug === 'guacamole-fresco',
+    );
+    if (guacIdx !== -1) {
+      const [guac] = mockProcedures.splice(guacIdx, 1);
+      guac.updatedAt = '2026-09-30T12:00:00Z';
+      mockProcedures.unshift(guac);
+      setStored('procedures_v2', mockProcedures);
+    }
+  }
   return mockProcedures;
 }
 function getQuizzesStore(): Quiz[] {

@@ -63,63 +63,82 @@ function pickOpt(value: LocalisedOptional | undefined, locale: 'en' | 'es'): str
 }
 
 function toMethodStep(step: ProcedureMethodStep, locale: 'en' | 'es', noteLabels: Record<ProcedureNoteKind, string>): MethodStep {
-  const out: MethodStep = {
-    body: <p>{pickText(step.body, locale)}</p>,
-    critical: step.critical,
-  };
-  // An inline note attached to the step renders as a `.note-block` immediately
-  // after the body — a warning about a knife slip belongs inside the step that
-  // uses the knife, not floating at the foot of the procedure.
   const noteNode = step.note
     ? (() => {
         const kind: ProcedureNoteKind = NOTE_KINDS.includes(step.note.severity as ProcedureNoteKind)
           ? (step.note.severity as ProcedureNoteKind)
           : 'warn';
         return (
-          <NoteBlock kind={kind} label={noteLabels[kind]}>
+          <NoteBlock key="note" kind={kind} label={noteLabels[kind]}>
             {pickText(step.note.body, locale)}
           </NoteBlock>
         );
       })()
     : null;
-  if (step.criticalLimit) {
-    const l = step.criticalLimit;
-    out.body = (
-      <>
-        <p>{pickText(step.body, locale)}</p>
-        {noteNode}
-        <CriticalLimitFull
-          icon={l.icon}
-          label={l.label}
-          value={l.value}
-          subtitle={l.subtitle}
-          howToCheck={l.howToCheck}
-          breachLabel={l.breachLabel}
-          breachResponse={l.breachResponse}
-        />
-      </>
-    );
-  } else if (noteNode) {
-    out.body = (
-      <>
-        <p>{pickText(step.body, locale)}</p>
-        {noteNode}
-      </>
+
+  const extras: React.ReactNode[] = [];
+  if (step.timer) {
+    extras.push(
+      <span key="timer" className="step-time" data-kind="timer">
+        <Icon icon="ri-time-line" className="i i-sm" aria-hidden="true" />
+        {step.timer.label} · {step.timer.seconds < 60 ? `${step.timer.seconds} s` : `${Math.round(step.timer.seconds / 60)} min`}
+      </span>,
     );
   }
+  if (step.discardAt) {
+    const hours = step.discardAtHours ?? 48;
+    extras.push(
+      <span key="discard" className="step-time" data-kind="discard">
+        <Icon icon="ri-price-tag-3-line" className="i i-sm" aria-hidden="true" />
+        {locale === 'es' ? `Desechar a las ${hours} h` : `Discard after ${hours} h`}
+      </span>,
+    );
+  }
+  const extrasNode = extras.length ? <div key="extras" className="step-extras">{extras}</div> : null;
+
+  const extraNodes: React.ReactNode[] = [];
+  if (noteNode) extraNodes.push(noteNode);
+  if (step.criticalLimit) {
+    const l = step.criticalLimit;
+    extraNodes.push(
+      <CriticalLimitFull
+        key="crit-limit"
+        icon={l.icon}
+        label={l.label}
+        value={l.value}
+        subtitle={l.subtitle}
+        howToCheck={l.howToCheck}
+        breachLabel={l.breachLabel}
+        breachResponse={l.breachResponse}
+      />,
+    );
+  }
+
+  const out: MethodStep = {
+    body: (
+      <>
+        {pickText(step.body, locale)}
+        {extrasNode}
+      </>
+    ),
+    critical: step.critical,
+    extra: extraNodes.length > 0 ? <>{extraNodes}</> : undefined,
+  };
+
   if (step.videoSegment) {
     out.clip = step.videoSegment;
   }
-  // Collect every per-step photo. New writes go through `images`; the legacy
-  // `imageSrc` / `imageAlt` is read as a fallback so procedures written before
-  // the array shipped keep rendering until they're re-saved.
-  const shots: Array<{ src: string; alt: string; caption?: string }> = [];
+
+  const shots: Array<{ src: string; alt: string; caption?: string; compare?: 'ok' | 'no' }> = [];
   if (step.images) {
-    for (const img of step.images) {
+    for (const [idx, img] of step.images.entries()) {
       if (!img.src) continue;
+      const compare =
+        step.compareImages && step.images.length >= 2 && idx < 2 ? (idx === 0 ? 'ok' : 'no') : undefined;
       shots.push({
         src: img.src,
         alt: pickText(img.alt ?? { en: '', es: '' }, locale) || '',
+        compare,
       });
     }
   }
@@ -136,6 +155,39 @@ function toMethodStep(step: ProcedureMethodStep, locale: 'en' | 'es', noteLabels
   if (step.videoSrc) {
     out.video = { src: step.videoSrc, caption: step.videoCaption };
   }
+
+  // Populate mediaThumb with badge if video clip or images exist
+  if (step.compareImages && step.images && step.images.length >= 2) {
+    out.mediaThumb = {
+      src: step.images[0].src,
+      alt: pickText(step.images[0].alt ?? { en: '', es: '' }, locale) || '',
+      compare: 'ok',
+      pairSrc: step.images[1].src,
+    };
+  } else if (step.videoSegment) {
+    const dur = Math.max(0, step.videoSegment.endSec - step.videoSegment.startSec);
+    const s = Math.max(0, Math.floor(dur));
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    const badge = dur > 0 ? `${m}:${String(r).padStart(2, '0')}` : undefined;
+    const thumbSrc = step.images?.[0]?.src || step.imageSrc || step.videoSegment.src;
+    out.mediaThumb = {
+      src: thumbSrc,
+      alt: pickText(step.images?.[0]?.alt ?? { en: '', es: '' }, locale) || '',
+      badge,
+    };
+  } else if (step.images?.[0]?.src) {
+    out.mediaThumb = {
+      src: step.images[0].src,
+      alt: pickText(step.images[0].alt ?? { en: '', es: '' }, locale) || '',
+    };
+  } else if (step.imageSrc) {
+    out.mediaThumb = {
+      src: step.imageSrc,
+      alt: pickText(step.imageAlt ?? { en: '', es: '' }, locale) || '',
+    };
+  }
+
   return out;
 }
 
@@ -157,11 +209,16 @@ export function BlockRenderer({
   blocks,
   locale,
   hoistedAllergenId,
+  consumedRecipeIds,
 }: {
   blocks: ProcedureBlock[];
   locale: 'en' | 'es';
   /** The block whose allergen banner the page has already rendered at the head. */
   hoistedAllergenId?: string;
+  /** Recipe block ids already rendered by a `<CookModeLauncher>` on the page.
+     Those blocks' `<RecipeBody>` is rendered by the launcher (with `cookMode`
+     wired to its modal). BlockRenderer skips them to avoid double-rendering. */
+  consumedRecipeIds?: ReadonlySet<string>;
 }): React.ReactElement {
   const t = LABELS[locale];
   const attachmentRows: ChapterRow[] = [];
@@ -298,6 +355,14 @@ export function BlockRenderer({
       }
       case 'recipe': {
         flush();
+        // A `<CookModeLauncher>` mounted by the page owns this block's cook-mode
+        // flow (Yield-section CTA, side thumbs, modal). When the launcher has
+        // already claimed it, the launcher renders `<RecipeBody>` itself with
+        // `cookMode` wired up — we just skip it here so the body doesn't render
+        // twice. The launcher's render order is "before BlockRenderer" in
+        // `procedure-article-body.tsx`, so the launcher's CTA appears above the
+        // body and the body's steps appear once, owned by the launcher.
+        if (consumedRecipeIds?.has(block.id ?? key)) return;
         const steps = block.steps.map((s) => toMethodStep(s, locale, t.notes));
         out.push(
           <React.Fragment key={key}>

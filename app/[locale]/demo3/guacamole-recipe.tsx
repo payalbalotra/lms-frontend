@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { useTranslations } from 'next-intl';
 import {
   RiArrowDownSLine,
@@ -16,19 +17,37 @@ import {
   RiMore2Fill,
   RiPlayFill,
   RiRestaurantLine,
+  RiTempColdLine,
   RiTimeLine,
   RiTimerLine,
 } from 'react-icons/ri';
 import { DocBehaviour } from '@/components/doc/doc-behaviour';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
-import { CookMode } from './cook-mode';
-import { CritLimit, Thumb, Warn, mediaWord } from './parts';
-import { FACTORS, FULL_VIDEO, INGREDIENTS, PHASES, STEPS, fmt, scale, type Qty } from './recipe-data';
-import { TimerChip, useNow, type Timer } from './timers';
-import './recipe.css';
+import {
+  CookMode,
+  type CookModeIngredient,
+  type CookModeLabels,
+  type CookModeRecipe,
+} from '@/components/doc/cook-mode';
+import { TimerChip, useNow, type Timer } from '@/components/doc/procedure-timers';
+import type { ProcedureMethodStep } from '@/lib/types';
+import {
+  FACTORS,
+  FULL_VIDEO,
+  IMG,
+  INGREDIENTS,
+  PHASES,
+  STEPS,
+  fmt,
+  phaseOf,
+  scale,
+  type Media,
+  type Qty,
+  type RecipeStep,
+} from './recipe-data';
 
 /**
- * /demo1's recipe at the length a real one will have: 23 steps, most with a
+ * /demo3's recipe at the length a real one will have: 23 steps, most with a
  * photo or a clip. Two views of the same steps, so the length stops mattering:
  *
  *   - The overview (this page) is for reading the recipe through. Every step is
@@ -41,27 +60,234 @@ import './recipe.css';
  *     and the reason for the step beside it. "Start cooking" opens it at the
  *     top, a thumbnail opens it at that step.
  *
- * "Start cooking" is the page's one main action, so it has one place per
- * device and never leaves it: the top bar on a tablet or a computer, the
- * bottom bar on a phone, under the thumb (the phone's top bar has no room
- * beside the back arrow and the menu). It is never also somewhere else, so
- * nobody wonders which of two buttons to press. It says where the cook is --
- * "Continue at step 9" -- and once the batch is done it steps down to a
- * secondary "Start a new batch": starting again is a choice, not the point.
- *
- * The batch, the ticks, any running timer, and where cook mode was, are kept on
- * this device, so a cook called away comes back to exactly that.
+ * The cook-mode modal is the shared `<CookMode>` from `components/doc/cook-mode`
+ * — the same modal that powers the production recipe block — driven from this
+ * page's bespoke `STEPS` shape via a thin adapter below.
  */
 
 const STORE = 'demo3-guacamole-progress';
 const N = STEPS.length;
+
+/* ── cook-mode adapter ────────────────────────────────────────────────────
+ * The shared `<CookMode>` is data-driven on a `CookModeRecipe` —
+ * `ProcedureMethodStep[]` + ingredient rows. Demo3's `STEPS` is bespoke
+ * (function-as-text, a `Media` union, inline warns, no phases). We flatten
+ * the bespoke shape once at module scope and pass the result in.
+ */
+
+function renderText(node: React.ReactNode): string {
+  if (node == null || typeof node === 'boolean') return '';
+  if (typeof node === 'string' || typeof node === 'number') return String(node);
+  // renderToStaticMarkup → strip tags → unescape the entities it produces.
+  // The cook-mode renders `step.body[locale]` as a React text child, so any
+  // HTML in the string would show up as literal angle-brackets.
+  return renderToStaticMarkup(<>{node}</>)
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .trim();
+}
+
+function mediaWord(m: Media): string {
+  if (m.kind === 'compare') return 'compare';
+  if (m.kind === 'clip') return 'clip';
+  return 'photo';
+}
+
+function adaptStep(s: RecipeStep, q: Qty): ProcedureMethodStep {
+  const en = renderText(s.text(q));
+  // The cook-mode eyebrow renders `{n} {phase}` so the cook can tell which
+  // section of the recipe they're in (e.g. "18 · MAKE"). The document view
+  // can also surface the phase as a sub-heading later.
+  const phaseName = phaseOf(s.n).name;
+  const base: ProcedureMethodStep = {
+    // Demo3 is English-only; mirror the English into `es` so the Localised
+    // type stays satisfied. The cook-mode modal reads whichever locale the
+    // page is set to.
+    body: { en, es: en },
+    critical: s.crit,
+    timer: s.timer,
+    discardAt: s.discardAt,
+    discardAtHours: s.discardAt ? 48 : undefined,
+    phase: { en: phaseName, es: phaseName },
+  };
+  if (s.warn) {
+    const w = renderText(s.warn.body);
+    base.note = {
+      severity: s.warn.kind,
+      body: { en: w, es: w },
+    };
+  }
+  if (s.media) {
+    if (s.media.kind === 'compare') {
+      base.images = [
+        { src: `${IMG}/${s.media.ok.src}`, alt: { en: s.media.ok.alt, es: s.media.ok.alt } },
+        { src: `${IMG}/${s.media.no.src}`, alt: { en: s.media.no.alt, es: s.media.no.alt } },
+      ];
+      base.compareImages = true;
+    } else {
+      // photo + clip both surface as a lead image; the cook-mode modal has no
+      // clip source for demo3 (we'd need a real video file), so the lead image
+      // doubles as the cook-mode poster.
+      base.images = [
+        {
+          src: `${IMG}/${s.media.src}`,
+          alt: { en: s.media.alt, es: s.media.alt },
+          caption: s.media.kind === 'photo' && s.media.caption
+            ? { en: s.media.caption, es: s.media.caption }
+            : undefined,
+        },
+      ];
+    }
+  }
+  return base;
+}
+
+function adaptSteps(): ProcedureMethodStep[] {
+  // The q helper here is only used by `text(q)`; demo3's text embeds ingredient
+  // amounts scaled to the *current* factor, but the cook-mode modal renders
+  // amounts on its own weigh-out screen, so a fixed-scale render is fine.
+  const q: Qty = (k) => <b className="qty">{scale(INGREDIENTS.find((i) => i.key === k)!.base, 1)}</b>;
+  return STEPS.map((s) => adaptStep(s, q));
+}
+
+function adaptIngredients(): CookModeIngredient[] {
+  return INGREDIENTS.map((i) => ({
+    name: i.name,
+    amounts: FACTORS.map((f) => scale(i.base, f)),
+    allergen: i.allergen,
+  }));
+}
+
+const COOK_LABELS: CookModeLabels = {
+  introSub: (n) => `${n} steps. Tap "Done, next" as you finish each one, or swipe to look ahead.`,
+  weighOut: 'Weigh out',
+  critical: 'Critical step',
+  upNext: (n) => `Coming up · step ${n}`,
+  discard: (when) => `Labelled now, discard at ${when}`,
+  phaseFallback: 'Method',
+  allergen: 'Allergen',
+  wakeHint: 'Your screen stays on while this is open.',
+  startBtn: (n) => (n > 0 ? `Continue at step ${n}` : 'Start cooking'),
+  done: { normal: 'Done, next', critical: 'Done: 4 °C or below', final: 'Done, finish', next: 'Next' },
+  backToRecipe: 'Back to the recipe',
+  summaryHead: (done, total) => `${done} of ${total} steps done`,
+  summaryLeftSub: 'Not ticked yet. Tap one to go back to it:',
+  summaryAllDoneSub: 'All steps ticked. Probe the dish before service.',
+  listBack: (where) => `Back to ${where}`,
+  where: (v) => (typeof v === 'string' ? v : `Step ${v.n} of ${v.total}`),
+  modalAria: 'Cook mode',
+  closeAria: 'Close cook mode',
+  listToggle: { label: (open) => (open ? 'Close the list of steps' : 'All steps'), ariaAll: 'All steps' },
+  listNavAria: 'All steps',
+  stepTick: ({ n, done }) => `Step ${n}: ${done ? 'done, tap to undo' : 'mark done'}`,
+};
+
+/* ── inline replacements for the deleted demo3/parts.tsx ──────────────────
+ * The original `<Thumb>`, `<Warn>`, and `<CritLimit>` lived in `./parts` and
+ * relied on demo3-specific styles. The CSS already lives in the canonical
+ * lms.css (`.step-thumb`, `.note-block`, `.crit`), so we just inline the
+ * markup here.
+ */
+
+function Thumb({
+  media,
+  label,
+  onOpen,
+}: {
+  media: Media;
+  label: string;
+  onOpen: () => void;
+}): React.ReactElement {
+  if (media.kind === 'compare') {
+    return (
+      <button type="button" className="step-thumb is-pair" aria-label={label} onClick={onOpen}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={`${IMG}/${media.ok.src}`} alt="" className="ok" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={`${IMG}/${media.no.src}`} alt="" className="no" />
+      </button>
+    );
+  }
+  return (
+    <button type="button" className="step-thumb" aria-label={label} onClick={onOpen}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={`${IMG}/${media.src}`} alt={media.kind === 'clip' ? '' : media.alt} />
+      {media.kind === 'clip' ? (
+        <span className="badge">
+          <RiPlayFill className="i i-sm" aria-hidden="true" />
+          {media.at}
+        </span>
+      ) : null}
+    </button>
+  );
+}
+
+function Warn({
+  kind,
+  children,
+}: {
+  kind: 'warn' | 'allergen';
+  children: React.ReactNode;
+}): React.ReactElement {
+  return (
+    <div className="note-block" data-kind={kind}>
+      <div className="ico">
+        <RiErrorWarningFill className="i" aria-hidden="true" />
+      </div>
+      <div>
+        <span className="label">{kind === 'warn' ? 'Safety' : 'Allergen'}</span>
+        <p>{children}</p>
+      </div>
+    </div>
+  );
+}
+
+function CritLimit(): React.ReactElement {
+  // Demo3's critical step (probe the pan before service) carries the same
+  // shape as the production `<CriticalLimitFull>` block: a value, a how-to,
+  // and a breach response. Mirroring the production markup so the document
+  // reader and the cook-mode modal both render the same block — the cook
+  // never sees a different answer to "what if it's above 4 °C" depending
+  // on which surface they opened.
+  return (
+    <div className="crit">
+      <h3 className="crit-h">
+        <RiTempColdLine className="i i-sm" aria-hidden="true" />
+        Critical limit
+      </h3>
+      <div className="crit-b">
+        <p className="crit-num">4 °C (39 °F) or below</p>
+        <p className="crit-sub">Into the walk-in within 30 minutes of finishing. Check before service.</p>
+        <dl className="crit-parts">
+          <div className="crit-part">
+            <dt className="crit-lbl">How to check</dt>
+            <dd>Probe the centre of the pan with a sanitised thermometer. Record on the Cold Holding Log.</dd>
+          </div>
+          <div className="crit-part breach">
+            <dt className="crit-lbl">
+              <RiErrorWarningFill className="i i-sm" aria-hidden="true" />
+              If it is above 4 °C
+            </dt>
+            <dd>Discard. Guacamole is not reheated, so there is no way to bring it back. Tell the chef on duty.</dd>
+          </div>
+        </dl>
+      </div>
+    </div>
+  );
+}
+
+/* ── page ───────────────────────────────────────────────────────────────── */
 
 export function GuacamoleRecipe(): React.ReactElement {
   const tApp = useTranslations('app');
   const [factor, setFactor] = React.useState<number>(1);
   const [done, setDone] = React.useState<boolean[]>(() => Array(N).fill(false));
   const [at, setAt] = React.useState(0);
-  const [cook, setCook] = React.useState({ open: false, start: 0, session: 0 });
+  const [cook, setCook] = React.useState({ open: false, start: 0 });
   const [timers, setTimers] = React.useState<Timer[]>([]);
   const [loaded, setLoaded] = React.useState(false);
   const buzzed = React.useRef(new Set<number>());
@@ -69,7 +295,9 @@ export function GuacamoleRecipe(): React.ReactElement {
   const radios = React.useRef<(HTMLButtonElement | null)[]>([]);
   const ctlRef = React.useRef<HTMLDetailsElement>(null);
 
-  const q: Qty = (k) => <b className="qty">{scale(INGREDIENTS.find((i) => i.key === k)!.base, factor)}</b>;
+  const q: Qty = (k) => (
+    <b className="qty">{scale(INGREDIENTS.find((i) => i.key === k)!.base, factor)}</b>
+  );
 
   // Where the cook was: the batch, every tick, and the step cook mode was on.
   React.useEffect(() => {
@@ -153,7 +381,8 @@ export function GuacamoleRecipe(): React.ReactElement {
     radios.current[next]?.focus();
   }
 
-  const setStep = (n: number, value: boolean): void => setDone((s) => s.map((v, j) => (j === n - 1 ? value : v)));
+  const setStep = (n: number, value: boolean): void =>
+    setDone((s) => s.map((v, j) => (j === n - 1 ? value : v)));
   const startTimer = (n: number): void => {
     const t = STEPS[n - 1]!.timer;
     if (!t) return;
@@ -163,7 +392,7 @@ export function GuacamoleRecipe(): React.ReactElement {
     ]);
   };
   const clearTimer = (n: number): void => setTimers((all) => all.filter((x) => x.step !== n));
-  const openCook = (start: number): void => setCook((c) => ({ open: true, start, session: c.session + 1 }));
+  const openCook = (start: number): void => setCook({ open: true, start });
   const newBatch = (): void => {
     setDone(Array(N).fill(false));
     setAt(0);
@@ -199,6 +428,17 @@ export function GuacamoleRecipe(): React.ReactElement {
       {allDone ? null : <RiPlayFill className="i" aria-hidden="true" />}
       {ctaLabel}
     </button>
+  );
+
+  const recipe: CookModeRecipe = React.useMemo(
+    () => ({
+      title: 'Guacamole Fresco',
+      factors: [...FACTORS],
+      ingredients: adaptIngredients(),
+      steps: adaptSteps(),
+      recipeBlockId: 'demo3-guacamole',
+    }),
+    [],
   );
 
   return (
@@ -557,7 +797,6 @@ export function GuacamoleRecipe(): React.ReactElement {
       </div>
 
       <CookMode
-        key={cook.session}
         open={cook.open}
         start={cook.start}
         factor={factor}
@@ -567,6 +806,9 @@ export function GuacamoleRecipe(): React.ReactElement {
         timers={timers}
         onTimer={startTimer}
         onClearTimer={clearTimer}
+        recipe={recipe}
+        locale="en"
+        labels={COOK_LABELS}
         onClose={closeCook}
       />
     </main>

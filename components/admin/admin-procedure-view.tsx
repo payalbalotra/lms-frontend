@@ -18,6 +18,8 @@ import type { Employee, Procedure, ProcedureStatus } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { RowActions, type RowActionItem } from '@/components/ui/row-actions';
 import { ProcedureArticleBody } from '@/components/doc/procedure-article-body';
+import { CookBarAction } from '@/components/doc/cook-bar-action';
+import type { ProcedureBlock } from '@/lib/types';
 
 interface AdminProcedureViewProps {
   locale: string;
@@ -134,6 +136,17 @@ export function AdminProcedureView({
     return items.filter((item): item is RowActionItem => item !== null);
   }, [proc.isArchived, proc.status, t, transition, handleDelete]);
 
+  // The cook-mode CTA in the top chrome bar belongs to the page's first
+  // recipe block. We compute it from the loaded `proc` so a freshly-edited
+  // procedure re-evaluates on save without unmounting the chrome.
+  const firstRecipeBlock = React.useMemo<
+    Extract<ProcedureBlock, { kind: 'recipe' }> | null
+  >(() => {
+    const blocks = proc.bodyEn.blocks.length ? proc.bodyEn.blocks : proc.bodyEs.blocks;
+    const found = blocks.find((b): b is Extract<ProcedureBlock, { kind: 'recipe' }> => b.kind === 'recipe');
+    return found ?? null;
+  }, [proc]);
+
   return (
     <div className="mx-auto w-full max-w-doc space-y-6">
       {/* Top chrome bar: back arrow + breadcrumb on the left, Edit + kebab on the right */}
@@ -155,6 +168,13 @@ export function AdminProcedureView({
           </Link>
         </div>
         <div className="flex items-center gap-3">
+          {firstRecipeBlock ? (
+            <CookBarAction
+              procedureId={proc.id}
+              recipeBlockId={firstRecipeBlock.id ?? `recipe-${firstRecipeBlock.factors?.length ?? 0}`}
+              locale={locale === 'es' ? 'es' : 'en'}
+            />
+          ) : null}
           <Button
             variant="secondary"
             icon={LuPencil}

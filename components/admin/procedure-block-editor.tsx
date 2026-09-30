@@ -207,6 +207,7 @@ function SortableStepRow({
   onRemove,
   onMove,
   onDuplicate,
+  recipeAware,
 }: {
   step: ProcedureMethodStep;
   index: number;
@@ -215,6 +216,8 @@ function SortableStepRow({
   onRemove: () => void;
   onMove: (direction: 'up' | 'down') => void;
   onDuplicate: () => void;
+  /** True inside a `recipe` block — gates the cook-mode-only fields. */
+  recipeAware?: boolean;
 }): React.ReactElement {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: step.id ?? `step-${index}`,
@@ -237,6 +240,7 @@ function SortableStepRow({
         onRemove={onRemove}
         onMove={onMove}
         onDuplicate={onDuplicate}
+        recipeAware={recipeAware}
         dragHandle={
           <button
             type="button"
@@ -262,6 +266,7 @@ function StepRow({
   onMove,
   onDuplicate,
   dragHandle,
+  recipeAware,
 }: {
   step: ProcedureMethodStep;
   index: number;
@@ -271,6 +276,9 @@ function StepRow({
   onMove: (direction: 'up' | 'down') => void;
   onDuplicate: () => void;
   dragHandle: React.ReactNode;
+  /** True inside a `recipe` block — gates the cook-mode-only fields
+   *  (timer / discard / compare-images) so `method` blocks stay simple. */
+  recipeAware?: boolean;
 }): React.ReactElement {
   const t = useTranslations('admin.library.new.form');
   const tComp = useTranslations('admin.library.new.form.composer');
@@ -601,6 +609,125 @@ function StepRow({
           </div>
         )}
       </div>
+
+      {/* Cook-mode extras — only shown inside a recipe block. The fields below
+        *  drive the document view's per-step hints and the cook-mode modal's
+        *  timer chip + discard-time line + compare pair. They stay silent on
+        *  a `method` block, where cook mode is not mounted. */}
+      {recipeAware ? <CookModeFields step={step} onChange={onChange} /> : null}
+    </div>
+  );
+}
+
+/** Per-step editor for cook-mode-only fields. Three small controls:
+ *  a timer (seconds + label), a discard-at flag (with optional hours), and a
+ *  compare-images flag that pairs images[0] (ok) and images[1] (no).
+ *  Density matches the rest of the admin step row: tight stack, small inputs,
+ *  36 px touch targets via the project's `<Input>` component. */
+function CookModeFields({
+  step,
+  onChange,
+}: {
+  step: ProcedureMethodStep;
+  onChange: (next: ProcedureMethodStep) => void;
+}): React.ReactElement {
+  const t = useTranslations('admin.library.new.form');
+  const hasTimer = !!step.timer;
+  const hasDiscard = !!step.discardAt;
+  const hasCompare = !!step.compareImages;
+  return (
+    <div className="space-y-2 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-wash)] p-3">
+      <div className="text-sm font-semibold uppercase tracking-caps text-[var(--color-ink-2)]">
+        {t('cookMode')}
+      </div>
+
+      <label className="flex items-center gap-2 text-sm text-[var(--color-ink-2)]">
+        <input
+          type="checkbox"
+          checked={hasTimer}
+          onChange={(e) =>
+            onChange({
+              ...step,
+              timer: e.target.checked
+                ? { seconds: step.timer?.seconds ?? 60, label: step.timer?.label ?? '' }
+                : undefined,
+            })
+          }
+        />
+        {t('addTimer')}
+      </label>
+      {hasTimer ? (
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_120px]">
+          <Field label={t('timerLabel')} hint={t('timerLabelHint')}>
+            <Input
+              value={step.timer?.label ?? ''}
+              onChange={(e) =>
+                onChange({ ...step, timer: { seconds: step.timer?.seconds ?? 60, label: e.target.value } })
+              }
+              placeholder="Hand wash"
+            />
+          </Field>
+          <Field label={t('timerSeconds')}>
+            <Input
+              type="number"
+              min={1}
+              value={step.timer?.seconds ?? 60}
+              onChange={(e) =>
+                onChange({
+                  ...step,
+                  timer: {
+                    seconds: Math.max(1, Math.floor(Number(e.target.value) || 1)),
+                    label: step.timer?.label ?? '',
+                  },
+                })
+              }
+            />
+          </Field>
+        </div>
+      ) : null}
+
+      <label className="flex items-center gap-2 text-sm text-[var(--color-ink-2)]">
+        <input
+          type="checkbox"
+          checked={hasDiscard}
+          onChange={(e) =>
+            onChange({
+              ...step,
+              discardAt: e.target.checked ? true : undefined,
+              discardAtHours: e.target.checked ? step.discardAtHours ?? 48 : undefined,
+            })
+          }
+        />
+        {t('addDiscard')}
+      </label>
+      {hasDiscard ? (
+        <Field label={t('discardHours')}>
+          <Input
+            type="number"
+            min={1}
+            value={step.discardAtHours ?? 48}
+            onChange={(e) =>
+              onChange({
+                ...step,
+                discardAt: true,
+                discardAtHours: Math.max(1, Math.floor(Number(e.target.value) || 48)),
+              })
+            }
+          />
+        </Field>
+      ) : null}
+
+      <label className="flex items-center gap-2 text-sm text-[var(--color-ink-2)]">
+        <input
+          type="checkbox"
+          checked={hasCompare}
+          onChange={(e) => onChange({ ...step, compareImages: e.target.checked ? true : undefined })}
+        />
+        {t('compareImages')}
+      </label>
+      {hasCompare && (!step.images || step.images.length < 2) ? (
+        <p className="text-xs text-[var(--color-warn-ink)]">{t('compareImagesHint')}</p>
+      ) : null}
     </div>
   );
 }
@@ -612,9 +739,13 @@ function StepRow({
 function StepsList({
   steps,
   onChange,
+  recipeAware,
 }: {
   steps: ProcedureMethodStep[];
   onChange: (next: ProcedureMethodStep[]) => void;
+  /** True inside a `recipe` block — gates the cook-mode-only fields
+   *  (timer / discard / compare-images) so `method` blocks stay simple. */
+  recipeAware?: boolean;
 }): React.ReactElement {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -672,6 +803,7 @@ function StepsList({
               onRemove={() => removeStep(i)}
               onMove={(dir) => moveStep(i, dir)}
               onDuplicate={() => dupStep(i)}
+              recipeAware={recipeAware}
             />
           ))}
         </div>
@@ -1186,7 +1318,7 @@ function RecipeEditor({
             + {tForm('addStep')}
           </Button>
         </div>
-        <StepsList steps={block.steps} onChange={(steps) => onChange({ ...block, steps })} />
+        <StepsList steps={block.steps} onChange={(steps) => onChange({ ...block, steps })} recipeAware />
       </div>
     </div>
   );

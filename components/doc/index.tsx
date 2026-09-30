@@ -33,6 +33,8 @@ export function DocBar({
   category,
   onBack,
   action,
+  children,
+  rightSlot,
 }: {
   /** When omitted (along with `onBack`), the bar skips its left slot and
    *  starts straight at the title — the caller already renders the back
@@ -49,6 +51,8 @@ export function DocBar({
   /** The one thing to do with the page, on the bar's right: printing it for
    *  the station. It replaced a "More options" button that opened nothing. */
   action?: { label: string; icon: IconType; onClick: () => void };
+  children?: React.ReactNode;
+  rightSlot?: React.ReactNode;
 }) {
   const showBack = Boolean(onBack ?? backHref);
   return (
@@ -57,7 +61,7 @@ export function DocBar({
         <button
           type="button"
           onClick={onBack}
-          aria-label={backLabel}
+          aria-label={backLabel ?? 'Back'}
           className="btn btn-ghost btn-icon btn-lg"
         >
           <LuArrowLeft aria-hidden="true" className="i" />
@@ -66,7 +70,7 @@ export function DocBar({
         <a
           className="btn btn-ghost btn-icon btn-lg"
           href={backHref}
-          aria-label={backLabel}
+          aria-label={backLabel ?? 'Back'}
         >
           <LuArrowLeft aria-hidden="true" className="i" />
         </a>
@@ -75,6 +79,8 @@ export function DocBar({
         <b>{title}</b>
         <span>{category}</span>
       </div>
+      {rightSlot}
+      {children}
       {action ? (
         <button type="button" className="btn btn-ghost btn-lg" onClick={action.onClick}>
           <action.icon aria-hidden="true" className="i" />
@@ -108,6 +114,7 @@ export function Cover({ src, alt }: { src?: string; alt?: string }) {
 /** Page icon (straddles the cover) + crumb + title. */
 export function DocHead({
   icon,
+  iconImageUrl,
   category,
   title,
   withCover = true,
@@ -116,13 +123,19 @@ export function DocHead({
    *  Absent, no tile: without a photo it was a large empty square above the
    *  title that said nothing the category line does not. */
   icon?: string;
+  iconImageUrl?: string | null;
   category: string;
   title: React.ReactNode;
   withCover?: boolean;
 }) {
   return (
-    <header className={icon ? 'doc-head' : 'doc-head pt-6'}>
-      {icon ? (
+    <header className={icon || iconImageUrl ? 'doc-head' : 'doc-head pt-6'}>
+      {iconImageUrl ? (
+        <div className="doc-icon is-img">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={iconImageUrl} alt="" />
+        </div>
+      ) : icon ? (
         <div className="doc-icon">
           <Icon icon={iconByName(icon)} className="i" />
         </div>
@@ -344,45 +357,102 @@ export type MethodStep = {
   /** Photos attached to this step (a picture of what the grill marks should
    *  look like, etc). Anchored here, not as top-level image blocks, because
    *  the step is the only place they make sense. Multiple photos per step
-   *  are common — "before / after" plating, "wrong cut / right cut". */
-  shots?: Array<{ src: string; alt: string; caption?: string }>;
+   *  are common — "before / after" plating, "wrong cut / right cut". A
+   *  `compare: 'ok' | 'no'` paints a green/red bottom border so the pair
+   *  reads as a "right vs wrong" comparison (mirrors demo3's cook-mode
+   *  compare panel). */
+  shots?: Array<{ src: string; alt: string; caption?: string; compare?: 'ok' | 'no' }>;
   /** Video attached to this step. Same idea as `shots` — direct on the step
    *  rather than floating in the procedure. */
   video?: { src: string; caption?: string };
+  /** Right-side thumbnail for the step. When set, the row gets demo3's
+   *  "step-thumb" treatment: the photo sits at the right margin of the
+   *  row, the body wraps around it, and clicking the thumb fires
+   *  `onThumbOpen` (so recipe blocks can use it as the cook-mode entry
+   *  for that step). Method blocks leave this unset and render full-width
+   *  shots inside the body. The presence of a thumb also marks the row
+   *  with `has-media`, matching demo3's spacing. */
+  mediaThumb?: {
+    src: string;
+    alt: string;
+    /** "compare" pairs two thumbs in an `is-pair` block with green/red
+     *  bottom borders. */
+    compare?: 'ok' | 'no';
+    /** A second photo for the compare pair. Only used when `compare` is
+     *  "ok" (the "no" half is the second photo). */
+    pairSrc?: string;
+    /** Optional duration badge, e.g. "0:08" for video clips. */
+    badge?: string;
+  };
+  /** Additional full-width callouts attached to the step (warning note, critical limit card). */
+  extra?: React.ReactNode;
+  /** Label for the side-thumb's `aria-label`. Falls back to the step body. */
+  thumbLabel?: string;
+  /** Fired when the cook taps the side-thumb. Recipe blocks wire this to
+   *  the cook-mode launcher so the modal opens at the tapped step. */
+  onThumbOpen?: () => void;
 };
 
-function fmtClock(totalSec: number): string {
+export function fmtClock(totalSec: number): string {
   const s = Math.max(0, Math.floor(totalSec));
   const m = Math.floor(s / 60);
   const r = s % 60;
   return `${m}:${String(r).padStart(2, '0')}`;
 }
 
-export function MethodSteps({ steps, nowIndex }: { steps: MethodStep[]; nowIndex?: number }) {
+export function MethodSteps({
+  steps,
+  nowIndex,
+  done = [],
+  onToggleStep,
+}: {
+  steps: MethodStep[];
+  nowIndex?: number;
+  done?: boolean[];
+  onToggleStep?: (index: number) => void;
+}) {
   return (
-    <ol className="steps">
+    <ol className="steps compact">
       {steps.map((s, i) => {
-        const classes = cn('step', s.critical && 'is-crit', nowIndex === i && 'is-now');
+        const isDone = Boolean(done[i]);
+        const classes = cn(
+          'step',
+          s.critical && 'is-crit',
+          isDone && 'is-done',
+          nowIndex === i && 'is-now',
+          s.mediaThumb && 'has-media',
+        );
         return (
-          <li key={i} className={classes || undefined}>
-            <div className="step-num" />
+          <li key={i} id={`step-${i + 1}`} className={classes || undefined}>
+            {onToggleStep ? (
+              <button
+                type="button"
+                className="step-num step-check"
+                aria-pressed={isDone}
+                aria-label={`Step ${i + 1}${s.critical ? ', critical' : ''}: ${isDone ? 'done, tap to undo' : 'mark done'}`}
+                onClick={() => onToggleStep(i)}
+              />
+            ) : (
+              <div className="step-num" />
+            )}
             <div className="step-body">
               {s.critical && (
                 <span className="step-flag">
                   <LuFocus aria-hidden="true" className="i i-sm" /> Critical step
                 </span>
               )}
-              {/* A caller can hand over either a plain sentence or its own markup.
-                  Wrapping the second kind in a <p> nested a paragraph inside a
-                  paragraph, which the browser un-nests — so the server and the
-                  client disagreed and every document page logged a hydration error. */}
-              {typeof s.body === 'string' ? <p>{s.body}</p> : s.body}
-              {s.watchAt && (
+              {/* A caller can hand over either a plain sentence or its own markup. */}
+              {typeof s.body === 'string' ? (
+                <p className="step-line">{s.body}</p>
+              ) : (
+                <div className="step-line">{s.body}</div>
+              )}
+              {!s.mediaThumb && s.watchAt && (
                 <button className="step-time">
                   <LuPlay aria-hidden="true" className="i i-sm" /> Watch · {s.watchAt}
                 </button>
               )}
-              {s.clip && (
+              {!s.mediaThumb && s.clip && (
                 <a
                   className="step-time"
                   href={s.clip.src}
@@ -392,17 +462,53 @@ export function MethodSteps({ steps, nowIndex }: { steps: MethodStep[]; nowIndex
                   <LuPlay aria-hidden="true" className="i i-sm" /> Watch · {fmtClock(s.clip.startSec)}–{fmtClock(s.clip.endSec)}
                 </a>
               )}
-              {/* Per-step media. Anchored here, not as a free-floating block,
-                  because a picture of what step 3 should look like is useless
-                  unless it's next to step 3. Multiple shots are common
-                  (before / after plating, right / wrong cut). */}
-              {s.shots?.map((sh, j) => (
-                <Shot key={`shot-${j}`} src={sh.src} alt={sh.alt} caption={sh.caption} />
+              {!s.mediaThumb && s.shots?.map((sh, j) => (
+                <Shot key={`shot-${j}`} src={sh.src} alt={sh.alt} caption={sh.caption} compare={sh.compare} />
               ))}
-              {s.video ? (
+              {!s.mediaThumb && s.video ? (
                 <StepVideo src={s.video.src} caption={s.video.caption} />
               ) : null}
             </div>
+            {/* Right-side thumb, mirroring demo3's per-step photo. The thumb is
+                a button (not an `<img>`) because tapping it opens cook mode
+                at this step. `is-pair` lays two photos side-by-side with
+                green/red bottom borders for "right vs wrong" comparisons. */}
+            {s.mediaThumb ? (
+              s.mediaThumb.compare === 'ok' && s.mediaThumb.pairSrc ? (
+                <button
+                  type="button"
+                  className="step-thumb is-pair"
+                  aria-label={s.thumbLabel ?? 'Open this step in cook mode'}
+                  onClick={s.onThumbOpen}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={s.mediaThumb.src} alt="" className="ok" />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={s.mediaThumb.pairSrc} alt="" className="no" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="step-thumb"
+                  aria-label={s.thumbLabel ?? 'Open this step in cook mode'}
+                  onClick={s.onThumbOpen}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={s.mediaThumb.src} alt={s.mediaThumb.alt} />
+                  {s.mediaThumb.badge ? (
+                    <span className="badge">
+                      <LuPlay aria-hidden="true" className="i i-sm" />
+                      {s.mediaThumb.badge}
+                    </span>
+                  ) : null}
+                </button>
+              )
+            ) : null}
+            {s.extra ? (
+              <div className="step-extra">
+                {s.extra}
+              </div>
+            ) : null}
           </li>
         );
       })}
@@ -554,15 +660,19 @@ export function Shot({
   caption,
   width = 1200,
   height = 900,
+  compare,
 }: {
   src: string;
   alt: string;
   caption?: React.ReactNode;
   width?: number;
   height?: number;
+  /** When set, paints a green (ok) or red (no) bottom border so the pair reads
+   *  as a "right vs wrong" comparison. Mirrors demo3's cook-mode compare panel. */
+  compare?: 'ok' | 'no';
 }) {
   return (
-    <figure className="shot">
+    <figure className="shot" data-compare={compare}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={src} alt={alt} width={width} height={height} loading="lazy" />
       {caption && <figcaption>{caption}</figcaption>}

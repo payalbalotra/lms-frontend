@@ -536,6 +536,12 @@ export function LibraryProcedureExplorer({
         return true;
       })
       .sort((a, b) => {
+        // Prioritize Guacamole Fresco dish at the top on default / updated sort
+        const isGuacA = a.id === 'proc-guacamole-fresco' || a.slug === 'guacamole-fresco' ? 1 : 0;
+        const isGuacB = b.id === 'proc-guacamole-fresco' || b.slug === 'guacamole-fresco' ? 1 : 0;
+        if ((!sortBy || sortBy === 'updated_desc') && isGuacA !== isGuacB) {
+          return isGuacB - isGuacA;
+        }
         if (sortBy === 'title_asc') {
           const titleA = (isEs ? a.titleEs || a.titleEn : a.titleEn || a.titleEs).toLowerCase();
           const titleB = (isEs ? b.titleEs || b.titleEn : b.titleEn || b.titleEs).toLowerCase();
