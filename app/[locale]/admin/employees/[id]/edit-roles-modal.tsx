@@ -103,19 +103,76 @@ export function EditRolesModal({
     setStationIds((prev) => prev.filter((id) => stations.some((s) => s.id === id)));
   }, [stations]);
 
+  // Job→station mapping: each Role carries the stations it works on
+  // (Line Cook → gm/grill/expo, Prep Cook → prep, Dishwasher → dish).
+  // Manager bypasses the filter and shows every station at the location.
+  const roleById = useMemo<Map<string, Role>>(
+    () => new Map(roles.map((r) => [r.id, r])),
+    [roles],
+  );
+
+  const stationsCoveredByRoles = useMemo<Set<string>>(() => {
+    const covered = new Set<string>();
+    for (const roleId of roleIds) {
+      const role = roleById.get(roleId);
+      if (!role) continue;
+      if (role.stationIds.length === 0) {
+        return new Set(stations.map((s) => s.id));
+      }
+      for (const stationId of role.stationIds) covered.add(stationId);
+    }
+    return covered;
+  }, [roleIds, roleById, stations]);
+
+  const availableStations = useMemo<Station[]>(() => {
+    if (tier === 'manager') return stations;
+    if (roleIds.length === 0) return [];
+    return stations.filter((s) => stationsCoveredByRoles.has(s.id));
+  }, [tier, roleIds.length, stations, stationsCoveredByRoles]);
+
   const stationsBlockedReason = useMemo<string | undefined>(() => {
+    if (tier === 'manager') return undefined;
     if (roleIds.length === 0) return t('detailEditRolesNeedRole');
     if (stations.length === 0) return t('stationsEmptyForLocation');
+    if (availableStations.length === 0) return t('stationsEmptyForRoles');
     return undefined;
-  }, [roleIds.length, stations.length, t]);
+  }, [tier, roleIds.length, stations.length, availableStations.length, t]);
+
+  // Manager tier: preselect every job role and every station at the location.
+  // Switching away from Manager clears the chips — the auto-fill is no longer
+  // valid for an employee, and the role-station filter would otherwise leave
+  // stale chips in place.
+  function onTierChange(next: Tier): void {
+    if (next === 'manager') {
+      setTier('manager');
+      setRoleIds(roles.map((r) => r.id));
+      setStationIds(stations.map((s) => s.id));
+      return;
+    }
+    setTier(next);
+    setRoleIds([]);
+    setStationIds([]);
+  }
 
   // Preserve already-selected stations only if they remain valid for the
   // current location + role-set. Drop everything else so the save payload
-  // never contains an orphan id.
+  // never contains an orphan id. Manager bypasses the role-stations filter.
   function onRolesChange(next: string[]): void {
-    const stillValidStations = stationIds.filter((id) =>
-      stations.some((s) => s.id === id),
-    );
+    if (tier === 'manager') {
+      setRoleIds(next);
+      return;
+    }
+    const covered = new Set<string>();
+    for (const roleId of next) {
+      const role = roleById.get(roleId);
+      if (!role) continue;
+      if (role.stationIds.length === 0) {
+        for (const s of stations) covered.add(s.id);
+        break;
+      }
+      for (const stationId of role.stationIds) covered.add(stationId);
+    }
+    const stillValidStations = stationIds.filter((id) => covered.has(id));
     setRoleIds(next);
     setStationIds(stillValidStations);
   }
@@ -274,7 +331,7 @@ export function EditRolesModal({
                       name="edit-accessLevel"
                       value={opt}
                       checked={selected}
-                      onChange={() => setTier(opt)}
+                      onChange={() => onTierChange(opt)}
                       className="sr-only"
                     />
                     <span
@@ -327,7 +384,7 @@ export function EditRolesModal({
               label={t('stationsLabel')}
               value={stationIds}
               onChange={setStationIds}
-              options={stations.map((s) => ({ value: s.id, label: s.name }))}
+              options={availableStations.map((s) => ({ value: s.id, label: s.name }))}
               disabled={roleIds.length === 0}
               blockedReason={stationsBlockedReason}
               placeholder={t('stationsPrompt')}

@@ -17,15 +17,16 @@ export function SectionHead({
   all?: { href: string; label: string };
 }): React.ReactElement {
   return (
-    <div className="flex items-baseline justify-between gap-3">
-      <h2 id={id} className="min-w-0 text-lg font-semibold leading-heading text-[var(--color-ink)]">
+    <div className="flex items-baseline justify-between" style={{ gap: '8px' }}>
+      <h2 id={id} className="min-w-0 text-base font-semibold leading-snug text-[var(--color-ink)]">
         {title}
       </h2>
       {aside}
       {all ? (
         <Link
           href={all.href}
-          className="inline-flex min-h-tap shrink-0 items-center gap-1 whitespace-nowrap text-sm font-semibold text-[var(--color-ink-2)] hover:text-[var(--color-ink)]"
+          className="inline-flex shrink-0 items-center whitespace-nowrap text-xs font-semibold text-[var(--color-ink-2)] hover:text-[var(--color-ink)]"
+          style={{ gap: '2px', minHeight: '32px' }}
         >
           {all.label}
           <LuChevronRight aria-hidden="true" />

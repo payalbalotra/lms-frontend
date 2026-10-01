@@ -25,6 +25,13 @@ interface ProceduresClientListProps {
   viewAs: ViewAs | null;
   /** The reader's station: its own procedures lead the list. */
   stationId?: string | null;
+  /** When true, every row is rendered as locked (dimmed + dashed + tap →
+   *  /employee/training). Default false — onboarding has been cleared. */
+  locked?: boolean;
+  /** Where locked rows route on tap (typically /employee/training). */
+  lockedHref?: string;
+  /** Localised reason string rendered below each locked row's meta line. */
+  lockedReason?: string;
 }
 
 export function ProceduresClientList({
@@ -37,6 +44,9 @@ export function ProceduresClientList({
   readsSpanish,
   viewAs,
   stationId,
+  locked,
+  lockedHref,
+  lockedReason,
 }: ProceduresClientListProps): React.ReactElement {
   // Translations must be resolved inside the client: next-intl's translation
   // object contains function values for interpolated keys, and those cannot be
@@ -139,36 +149,43 @@ export function ProceduresClientList({
   // chip was a tap that led to an empty list.
   const usedCategories = new Set(published.map((p) => p.category?.slug).filter(Boolean));
 
-  const chip =
-    'inline-flex min-h-tap items-center gap-2 rounded-full px-4 text-base font-semibold whitespace-nowrap cursor-pointer';
+  /* All chip sizing uses inline styles — Tailwind v4 resets --spacing-* so gap-x, px-x classes produce no CSS */
+  const chipBase = 'inline-flex items-center rounded-full font-semibold whitespace-nowrap cursor-pointer transition-colors duration-150 text-xs';
+  const chipStyle = { height: '30px', minHeight: '30px', paddingLeft: '10px', paddingRight: '10px', gap: '4px' };
+  const chipStyleSm = { ...chipStyle }; // same for now, can scale up with sm: breakpoint if needed
 
   return (
     <div>
-      {/* Search Input */}
-      <div className="mt-5">
+      {/* Search Input — compact on mobile to leave room for filter chips below */}
+      <div className="mt-4">
         <label htmlFor="q-client" className="sr-only">
           {labels.searchLabel}
         </label>
-        <div className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--color-line-3)] bg-[var(--color-surface)] px-4 py-2 transition-colors duration-[var(--dur)] ease-[var(--ease)] focus-within:border-[var(--color-ring)] focus-within:outline focus-within:outline-2 focus-within:outline-[var(--color-ring)]">
-          <LuSearch aria-hidden="true" className="text-lg text-[var(--color-ink-2)]" />
+        <div
+          className="flex items-center gap-2 rounded-[var(--radius-lg)] border border-[var(--color-line-3)] bg-[var(--color-surface)] px-3 transition-colors duration-[var(--dur)] ease-[var(--ease)] focus-within:border-[var(--color-ring)] focus-within:outline focus-within:outline-2 focus-within:outline-[var(--color-ring)] sm:px-4"
+          style={{ height: '40px' }}
+        >
+          <LuSearch aria-hidden="true" className="shrink-0 text-base text-[var(--color-ink-2)] sm:text-lg" />
           <input
             id="q-client"
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={labels.searchPlaceholder}
-            className="h-tap min-w-0 flex-1 border-0 bg-transparent text-md text-[var(--color-ink)] outline-none placeholder:text-[var(--color-ink-3)]"
+            className="min-w-0 flex-1 border-0 bg-transparent text-sm text-[var(--color-ink)] outline-none placeholder:text-[var(--color-ink-3)] sm:text-md"
+            style={{ height: '100%' }}
           />
         </div>
       </div>
 
-      {/* Categories Bar */}
-      <div className="chip-rail -mx-4 mt-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0">
-        <div className="flex gap-2 sm:flex-wrap">
+      {/* Category filter chips — always wrap, all visible without scrolling */}
+      <div style={{ marginTop: '10px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
           <button
             type="button"
             onClick={() => setActiveCategory('')}
-            className={`${chip} ${activeCategory === '' ? 'bg-[var(--color-ink)] text-[var(--color-surface)]' : 'bg-[var(--color-panel)] text-[var(--color-ink)]'}`}
+            className={`${chipBase} ${activeCategory === '' ? 'bg-[var(--color-ink)] text-[var(--color-surface)]' : 'bg-[var(--color-panel)] text-[var(--color-ink)] hover:bg-[var(--color-panel-2)]'}`}
+            style={chipStyle}
           >
             {labels.all}
           </button>
@@ -181,7 +198,8 @@ export function ProceduresClientList({
                   type="button"
                   key={c.id}
                   onClick={() => setActiveCategory(on ? '' : c.slug)}
-                  className={`${chip} ${on ? 'bg-[var(--color-ink)] text-[var(--color-surface)]' : 'bg-[var(--color-panel)] text-[var(--color-ink)]'}`}
+                  className={`${chipBase} ${on ? 'bg-[var(--color-ink)] text-[var(--color-surface)]' : 'bg-[var(--color-panel)] text-[var(--color-ink)] hover:bg-[var(--color-panel-2)]'}`}
+                  style={chipStyle}
                 >
                   <Icon icon={getCategoryIcon(c)} />
                   {nameOf(c)}
@@ -191,7 +209,7 @@ export function ProceduresClientList({
         </div>
       </div>
 
-      <p className="mt-5 text-base text-[var(--color-ink-2)]" aria-live="polite">
+      <p className="mt-4 text-sm text-[var(--color-ink-2)]" aria-live="polite">
         {labels.count(results.length)}
       </p>
 
@@ -219,6 +237,9 @@ export function ProceduresClientList({
                     allergens: allergenWords(factsOf(p, readsSpanish).allergens, isEs ? 'es' : 'en'),
                   }}
                   flagLabels={flagLabels}
+                  locked={locked}
+                  lockedHref={lockedHref}
+                  lockedReason={lockedReason}
                 />
               </li>
             );
