@@ -2,11 +2,12 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import type { Employee } from '@/lib/types';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { LocaleSwitch } from '@/components/ui/locale-switch';
 import { LuArrowLeft, LuArrowUpRight, LuChartColumn, LuChefHat, LuCirclePlus, LuClipboardList, LuFolders, LuGraduationCap, LuHouse, LuLogOut, LuMenu, LuUserPlus, LuUsers, LuX } from 'react-icons/lu';
 import { Icon } from '@/components/ui/icon';
 import { AdminSearch } from '@/components/admin/admin-search';
@@ -40,49 +41,6 @@ import type { IconType } from 'react-icons';
  * active — `Library` is shown as "ancestor active" (softer highlight),
  * never double-active.
  */
-
-/**
- * English or Spanish, on every admin screen.
- *
- * The kitchen is bilingual and so is the library: a manager writing a procedure
- * in Spanish has to be able to see the app the way the cook reading it will. The
- * switch swaps the locale segment of the current path, so it keeps you on the
- * page you are on rather than sending you home.
- */
-const LOCALES = ['en', 'es'] as const;
-
-function LocaleSwitch({ locale, label }: { locale: string; label: string }): React.ReactElement {
-  const pathname = usePathname();
-  const rest = pathname.split('/').slice(2).join('/');
-  // The query goes with you: switching language on a filtered list should change
-  // the language, not clear the filter.
-  const query = useSearchParams().toString();
-  const suffix = query ? `?${query}` : '';
-
-  // .segbar is the recipe scaler's control at admin size — same shape, same
-  // seats, same filled answer — so the two places the app asks "which one?" look
-  // alike.
-  return (
-    <div className="segbar notranslate" translate="no" role="group" aria-label={label}>
-      {LOCALES.map((code) => {
-        const current = code === locale;
-        return (
-          <Link
-            key={code}
-            href={`/${code}${rest ? `/${rest}` : ''}${suffix}`}
-            aria-current={current ? 'true' : undefined}
-            translate="no"
-            className="notranslate"
-          >
-            {/* The code is written in caps, rather than a lowercase word set in
-                caps by CSS: a screen reader should say "E S", not "es". */}
-            {code.toUpperCase()}
-          </Link>
-        );
-      })}
-    </div>
-  );
-}
 
 interface AdminShellProps {
   children: React.ReactNode;

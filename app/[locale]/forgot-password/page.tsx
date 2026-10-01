@@ -1,19 +1,21 @@
 import * as React from 'react';
 import { setRequestLocale } from 'next-intl/server';
 import { AuthShell } from '@/components/auth/auth-shell';
-import { LoginForm } from './login-form';
+import { ForgotPasswordForm } from './forgot-password-form';
 
-interface LoginPageProps {
+interface ForgotPasswordPageProps {
   params: Promise<{ locale: string }>;
 }
 
-export default async function LoginPage({ params }: LoginPageProps): Promise<React.ReactElement> {
+export default async function ForgotPasswordPage({
+  params,
+}: ForgotPasswordPageProps): Promise<React.ReactElement> {
   const { locale } = await params;
   setRequestLocale(locale);
 
   return (
     <AuthShell locale={locale}>
-      <LoginForm locale={locale} />
+      <ForgotPasswordForm locale={locale} />
     </AuthShell>
   );
 }

@@ -2373,19 +2373,25 @@ function getQuizzesStore(): Quiz[] {
 // ----------------------------------------------------------------------------
 
 export interface LoginInput {
-  name: string;
-  password: string;
-  locationId: string;
+  email?: string;
+  name?: string;
+  password?: string;
+  locationId?: string;
   deviceMode?: 'personal' | 'shared';
 }
 
 export async function login(input: LoginInput): Promise<{ employee: Employee }> {
   const emps = getEmployeesStore();
-  const needle = (input.name || '').toLowerCase().trim();
+  const needle = (input.email || input.name || '').toLowerCase().trim();
   let emp: AdminEmployee | undefined;
 
   if (needle) {
-    emp = emps.find((e) => e.name.toLowerCase().includes(needle) || e.employeeCode?.toLowerCase() === needle);
+    emp = emps.find(
+      (e) =>
+        e.email?.toLowerCase() === needle ||
+        e.name.toLowerCase().includes(needle) ||
+        e.employeeCode?.toLowerCase() === needle,
+    );
   }
 
   if (!emp) {
@@ -2426,6 +2432,29 @@ export async function logout(): Promise<{ ok: true }> {
     }
   }
   return { ok: true };
+}
+
+export async function requestPasswordReset(_input: { email: string }): Promise<{ ok: true; message: string }> {
+  return { ok: true, message: 'Password reset link sent.' };
+}
+
+export async function resetPassword(_input: { token: string; code: string; password: string }): Promise<{ ok: true; message: string }> {
+  return { ok: true, message: 'Password updated successfully.' };
+}
+
+export async function verifyResetToken(token: string): Promise<{
+  valid: boolean;
+  email?: string;
+  employeeName?: string;
+}> {
+  if (!token || token === 'invalid' || token === 'expired') {
+    return { valid: false };
+  }
+  return {
+    valid: true,
+    email: 'maria@alimentariamexicana.com',
+    employeeName: 'María González',
+  };
 }
 
 export async function fetchMe(cookieHeader?: string, _signal?: AbortSignal): Promise<{ employee: Employee }> {
@@ -2673,7 +2702,7 @@ export async function lookupInvite(_token: string): Promise<{
   };
 }
 
-export async function activate(_input: { token: string; code: string; password: string }): Promise<{ employee: Employee }> {
+export async function activate(_input: { token: string; code?: string; password: string }): Promise<{ employee: Employee }> {
   return { employee: mockEmployees[0] };
 }
 
