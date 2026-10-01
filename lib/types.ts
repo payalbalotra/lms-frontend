@@ -22,6 +22,13 @@ export interface Role {
   id: string;
   name: string;
   clearanceLevel: ClearanceLevel;
+  /**
+   * Stations this role works on. Empty array means "any station at the
+   * employee's location" — most kitchen roles are pinned to a specific set
+   * (Line Cook → grill/gm/expo), but a Manager typically gets every station
+   * which the form expresses as an empty list + accessLevel = 'manager'.
+   */
+  stationIds: string[];
   createdAt: string;
 }
 
@@ -107,11 +114,14 @@ export interface UpdateStationInput {
 export interface CreateRoleInput {
   name: string;
   clearanceLevel: ClearanceLevel;
+  /** Stations this role works on. Empty array = "any station". */
+  stationIds?: string[];
 }
 
 export interface UpdateRoleInput {
   name?: string;
   clearanceLevel?: ClearanceLevel;
+  stationIds?: string[];
 }
 
 export interface CreateLocationInput {

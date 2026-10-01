@@ -7,12 +7,19 @@ import type { Procedure, ProcedureBlock, TrainingAssignmentRow } from '@/lib/typ
 import { readViewAs } from '@/lib/view-as-server';
 import { withAs } from '@/lib/view-as';
 import { TabBar } from '@/components/employee/tab-bar';
-import { getTrainingRowsForEmployee, mockTrainingEmployees } from '@/lib/mock-training';
+import {
+  getOnboardingChapters,
+  getTrainingRowsForEmployee,
+  mockTrainingEmployees,
+} from '@/lib/mock-training';
 import { EmployeeHome, type HomeRow, type TrainingSummary } from './components/EmployeeHome';
+import { HomeViewToggle } from './components/HomeViewToggle';
 import { allergenWords, factsOf } from './components/procedure-facts';
+import { pickPromoProcedures } from '@/lib/promos';
 
 interface PageProps {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ view?: string }>;
 }
 
 export const dynamic = 'force-dynamic';
@@ -20,13 +27,13 @@ export const dynamic = 'force-dynamic';
 const DAY = 24 * 60 * 60 * 1000;
 /** Someone who joined this recently is still in their first weeks. */
 const FIRST_WEEKS = 30 * DAY;
-/** A procedure edited this recently counts as changed. */
-const CHANGED_WINDOW = 14 * DAY;
 
-export default async function EmployeeHomePage({ params }: PageProps): Promise<React.ReactElement> {
+export default async function EmployeeHomePage({ params, searchParams }: PageProps): Promise<React.ReactElement> {
   const { locale } = await params;
+  const { view = '' } = await searchParams;
   setRequestLocale(locale);
   const t = await getTranslations('employee.home');
+  const tTraining = await getTranslations('employee.training');
 
   const cookieStore = await cookies();
   const cookieHeader = cookieStore
@@ -80,6 +87,16 @@ export default async function EmployeeHomePage({ params }: PageProps): Promise<R
   const titleOf = (p: { titleEn: string; titleEs: string }): string =>
     isEs ? p.titleEs || p.titleEn : p.titleEn || p.titleEs;
 
+  /* ---------------------------------------------------------- greeting -- */
+
+  // Time-of-day line. A cook landing at 6 a.m. and one landing at 9 p.m.
+  // should not see the same line. Three buckets — morning before noon,
+  // afternoon until six, evening after — match what most kitchens call a
+  // shift, and the strings already exist in the i18n catalog.
+  const hour = new Date(now).getHours();
+  const greetingKey = hour < 12 ? 'greetingMorning' : hour < 18 ? 'greetingAfternoon' : 'greetingEvening';
+  const greeting = t(greetingKey, { name: employee.name });
+
   /* ---------------------------------------------------------- training -- */
 
   // The training mock and the employee list share ids; the name match is the
@@ -89,6 +106,27 @@ export default async function EmployeeHomePage({ params }: PageProps): Promise<R
     mockTrainingEmployees.find((e) => e.name.toLowerCase() === employee.name.toLowerCase())?.id ??
     employee.id;
   const rows = getTrainingRowsForEmployee(trainingId, new Date(now));
+  // Onboarding summary — the gate that decides whether procedures and the
+  // training card are dimmed/locked or fully interactive.
+  const onboarding = getOnboardingChapters(trainingId, new Date(now));
+  const onboardingNotDone = !onboarding.onboardingDone;
+  // Effective view: `?view=onboarding` / `?view=regular` overrides the default.
+  // Default = onboarding-required view for a fresh hire, regular home for
+  // everyone else. The toggle button is always visible so anyone can flip
+  // between the two layouts.
+  const cookieView = cookieStore.get('lms_demo_view')?.value;
+  const effectiveView: 'onboarding' | 'regular' =
+    view === 'onboarding' || view === 'regular'
+      ? view
+      : cookieView === 'onboarding' || cookieView === 'regular'
+        ? cookieView
+        : onboardingNotDone
+          ? 'onboarding'
+          : 'regular';
+  const showOnboardingView = effectiveView === 'onboarding';
+  const lockedHref = `/${locale}/employee/training`;
+  const lockedReason = t('lockedRowReason');
+
   const open = rows.filter((r) => r.effectiveStatus !== 'complete');
   const overdue = open.filter((r) => r.effectiveStatus === 'overdue');
   const done = rows.length - open.length;
@@ -102,34 +140,50 @@ export default async function EmployeeHomePage({ params }: PageProps): Promise<R
     (a, b) => rank(a) - rank(b) || new Date(a.assignment.dueAt).getTime() - new Date(b.assignment.dueAt).getTime(),
   )[0];
 
+  // When onboarding is not done, the TrainingCard slot becomes an
+  // "orientation" card — same shape, points the cook at /employee/training
+  // (the orientation destination), not at the next individual course.
   const training: TrainingSummary | null = rows.length
-    ? {
-        heading: inFirstWeeks && open.length ? t('firstWeeksHeading') : t('trainingAttentionHeading'),
-        doneLine: t('trainingDoneLine', { done, total: rows.length }),
-        overdueLine: overdue.length ? t('trainingOverdueLine', { count: overdue.length }) : undefined,
-        done,
-        total: rows.length,
-        next: next
-          ? {
-              href: `/${locale}/employee/training/${next.course.id}`,
-              title: titleOf(next.course),
-              pill:
-                next.effectiveStatus === 'overdue'
-                  ? { tone: 'bad', text: t('trainingOverdueChip') }
-                  : next.effectiveStatus === 'in_progress'
-                    ? { tone: 'progress', text: t('trainingInProgressChip') }
-                    : { tone: 'neutral', text: t('trainingNotStarted') },
-              when: dueLabel(next.assignment.dueAt, now, t),
-              action: next.effectiveStatus === 'in_progress' ? t('continueAction') : t('startAction'),
-            }
-          : undefined,
-        caughtUp: t('trainingCatchUpTitle'),
-        all: { href: `/${locale}/employee/training`, label: t('trainingSeeAll') },
-      }
+    ? onboardingNotDone
+      ? {
+          heading: t('orientationHeading'),
+          overdueLine: undefined,
+          done: onboarding.done,
+          total: onboarding.total,
+          next: {
+            href: lockedHref,
+            title: tTraining('orientationHeading'),
+            pill: { tone: 'warn', text: t('orientationChip') },
+            when: tTraining('orientationRequired'),
+            action: onboarding.done > 0 ? t('orientationResumeAction') : t('orientationStartAction'),
+          },
+          caughtUp: t('orientationResumeAction'),
+          all: { href: lockedHref, label: t('trainingSeeAll') },
+        }
+      : {
+          heading: inFirstWeeks && open.length ? t('firstWeeksHeading') : t('trainingAttentionHeading'),
+          doneLine: t('trainingDoneLine', { done, total: rows.length }),
+          overdueLine: overdue.length ? t('trainingOverdueLine', { count: overdue.length }) : undefined,
+          done,
+          total: rows.length,
+          next: next
+            ? {
+                href: `/${locale}/employee/training/${next.course.id}`,
+                title: titleOf(next.course),
+                pill:
+                  next.effectiveStatus === 'overdue'
+                    ? { tone: 'bad', text: t('trainingOverdueChip') }
+                    : next.effectiveStatus === 'in_progress'
+                      ? { tone: 'progress', text: t('trainingInProgressChip') }
+                      : { tone: 'neutral', text: t('trainingNotStarted') },
+                when: dueLabel(next.assignment.dueAt, now, t),
+                action: next.effectiveStatus === 'in_progress' ? t('continueAction') : t('startAction'),
+              }
+            : undefined,
+          caughtUp: t('trainingCatchUpTitle'),
+          all: { href: `/${locale}/employee/training`, label: t('trainingSeeAll') },
+        }
     : null;
-
-  // First weeks with work open, or anything late: the training is the day's work.
-  const trainingFirst = Boolean(training && ((inFirstWeeks && open.length > 0) || overdue.length > 0));
 
   /* -------------------------------------------------------- procedures -- */
 
@@ -156,67 +210,64 @@ export default async function EmployeeHomePage({ params }: PageProps): Promise<R
       title: titleOf(p),
       meta,
       flags: { ...facts, allergens: allergenWords(facts.allergens, isEs ? 'es' : 'en') },
+      locked: showOnboardingView,
+      lockedHref: showOnboardingView ? lockedHref : undefined,
+      lockedReason: showOnboardingView ? lockedReason : undefined,
     };
   };
   const categoryOf = (p: Procedure): string =>
     p.category ? (isEs ? p.category.nameEs || p.category.nameEn : p.category.nameEn) : t('uncategorised');
-  const rel = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
 
-  // What changed lately in what this person works with: their station's, and
-  // the kitchen-wide procedures everyone follows.
-  const changed = procedures
-    .filter((p) => now - new Date(p.updatedAt).getTime() < CHANGED_WINDOW)
-    .filter((p) => forMyStation(p) || !p.stationScope || p.stationScope.mode === 'all')
-    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-    .slice(0, 3);
-  const changedIds = new Set(changed.map((p) => p.id));
+  // Promo dishes — capped at 3, in display order from `PROMO_SLUGS`. The
+  // audience/clearance filter ran before us, so a promo the cook may not read
+  // never surfaces here.
+  const promoRows = pickPromoProcedures(procedures).map((p) => toRow(p, categoryOf(p)));
+  const promoIds = new Set(promoRows.map((p) => p.key));
 
-  // Their station's own procedures first, then the rest of what they can read.
+  // The station's own procedures first, with Guacamole Fresco prioritized at the top,
+  // then kitchen-wide procedures. Promos are surfaced in their own section above and never re-listed here.
+  const isGuac = (p: Procedure) => p.id === 'proc-guacamole-fresco' || p.slug === 'guacamole-fresco';
   const stationRows = procedures
-    .filter((p) => !changedIds.has(p.id))
-    .sort(
-      (a, b) =>
+    .filter((p) => !promoIds.has(p.id))
+    .sort((a, b) => {
+      const gA = isGuac(a) ? 1 : 0;
+      const gB = isGuac(b) ? 1 : 0;
+      if (gA !== gB) return gB - gA;
+      return (
         Number(forMyStation(b)) - Number(forMyStation(a)) ||
-        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-    )
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      );
+    })
     .slice(0, 5);
-
-  const initials = employee.name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0]!.toUpperCase())
-    .join('');
 
   return (
     <>
-      <main className="mx-auto w-full max-w-doc px-4 pb-20 pt-6 sm:px-6 sm:pt-8">
+      <main
+        className="mx-auto w-full max-w-doc px-3 pt-4 sm:px-6 sm:pt-8"
+        style={{ paddingBottom: '100px' }}
+      >
+        <div
+          className="flex items-center justify-between"
+          style={{ marginBottom: '14px' }}
+        >
+          <h1
+            className="font-bold text-lg text-[var(--color-ink)]"
+            style={{ letterSpacing: '-0.01em' }}
+          >
+            {t('tabHome')}
+          </h1>
+          <HomeViewToggle value={effectiveView} aria={t('orientationToggleAria')} />
+        </div>
         <EmployeeHome
           locale={locale}
-          readsSpanish={isEs}
-          who={{
-            name: employee.name,
-            initials,
-            // A dishwasher at the Dishwasher station read "Dishwasher · Dishwasher".
-            line: [...new Set([roleName, stationName].filter(Boolean))].join(' · ') || t('noStation'),
-          }}
-          ask={{
-            locale,
-            heading: t('askHeading'),
-            label: t('searchLabel'),
-            placeholder: t('askPlaceholder'),
-            hint: t('askHint'),
-            micLabel: t('micLabel'),
-            listeningLabel: t('micListening'),
-          }}
+          greeting={greeting}
+          name={employee.name}
+          roleName={roleName}
+          stationName={stationName}
           training={training}
-          trainingFirst={trainingFirst}
-          backTo={{ heading: t('backToHeading'), opened: t.raw('openedAgo') as string }}
-          changed={{
-            heading: t('changedForYouHeading'),
-            rows: changed.map((p) =>
-              toRow(p, `${categoryOf(p)} · ${t('changedAgo', { when: relDays(p.updatedAt, now, rel) })}`),
-            ),
+          promo={{
+            heading: t('promoHeading'),
+            rows: promoRows,
           }}
           station={{
             // Named for the station only when something here is the station's own.
@@ -233,6 +284,7 @@ export default async function EmployeeHomePage({ params }: PageProps): Promise<R
             critical: t('flagCritical'),
             english: t('flagEnglishOnly'),
           }}
+          isOnboarding={showOnboardingView}
         />
       </main>
 
@@ -248,10 +300,6 @@ export default async function EmployeeHomePage({ params }: PageProps): Promise<R
 function coverOf(blocks: ProcedureBlock[]): string | undefined {
   const img = blocks.find((b) => b.kind === 'image' && b.src);
   return img && img.kind === 'image' ? img.src : undefined;
-}
-
-function relDays(iso: string, now: number, rel: Intl.RelativeTimeFormat): string {
-  return rel.format(Math.round((new Date(iso).getTime() - now) / DAY), 'day');
 }
 
 function dueLabel(dueAt: string, now: number, t: (k: string, v?: Record<string, string | number>) => string): string {

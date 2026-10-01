@@ -41,17 +41,24 @@ export function StatusPill({
     <span
       data-slot="status-pill"
       className={cn(
-        'inline-flex items-center gap-1 whitespace-nowrap rounded-md',
-        'px-2 py-0.5 text-sm font-medium',
+        'inline-flex items-center whitespace-nowrap rounded-md text-xs font-medium',
         toneClasses[tone],
         className,
       )}
+      style={{
+        paddingTop: '2px',
+        paddingBottom: '2px',
+        paddingLeft: '6px',
+        paddingRight: '6px',
+        gap: '3px',
+      }}
       {...rest}
     >
       {withDot ? (
         <span
           aria-hidden="true"
-          className="inline-block size-2 rounded-full bg-current"
+          className="inline-block rounded-full bg-current"
+          style={{ width: '6px', height: '6px', flexShrink: 0 }}
         />
       ) : null}
       {icon ? <Icon icon={icon} /> : null}

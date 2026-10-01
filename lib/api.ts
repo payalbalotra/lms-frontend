@@ -54,9 +54,12 @@ const SEED_LOCATIONS: Location[] = [
 ];
 
 const SEED_ROLES: Role[] = [
-  { id: 'role-cook', name: 'Line Cook', clearanceLevel: 'station', createdAt: '2026-01-01T00:00:00Z' },
-  { id: 'role-prep', name: 'Prep Cook', clearanceLevel: 'station', createdAt: '2026-01-01T00:00:00Z' },
-  { id: 'role-dish', name: 'Dishwasher', clearanceLevel: 'general', createdAt: '2026-01-01T00:00:00Z' },
+  // Per the client's job→station mapping (Line cook → Gm, Grill, Expo).
+  { id: 'role-cook', name: 'Line Cook', clearanceLevel: 'station', stationIds: ['stn-gm', 'stn-grill', 'stn-expo'], createdAt: '2026-01-01T00:00:00Z' },
+  // Prep cook → prep kitchen only.
+  { id: 'role-prep', name: 'Prep Cook', clearanceLevel: 'station', stationIds: ['stn-prep'], createdAt: '2026-01-01T00:00:00Z' },
+  // Dishwasher → dishwasher station only.
+  { id: 'role-dish', name: 'Dishwasher', clearanceLevel: 'general', stationIds: ['stn-dish'], createdAt: '2026-01-01T00:00:00Z' },
 ];
 
 const SEED_STATIONS: Station[] = [
@@ -1442,6 +1445,781 @@ const SEED_PROCEDURES: Procedure[] = [
       ],
     },
   },
+  // -------------------------------------------------------------------
+  // Limited-time promo dish — fronted on the employee home under the
+  // "PROMO" badge. The slug is registered in `lib/promos.ts → PROMO_SLUGS`,
+  // which `pickPromoProcedures` reads to surface up to three of these on
+  // the home screen. Backend `promo` column will replace the slug list
+  // when it ships; this entry stays as the seed data.
+  // -------------------------------------------------------------------
+  {
+    id: 'proc-promo-sea-bass',
+    slug: 'herb-crusted-sea-bass',
+    titleEn: 'Herb-Crusted Sea Bass',
+    titleEs: 'Lubina con Costra de Hierbas',
+    purposeEn:
+      'A fresh, elegant signature dish featuring perfectly seared sea bass with a crisp herb crust, creamy lemon-basil sauce, and roasted cherry tomatoes.',
+    purposeEs:
+      'Un plato estrella fresco y elegante: lubina perfectamente sellada con costra crujiente de hierbas, salsa cremosa de limón y albahaca, y tomates cherry asados.',
+    category: SEED_CATEGORIES[6],
+    subcategoryId: 'sub-cooking',
+    status: 'published',
+    iconImageUrl: '/img/promo1.jpg',
+    createdBy: 'emp-admin',
+    createdAt: '2026-09-20T00:00:00Z',
+    updatedAt: '2026-09-30T09:00:00Z',
+    version: 1,
+    isArchived: false,
+    stationScope: { mode: 'specific', stationIds: ['stn-grill', 'stn-expo'] },
+    quizId: null,
+    linkedTrainingId: null,
+    quizMode: 'training',
+    bodyEn: {
+      blocks: [
+        {
+          id: 'sb-cover',
+          kind: 'image',
+          src: '/img/promo1.jpg',
+          alt: {
+            en: 'A finished plate: herb-crusted sea bass over lemon-basil sauce with roasted cherry tomatoes.',
+            es: 'Plato terminado: lubina con costra de hierbas sobre salsa de limón y albahaca con tomates cherry asados.',
+          },
+          hint: 'photo',
+        },
+        {
+          id: 'sb-purpose',
+          kind: 'text',
+          body: {
+            en: 'A fresh, elegant signature dish featuring perfectly seared sea bass with a crisp herb crust, creamy lemon-basil sauce, and roasted cherry tomatoes. Serves 1.',
+            es: 'Un plato estrella fresco y elegante: lubina perfectamente sellada con costra crujiente de hierbas, salsa cremosa de limón y albahaca, y tomates cherry asados. Rinde 1 porción.',
+          },
+        },
+        {
+          id: 'sb-facts',
+          kind: 'heading',
+          level: 2,
+          text: { en: 'At a glance', es: 'De un vistazo' },
+        },
+        {
+          id: 'sb-facts-t',
+          kind: 'text',
+          body: {
+            en: 'Serves 1 · Prep 15 min · Cook 15 min · Internal temperature 63 °C (145 °F).',
+            es: 'Rinde 1 porción · Prep 15 min · Cocción 15 min · Temperatura interna 63 °C (145 °F).',
+          },
+        },
+        {
+          id: 'sb-ingredients-h',
+          kind: 'heading',
+          level: 2,
+          text: { en: 'Ingredients', es: 'Ingredientes' },
+        },
+        {
+          id: 'sb-ingredients-t',
+          kind: 'text',
+          body: {
+            en: '1 sea bass fillet (180 g, skin-on) · 2 tbsp fresh parsley, chopped · 1 tbsp fresh dill, chopped · 1 tbsp fresh chives, sliced · 1 garlic clove, minced · 1 tbsp panko breadcrumbs · 1 tbsp olive oil · 1 lemon (zest + juice) · 100 ml heavy cream · 8 fresh basil leaves · 100 g cherry tomatoes · salt and pepper to taste · 1 tbsp butter.',
+            es: '1 filete de lubina (180 g, con piel) · 2 cdas de perejil fresco picado · 1 cda de eneldo fresco picado · 1 cda de cebollín fresco en rodajas · 1 diente de ajo picado · 1 cda de pan rallado (panko) · 1 cda de aceite de oliva · 1 limón (ralladura y jugo) · 100 ml de crema para batir · 8 hojas de albahaca fresca · 100 g de tomates cherry · sal y pimienta al gusto · 1 cda de mantequilla.',
+          },
+        },
+        {
+          id: 'sb-recipe',
+          kind: 'recipe',
+          audience: '',
+          allergen: {
+            summary: 'Contains fish, dairy, wheat (panko), gluten',
+            detail: 'Check the ticket for fish, dairy and gluten allergies before plating.',
+            selectedAllergens: ['fish', 'milk', 'wheat', 'gluten'],
+          },
+          yieldItems: [
+            { label: 'Portions', value: '1', scales: true },
+            { label: 'Portion size', value: '180', unit: 'g' },
+            { label: 'Prep', value: '15', unit: 'min' },
+            { label: 'Cook', value: '15', unit: 'min' },
+          ],
+          steps: [
+            {
+              id: 'sb-s1',
+              body: {
+                en: 'Preheat the oven to 200 °C (400 °F).',
+                es: 'Precalienta el horno a 200 °C (400 °F).',
+              },
+            },
+            {
+              id: 'sb-s2',
+              body: {
+                en: 'Mix parsley, dill, chives, garlic, panko, olive oil, lemon zest, salt and pepper in a small bowl.',
+                es: 'Mezcla perejil, eneldo, cebollín, ajo, panko, aceite de oliva, ralladura de limón, sal y pimienta en un bowl pequeño.',
+              },
+            },
+            {
+              id: 'sb-s3',
+              body: {
+                en: 'Score the sea bass skin lightly. Season the fillet with salt and pepper on both sides.',
+                es: 'Haz cortes superficiales en la piel de la lubina. Sazona el filete con sal y pimienta por ambos lados.',
+              },
+            },
+            {
+              id: 'sb-s4',
+              body: {
+                en: 'Heat an oven-safe pan over medium-high heat. Sear the fillet skin-side down for 3 minutes until the skin is crisp and golden.',
+                es: 'Calienta un sartén apto para horno a fuego medio-alto. Sella el filete por el lado de la piel durante 3 minutos hasta que esté crujiente y dorada.',
+              },
+            },
+            {
+              id: 'sb-s5',
+              body: {
+                en: 'Press the herb crust onto the flesh side of the fillet. Transfer the pan to the oven and roast for 8-10 minutes until the internal temperature reaches 63 °C (145 °F).',
+                es: 'Presiona la costra de hierbas sobre el lado de la carne del filete. Lleva el sartén al horno y rostiza 8-10 minutos hasta que la temperatura interna alcance 63 °C (145 °F).',
+              },
+              critical: true,
+              criticalLimit: {
+                label: 'Critical limit',
+                icon: 'LuTempHot',
+                value: '63 °C (145 °F) internal',
+                subtitle: 'Fish must reach this temperature to be safe to serve.',
+                howToCheck: 'Probe at the thickest part of the fillet with a sanitised thermometer.',
+                breachLabel: 'If below 63 °C',
+                breachResponse: 'Return to the oven for 2 minutes and re-check. Do not serve undercooked fish.',
+              },
+            },
+            {
+              id: 'sb-s6',
+              body: {
+                en: 'While the fish cooks, halve the cherry tomatoes and toss with olive oil, salt and pepper. Roast in a small pan for the last 6 minutes of cooking time.',
+                es: 'Mientras se cocina el pescado, corta los tomates cherry por la mitad y mézclalos con aceite de oliva, sal y pimienta. Rostízalos en un sartén pequeño durante los últimos 6 minutos de cocción.',
+              },
+            },
+            {
+              id: 'sb-s7',
+              body: {
+                en: 'For the sauce: heat cream in a small pan over low heat. Add lemon juice and torn basil leaves. Simmer for 2 minutes, then whisk in butter until silky.',
+                es: 'Para la salsa: calienta la crema en un sartén pequeño a fuego bajo. Agrega el jugo de limón y las hojas de albahaca rotas. Cocina a fuego lento durante 2 minutos, luego incorpora la mantequilla batiendo hasta que quede sedosa.',
+              },
+            },
+            {
+              id: 'sb-s8',
+              body: {
+                en: 'Plate: spoon the lemon-basil sauce onto a warm plate, lay the sea bass on top, and arrange the roasted cherry tomatoes around it. Garnish with a basil leaf and serve immediately.',
+                es: 'Emplata: vierte la salsa de limón y albahaca en un plato caliente, coloca la lubina encima y acomoda los tomates cherry asados alrededor. Decora con una hoja de albahaca y sirve de inmediato.',
+              },
+            },
+          ],
+        },
+        {
+          id: 'sb-key-h',
+          kind: 'heading',
+          level: 2,
+          text: { en: 'Key points', es: 'Puntos clave' },
+        },
+        {
+          id: 'sb-key-1',
+          kind: 'text',
+          body: {
+            en: 'Score the skin — this prevents it from curling and ensures even crisping.',
+            es: 'Haz cortes en la piel — esto evita que se encoja y asegura un dorado uniforme.',
+          },
+        },
+        {
+          id: 'sb-key-2',
+          kind: 'text',
+          body: {
+            en: 'Sear skin-side down first — this is the only way to get a crisp skin without overcooking the flesh.',
+            es: 'Sella primero por el lado de la piel — es la única forma de lograr una piel crujiente sin sobrecocinar la carne.',
+          },
+        },
+        {
+          id: 'sb-key-3',
+          kind: 'text',
+          body: {
+            en: 'Internal temperature is 63 °C (145 °F) — fish that looks done can still be undercooked inside.',
+            es: 'La temperatura interna es 63 °C (145 °F) — un pescado que parece cocido aún puede estar crudo por dentro.',
+          },
+        },
+        {
+          id: 'sb-key-4',
+          kind: 'text',
+          body: {
+            en: 'Finish the butter off the heat — adding it to a boiling sauce will break the emulsion.',
+            es: 'Termina la mantequilla fuera del fuego — agregarla a una salsa hirviendo romperá la emulsión.',
+          },
+        },
+        {
+          id: 'sb-pro-h',
+          kind: 'heading',
+          level: 2,
+          text: { en: 'Pro tip', es: 'Consejo profesional' },
+        },
+        {
+          id: 'sb-pro-t',
+          kind: 'text',
+          body: {
+            en: 'Add a splash of the pan juices from the roasted tomatoes into the lemon-basil sauce — it deepens the flavour without extra seasoning.',
+            es: 'Agrega un chorrito del jugo del sartén de los tomates asados a la salsa de limón y albahaca — profundiza el sabor sin necesidad de más condimentos.',
+          },
+        },
+      ],
+    },
+    bodyEs: {
+      blocks: [
+        {
+          id: 'sb-cover',
+          kind: 'image',
+          src: '/img/promo1.jpg',
+          alt: {
+            en: 'A finished plate: herb-crusted sea bass over lemon-basil sauce with roasted cherry tomatoes.',
+            es: 'Plato terminado: lubina con costra de hierbas sobre salsa de limón y albahaca con tomates cherry asados.',
+          },
+          hint: 'photo',
+        },
+        {
+          id: 'sb-purpose',
+          kind: 'text',
+          body: {
+            en: 'A fresh, elegant signature dish featuring perfectly seared sea bass with a crisp herb crust, creamy lemon-basil sauce, and roasted cherry tomatoes. Serves 1.',
+            es: 'Un plato estrella fresco y elegante: lubina perfectamente sellada con costra crujiente de hierbas, salsa cremosa de limón y albahaca, y tomates cherry asados. Rinde 1 porción.',
+          },
+        },
+        {
+          id: 'sb-facts',
+          kind: 'heading',
+          level: 2,
+          text: { en: 'At a glance', es: 'De un vistazo' },
+        },
+        {
+          id: 'sb-facts-t',
+          kind: 'text',
+          body: {
+            en: 'Serves 1 · Prep 15 min · Cook 15 min · Internal temperature 63 °C (145 °F).',
+            es: 'Rinde 1 porción · Prep 15 min · Cocción 15 min · Temperatura interna 63 °C (145 °F).',
+          },
+        },
+        {
+          id: 'sb-ingredients-h',
+          kind: 'heading',
+          level: 2,
+          text: { en: 'Ingredients', es: 'Ingredientes' },
+        },
+        {
+          id: 'sb-ingredients-t',
+          kind: 'text',
+          body: {
+            en: '1 sea bass fillet (180 g, skin-on) · 2 tbsp fresh parsley, chopped · 1 tbsp fresh dill, chopped · 1 tbsp fresh chives, sliced · 1 garlic clove, minced · 1 tbsp panko breadcrumbs · 1 tbsp olive oil · 1 lemon (zest + juice) · 100 ml heavy cream · 8 fresh basil leaves · 100 g cherry tomatoes · salt and pepper to taste · 1 tbsp butter.',
+            es: '1 filete de lubina (180 g, con piel) · 2 cdas de perejil fresco picado · 1 cda de eneldo fresco picado · 1 cda de cebollín fresco en rodajas · 1 diente de ajo picado · 1 cda de pan rallado (panko) · 1 cda de aceite de oliva · 1 limón (ralladura y jugo) · 100 ml de crema para batir · 8 hojas de albahaca fresca · 100 g de tomates cherry · sal y pimienta al gusto · 1 cda de mantequilla.',
+          },
+        },
+        {
+          id: 'sb-recipe',
+          kind: 'recipe',
+          audience: '',
+          allergen: {
+            summary: 'Contiene pescado, lácteos, trigo (panko), gluten',
+            detail: 'Verifica el ticket por alergias a pescado, lácteos y gluten antes de emplatar.',
+            selectedAllergens: ['fish', 'milk', 'wheat', 'gluten'],
+          },
+          yieldItems: [
+            { label: 'Porciones', value: '1', scales: true },
+            { label: 'Tamaño de porción', value: '180', unit: 'g' },
+            { label: 'Prep', value: '15', unit: 'min' },
+            { label: 'Cocción', value: '15', unit: 'min' },
+          ],
+          steps: [
+            {
+              id: 'sb-s1',
+              body: {
+                en: 'Preheat the oven to 200 °C (400 °F).',
+                es: 'Precalienta el horno a 200 °C (400 °F).',
+              },
+            },
+            {
+              id: 'sb-s2',
+              body: {
+                en: 'Mix parsley, dill, chives, garlic, panko, olive oil, lemon zest, salt and pepper in a small bowl.',
+                es: 'Mezcla perejil, eneldo, cebollín, ajo, panko, aceite de oliva, ralladura de limón, sal y pimienta en un bowl pequeño.',
+              },
+            },
+            {
+              id: 'sb-s3',
+              body: {
+                en: 'Score the sea bass skin lightly. Season the fillet with salt and pepper on both sides.',
+                es: 'Haz cortes superficiales en la piel de la lubina. Sazona el filete con sal y pimienta por ambos lados.',
+              },
+            },
+            {
+              id: 'sb-s4',
+              body: {
+                en: 'Heat an oven-safe pan over medium-high heat. Sear the fillet skin-side down for 3 minutes until the skin is crisp and golden.',
+                es: 'Calienta un sartén apto para horno a fuego medio-alto. Sella el filete por el lado de la piel durante 3 minutos hasta que esté crujiente y dorada.',
+              },
+            },
+            {
+              id: 'sb-s5',
+              body: {
+                en: 'Press the herb crust onto the flesh side of the fillet. Transfer the pan to the oven and roast for 8-10 minutes until the internal temperature reaches 63 °C (145 °F).',
+                es: 'Presiona la costra de hierbas sobre el lado de la carne del filete. Lleva el sartén al horno y rostiza 8-10 minutos hasta que la temperatura interna alcance 63 °C (145 °F).',
+              },
+              critical: true,
+              criticalLimit: {
+                label: 'Límite crítico',
+                icon: 'LuTempHot',
+                value: '63 °C (145 °F) interno',
+                subtitle: 'El pescado debe alcanzar esta temperatura para ser seguro de servir.',
+                howToCheck: 'Sondea la parte más gruesa del filete con un termómetro desinfectado.',
+                breachLabel: 'Si está por debajo de 63 °C',
+                breachResponse: 'Regresa al horno por 2 minutos y vuelve a verificar. No sirvas pescado crudo.',
+              },
+            },
+            {
+              id: 'sb-s6',
+              body: {
+                en: 'While the fish cooks, halve the cherry tomatoes and toss with olive oil, salt and pepper. Roast in a small pan for the last 6 minutes of cooking time.',
+                es: 'Mientras se cocina el pescado, corta los tomates cherry por la mitad y mézclalos con aceite de oliva, sal y pimienta. Rostízalos en un sartén pequeño durante los últimos 6 minutos de cocción.',
+              },
+            },
+            {
+              id: 'sb-s7',
+              body: {
+                en: 'For the sauce: heat cream in a small pan over low heat. Add lemon juice and torn basil leaves. Simmer for 2 minutes, then whisk in butter until silky.',
+                es: 'Para la salsa: calienta la crema en un sartén pequeño a fuego bajo. Agrega el jugo de limón y las hojas de albahaca rotas. Cocina a fuego lento durante 2 minutos, luego incorpora la mantequilla batiendo hasta que quede sedosa.',
+              },
+            },
+            {
+              id: 'sb-s8',
+              body: {
+                en: 'Plate: spoon the lemon-basil sauce onto a warm plate, lay the sea bass on top, and arrange the roasted cherry tomatoes around it. Garnish with a basil leaf and serve immediately.',
+                es: 'Emplata: vierte la salsa de limón y albahaca en un plato caliente, coloca la lubina encima y acomoda los tomates cherry asados alrededor. Decora con una hoja de albahaca y sirve de inmediato.',
+              },
+            },
+          ],
+        },
+        {
+          id: 'sb-key-h',
+          kind: 'heading',
+          level: 2,
+          text: { en: 'Key points', es: 'Puntos clave' },
+        },
+        {
+          id: 'sb-key-1',
+          kind: 'text',
+          body: {
+            en: 'Score the skin — this prevents it from curling and ensures even crisping.',
+            es: 'Haz cortes en la piel — esto evita que se encoja y asegura un dorado uniforme.',
+          },
+        },
+        {
+          id: 'sb-key-2',
+          kind: 'text',
+          body: {
+            en: 'Sear skin-side down first — this is the only way to get a crisp skin without overcooking the flesh.',
+            es: 'Sella primero por el lado de la piel — es la única forma de lograr una piel crujiente sin sobrecocinar la carne.',
+          },
+        },
+        {
+          id: 'sb-key-3',
+          kind: 'text',
+          body: {
+            en: 'Internal temperature is 63 °C (145 °F) — fish that looks done can still be undercooked inside.',
+            es: 'La temperatura interna es 63 °C (145 °F) — un pescado que parece cocido aún puede estar crudo por dentro.',
+          },
+        },
+        {
+          id: 'sb-key-4',
+          kind: 'text',
+          body: {
+            en: 'Finish the butter off the heat — adding it to a boiling sauce will break the emulsion.',
+            es: 'Termina la mantequilla fuera del fuego — agregarla a una salsa hirviendo romperá la emulsión.',
+          },
+        },
+        {
+          id: 'sb-pro-h',
+          kind: 'heading',
+          level: 2,
+          text: { en: 'Pro tip', es: 'Consejo profesional' },
+        },
+        {
+          id: 'sb-pro-t',
+          kind: 'text',
+          body: {
+            en: 'Add a splash of the pan juices from the roasted tomatoes into the lemon-basil sauce — it deepens the flavour without extra seasoning.',
+            es: 'Agrega un chorrito del jugo del sartén de los tomates asados a la salsa de limón y albahaca — profundiza el sabor sin necesidad de más condimentos.',
+          },
+        },
+      ],
+    },
+  },
+  // -------------------------------------------------------------------
+  // Second promo dish — limited-time premium menu item. Mirror the Sea
+  // Bass entry shape exactly so `pickPromoProcedures` picks both up and
+  // the home renders them as identical ProcedureRow tiles. Backend
+  // `promo` column will replace the slug list when it ships.
+  // -------------------------------------------------------------------
+  {
+    id: 'proc-promo-risotto',
+    slug: 'truffle-mushroom-risotto',
+    titleEn: 'Truffle Mushroom Risotto',
+    titleEs: 'Risotto de Hongos y Trufa',
+    purposeEn:
+      'A rich and creamy wild mushroom risotto finished with aromatic black truffle, aged Parmesan, crispy shallots, and fresh microgreens. A premium comfort dish designed for an elegant restaurant presentation.',
+    purposeEs:
+      'Un risotto de hongos silvestres rico y cremoso, terminado con trufa negra aromática, parmesano añejado, chalotas crujientes y microgreens frescos. Un plato premium diseñado para una presentación elegante de restaurante.',
+    category: SEED_CATEGORIES[6],
+    subcategoryId: 'sub-cooking',
+    status: 'published',
+    iconImageUrl: '/img/promo2.jpg',
+    createdBy: 'emp-admin',
+    createdAt: '2026-09-22T00:00:00Z',
+    updatedAt: '2026-09-30T09:00:00Z',
+    version: 1,
+    isArchived: false,
+    stationScope: { mode: 'specific', stationIds: ['stn-grill', 'stn-expo'] },
+    quizId: null,
+    linkedTrainingId: null,
+    quizMode: 'training',
+    bodyEn: {
+      blocks: [
+        {
+          id: 'tr-cover',
+          kind: 'image',
+          src: '/img/promo2.jpg',
+          alt: {
+            en: 'A finished plate: creamy truffle mushroom risotto topped with crispy shallots, shaved Parmesan and microgreens.',
+            es: 'Plato terminado: risotto cremoso de hongos y trufa coronado con chalotas crujientes, lascas de parmesano y microgreens.',
+          },
+          hint: 'photo',
+        },
+        {
+          id: 'tr-purpose',
+          kind: 'text',
+          body: {
+            en: 'A rich and creamy wild mushroom risotto finished with aromatic black truffle, aged Parmesan, crispy shallots, and fresh microgreens. A premium comfort dish designed for an elegant restaurant presentation. Serves 1.',
+            es: 'Un risotto de hongos silvestres rico y cremoso, terminado con trufa negra aromática, parmesano añejado, chalotas crujientes y microgreens frescos. Un plato premium diseñado para una presentación elegante de restaurante. Rinde 1 porción.',
+          },
+        },
+        {
+          id: 'tr-facts',
+          kind: 'heading',
+          level: 2,
+          text: { en: 'At a glance', es: 'De un vistazo' },
+        },
+        {
+          id: 'tr-facts-t',
+          kind: 'text',
+          body: {
+            en: 'Serves 1 · Prep 10 min · Cook 25 min · Add Parmesan and butter off the heat.',
+            es: 'Rinde 1 porción · Prep 10 min · Cocción 25 min · Agrega el parmesano y la mantequilla fuera del fuego.',
+          },
+        },
+        {
+          id: 'tr-ingredients-h',
+          kind: 'heading',
+          level: 2,
+          text: { en: 'Ingredients', es: 'Ingredientes' },
+        },
+        {
+          id: 'tr-ingredients-t',
+          kind: 'text',
+          body: {
+            en: '1 cup Arborio rice · 1 cup wild mushrooms, sliced · ½ cup onion, finely chopped · 2 garlic cloves · ¼ cup white wine · 4 cups warm vegetable or chicken stock · ½ cup Parmesan · 2 tbsp butter · 1 tbsp olive oil · 1 tsp truffle oil · 2 tbsp crispy shallots · ¼ cup microgreens · salt and black pepper to taste.',
+            es: '1 taza de arroz Arborio · 1 taza de hongos silvestres, en rodajas · ½ taza de cebolla, finamente picada · 2 dientes de ajo · ¼ taza de vino blanco · 4 tazas de caldo de verduras o pollo, tibio · ½ taza de parmesano · 2 cdas de mantequilla · 1 cda de aceite de oliva · 1 cdta de aceite de trufa · 2 cdas de chalotas crujientes · ¼ taza de microgreens · sal y pimienta negra al gusto.',
+          },
+        },
+        {
+          id: 'tr-recipe',
+          kind: 'recipe',
+          audience: '',
+          allergen: {
+            summary: 'Contains dairy',
+            detail: 'Check the ticket for dairy allergies before plating.',
+            selectedAllergens: ['milk'],
+          },
+          yieldItems: [
+            { label: 'Portions', value: '1', scales: true },
+            { label: 'Portion size', value: '1', unit: 'bowl' },
+            { label: 'Prep', value: '10', unit: 'min' },
+            { label: 'Cook', value: '25', unit: 'min' },
+          ],
+          steps: [
+            {
+              id: 'tr-s1',
+              body: {
+                en: 'Heat olive oil in a heavy pan over medium-high heat. Sauté the mushrooms until golden, then remove and set aside.',
+                es: 'Calienta el aceite de oliva en un sartén pesado a fuego medio-alto. Saltea los hongos hasta que estén dorados, retíralos y resérvalos.',
+              },
+            },
+            {
+              id: 'tr-s2',
+              body: {
+                en: 'In the same pan, cook the onion and garlic until soft and translucent. Add the Arborio rice and toast lightly for 1-2 minutes.',
+                es: 'En el mismo sartén, cocina la cebolla y el ajo hasta que estén suaves y translúcidos. Agrega el arroz Arborio y tuéstalos ligeramente durante 1-2 minutos.',
+              },
+            },
+            {
+              id: 'tr-s3',
+              body: {
+                en: 'Deglaze with the white wine and let it reduce until almost dry. Begin adding the warm stock one ladle at a time, stirring frequently and waiting until each addition is absorbed before adding the next.',
+                es: 'Desglasea con el vino blanco y deja que reduzca hasta casi evaporarse. Comienza a agregar el caldo tibio un cucharón a la vez, revolviendo con frecuencia y esperando a que cada adición se absorba antes de añadir la siguiente.',
+              },
+            },
+            {
+              id: 'tr-s4',
+              body: {
+                en: 'Continue cooking for 18-20 minutes until the rice is creamy and tender, adding stock as needed. The risotto should flow slowly when you shake the pan — that is all\'onda.',
+                es: 'Continúa la cocción durante 18-20 minutos hasta que el arroz esté cremoso y tierno, agregando caldo según sea necesario. El risotto debe fluir lentamente al sacudir el sartén — eso es all\'onda.',
+              },
+            },
+            {
+              id: 'tr-s5',
+              body: {
+                en: 'Take the pan off the heat. Fold in the sautéed mushrooms, Parmesan, butter, salt and pepper. Let it rest for 1 minute so the dairy emulsifies into a silky finish.',
+                es: 'Retira el sartén del fuego. Incorpora los hongos salteados, el parmesano, la mantequilla, la sal y la pimienta. Deja reposar 1 minuto para que los lácteos emulsionen en un acabado sedoso.',
+              },
+              critical: true,
+              criticalLimit: {
+                label: 'Critical limit',
+                icon: 'LuFlame',
+                value: 'Off the heat',
+                subtitle: 'Parmesan and butter must be folded in off the burner — adding them to a hot pan breaks the emulsion and the risotto turns greasy.',
+                howToCheck: 'Pull the pan onto a cool burner or trivet before adding dairy. The pan should not be over an active flame.',
+                breachLabel: 'If added on the heat',
+                breachResponse: 'Stop stirring and let the risotto cool for 1 minute off the burner, then fold gently to recover the emulsion. Do not plate if it looks broken or greasy.',
+              },
+            },
+            {
+              id: 'tr-s6',
+              body: {
+                en: 'Plate: spoon the risotto into a warm bowl, drizzle with truffle oil, and finish with crispy shallots, shaved Parmesan and microgreens. Serve immediately.',
+                es: 'Emplata: vierte el risotto en un bowl tibio, rocía con aceite de trufa y termina con chalotas crujientes, lascas de parmesano y microgreens. Sirve de inmediato.',
+              },
+            },
+          ],
+        },
+        {
+          id: 'tr-key-h',
+          kind: 'heading',
+          level: 2,
+          text: { en: 'Key points', es: 'Puntos clave' },
+        },
+        {
+          id: 'tr-key-1',
+          kind: 'text',
+          body: {
+            en: 'Keep the stock warm while cooking — cold stock drops the pan temperature and stops the rice from releasing its starch.',
+            es: 'Mantén el caldo tibio durante la cocción — el caldo frío baja la temperatura del sartén e impide que el arroz libere su almidón.',
+          },
+        },
+        {
+          id: 'tr-key-2',
+          kind: 'text',
+          body: {
+            en: 'Stir frequently for a naturally creamy texture — the agitation is what releases the rice starch; cream is not needed.',
+            es: 'Revuelve con frecuencia para obtener una textura naturalmente cremosa — la agitación es lo que libera el almidón del arroz; no se necesita crema.',
+          },
+        },
+        {
+          id: 'tr-key-3',
+          kind: 'text',
+          body: {
+            en: 'Add Parmesan off the heat — adding it to a boiling pan will break the emulsion and the risotto will look greasy.',
+            es: 'Agrega el parmesano fuera del fuego — agregarlo a un sartén hirviendo rompe la emulsión y el risotto se verá grasoso.',
+          },
+        },
+        {
+          id: 'tr-key-4',
+          kind: 'text',
+          body: {
+            en: 'Risotto should be creamy but the rice should retain a slight bite ("al dente") — overcooking turns it into a stodgy paste.',
+            es: 'El risotto debe estar cremoso pero el arroz debe conservar una ligera mordida ("al dente") — la sobrecocción lo convierte en una pasta pesada.',
+          },
+        },
+        {
+          id: 'tr-pro-h',
+          kind: 'heading',
+          level: 2,
+          text: { en: 'Pro tip', es: 'Consejo profesional' },
+        },
+        {
+          id: 'tr-pro-t',
+          kind: 'text',
+          body: {
+            en: 'Use a mix of porcini, shiitake and cremini mushrooms for deeper flavour — a single mushroom variety reads flat against the truffle.',
+            es: 'Usa una mezcla de hongos porcini, shiitake y cremini para un sabor más profundo — una sola variedad de hongo se siente plana frente a la trufa.',
+          },
+        },
+      ],
+    },
+    bodyEs: {
+      blocks: [
+        {
+          id: 'tr-cover',
+          kind: 'image',
+          src: '/img/promo2.jpg',
+          alt: {
+            en: 'A finished plate: creamy truffle mushroom risotto topped with crispy shallots, shaved Parmesan and microgreens.',
+            es: 'Plato terminado: risotto cremoso de hongos y trufa coronado con chalotas crujientes, lascas de parmesano y microgreens.',
+          },
+          hint: 'photo',
+        },
+        {
+          id: 'tr-purpose',
+          kind: 'text',
+          body: {
+            en: 'A rich and creamy wild mushroom risotto finished with aromatic black truffle, aged Parmesan, crispy shallots, and fresh microgreens. A premium comfort dish designed for an elegant restaurant presentation. Serves 1.',
+            es: 'Un risotto de hongos silvestres rico y cremoso, terminado con trufa negra aromática, parmesano añejado, chalotas crujientes y microgreens frescos. Un plato premium diseñado para una presentación elegante de restaurante. Rinde 1 porción.',
+          },
+        },
+        {
+          id: 'tr-facts',
+          kind: 'heading',
+          level: 2,
+          text: { en: 'At a glance', es: 'De un vistazo' },
+        },
+        {
+          id: 'tr-facts-t',
+          kind: 'text',
+          body: {
+            en: 'Serves 1 · Prep 10 min · Cook 25 min · Add Parmesan and butter off the heat.',
+            es: 'Rinde 1 porción · Prep 10 min · Cocción 25 min · Agrega el parmesano y la mantequilla fuera del fuego.',
+          },
+        },
+        {
+          id: 'tr-ingredients-h',
+          kind: 'heading',
+          level: 2,
+          text: { en: 'Ingredients', es: 'Ingredientes' },
+        },
+        {
+          id: 'tr-ingredients-t',
+          kind: 'text',
+          body: {
+            en: '1 cup Arborio rice · 1 cup wild mushrooms, sliced · ½ cup onion, finely chopped · 2 garlic cloves · ¼ cup white wine · 4 cups warm vegetable or chicken stock · ½ cup Parmesan · 2 tbsp butter · 1 tbsp olive oil · 1 tsp truffle oil · 2 tbsp crispy shallots · ¼ cup microgreens · salt and black pepper to taste.',
+            es: '1 taza de arroz Arborio · 1 taza de hongos silvestres, en rodajas · ½ taza de cebolla, finamente picada · 2 dientes de ajo · ¼ taza de vino blanco · 4 tazas de caldo de verduras o pollo, tibio · ½ taza de parmesano · 2 cdas de mantequilla · 1 cda de aceite de oliva · 1 cdta de aceite de trufa · 2 cdas de chalotas crujientes · ¼ taza de microgreens · sal y pimienta negra al gusto.',
+          },
+        },
+        {
+          id: 'tr-recipe',
+          kind: 'recipe',
+          audience: '',
+          allergen: {
+            summary: 'Contains dairy',
+            detail: 'Check the ticket for dairy allergies before plating.',
+            selectedAllergens: ['milk'],
+          },
+          yieldItems: [
+            { label: 'Portions', value: '1', scales: true },
+            { label: 'Portion size', value: '1', unit: 'bowl' },
+            { label: 'Prep', value: '10', unit: 'min' },
+            { label: 'Cook', value: '25', unit: 'min' },
+          ],
+          steps: [
+            {
+              id: 'tr-s1',
+              body: {
+                en: 'Heat olive oil in a heavy pan over medium-high heat. Sauté the mushrooms until golden, then remove and set aside.',
+                es: 'Calienta el aceite de oliva en un sartén pesado a fuego medio-alto. Saltea los hongos hasta que estén dorados, retíralos y resérvalos.',
+              },
+            },
+            {
+              id: 'tr-s2',
+              body: {
+                en: 'In the same pan, cook the onion and garlic until soft and translucent. Add the Arborio rice and toast lightly for 1-2 minutes.',
+                es: 'En el mismo sartén, cocina la cebolla y el ajo hasta que estén suaves y translúcidos. Agrega el arroz Arborio y tuéstalos ligeramente durante 1-2 minutos.',
+              },
+            },
+            {
+              id: 'tr-s3',
+              body: {
+                en: 'Deglaze with the white wine and let it reduce until almost dry. Begin adding the warm stock one ladle at a time, stirring frequently and waiting until each addition is absorbed before adding the next.',
+                es: 'Desglasea con el vino blanco y deja que reduzca hasta casi evaporarse. Comienza a agregar el caldo tibio un cucharón a la vez, revolviendo con frecuencia y esperando a que cada adición se absorba antes de añadir la siguiente.',
+              },
+            },
+            {
+              id: 'tr-s4',
+              body: {
+                en: 'Continue cooking for 18-20 minutes until the rice is creamy and tender, adding stock as needed. The risotto should flow slowly when you shake the pan — that is all\'onda.',
+                es: 'Continúa la cocción durante 18-20 minutos hasta que el arroz esté cremoso y tierno, agregando caldo según sea necesario. El risotto debe fluir lentamente al sacudir el sartén — eso es all\'onda.',
+              },
+            },
+            {
+              id: 'tr-s5',
+              body: {
+                en: 'Take the pan off the heat. Fold in the sautéed mushrooms, Parmesan, butter, salt and pepper. Let it rest for 1 minute so the dairy emulsifies into a silky finish.',
+                es: 'Retira el sartén del fuego. Incorpora los hongos salteados, el parmesano, la mantequilla, la sal y la pimienta. Deja reposar 1 minuto para que los lácteos emulsionen en un acabado sedoso.',
+              },
+              critical: true,
+              criticalLimit: {
+                label: 'Critical limit',
+                icon: 'LuFlame',
+                value: 'Off the heat',
+                subtitle: 'Parmesan and butter must be folded in off the burner — adding them to a hot pan breaks the emulsion and the risotto turns greasy.',
+                howToCheck: 'Pull the pan onto a cool burner or trivet before adding dairy. The pan should not be over an active flame.',
+                breachLabel: 'If added on the heat',
+                breachResponse: 'Stop stirring and let the risotto cool for 1 minute off the burner, then fold gently to recover the emulsion. Do not plate if it looks broken or greasy.',
+              },
+            },
+            {
+              id: 'tr-s6',
+              body: {
+                en: 'Plate: spoon the risotto into a warm bowl, drizzle with truffle oil, and finish with crispy shallots, shaved Parmesan and microgreens. Serve immediately.',
+                es: 'Emplata: vierte el risotto en un bowl tibio, rocía con aceite de trufa y termina con chalotas crujientes, lascas de parmesano y microgreens. Sirve de inmediato.',
+              },
+            },
+          ],
+        },
+        {
+          id: 'tr-key-h',
+          kind: 'heading',
+          level: 2,
+          text: { en: 'Key points', es: 'Puntos clave' },
+        },
+        {
+          id: 'tr-key-1',
+          kind: 'text',
+          body: {
+            en: 'Keep the stock warm while cooking — cold stock drops the pan temperature and stops the rice from releasing its starch.',
+            es: 'Mantén el caldo tibio durante la cocción — el caldo frío baja la temperatura del sartén e impide que el arroz libere su almidón.',
+          },
+        },
+        {
+          id: 'tr-key-2',
+          kind: 'text',
+          body: {
+            en: 'Stir frequently for a naturally creamy texture — the agitation is what releases the rice starch; cream is not needed.',
+            es: 'Revuelve con frecuencia para obtener una textura naturalmente cremosa — la agitación es lo que libera el almidón del arroz; no se necesita crema.',
+          },
+        },
+        {
+          id: 'tr-key-3',
+          kind: 'text',
+          body: {
+            en: 'Add Parmesan off the heat — adding it to a boiling pan will break the emulsion and the risotto will look greasy.',
+            es: 'Agrega el parmesano fuera del fuego — agregarlo a un sartén hirviendo rompe la emulsión y el risotto se verá grasoso.',
+          },
+        },
+        {
+          id: 'tr-key-4',
+          kind: 'text',
+          body: {
+            en: 'Risotto should be creamy but the rice should retain a slight bite ("al dente") — overcooking turns it into a stodgy paste.',
+            es: 'El risotto debe estar cremoso pero el arroz debe conservar una ligera mordida ("al dente") — la sobrecocción lo convierte en una pasta pesada.',
+          },
+        },
+        {
+          id: 'tr-pro-h',
+          kind: 'heading',
+          level: 2,
+          text: { en: 'Pro tip', es: 'Consejo profesional' },
+        },
+        {
+          id: 'tr-pro-t',
+          kind: 'text',
+          body: {
+            en: 'Use a mix of porcini, shiitake and cremini mushrooms for deeper flavour — a single mushroom variety reads flat against the truffle.',
+            es: 'Usa una mezcla de hongos porcini, shiitake y cremini para un sabor más profundo — una sola variedad de hongo se siente plana frente a la trufa.',
+          },
+        },
+      ],
+    },
+  },
 ];
 
 // ----------------------------------------------------------------------------
@@ -1569,6 +2347,17 @@ function getProceduresStore(): Procedure[] {
       const [guac] = mockProcedures.splice(guacIdx, 1);
       guac.updatedAt = '2026-09-30T12:00:00Z';
       mockProcedures.unshift(guac);
+      setStored('procedures_v2', mockProcedures);
+    }
+    // A returning visitor's localStorage was seeded before this procedure
+    // existed, so a brand-new `id` would never appear. Backfill by id: every
+    // seed entry the cache doesn't already know about is appended, and the
+    // cache is rewritten so the next call short-circuits. Anything the user
+    // has edited in the wizard keeps its own id and is left alone.
+    const cachedIds = new Set(mockProcedures.map((p) => p.id));
+    const missing = SEED_PROCEDURES.filter((p) => !cachedIds.has(p.id));
+    if (missing.length > 0) {
+      mockProcedures = [...mockProcedures, ...missing];
       setStored('procedures_v2', mockProcedures);
     }
   }
@@ -1824,6 +2613,7 @@ export async function createRole(input: CreateRoleInput): Promise<{ role: Role }
     id: `role-${Date.now()}`,
     name: input.name,
     clearanceLevel: input.clearanceLevel,
+    stationIds: input.stationIds ?? [],
     createdAt: new Date().toISOString(),
   };
   mockRoles = [...mockRoles, newRole];

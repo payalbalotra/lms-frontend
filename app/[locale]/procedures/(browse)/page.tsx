@@ -9,18 +9,23 @@ import { readViewAs } from '@/lib/view-as-server';
 import { withAs } from '@/lib/view-as';
 import { LuArrowLeft } from 'react-icons/lu';
 import { TabBar } from '@/components/employee/tab-bar';
+import {
+  getOnboardingChapters,
+  mockTrainingEmployees,
+} from '@/lib/mock-training';
 import { ProceduresClientList } from './procedures-client-list';
+import { HomeViewToggle } from '@/app/[locale]/employee/home/components/HomeViewToggle';
 
 interface PageProps {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ q?: string; category?: string }>;
+  searchParams: Promise<{ q?: string; category?: string; view?: string }>;
 }
 
 export const dynamic = 'force-dynamic';
 
 export default async function ProceduresPage({ params, searchParams }: PageProps): Promise<React.ReactElement> {
   const { locale } = await params;
-  const { q = '', category = '' } = await searchParams;
+  const { q = '', category = '', view = '' } = await searchParams;
   setRequestLocale(locale);
   const t = await getTranslations('employee.browse');
 
@@ -46,6 +51,26 @@ export default async function ProceduresPage({ params, searchParams }: PageProps
   const viewAs = await readViewAs();
   const effectiveRole = viewAs ?? 'employee';
 
+  // Onboarding gate — when the cook hasn't cleared orientation, every row on
+  // this tab is locked and tapping pushes them back to /employee/training.
+  // Admins reading the library (effectiveRole === 'admin') skip the gate.
+  // The demo view toggle (?view=regular or cookie lms_demo_view) unlocks procedures.
+  const onboardingEmployeeId =
+    mockTrainingEmployees.find((e) => e.id === employee.id)?.id ??
+    mockTrainingEmployees.find((e) => e.name.toLowerCase() === employee.name.toLowerCase())?.id ??
+    employee.id;
+  const cookieView = cookieStore.get('lms_demo_view')?.value;
+  const effectiveView = view || cookieView;
+  const isOrientationPending =
+    effectiveView === 'onboarding'
+      ? true
+      : effectiveView === 'regular'
+      ? false
+      : !getOnboardingChapters(onboardingEmployeeId, new Date()).onboardingDone;
+  const onboardingDone = effectiveRole === 'admin' || !isOrientationPending;
+  const lockedHref = `/${locale}/employee/training`;
+  const lockedReason = t('lockedRowReason');
+
   let categories: Category[] = [];
   let procedures: Procedure[] = [];
   await Promise.all([
@@ -56,7 +81,12 @@ export default async function ProceduresPage({ params, searchParams }: PageProps
       .catch(() => {}),
     listProcedures({}, cookieHeader)
       .then((r) => {
-        procedures = r.procedures;
+        const isGuac = (p: Procedure) => p.id === 'proc-guacamole-fresco' || p.slug === 'guacamole-fresco';
+        procedures = r.procedures.slice().sort((a, b) => {
+          const gA = isGuac(a) ? 1 : 0;
+          const gB = isGuac(b) ? 1 : 0;
+          return gB - gA;
+        });
       })
       .catch(() => {}),
   ]);
@@ -73,11 +103,11 @@ export default async function ProceduresPage({ params, searchParams }: PageProps
   const isAdmin = effectiveRole === 'admin';
   const mainClass = isAdmin
     ? 'mx-auto w-full max-w-doc px-4 pt-6 sm:px-6 sm:pt-8'
-    : 'mx-auto w-full max-w-doc px-4 pb-20 pt-6 sm:px-6 sm:pt-8';
+    : 'mx-auto w-full max-w-doc px-4 pt-6 sm:px-6 sm:pt-8';
 
   return (
     <>
-      <main className={mainClass}>
+      <main className={mainClass} style={isAdmin ? undefined : { paddingBottom: '100px' }}>
         {/* Procedures is a tab: the bar at the foot already holds Home, and a
             "back" above a tab reads as if the tabs were a hierarchy. An admin
             reading inside the admin shell has no tab bar, so keeps the link. */}
@@ -91,10 +121,14 @@ export default async function ProceduresPage({ params, searchParams }: PageProps
           </Link>
         ) : null}
 
-        {/* 32px on a phone: at 40 the heading took two lines of the first screen. */}
-        <h1 className="mt-2 font-[family-name:var(--font-display)] text-xl font-bold leading-display tracking-tight text-[var(--color-ink)] sm:text-2xl">
-          {t('heading')}
-        </h1>
+        <div className="mt-2 flex items-center justify-between">
+          <h1 className="font-[family-name:var(--font-display)] text-xl font-bold leading-display tracking-tight text-[var(--color-ink)] sm:text-2xl">
+            {t('heading')}
+          </h1>
+          {!isAdmin ? (
+            <HomeViewToggle value={onboardingDone ? 'regular' : 'onboarding'} />
+          ) : null}
+        </div>
 
         <ProceduresClientList
           initialCategories={categories}
@@ -106,6 +140,9 @@ export default async function ProceduresPage({ params, searchParams }: PageProps
           readsSpanish={readsSpanish}
           viewAs={viewAs}
           stationId={employee.stationIds[0] ?? null}
+          locked={!onboardingDone}
+          lockedHref={lockedHref}
+          lockedReason={lockedReason}
         />
       </main>
 

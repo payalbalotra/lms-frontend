@@ -20,6 +20,7 @@ export interface MockEmployee {
 }
 
 export const mockTrainingEmployees: MockEmployee[] = [
+  { id: 'emp-maria', name: 'María González', station: 'Grill' },
   { id: 'emp-001', name: 'Marisol Ruiz', station: 'Cold prep' },
   { id: 'emp-cook', name: 'Carlos Gomez', station: 'Grill' },
   { id: 'emp-prep', name: 'Maria Santos', station: 'Prep' },
@@ -279,6 +280,43 @@ const stockRotationBody: ProcedureBody = {
   ],
 };
 
+// Cleaning fundamentals — onboarding day-three course: end-of-service
+// break-down, chemical handling, waste segregation, sign-off. Two critical
+// steps (waste handling + missing log signature) so the auditor sees the
+// shape of an orientation-grade course.
+const cleaningSteps: ProcedureMethodStep[] = [
+  step('cl-s1', 'Break down your station: empty pans, wipe cutting boards, return tools to the rack.', 'Desmonte su estación: vacíe las bandejas, limpie las tablas y devuelva las herramientas a la rejilla.'),
+  step('cl-s2', 'Apply the colour-coded chemical: green for general surfaces, blue for restrooms, red for raw-protein only.', 'Aplique el químico por color: verde para superficies generales, azul para baños, rojo solo para proteína cruda.'),
+  step('cl-s3', 'Segregate waste: food scraps to the green bin, cardboard flattened and stacked, fryer oil into the designated drum.', 'Segregue los residuos: restos de comida al contenedor verde, cartón aplanado y apilado, aceite de freidora al tambor designado.', true),
+  step('cl-s4', 'Sign the end-of-shift cleaning log. No signature means the station did not close — the next cook cannot start.', 'Firme la bitácora de limpieza de fin de turno. Sin firma la estación no cerró — el siguiente cocinero no puede empezar.', true),
+];
+
+const cleaningBody: ProcedureBody = {
+  blocks: [
+    blockHeading('cl-h', 1, 'Cleaning fundamentals', 'Fundamentos de limpieza'),
+    blockText(
+      'cl-intro',
+      'End-of-service cleaning is the line between a clean open and a re-clean the next morning. Four steps, in order, signed by the cook who closed the station.',
+      'La limpieza de fin de servicio es la línea entre una apertura limpia y un re-limpieza a la mañana siguiente. Cuatro pasos, en orden, firmados por el cocinero que cerró la estación.',
+    ),
+    blockWarning(
+      'cl-warn',
+      'warn',
+      'Bleach and quat-based sanitisers do not mix. Never add one to a surface still wet from the other — rinse first, then apply the second.',
+      'El cloro y los sanitizantes a base de amonio cuaternario no se mezclan. Nunca añada uno sobre una superficie aún mojada con el otro — enjuague primero, luego aplique el segundo.',
+    ),
+    blockMethod('cl-method', cleaningSteps),
+  ],
+};
+
+const cleaningAck: ProcedureAcknowledgement = {
+  versionLabel: 'v2026.09',
+  statement: {
+    en: 'I have read the end-of-shift cleaning protocol and will follow the four steps and sign the log every close.',
+    es: 'He leído el protocolo de limpieza de fin de turno y seguiré los cuatro pasos y firmaré la bitácora en cada cierre.',
+  },
+};
+
 export const mockSops: Procedure[] = [
   {
     id: 'sop-001',
@@ -457,6 +495,27 @@ export const mockTrainingCourses: Procedure[] = [
     linkedSops: [],
     acknowledgement: allergenAck,
   },
+  {
+    id: 'course-005',
+    slug: 'cleaning-fundamentals',
+    titleEn: 'Cleaning fundamentals',
+    titleEs: 'Fundamentos de limpieza',
+    purposeEn: 'End-of-service cleaning: break-down, chemical handling, waste segregation, sign-off.',
+    purposeEs: 'Limpieza de final de servicio: desmontaje, manejo de químicos, segregación de residuos, firma.',
+    category: null,
+    status: 'published',
+    bodyEn: cleaningBody,
+    bodyEs: cleaningBody,
+    createdBy: 'admin-001',
+    createdAt: '2026-09-01T08:00:00Z',
+    updatedAt: '2026-09-01T08:00:00Z',
+    quizId: null,
+    linkedTrainingId: null,
+    quizMode: 'training',
+    attachedToTraining: true,
+    linkedSops: [],
+    acknowledgement: cleaningAck,
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -620,6 +679,113 @@ export const mockTrainingAssignments: TrainingAssignment[] = [
     quizPassedAt: null,
     acknowledgedAt: null,
   },
+  // María González — long-time grill cook, mix of done / in-progress / overdue
+  // so the home Training card shows something representative. Day-of-year 2026
+  // is 2026-09-30 (today), so the allergen one falls overdue on 2026-09-29.
+  {
+    id: 'ta-101',
+    courseId: 'course-004',
+    employeeId: 'emp-maria',
+    assignedAt: '2026-01-10T08:00:00Z',
+    dueAt: '2026-01-11T08:00:00Z',
+    status: 'complete',
+    completedStepIds: ['wl-s1', 'wl-s2', 'wl-s3'],
+    quizPassedAt: null,
+    acknowledgedAt: '2026-01-10T14:22:00Z',
+  },
+  {
+    id: 'ta-102',
+    courseId: 'course-001',
+    employeeId: 'emp-maria',
+    assignedAt: '2026-01-12T08:00:00Z',
+    dueAt: '2026-01-26T08:00:00Z',
+    status: 'complete',
+    completedStepIds: ['hw-s1', 'hw-s2', 'hw-s3', 'hw-s4', 'hw-s5'],
+    quizPassedAt: '2026-01-15T11:05:00Z',
+    acknowledgedAt: '2026-01-15T11:09:00Z',
+  },
+  {
+    id: 'ta-103',
+    courseId: 'course-002',
+    employeeId: 'emp-maria',
+    assignedAt: '2026-09-15T08:00:00Z',
+    dueAt: '2026-10-08T08:00:00Z',
+    status: 'in_progress',
+    completedStepIds: ['kn-s1', 'kn-s2', 'kn-s3'],
+    quizPassedAt: null,
+    acknowledgedAt: null,
+  },
+  {
+    id: 'ta-104',
+    courseId: 'course-003',
+    employeeId: 'emp-maria',
+    assignedAt: '2026-09-01T08:00:00Z',
+    dueAt: '2026-09-29T08:00:00Z',
+    status: 'due',
+    completedStepIds: [],
+    quizPassedAt: null,
+    acknowledgedAt: null,
+  },
+  // Ana — fifth orientation course (cleaning fundamentals) added on day two.
+  {
+    id: 'ta-015',
+    courseId: 'course-005',
+    employeeId: 'emp-006',
+    assignedAt: '2026-09-22T08:00:00Z',
+    dueAt: '2026-10-12T08:00:00Z',
+    status: 'due',
+    completedStepIds: [],
+    quizPassedAt: null,
+    acknowledgedAt: null,
+  },
+  // María — fresh orientation cohort (0 of 3 chapters done) for the
+  // onboarding gate demo. Replaces her earlier "long-time cook" assumption:
+  // the gate is derived from completion, not from seniority, so anyone with
+  // outstanding onboarding assignments is gated.
+  {
+    id: 'ta-110',
+    courseId: 'course-004',
+    employeeId: 'emp-maria',
+    assignedAt: '2026-09-01T08:00:00Z',
+    dueAt: '2026-10-01T08:00:00Z',
+    status: 'due',
+    completedStepIds: [],
+    quizPassedAt: null,
+    acknowledgedAt: null,
+  },
+  {
+    id: 'ta-111',
+    courseId: 'course-001',
+    employeeId: 'emp-maria',
+    assignedAt: '2026-09-01T08:00:00Z',
+    dueAt: '2026-10-01T08:00:00Z',
+    status: 'due',
+    completedStepIds: [],
+    quizPassedAt: null,
+    acknowledgedAt: null,
+  },
+  {
+    id: 'ta-112',
+    courseId: 'course-003',
+    employeeId: 'emp-maria',
+    assignedAt: '2026-09-01T08:00:00Z',
+    dueAt: '2026-10-01T08:00:00Z',
+    status: 'due',
+    completedStepIds: [],
+    quizPassedAt: null,
+    acknowledgedAt: null,
+  },
+  {
+    id: 'ta-113',
+    courseId: 'course-005',
+    employeeId: 'emp-maria',
+    assignedAt: '2026-09-01T08:00:00Z',
+    dueAt: '2026-10-01T08:00:00Z',
+    status: 'due',
+    completedStepIds: [],
+    quizPassedAt: null,
+    acknowledgedAt: null,
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -748,3 +914,128 @@ export function toggleAssignmentStep(assignmentId: string, stepId: string, done:
   if (a.completedStepIds.length > 0 && a.status === 'due') a.status = 'in_progress';
   return a;
 }
+
+// ---------------------------------------------------------------------------
+// Onboarding — the gate every new hire clears before procedures unlock.
+// Chapters in order; `food-safety` collapses two courses (handwashing +
+// allergen awareness) into one chapter because a cook completes them
+// together in week one.
+// ---------------------------------------------------------------------------
+
+export const ONBOARDING_COURSE_IDS = {
+  onboarding: ['course-004'],
+  'food-safety': ['course-001', 'course-003'],
+  cleaning: ['course-005'],
+} as const;
+
+export type OnboardingChapterKey = keyof typeof ONBOARDING_COURSE_IDS;
+
+export interface OnboardingChapter {
+  key: OnboardingChapterKey;
+  titleEn: string;
+  titleEs: string;
+  courseIds: readonly string[];
+  rows: TrainingAssignmentRow[];
+  status: TrainingAssignmentStatus | 'locked';
+  unblocked: boolean;
+}
+
+export interface OnboardingSummary {
+  chapters: OnboardingChapter[];
+  done: number;
+  total: number;
+  /** First chapter with status !== 'complete', or null when all complete. */
+  next: {
+    chapterKey: OnboardingChapterKey;
+    courseId: string;
+    href: string;
+    titleEn: string;
+    titleEs: string;
+  } | null;
+  onboardingDone: boolean;
+}
+
+/**
+ * Group this employee's onboarding assignments into chapters and resolve each
+ * chapter's status. Returns `onboardingDone: true` when every chapter is
+ * complete (or has no assignments, which we treat as complete — the cook was
+ * never issued orientation, so there is nothing to gate).
+ */
+export function getOnboardingChapters(
+  employeeId: string,
+  now: Date = new Date(),
+): OnboardingSummary {
+  const allRows = getTrainingRowsForEmployee(employeeId, now);
+  const chapters: OnboardingChapter[] = [];
+
+  let previousComplete = true;
+  let done = 0;
+
+  (Object.keys(ONBOARDING_COURSE_IDS) as OnboardingChapterKey[]).forEach((key, index) => {
+    const courseIds = ONBOARDING_COURSE_IDS[key];
+    const rows = allRows.filter((r) => (courseIds as readonly string[]).includes(r.course.id));
+
+    // Resolve status. A chapter with zero assignments is "complete" (nothing
+    // to gate) — the cook was never issued it, so don't block the surface.
+    let status: OnboardingChapter['status'];
+    if (rows.length === 0) {
+      status = 'complete';
+    } else if (!previousComplete) {
+      // A chapter that comes after a not-complete one is locked until the
+      // earlier one clears, even if the cook already finished it.
+      status = 'locked';
+    } else if (rows.every((r) => r.effectiveStatus === 'complete')) {
+      status = 'complete';
+    } else if (rows.some((r) => r.effectiveStatus === 'overdue')) {
+      status = 'overdue';
+    } else if (rows.some((r) => r.effectiveStatus === 'in_progress')) {
+      status = 'in_progress';
+    } else {
+      status = 'due';
+    }
+
+    const unblocked = previousComplete;
+    const titleEn = ONBOARDING_CHAPTER_TITLES[key].en;
+    const titleEs = ONBOARDING_CHAPTER_TITLES[key].es;
+
+    chapters.push({ key, titleEn, titleEs, courseIds, rows, status, unblocked });
+    if (status === 'complete') done += 1;
+    previousComplete = status === 'complete' && unblocked;
+
+    // Touch index so eslint doesn't flag the unused param (it documents the
+    // iteration order of `Object.keys`, which we rely on).
+    void index;
+  });
+
+  // The "next" pointer is the first incomplete chapter's first course. We use
+  // the first course id in the chapter as the canonical entry point — every
+  // chapter reads top-down.
+  const nextChapter = chapters.find((c) => c.status !== 'complete' && c.status !== 'locked');
+  const next: OnboardingSummary['next'] = nextChapter
+    ? (() => {
+        const firstCourseId = nextChapter.courseIds[0];
+        const course = getCourseById(firstCourseId);
+        return {
+          chapterKey: nextChapter.key,
+          courseId: firstCourseId,
+          href: `/employee/training/${firstCourseId}`,
+          titleEn: course?.titleEn ?? firstCourseId,
+          titleEs: course?.titleEs ?? firstCourseId,
+        };
+      })()
+    : null;
+
+  return {
+    chapters,
+    done,
+    total: chapters.length,
+    next,
+    onboardingDone: chapters.every((c) => c.status === 'complete'),
+  };
+}
+
+const ONBOARDING_CHAPTER_TITLES: Record<OnboardingChapterKey, { en: string; es: string }> = {
+  onboarding: { en: 'Onboarding', es: 'Inducción' },
+  'food-safety': { en: 'Food safety', es: 'Seguridad alimentaria' },
+  cleaning: { en: 'Cleaning', es: 'Limpieza' },
+};

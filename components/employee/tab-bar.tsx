@@ -22,27 +22,33 @@ export function TabBar({
   return (
     <nav
       aria-label={labels.nav}
-      className="fixed inset-x-0 bottom-0 z-sticky border-t border-[var(--color-line)] bg-[var(--color-surface)] pb-[env(safe-area-inset-bottom)]"
+      className="fixed inset-x-0 bottom-0 z-sticky border-t border-[var(--color-line)] bg-[var(--color-surface)]/95 backdrop-blur-md pb-[env(safe-area-inset-bottom)] shadow-xs"
     >
       <div className="mx-auto flex max-w-doc">
         {tabs.map((tab) => {
           const on = tab.key === active;
           const inner = (
             <>
-              <tab.icon aria-hidden="true" className="text-lg" />
-              {tab.label}
+              <tab.icon aria-hidden="true" className="text-lg sm:text-xl transition-transform duration-200 group-hover:scale-110" />
+              <span className="tracking-tight">{tab.label}</span>
               {tab.soon ? <span className="sr-only">{labels.soon}</span> : null}
             </>
           );
-          const shape = `flex min-h-16 flex-1 flex-col items-center justify-center gap-1 text-sm font-semibold ${
-            on ? 'text-[var(--color-brand-700)]' : tab.soon ? 'text-[var(--color-ink-3)]' : 'text-[var(--color-ink-2)]'
+          const shape = `group flex flex-1 flex-col items-center justify-center text-xs font-semibold transition-colors duration-150 ${
+            on ? 'text-[var(--color-brand-700)]' : tab.soon ? 'text-[var(--color-ink-3)]' : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)]'
           }`;
           return tab.href ? (
-            <Link key={tab.key} href={tab.href} aria-current={on ? 'page' : undefined} className={shape}>
+            <Link
+              key={tab.key}
+              href={tab.href}
+              aria-current={on ? 'page' : undefined}
+              className={shape}
+              style={{ minHeight: '56px', gap: '3px' }}
+            >
               {inner}
             </Link>
           ) : (
-            <span key={tab.key} className={shape}>
+            <span key={tab.key} className={shape} style={{ minHeight: '56px', gap: '3px' }}>
               {inner}
             </span>
           );

@@ -93,32 +93,89 @@ export function NewEmployeeForm({
     void loadStations(newLocationId);
   }
 
-  // The dependency flow per the new hierarchy:
-  //   job role(s) ──► station(s)
-  // Job roles are sourced from `Role` (settings → roles). Stations are
-  // scoped to the selected location. Today there's no job-role→station
-  // mapping table, so all stations at the location are valid candidates
-  // once at least one job role is picked — the filter is just "are there
-  // any job roles selected?". When the junction data lands the picker
-  // can swap in a derived filter without touching the form.
+  // The dependency flow per the client's job→station mapping:
+  //   job role(s) ──► station(s)         (employee)
+  //   access = manager ──► all roles + all stations
+  // Each Role carries the stations it works on (Line Cook → gm/grill/expo,
+  // Prep Cook → prep, Dishwasher → dish). Empty `stationIds` on a role means
+  // "any station at the location" — useful for roles that haven't been
+  // configured yet. A Manager bypasses the filter entirely.
+  const roleById = useMemo<Map<string, Role>>(
+    () => new Map(roles.map((r) => [r.id, r])),
+    [roles],
+  );
+
+  /** Union of station ids the current role-set covers. Empty role.stationIds
+   *  is treated as "no constraint" — every station at the location matches. */
+  const stationsCoveredByRoles = useMemo<Set<string>>(() => {
+    const covered = new Set<string>();
+    for (const roleId of form.roleIds) {
+      const role = roleById.get(roleId);
+      if (!role) continue;
+      if (role.stationIds.length === 0) {
+        // "Any station" — short-circuit: the location's full set is in.
+        return new Set(stations.map((s) => s.id));
+      }
+      for (const stationId of role.stationIds) covered.add(stationId);
+    }
+    return covered;
+  }, [form.roleIds, roleById, stations]);
+
   const availableStations = useMemo<Station[]>(() => {
+    if (form.accessLevel === 'manager') return stations;
     if (form.roleIds.length === 0) return [];
-    return stations;
-  }, [form.roleIds.length, stations]);
+    return stations.filter((s) => stationsCoveredByRoles.has(s.id));
+  }, [form.accessLevel, form.roleIds.length, stations, stationsCoveredByRoles]);
 
   const stationsBlockedReason = useMemo<string | undefined>(() => {
-    if (form.roleIds.length === 0) return t('stationsEmpty');
+    if (form.accessLevel === 'manager') return undefined;
+    if (form.roleIds.length === 0) return t('stationsEmptyNeedRole');
     if (stations.length === 0) return t('stationsEmptyForLocation');
+    if (availableStations.length === 0) return t('stationsEmptyForRoles');
     return undefined;
-  }, [form.roleIds.length, stations.length, t]);
+  }, [form.accessLevel, form.roleIds.length, stations.length, availableStations.length, t]);
+
+  // Manager tier: preselect every job role and every station at the location.
+  // Switching away from Manager clears the role/station chips — the manager
+  // auto-fill is no longer valid for an employee, and the role-station filter
+  // would otherwise leave stale chips in place.
+  function setAccessLevel(next: AccessLevel | ''): void {
+    if (next === 'manager') {
+      setForm((f) => ({
+        ...f,
+        accessLevel: 'manager',
+        roleIds: roles.map((r) => r.id),
+        stationIds: stations.map((s) => s.id),
+      }));
+      return;
+    }
+    setForm((f) => ({
+      ...f,
+      accessLevel: next,
+      roleIds: [],
+      stationIds: [],
+    }));
+  }
 
   // Preserve already-selected stations only if they remain valid for the
-  // current location + role-set. Drop everything else so the submit
-  // payload never contains an orphan id.
+  // current location + role-set. Drop everything else so the submit payload
+  // never contains an orphan id. Manager bypasses the role-stations filter.
   function setRoleIds(next: string[]): void {
-    const stillValidStations = form.stationIds.filter((id) =>
-      stations.some((s) => s.id === id),
-    );
+    if (form.accessLevel === 'manager') {
+      setForm((f) => ({ ...f, roleIds: next }));
+      return;
+    }
+    const covered = new Set<string>();
+    for (const roleId of next) {
+      const role = roleById.get(roleId);
+      if (!role) continue;
+      if (role.stationIds.length === 0) {
+        for (const s of stations) covered.add(s.id);
+        break;
+      }
+      for (const stationId of role.stationIds) covered.add(stationId);
+    }
+    const stillValidStations = form.stationIds.filter((id) => covered.has(id));
     setForm((f) => ({
       ...f,
       roleIds: next,
@@ -300,7 +357,7 @@ export function NewEmployeeForm({
                         value={level}
                         checked={selected}
                         disabled={isPending}
-                        onChange={() => update('accessLevel', level)}
+                        onChange={() => setAccessLevel(level)}
                         className="sr-only"
                       />
                       <span

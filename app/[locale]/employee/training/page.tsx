@@ -3,20 +3,24 @@ import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { LuChevronRight, LuGraduationCap } from 'react-icons/lu';
+import { LuChevronRight, LuGraduationCap, LuLock } from 'react-icons/lu';
 import { EmptyState } from '@/components/ui/empty-state';
 import { StatusPill } from '@/components/ui/status-pill';
 import { ApiException, fetchMe } from '@/lib/api';
 import {
   courseStepCount,
+  getOnboardingChapters,
   getTrainingRowsForEmployee,
   mockTrainingEmployees,
 } from '@/lib/mock-training';
 import type { TrainingAssignmentRow, TrainingAssignmentStatus } from '@/lib/types';
 import { TabBar } from '@/components/employee/tab-bar';
+import { OrientationChapters } from './components/OrientationChapters';
+import { HomeViewToggle } from '@/app/[locale]/employee/home/components/HomeViewToggle';
 
 interface PageProps {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ view?: string }>;
 }
 
 export const dynamic = 'force-dynamic';
@@ -61,8 +65,11 @@ function statusLabel(
 
 export default async function EmployeeTrainingPage({
   params,
+  searchParams,
 }: PageProps): Promise<React.ReactElement> {
   const { locale } = await params;
+  const sp = await searchParams;
+  const view = sp?.view;
   setRequestLocale(locale);
   const t = await getTranslations('employee.training');
 
@@ -92,6 +99,18 @@ export default async function EmployeeTrainingPage({
 
   const now = Date.now();
   const rows = getTrainingRowsForEmployee(mockEmployeeId, new Date(now));
+  // Onboarding summary — when orientation is not done, we render the
+  // OrientationChapters block above the existing Continue/Assigned/Complete
+  // lists. When done, we render the existing lists unchanged.
+  const onboarding = getOnboardingChapters(mockEmployeeId, new Date(now));
+  const cookieView = cookieStore.get('lms_demo_view')?.value;
+  const effectiveView = view || cookieView;
+  const isOrientationPending =
+    effectiveView === 'onboarding'
+      ? true
+      : effectiveView === 'regular'
+      ? false
+      : !onboarding.onboardingDone;
   const isEs = locale === 'es';
 
   const titleOf = (r: TrainingAssignmentRow): string => {
@@ -138,47 +157,67 @@ export default async function EmployeeTrainingPage({
   const overdueCount = rows.filter((r) => r.effectiveStatus === 'overdue').length;
   const pct = rows.length ? Math.round((complete.length / rows.length) * 100) : 0;
 
+  const progressBarNode = empty ? null : (
+    <div
+      className="rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)]"
+      style={{ padding: '14px 16px' }}
+    >
+      <p className="flex flex-wrap items-baseline gap-x-2 text-sm">
+        <span className="font-semibold text-[var(--color-ink)]">
+          {t('progressLine', { done: complete.length, total: rows.length })}
+        </span>
+        {overdueCount ? (
+          <span className="font-semibold text-[var(--color-bad)]">· {t('overdueLine', { count: overdueCount })}</span>
+        ) : null}
+      </p>
+      <div
+        role="progressbar"
+        aria-label={t('progressLine', { done: complete.length, total: rows.length })}
+        aria-valuemin={0}
+        aria-valuemax={rows.length}
+        aria-valuenow={complete.length}
+        className="h-2 overflow-hidden rounded-full bg-[var(--color-panel)]"
+        style={{ marginTop: '10px' }}
+      >
+        <div className="h-full rounded-full bg-[var(--color-ok-fill)]" style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+
   return (
     <>
-      <main className="mx-auto w-full max-w-doc space-y-8 px-4 pb-20 pt-6 sm:px-6 sm:pt-8">
-        {/* No eyebrow: the tab bar below already says Training, and so does
-            the heading. */}
-        <header className="space-y-1">
-          <h1 className="font-[family-name:var(--font-display)] text-xl font-bold leading-display tracking-tight text-[var(--color-ink)] sm:text-2xl">
-            {t('heading')}
-          </h1>
-          <p className="text-base text-[var(--color-ink-2)]">{t('subtitle')}</p>
-        </header>
-
-        {/* How much you have, how much you have done: the question this tab
-            exists to answer, so it comes before any list. */}
-        {empty ? null : (
-          <div className="rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-4">
-            <p className="flex flex-wrap items-baseline gap-x-2 text-base">
-              <span className="font-semibold text-[var(--color-ink)]">
-                {t('progressLine', { done: complete.length, total: rows.length })}
-              </span>
-              {overdueCount ? (
-                <span className="font-semibold text-[var(--color-bad)]">· {t('overdueLine', { count: overdueCount })}</span>
-              ) : null}
-            </p>
-            <div
-              role="progressbar"
-              aria-label={t('progressLine', { done: complete.length, total: rows.length })}
-              aria-valuemin={0}
-              aria-valuemax={rows.length}
-              aria-valuenow={complete.length}
-              className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--color-panel)]"
-            >
-              <div className="h-full rounded-full bg-[var(--color-ok-fill)]" style={{ width: `${pct}%` }} />
-            </div>
-          </div>
-        )}
-
-        {empty ? (
-          <EmptyState icon={LuGraduationCap} title={t('emptyHeading')} body={t('emptyBody')} />
-        ) : (
+      <main
+        className="mx-auto w-full max-w-doc px-4 pt-6 sm:px-6 sm:pt-8"
+        style={{ paddingBottom: '100px', display: 'flex', flexDirection: 'column', gap: '24px' }}
+      >
+        {isOrientationPending ? (
           <>
+            <header className="flex items-center justify-between">
+              <h1
+                className="font-[family-name:var(--font-display)] text-xl font-bold tracking-tight text-[var(--color-ink)]"
+                style={{ lineHeight: '1.25' }}
+              >
+                {t('tabTraining')}
+              </h1>
+              <HomeViewToggle value="onboarding" />
+            </header>
+
+            <OrientationChapters
+              summary={onboarding}
+              locale={locale}
+              labels={{
+                required: t('orientationRequired'),
+                heading: t('orientationHeading'),
+                subtitle: t('orientationSubtitle'),
+                chapterOf: (current, total, title) =>
+                  t('orientationChapterOf', { current, total, title }),
+                resume: t('chapterResume'),
+                start: t('chapterStart'),
+                moreCoursesUnlock: t('moreCoursesUnlock'),
+              }}
+            />
+
+            {/* Rest of assigned courses shown locked */}
             {continueRows.length > 0 ? (
               <TrainingSection
                 title={t('sectionContinue')}
@@ -188,6 +227,8 @@ export default async function EmployeeTrainingPage({
                 locale={locale}
                 now={now}
                 t={t}
+                locked={true}
+                lockedReason={t('lockedRowReason')}
               />
             ) : null}
 
@@ -200,20 +241,68 @@ export default async function EmployeeTrainingPage({
                 locale={locale}
                 now={now}
                 t={t}
+                locked={true}
+                lockedReason={t('lockedRowReason')}
               />
             ) : null}
+          </>
+        ) : (
+          <>
+            <header className="flex items-center justify-between">
+              <div>
+                <h1
+                  className="font-[family-name:var(--font-display)] text-xl font-bold tracking-tight text-[var(--color-ink)]"
+                  style={{ lineHeight: '1.25' }}
+                >
+                  {t('heading')}
+                </h1>
+                <p className="text-sm text-[var(--color-ink-2)]" style={{ marginTop: '4px' }}>{t('subtitle')}</p>
+              </div>
+              <HomeViewToggle value="regular" />
+            </header>
+            {progressBarNode}
 
-            {complete.length > 0 ? (
-              <TrainingSection
-                title={t('sectionComplete')}
-                countLabel={t('countSummary', { count: complete.length })}
-                rows={complete}
-                titleOf={titleOf}
-                locale={locale}
-                now={now}
-                t={t}
-              />
-            ) : null}
+            {empty ? (
+              <EmptyState icon={LuGraduationCap} title={t('emptyHeading')} body={t('emptyBody')} />
+            ) : (
+              <>
+                {continueRows.length > 0 ? (
+                  <TrainingSection
+                    title={t('sectionContinue')}
+                    countLabel={t('countSummary', { count: continueRows.length })}
+                    rows={continueRows}
+                    titleOf={titleOf}
+                    locale={locale}
+                    now={now}
+                    t={t}
+                  />
+                ) : null}
+
+                {assignedRows.length > 0 ? (
+                  <TrainingSection
+                    title={t('sectionAssigned')}
+                    countLabel={t('countSummary', { count: assignedRows.length })}
+                    rows={assignedRows}
+                    titleOf={titleOf}
+                    locale={locale}
+                    now={now}
+                    t={t}
+                  />
+                ) : null}
+
+                {complete.length > 0 ? (
+                  <TrainingSection
+                    title={t('sectionComplete')}
+                    countLabel={t('countSummary', { count: complete.length })}
+                    rows={complete}
+                    titleOf={titleOf}
+                    locale={locale}
+                    now={now}
+                    t={t}
+                  />
+                ) : null}
+              </>
+            )}
           </>
         )}
       </main>
@@ -246,6 +335,8 @@ function TrainingSection({
   locale,
   now,
   t,
+  locked = false,
+  lockedReason,
 }: {
   title: string;
   countLabel: string;
@@ -254,65 +345,113 @@ function TrainingSection({
   locale: string;
   now: number;
   t: (key: string, vars?: Record<string, string | number>) => string;
+  locked?: boolean;
+  lockedReason?: string;
 }): React.ReactElement {
   const sectionId = `section-${title.replace(/\s+/g, '-')}`;
   return (
-    <section aria-labelledby={sectionId} className="space-y-3">
-      <div className="flex items-baseline justify-between gap-3">
+    <section aria-labelledby={sectionId}>
+      <div
+        className="flex items-baseline justify-between"
+        style={{ gap: '8px' }}
+      >
         <h2
           id={sectionId}
-          className="text-lg font-semibold leading-heading text-[var(--color-ink)]"
+          className="text-base font-semibold text-[var(--color-ink)]"
+          style={{ lineHeight: '1.4' }}
         >
           {title}
         </h2>
-        <span className="text-base font-medium text-[var(--color-ink-2)]">{countLabel}</span>
+        <span className="text-xs font-medium text-[var(--color-ink-2)]">{countLabel}</span>
       </div>
 
-      <ul className="divide-y divide-[var(--color-line)] rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)]">
-        {rows.map((r) => {
-          const tone = pillTone(r.effectiveStatus);
-          const label = statusLabel(r.effectiveStatus, r.assignment.dueAt, now, t);
-          const steps = courseStepCount(r.course);
-          const done = r.assignment.completedStepIds.length;
-          // One line of facts under the title: where you are, and when it is due
-          // or when you finished. The purpose was cut to two broken lines here;
-          // it is on the course page, where there is room to read it.
-          const facts = [
-            r.effectiveStatus === 'in_progress' && steps ? t('stepsDone', { done: Math.min(done, steps), total: steps }) : null,
-            // The pill already says overdue, and "due in n days" for one not begun.
-            r.effectiveStatus === 'in_progress' ? dueText(r.assignment.dueAt, now, t) : null,
-            r.effectiveStatus === 'complete' && (r.assignment.acknowledgedAt ?? r.assignment.quizPassedAt)
-              ? t('finishedOn', {
-                  date: new Date((r.assignment.acknowledgedAt ?? r.assignment.quizPassedAt)!).toLocaleDateString(locale, {
-                    day: 'numeric',
-                    month: 'short',
-                  }),
-                })
-              : null,
-            r.effectiveStatus === 'complete' && r.assignment.quizPassedAt ? t('quizPassed') : null,
-          ].filter(Boolean);
-          return (
-            <li key={r.assignment.id}>
-              <Link
-                href={`/${locale}/employee/training/${r.course.id}`}
-                className="flex min-h-tap items-center gap-3 px-4 py-4 transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:bg-[var(--color-wash)]"
-              >
-                <div className="min-w-0 flex-1">
-                  {/* The whole title: beside the pill it was cut to "Fund…". */}
-                  <p className="text-md font-semibold leading-heading text-[var(--color-ink)]">{titleOf(r)}</p>
-                  <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[var(--color-ink-2)]">
-                    <StatusPill tone={tone} withDot>
-                      {label}
-                    </StatusPill>
-                    {facts.join(' · ')}
-                  </p>
-                </div>
-                <LuChevronRight aria-hidden="true" className="shrink-0 text-xl text-[var(--color-ink-3)]" />
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
+      <div style={{ marginTop: '8px' }}>
+        <ul
+          className="divide-y divide-[var(--color-line)] rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] overflow-hidden"
+        >
+          {rows.map((r) => {
+            const tone = pillTone(r.effectiveStatus);
+            const label = statusLabel(r.effectiveStatus, r.assignment.dueAt, now, t);
+            const steps = courseStepCount(r.course);
+            const done = r.assignment.completedStepIds.length;
+            const facts = [
+              r.effectiveStatus === 'in_progress' && steps ? t('stepsDone', { done: Math.min(done, steps), total: steps }) : null,
+              r.effectiveStatus === 'in_progress' ? dueText(r.assignment.dueAt, now, t) : null,
+              r.effectiveStatus === 'complete' && (r.assignment.acknowledgedAt ?? r.assignment.quizPassedAt)
+                ? t('finishedOn', {
+                    date: new Date((r.assignment.acknowledgedAt ?? r.assignment.quizPassedAt)!).toLocaleDateString(locale, {
+                      day: 'numeric',
+                      month: 'short',
+                    }),
+                  })
+                : null,
+              r.effectiveStatus === 'complete' && r.assignment.quizPassedAt ? t('quizPassed') : null,
+            ].filter(Boolean);
+            return (
+              <li key={r.assignment.id}>
+                {locked ? (
+                  <div
+                    className="flex items-center justify-between"
+                    style={{
+                      minHeight: '52px',
+                      gap: '12px',
+                      paddingLeft: '16px',
+                      paddingRight: '16px',
+                      paddingTop: '12px',
+                      paddingBottom: '12px',
+                    }}
+                  >
+                    <div
+                      className="min-w-0 flex-1"
+                      style={{
+                        filter: 'blur(3px)',
+                        opacity: 0.5,
+                        userSelect: 'none',
+                        pointerEvents: 'none',
+                      }}
+                      aria-hidden="true"
+                    >
+                      <p className="text-sm font-semibold text-[var(--color-ink)]" style={{ lineHeight: '1.4' }}>{titleOf(r)}</p>
+                      <p
+                        className="flex flex-wrap items-center text-xs text-[var(--color-ink-2)]"
+                        style={{ marginTop: '4px', gap: '6px' }}
+                      >
+                        <StatusPill tone={tone} withDot>
+                          {label}
+                        </StatusPill>
+                        {facts.join(' · ')}
+                      </p>
+                    </div>
+                    <span className="flex shrink-0 items-center justify-center self-center text-[var(--color-ink-3)]">
+                      <LuLock aria-hidden="true" className="text-xl" />
+                    </span>
+                  </div>
+                ) : (
+                  <Link
+                    href={`/${locale}/employee/training/${r.course.id}`}
+                    className="flex items-center transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:bg-[var(--color-wash)]"
+                    style={{ minHeight: '52px', gap: '12px', paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px' }}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-[var(--color-ink)]" style={{ lineHeight: '1.4' }}>{titleOf(r)}</p>
+                      <p
+                        className="flex flex-wrap items-center text-xs text-[var(--color-ink-2)]"
+                        style={{ marginTop: '4px', gap: '6px' }}
+                      >
+                        <StatusPill tone={tone} withDot>
+                          {label}
+                        </StatusPill>
+                        {facts.join(' · ')}
+                      </p>
+                    </div>
+                    <LuChevronRight aria-hidden="true" className="shrink-0 text-xl text-[var(--color-ink-3)]" />
+                  </Link>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
     </section>
   );
 }
