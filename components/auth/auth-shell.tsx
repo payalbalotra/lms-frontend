@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { LocaleSwitch } from '@/components/ui/locale-switch';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 interface AuthShellProps {
   locale?: string;
@@ -47,12 +48,17 @@ export function AuthShell({ locale, children }: AuthShellProps): React.ReactElem
         />
       </div>
 
-      {/* Language toggle — fixed top-right, sits above the ambient lighting
+      {/* Language + theme — fixed top-right, sit above the ambient lighting
           (z-20 vs the lights at z-0). Pinned here rather than inside the
-          form so it is reachable on mobile where the brand moves into the
-          card. The segbar styling already keeps the hit area at 36 px. */}
+          form so they are reachable on mobile where the brand moves into the
+          card. The segbar styling already keeps the hit area at 36 px; the
+          theme toggle is the same size. Order matches the admin / employee
+          top bar so the right edge of every screen looks the same. */}
       {locale ? (
-        <div className="fixed top-3 right-3 sm:top-4 sm:right-4 z-20">
+        <div className="fixed top-3 right-3 sm:top-4 sm:right-4 z-20 flex items-center gap-2 sm:gap-3">
+          <ThemeToggle
+            labels={{ toDark: t('themeToDark'), toLight: t('themeToLight') }}
+          />
           <LocaleSwitch locale={locale} label={t('langLabel')} />
         </div>
       ) : null}
