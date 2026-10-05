@@ -25,24 +25,12 @@ import { SEED_QUIZZES, type Quiz } from './quizzes';
 
 export const API_BASE = '';
 
-export class ApiException extends Error {
-  public readonly status: number;
-  public readonly code: string;
-  public readonly details: { path: string; message: string }[];
-
-  public constructor(
-    status: number,
-    code: string,
-    message: string,
-    details: { path: string; message: string }[] = [],
-  ) {
-    super(message);
-    this.name = 'ApiException';
-    this.status = status;
-    this.code = code;
-    this.details = details;
-  }
-}
+// Re-exported so existing imports (`import { ApiException } from '@/lib/api'`)
+// keep working. The canonical definition lives in `lib/errors.ts` so the
+// axios response interceptor can reach it without dragging in the mock
+// stores that this file owns.
+import { ApiException } from './errors';
+export { ApiException };
 
 // ----------------------------------------------------------------------------
 // Initial Mock Seed Data
