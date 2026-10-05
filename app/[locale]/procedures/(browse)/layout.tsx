@@ -8,24 +8,6 @@ import { readViewAs } from '@/lib/view-as-server';
 import { AdminShell } from '@/app/[locale]/admin/admin-shell';
 import { EmployeeTopBar } from '@/components/employee/employee-top-bar';
 
-/**
- * Procedures routes are shared between admin and employee (both link here from
- * their own surfaces), so they live outside both the /admin and /employee
- * sub-trees. Procedures are reading content — every viewer gets the focused
- * phone-shaped reading chrome by default, so admins reading a procedure don't
- * end up inside a desktop `AdminShell` for a one-column document.
- *
- * `?as=admin` opts into the `AdminShell` (sidebar + sticky top bar) when an
- * admin explicitly wants the library nav context while reading. The demo seed
- * always resolves as admin, but the chrome here is driven by the override,
- * not the session, so both surfaces work pre-login. The proxy copies the
- * query value into `x-lms-view-as` request headers (see `proxy.ts`);
- * layouts don't receive searchParams, so we read it back from headers here.
- * See `lib/view-as`.
- *
- * Force per-request SSR — the cookie-based auth check has to run on the
- * server, and a cached build-time redirect would log every user out.
- */
 export const dynamic = 'force-dynamic';
 
 interface ProceduresLayoutProps {
