@@ -1533,6 +1533,11 @@
     "errorLocked": "Too many wrong codes. Ask your manager for a new invite.",
     "errorGeneric": "Activation failed. Please try again."
   },
+  "inviteLink": {
+    "verifyingTitle": "Verifying your secure invitation link",
+    "verifyingSubtitle": "Hold on while we sign you in with Better Auth...",
+    "errorGeneric": "We couldn't verify this link. Please try again or ask your manager for a new one."
+  },
   "common": {
     "loading": "Loading..."
   }

@@ -1533,6 +1533,11 @@
     "errorLocked": "Demasiados códigos incorrectos. Pide a tu gerente una nueva invitación.",
     "errorGeneric": "No se pudo activar. Inténtalo de nuevo."
   },
+  "inviteLink": {
+    "verifyingTitle": "Verificando tu enlace de invitación seguro",
+    "verifyingSubtitle": "Espera mientras iniciamos sesión con Better Auth...",
+    "errorGeneric": "No pudimos verificar este enlace. Inténtalo de nuevo o pide a tu gerente uno nuevo."
+  },
   "common": {
     "loading": "Cargando..."
   }
