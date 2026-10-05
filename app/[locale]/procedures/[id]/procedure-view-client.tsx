@@ -207,6 +207,33 @@ export function ProcedureViewClient({
     const found = blocks.find((b): b is Extract<ProcedureBlock, { kind: 'recipe' }> => b.kind === 'recipe');
     return found ?? null;
   }, [proc]);
+
+  // ─── Hooks for the page-level menu (share-link + sign-out) ─────────────
+  // These must sit alongside the other hook calls — the early returns
+  // below (loading / not-found) run after this point, and React requires
+  // every render to call the same hooks in the same order.
+  const [menuOpen, setMenuOpen] = React.useState(false);
+  const [copied, setCopied] = React.useState(false);
+  const menuRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!menuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [menuOpen]);
+
   const wrapperClass = isAdmin
     ? 'min-h-screen bg-[var(--color-bg-admin)]'
     : 'min-h-screen bg-[var(--color-bg)] pb-20';
@@ -255,28 +282,6 @@ export function ProcedureViewClient({
       </div>
     );
   }
-
-  const [menuOpen, setMenuOpen] = React.useState(false);
-  const [copied, setCopied] = React.useState(false);
-  const menuRef = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    if (!menuOpen) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setMenuOpen(false);
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [menuOpen]);
 
   const handleCopyLink = () => {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
