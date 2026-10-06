@@ -51,8 +51,8 @@ export function LoginForm({ locale }: LoginFormProps): React.ReactElement {
     startTransition(async () => {
       try {
         const res = await login({ email: trimmedEmail, password });
-        if (res.employee.role === 'admin') {
-          router.replace(`/${locale}/admin/library`);
+        if (res.employee?.role === 'admin' || res.employee?.role === 'super_admin') {
+          router.replace(`/${locale}/admin`);
         } else {
           router.replace(`/${locale}/employee/home`);
         }

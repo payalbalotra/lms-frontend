@@ -80,7 +80,8 @@ export function EditRolesModal({
   const [name, setName] = useState<string>(employee.name);
   const [email, setEmail] = useState<string>(employee.email ?? '');
   const [locationId, setLocationId] = useState<string>(employee.locationId);
-  const [tier, setTier] = useState<Tier>(employee.accessLevel);
+  const initialTier: Tier = employee.accessLevel ?? (employee.role === 'manager' ? 'manager' : 'employee');
+  const [tier, setTier] = useState<Tier>(initialTier);
   const [roleIds, setRoleIds] = useState<string[]>(employee.roleIds);
   const [stationIds, setStationIds] = useState<string[]>(employee.stationIds);
 
@@ -91,7 +92,7 @@ export function EditRolesModal({
     setName(employee.name);
     setEmail(employee.email ?? '');
     setLocationId(employee.locationId);
-    setTier(employee.accessLevel);
+    setTier(employee.accessLevel ?? (employee.role === 'manager' ? 'manager' : 'employee'));
     setRoleIds(employee.roleIds);
     setStationIds(employee.stationIds);
   }, [open, employee]);
@@ -216,7 +217,7 @@ export function EditRolesModal({
       name: employee.name,
       email: employee.email ?? null,
       locationId: employee.locationId,
-      accessLevel: employee.accessLevel,
+      accessLevel: employee.accessLevel ?? (employee.role === 'manager' ? 'manager' : 'employee'),
       role: employee.role,
       roleIds: [...employee.roleIds],
       stationIds: [...employee.stationIds],

@@ -151,7 +151,7 @@ export function ResetPasswordForm({ locale, initialToken }: ResetPasswordFormPro
 
     startTransition(async () => {
       try {
-        await resetPassword({ token, code, password });
+        await resetPassword({ token, code, password, email: verifiedEmail });
         setStatus('success');
       } catch {
         setError(t('errorGeneric'));

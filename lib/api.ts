@@ -10,6 +10,7 @@ import type {
   CreateRoleInput,
   CreateStationInput,
   Employee,
+  EmployeeRole,
   EmployeeStatus,
   InviteResult,
   Location,
@@ -23,13 +24,11 @@ import type {
   UpdateStationInput,
 } from './types';
 import { SEED_QUIZZES, type Quiz } from './quizzes';
+import { http } from './http';
+import { AUTH_ENDPOINTS } from '@/services/auth/endpoints';
 
 export const API_BASE = '';
 
-// Re-exported so existing imports (`import { ApiException } from '@/lib/api'`)
-// keep working. The canonical definition lives in `lib/errors.ts` so the
-// axios response interceptor can reach it without dragging in the mock
-// stores that this file owns.
 import { ApiException } from './errors';
 export { ApiException };
 
@@ -168,7 +167,6 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     accessLevel: 'employee',
     roleIds: ['role-cook'],
     stationIds: ['stn-grill'],
-    clearanceLevel: 'station',
     role: 'employee',
     languagePref: 'es',
     employeeCode: 'EMP-001',
@@ -185,7 +183,6 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     accessLevel: 'employee',
     roleIds: ['role-cook', 'role-prep'],
     stationIds: ['stn-gm', 'stn-grill'],
-    clearanceLevel: 'station',
     role: 'employee',
     languagePref: 'en',
     employeeCode: 'EMP-002',
@@ -202,7 +199,6 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     accessLevel: 'employee',
     roleIds: ['role-pastry'],
     stationIds: ['stn-prep'],
-    clearanceLevel: 'station',
     role: 'employee',
     languagePref: 'es',
     employeeCode: 'EMP-003',
@@ -219,7 +215,6 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     accessLevel: 'employee',
     roleIds: ['role-prep'],
     stationIds: ['stn-gm'],
-    clearanceLevel: 'station',
     role: 'employee',
     languagePref: 'en',
     employeeCode: 'EMP-004',
@@ -236,7 +231,6 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     accessLevel: 'manager',
     roleIds: ['role-cook'],
     stationIds: ['stn-expo', 'stn-gm'],
-    clearanceLevel: 'station',
     role: 'admin',
     languagePref: 'es',
     employeeCode: 'EMP-005',
@@ -253,7 +247,6 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     accessLevel: 'employee',
     roleIds: ['role-dish'],
     stationIds: ['stn-dish'],
-    clearanceLevel: 'general',
     role: 'employee',
     languagePref: 'es',
     employeeCode: 'EMP-006',
@@ -270,7 +263,6 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     accessLevel: 'employee',
     roleIds: ['role-cook'],
     stationIds: ['stn-gm'],
-    clearanceLevel: 'station',
     role: 'employee',
     languagePref: 'en',
     employeeCode: 'EMP-007',
@@ -287,7 +279,6 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     accessLevel: 'employee',
     roleIds: ['role-pastry'],
     stationIds: ['stn-prep'],
-    clearanceLevel: 'station',
     role: 'employee',
     languagePref: 'en',
     employeeCode: 'EMP-008',
@@ -304,7 +295,6 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     accessLevel: 'employee',
     roleIds: ['role-prep'],
     stationIds: ['stn-gm'],
-    clearanceLevel: 'station',
     role: 'employee',
     languagePref: 'es',
     employeeCode: 'EMP-009',
@@ -322,7 +312,6 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     accessLevel: 'manager',
     roleIds: ['role-cook'],
     stationIds: ['stn-expo'],
-    clearanceLevel: 'master',
     role: 'admin',
     languagePref: 'en',
     employeeCode: 'EMP-010',
@@ -339,7 +328,6 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     accessLevel: 'employee',
     roleIds: ['role-cook'],
     stationIds: ['stn-grill', 'stn-gm'],
-    clearanceLevel: 'station',
     role: 'employee',
     languagePref: 'es',
     employeeCode: 'EMP-011',
@@ -356,7 +344,6 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     accessLevel: 'employee',
     roleIds: ['role-prep'],
     stationIds: ['stn-prep'],
-    clearanceLevel: 'general',
     role: 'employee',
     languagePref: 'es',
     employeeCode: 'EMP-012',
@@ -373,7 +360,6 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     accessLevel: 'employee',
     roleIds: ['role-prep'],
     stationIds: ['stn-gm'],
-    clearanceLevel: 'general',
     role: 'employee',
     languagePref: 'es',
     employeeCode: 'EMP-013',
@@ -390,7 +376,6 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     accessLevel: 'employee',
     roleIds: ['role-cook'],
     stationIds: ['stn-grill'],
-    clearanceLevel: 'station',
     role: 'employee',
     languagePref: 'en',
     employeeCode: 'EMP-014',
@@ -407,7 +392,6 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     accessLevel: 'employee',
     roleIds: ['role-dish'],
     stationIds: ['stn-dish'],
-    clearanceLevel: 'general',
     role: 'employee',
     languagePref: 'es',
     employeeCode: 'EMP-015',
@@ -424,7 +408,6 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     accessLevel: 'employee',
     roleIds: ['role-pastry'],
     stationIds: ['stn-prep'],
-    clearanceLevel: 'station',
     role: 'employee',
     languagePref: 'en',
     employeeCode: 'EMP-016',
@@ -441,7 +424,6 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     accessLevel: 'employee',
     roleIds: ['role-cook'],
     stationIds: ['stn-grill'],
-    clearanceLevel: 'station',
     role: 'employee',
     languagePref: 'en',
     employeeCode: 'EMP-017',
@@ -458,7 +440,6 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     accessLevel: 'employee',
     roleIds: ['role-prep'],
     stationIds: ['stn-gm'],
-    clearanceLevel: 'station',
     role: 'employee',
     languagePref: 'en',
     employeeCode: 'EMP-018',
@@ -476,7 +457,6 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
     accessLevel: 'employee',
     roleIds: ['role-prep'],
     stationIds: ['stn-prep'],
-    clearanceLevel: 'general',
     role: 'employee',
     languagePref: 'es',
     employeeCode: 'EMP-019',
@@ -2370,52 +2350,70 @@ export interface LoginInput {
 }
 
 export async function login(input: LoginInput): Promise<{ employee: Employee }> {
-  const emps = getEmployeesStore();
-  const needle = (input.email || input.name || '').toLowerCase().trim();
-  let emp: AdminEmployee | undefined;
+  const { data } = await http.post<{
+    success: boolean;
+    data: {
+      token: string;
+      user: { id: string; name: string; email: string };
+      employee?: Employee;
+      role?: string;
+    };
+  }>(AUTH_ENDPOINTS.LOGIN, {
+    email: input.email,
+    password: input.password,
+  });
 
-  if (needle) {
-    emp = emps.find(
-      (e) =>
-        e.email?.toLowerCase() === needle ||
-        e.name.toLowerCase().includes(needle) ||
-        e.employeeCode?.toLowerCase() === needle,
-    );
+  const token = data.data?.token;
+
+  if (typeof window !== 'undefined' && token) {
+    localStorage.setItem('token', token);
+    document.cookie = `lms_token=${token}; path=/; max-age=864000; SameSite=Lax`;
   }
 
-  if (!emp) {
-    if (
-      needle.includes('cook') ||
-      needle.includes('employee') ||
-      needle.includes('prep') ||
-      needle.includes('carlos') ||
-      needle.includes('maria')
-    ) {
-      emp = emps.find((e) => e.role === 'employee');
-    } else if (needle.includes('admin') || needle.includes('chef') || needle.includes('raul')) {
-      emp = emps.find((e) => e.role === 'admin');
-    }
-  }
-
-  if (!emp) {
-    emp = emps[0];
+  let emp: Employee;
+  if (data.data?.employee) {
+    emp = data.data.employee;
+  } else if (data.data?.role) {
+    emp = {
+      id: data.data.user.id,
+      name: data.data.user.name,
+      email: data.data.user.email,
+      role: (data.data.role as EmployeeRole),
+      locationId: '',
+      roleIds: [],
+      stationIds: [],
+      languagePref: 'en',
+    };
+  } else {
+    const meRes = await fetchMe();
+    emp = meRes.employee;
   }
 
   if (typeof window !== 'undefined') {
     setStored('current_user', emp);
-    document.cookie = `lms_role=${emp.role}; path=/; max-age=864000`;
-    document.cookie = `lms_emp_id=${emp.id}; path=/; max-age=864000`;
+    document.cookie = `lms_role=${emp.role}; path=/; max-age=864000; SameSite=Lax`;
+    document.cookie = `lms_emp_id=${emp.id}; path=/; max-age=864000; SameSite=Lax`;
   }
 
   return { employee: emp };
 }
 
 export async function logout(): Promise<{ ok: true }> {
+  try {
+    await http.post(AUTH_ENDPOINTS.SIGN_OUT);
+  } catch {
+    // Continue cleanup even if server sign-out fails
+  }
+
   if (typeof window !== 'undefined') {
     try {
+      localStorage.removeItem('token');
       localStorage.removeItem('lms_demo_current_user');
+      localStorage.removeItem('current_user');
+      document.cookie = 'lms_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
       document.cookie = 'lms_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
       document.cookie = 'lms_emp_id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      document.cookie = 'better-auth.session_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     } catch {
       // Ignore
     }
@@ -2423,12 +2421,45 @@ export async function logout(): Promise<{ ok: true }> {
   return { ok: true };
 }
 
-export async function requestPasswordReset(_input: { email: string }): Promise<{ ok: true; message: string }> {
+export async function requestPasswordReset(input: { email: string }): Promise<{ ok: true; message: string }> {
+  await http.post(AUTH_ENDPOINTS.FORGOT_PASSWORD, { email: input.email });
   return { ok: true, message: 'Password reset link sent.' };
 }
 
-export async function resetPassword(_input: { token: string; code: string; password: string }): Promise<{ ok: true; message: string }> {
+export async function resetPassword(input: { token?: string; code?: string; password: string; email?: string }): Promise<{ ok: true; message: string }> {
+  await http.post(AUTH_ENDPOINTS.RESET_PASSWORD, {
+    email: input.email || '',
+    otp: input.code || input.token || '',
+    password: input.password,
+  });
   return { ok: true, message: 'Password updated successfully.' };
+}
+
+export async function activate(input: { token?: string; password: string }): Promise<{ employee: Employee; redirectTo?: string }> {
+  const { data } = await http.post<{
+    success: boolean;
+    data: {
+      employee: Employee;
+      token?: string;
+      redirectTo?: string;
+    };
+  }>(AUTH_ENDPOINTS.SET_PASSWORD, {
+    password: input.password,
+  });
+
+  if (typeof window !== 'undefined') {
+    if (data.data?.token) {
+      localStorage.setItem('token', data.data.token);
+      document.cookie = `lms_token=${data.data.token}; path=/; max-age=864000; SameSite=Lax`;
+    }
+    if (data.data?.employee) {
+      setStored('current_user', data.data.employee);
+      document.cookie = `lms_role=${data.data.employee.role}; path=/; max-age=864000; SameSite=Lax`;
+      document.cookie = `lms_emp_id=${data.data.employee.id}; path=/; max-age=864000; SameSite=Lax`;
+    }
+  }
+
+  return data.data;
 }
 
 export async function verifyResetToken(token: string): Promise<{
@@ -2441,68 +2472,165 @@ export async function verifyResetToken(token: string): Promise<{
   }
   return {
     valid: true,
-    email: 'maria@alimentariamexicana.com',
-    employeeName: 'María González',
+    email: '',
+    employeeName: '',
   };
 }
 
-export async function fetchMe(cookieHeader?: string, _signal?: AbortSignal): Promise<{ employee: Employee }> {
-  const emps = getEmployeesStore();
+export async function fetchMe(
+  cookieHeader?: string,
+  _signal?: AbortSignal,
+): Promise<{ employee: Employee }> {
+  try {
+    const headers: Record<string, string> = {
+      'Cache-Control': 'no-cache, no-store',
+      Pragma: 'no-cache',
+    };
 
-  if (cookieHeader) {
-    const idMatch = cookieHeader.match(/lms_emp_id=([^;]+)/);
-    const roleMatch = cookieHeader.match(/lms_role=([^;]+)/);
-    if (idMatch && idMatch[1]) {
-      const found = emps.find((e) => e.id === idMatch[1].trim());
-      if (found) return { employee: found };
+    if (cookieHeader) {
+      headers['Cookie'] = cookieHeader;
+      const tokenMatch = cookieHeader.match(/(?:^|;\s*)lms_token=([^;]+)/);
+      if (tokenMatch) {
+        headers['Authorization'] = `Bearer ${decodeURIComponent(tokenMatch[1])}`;
+      }
     }
-    if (roleMatch && roleMatch[1]) {
-      const found = emps.find((e) => e.role === roleMatch[1].trim());
-      if (found) return { employee: found };
+
+    const { data } = await http.get<{
+      success: boolean;
+      data: {
+        employee?: Employee;
+        user?: { id: string; name: string; email: string };
+        role?: string;
+      };
+    }>(AUTH_ENDPOINTS.ME, {
+      headers,
+      params: { _t: Date.now() },
+    });
+
+    if (data.data?.employee) {
+      return { employee: data.data.employee };
+    }
+
+    if (data.data?.user) {
+      const userRole = (data.data.role as EmployeeRole) || 'super_admin';
+      return {
+        employee: {
+          id: data.data.user.id,
+          name: data.data.user.name,
+          email: data.data.user.email,
+          role: userRole,
+          locationId: '',
+          roleIds: [],
+          stationIds: [],
+          languagePref: 'en',
+        },
+      };
+    }
+  } catch (err) {
+    if (err instanceof ApiException) {
+      throw err;
     }
   }
 
-  if (typeof window !== 'undefined') {
-    // The signed-in person's id first, as the server reads it; otherwise the
-    // browser answered as the admin while the server answered as the cook.
-    const idCookie = document.cookie.match(/lms_emp_id=([^;]+)/);
-    const byId = idCookie?.[1] ? emps.find((e) => e.id === idCookie[1].trim()) : undefined;
-    if (byId) return { employee: byId };
-    const stored = getStored<Employee | null>('current_user', null);
-    if (stored) {
-      const found = emps.find((e) => e.id === stored.id) || stored;
-      return { employee: found };
-    }
-    const roleMatch = document.cookie.match(/lms_role=([^;]+)/);
-    if (roleMatch && roleMatch[1]) {
-      const found = emps.find((e) => e.role === roleMatch[1].trim());
-      if (found) return { employee: found };
-    }
-  }
-
-  return { employee: emps[0] };
+  throw new ApiException(401, 'SESSION_INVALID', 'Session expired or invalid');
 }
 
 // ----------------------------------------------------------------------------
 // Admin lookups
 // ----------------------------------------------------------------------------
 
-export async function listRoles(_cookieHeader?: string): Promise<{ roles: Role[] }> {
+export async function listRoles(cookieHeader?: string): Promise<{ roles: Role[] }> {
+  try {
+    const headers: Record<string, string> = {};
+    if (cookieHeader) {
+      headers['Cookie'] = cookieHeader;
+      const tokenMatch = cookieHeader.match(/(?:^|;\s*)lms_token=([^;]+)/);
+      if (tokenMatch) {
+        headers['Authorization'] = `Bearer ${decodeURIComponent(tokenMatch[1])}`;
+      }
+    }
+    const { data } = await http.get<{
+      success: boolean;
+      data: { jobs: Array<{ id: string; name: string; role: string; createdAt: string }> };
+    }>('/api/v1/jobs', {
+      headers: Object.keys(headers).length ? headers : undefined,
+      params: { _t: Date.now() },
+    });
+    if (data.data?.jobs?.length) {
+      const roles: Role[] = data.data.jobs.map((j) => ({
+        id: j.id,
+        name: j.name,
+        clearanceLevel: 'general',
+        stationIds: [],
+        createdAt: j.createdAt || new Date().toISOString(),
+      }));
+      return { roles };
+    }
+  } catch {
+    // fallback
+  }
   return { roles: [...getRolesStore()] };
 }
 
 export async function listStations(
   locationId: string,
-  _cookieHeader?: string,
+  cookieHeader?: string,
   opts: { includeArchived?: boolean } = {},
 ): Promise<{ stations: Station[] }> {
+  try {
+    const headers: Record<string, string> = {};
+    if (cookieHeader) {
+      headers['Cookie'] = cookieHeader;
+      const tokenMatch = cookieHeader.match(/(?:^|;\s*)lms_token=([^;]+)/);
+      if (tokenMatch) {
+        headers['Authorization'] = `Bearer ${decodeURIComponent(tokenMatch[1])}`;
+      }
+    }
+    const { data } = await http.get<{
+      success: boolean;
+      data: { stations: Station[] };
+    }>('/api/v1/stations', {
+      headers: Object.keys(headers).length ? headers : undefined,
+      params: { _t: Date.now() },
+    });
+    if (data.data?.stations?.length) {
+      const filtered = data.data.stations.filter(
+        (s) => (!locationId || s.locationId === locationId) && (opts.includeArchived || !s.isArchived),
+      );
+      return { stations: filtered };
+    }
+  } catch {
+    // fallback
+  }
   const filtered = getStationsStore().filter(
     (s) => s.locationId === locationId && (opts.includeArchived || !s.isArchived),
   );
   return { stations: filtered };
 }
 
-export async function listLocations(_cookieHeader?: string): Promise<{ locations: Location[] }> {
+export async function listLocations(cookieHeader?: string): Promise<{ locations: Location[] }> {
+  try {
+    const headers: Record<string, string> = {};
+    if (cookieHeader) {
+      headers['Cookie'] = cookieHeader;
+      const tokenMatch = cookieHeader.match(/(?:^|;\s*)lms_token=([^;]+)/);
+      if (tokenMatch) {
+        headers['Authorization'] = `Bearer ${decodeURIComponent(tokenMatch[1])}`;
+      }
+    }
+    const { data } = await http.get<{
+      success: boolean;
+      data: { locations: Location[] };
+    }>('/api/v1/locations', {
+      headers: Object.keys(headers).length ? headers : undefined,
+      params: { _t: Date.now() },
+    });
+    if (data.data?.locations?.length) {
+      return { locations: data.data.locations };
+    }
+  } catch {
+    // fallback
+  }
   return { locations: [...getLocationsStore()] };
 }
 
@@ -2512,90 +2640,100 @@ export async function listLocations(_cookieHeader?: string): Promise<{ locations
 
 export async function listEmployees(
   opts: { status?: EmployeeStatus | 'all' } = {},
-  _cookieHeader?: string,
+  cookieHeader?: string,
 ): Promise<{ employees: AdminEmployee[] }> {
   const status = opts.status ?? 'all';
+  try {
+    const headers: Record<string, string> = {};
+    if (cookieHeader) {
+      headers['Cookie'] = cookieHeader;
+      const tokenMatch = cookieHeader.match(/(?:^|;\s*)lms_token=([^;]+)/);
+      if (tokenMatch) {
+        headers['Authorization'] = `Bearer ${decodeURIComponent(tokenMatch[1])}`;
+      }
+    }
+    const { data } = await http.get<{
+      success: boolean;
+      data: { employees: AdminEmployee[] };
+    }>('/api/v1/employees', {
+      headers: Object.keys(headers).length ? headers : undefined,
+      params: { status: status !== 'all' ? status : undefined, _t: Date.now() },
+    });
+    if (data.data?.employees) {
+      return { employees: data.data.employees };
+    }
+  } catch {
+    // fallback
+  }
   const emps = getEmployeesStore();
   const filtered = status === 'all' ? emps : emps.filter((e) => e.status === status);
   return { employees: [...filtered] };
 }
 
-export async function createEmployee(input: CreateEmployeeInput): Promise<{ employee: Employee; invite: InviteResult }> {
-  const loc = mockLocations.find((l) => l.id === input.locationId);
-
-  // Highest clearance across all assigned job roles — what the LMS surfaces
-  // in the employee table. Manager access defaults to 'confidential' when
-  // no roles are attached yet (rare but the schema allows it).
-  const assignedRoles = input.roleIds
-    .map((id) => mockRoles.find((r) => r.id === id))
-    .filter((r): r is Role => Boolean(r));
-  const clearanceOrder: Record<typeof assignedRoles[number]['clearanceLevel'], number> = {
-    general: 0,
-    station: 1,
-    confidential: 2,
-    master: 3,
-  };
-  const highestClearance =
-    assignedRoles.length === 0
-      ? input.accessLevel === 'manager' ? 'confidential' : 'general'
-      : assignedRoles.reduce((acc, r) => (clearanceOrder[r.clearanceLevel] > clearanceOrder[acc.clearanceLevel] ? r : acc)).clearanceLevel;
-
-  const newEmp: AdminEmployee = {
-    id: `emp-${Date.now()}`,
+export async function createEmployee(
+  input: CreateEmployeeInput,
+): Promise<{ employee: Employee; invite: InviteResult }> {
+  const { data } = await http.post<{
+    success: boolean;
+    data: {
+      employee: Employee;
+      inviteUrl?: string;
+    };
+  }>('/api/v1/employees', {
     name: input.name,
+    email: input.email,
     locationId: input.locationId,
-    accessLevel: input.accessLevel,
-    roleIds: [...input.roleIds],
-    stationIds: [...(input.stationIds ?? [])],
-    clearanceLevel: highestClearance,
-    role: input.accessLevel === 'manager' ? 'admin' : 'employee',
+    role: input.accessLevel === 'manager' ? 'manager' : 'employee',
+    jobIds: input.roleIds,
+    stationIds: input.stationIds ?? [],
+    employeeCode: input.employeeCode || undefined,
     languagePref: input.languagePref ?? 'en',
-    employeeCode: input.employeeCode ?? null,
-    status: 'pending',
-    createdAt: new Date().toISOString(),
-    deactivatedAt: null,
-    locationName: loc?.name ?? null,
-    roleClearance: highestClearance,
-  };
-
-  mockEmployees = [newEmp, ...mockEmployees];
-  setStored('employees_v2', mockEmployees);
+  });
 
   const invite: InviteResult = {
-    url: typeof window !== 'undefined' ? `${window.location.origin}/activate/demo-token` : '#',
-    code: '123456',
-    expiresAt: new Date(Date.now() + 7 * 86400 * 1000).toISOString(),
+    url: data.data?.inviteUrl || '',
+    code: '',
+    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
   };
 
-  return { employee: newEmp, invite };
+  return { employee: data.data.employee, invite };
 }
 
-export async function resendInvite(_employeeId: string): Promise<{ invite: InviteResult }> {
+export async function resendInvite(employeeId: string): Promise<{ invite: InviteResult }> {
+  const { data } = await http.post<{
+    success: boolean;
+    data: {
+      inviteUrl: string;
+    };
+  }>(`/api/v1/employees/${employeeId}/invites`);
+
   return {
     invite: {
-      url: typeof window !== 'undefined' ? `${window.location.origin}/activate/demo-token` : '#',
-      code: '654321',
-      expiresAt: new Date(Date.now() + 7 * 86400 * 1000).toISOString(),
+      url: data.data?.inviteUrl || '',
+      code: '',
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
     },
   };
 }
 
 export async function deactivateEmployee(employeeId: string): Promise<{ employee: AdminEmployee }> {
-  mockEmployees = mockEmployees.map((e) =>
-    e.id === employeeId ? { ...e, status: 'deactivated', deactivatedAt: new Date().toISOString() } : e,
-  );
-  setStored('employees_v2', mockEmployees);
-  const updated = mockEmployees.find((e) => e.id === employeeId)!;
-  return { employee: updated };
+  const { data } = await http.post<{
+    success: boolean;
+    data: {
+      employee: AdminEmployee;
+    };
+  }>(`/api/v1/employees/${employeeId}/deactivate`);
+  return { employee: data.data.employee };
 }
 
 export async function reactivateEmployee(employeeId: string): Promise<{ employee: AdminEmployee }> {
-  mockEmployees = mockEmployees.map((e) =>
-    e.id === employeeId ? { ...e, status: 'active', deactivatedAt: null } : e,
-  );
-  setStored('employees_v2', mockEmployees);
-  const updated = mockEmployees.find((e) => e.id === employeeId)!;
-  return { employee: updated };
+  const { data } = await http.post<{
+    success: boolean;
+    data: {
+      employee: AdminEmployee;
+    };
+  }>(`/api/v1/employees/${employeeId}/reactivate`);
+  return { employee: data.data.employee };
 }
 
 // ----------------------------------------------------------------------------
@@ -2691,9 +2829,7 @@ export async function lookupInvite(_token: string): Promise<{
   };
 }
 
-export async function activate(_input: { token: string; code?: string; password: string }): Promise<{ employee: Employee }> {
-  return { employee: mockEmployees[0] };
-}
+
 
 // ----------------------------------------------------------------------------
 // Library — procedures
@@ -2861,7 +2997,7 @@ const CLEARANCE_RANK: Record<ClearanceLevel, number> = { general: 0, station: 1,
  * confidential clearance, a master recipe needs master.
  */
 export function canRead(p: Procedure, viewer: Employee): boolean {
-  if (viewer.role === 'admin' || viewer.accessLevel === 'manager') return true;
+  if (viewer.role === 'admin' || viewer.role === 'super_admin' || viewer.role === 'manager' || viewer.accessLevel === 'manager') return true;
   if (p.status !== 'published' || p.isArchived) return false;
   const a = p.audience;
   if (a && a.mode === 'some') {
@@ -2872,7 +3008,7 @@ export function canRead(p: Procedure, viewer: Employee): boolean {
     if (!meant) return false;
   }
   const needs: ClearanceLevel = p.protection === 'master' ? 'master' : p.protection === 'confidential' ? 'confidential' : 'general';
-  return CLEARANCE_RANK[viewer.clearanceLevel] >= CLEARANCE_RANK[needs];
+  return CLEARANCE_RANK[viewer.roleClearance ?? 'general'] >= CLEARANCE_RANK[needs];
 }
 
 export async function listProcedures(
@@ -3186,4 +3322,4 @@ export function setActiveSeason(season: ActiveSeason): void {
   } catch {
     // Ignore storage errors
   }
-}
+}

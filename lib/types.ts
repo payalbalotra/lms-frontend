@@ -1,33 +1,30 @@
 
+export const ROLES = ['super_admin', 'manager', 'employee'] as const;
+export type SystemRole = (typeof ROLES)[number];
+export type EmployeeRole = (typeof ROLES)[number] | 'admin';
 export type ClearanceLevel = 'general' | 'station' | 'confidential' | 'master';
 export type LanguagePref = 'en' | 'es';
 export type EmployeeStatus = 'pending' | 'active' | 'deactivated';
-export type EmployeeRole = 'admin' | 'employee';
 export type AccessLevel = 'employee' | 'manager';
 
 export interface Employee {
   id: string;
   name: string;
+  email?: string | null;
   locationId: string;
-  accessLevel: AccessLevel;
+  accessLevel?: AccessLevel;
   roleIds: string[];
+  jobIds?: string[];
   stationIds: string[];
-  clearanceLevel: ClearanceLevel;
   role: EmployeeRole;
   languagePref: LanguagePref;
-
+  roleClearance?: ClearanceLevel | null;
   createdAt?: string;
 }
 export interface Role {
   id: string;
   name: string;
   clearanceLevel: ClearanceLevel;
-  /**
-   * Stations this role works on. Empty array means "any station at the
-   * employee's location" — most kitchen roles are pinned to a specific set
-   * (Line Cook → grill/gm/expo), but a Manager typically gets every station
-   * which the form expresses as an empty list + accessLevel = 'manager'.
-   */
   stationIds: string[];
   createdAt: string;
 }

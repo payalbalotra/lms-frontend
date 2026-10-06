@@ -34,7 +34,7 @@ export function InviteLinkForm({ locale, token }: InviteLinkFormProps): React.Re
     const queryToken = searchParams.get('token');
     const actualToken = (token && token !== 'token' ? token : queryToken) || queryToken || token;
 
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://192.168.0.153:8000';
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000';
     if (actualToken && locale) {
       // Full browser redirect so backend can set the secure HttpOnly cookie
       window.location.href = `${backendUrl}/api/v1/auth/invites/${locale}/${actualToken}`;

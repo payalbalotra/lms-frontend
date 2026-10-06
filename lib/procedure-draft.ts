@@ -143,7 +143,21 @@ export function buildBody(args: {
 }): ProcedureBody {
   const rest = args.blocks.filter((b) => !isBlockEmpty(b));
 
-  if (args.recipe) {
+  // The recipe panel only carries real content when this procedure was
+  // opened from a saved recipe (`toEditorContent` unfolds its ingredients
+  // and yield rows into the panel). For a new procedure the panel is empty
+  // — the wizard has no UI to fill it. Folding an empty panel into a block
+  // would invent a recipe out of a checklist or a numbered list purely
+  // because the category is called "Recipes", and the reader would then
+  // render a Yield section (batch pills scaling nothing) for content that
+  // never asked for one. An empty panel leaves the manager's blocks exactly
+  // as they wrote them.
+  const hasRecipeContent =
+    args.recipe !== null &&
+    (args.recipe.ingredients.some((i) => i.name.trim() !== '') ||
+      args.recipe.yieldItems.some((y) => y.label.trim() !== '' && y.value.trim() !== ''));
+
+  if (hasRecipeContent && args.recipe) {
     const methodIndex = rest.findIndex((b) => b.kind === 'method');
     const method = methodIndex >= 0 ? rest[methodIndex] : null;
     const steps =
