@@ -141,15 +141,17 @@ export function EmployeeDetailClient({ locale }: EmployeeDetailClientProps): Rea
   // `app/[locale]/admin/employees/new/page.tsx`. We follow suit here so
   // the info card renders labels without a re-fetch.
   const [roleLabels, stationLabels] = useMemo(() => {
+    const rIds = employee.roleIds ?? (employee as any).jobIds ?? [];
+    const sIds = employee.stationIds ?? [];
     return [
-      employee.roleIds
-        .map((rid) => roleLabel.get(rid))
-        .filter((s): s is string => Boolean(s)),
-      employee.stationIds
-        .map((sid) => stationLabel.get(sid))
-        .filter((s): s is string => Boolean(s)),
+      rIds
+        .map((rid: string) => roleLabel.get(rid))
+        .filter((s: string | undefined): s is string => Boolean(s)),
+      sIds
+        .map((sid: string) => stationLabel.get(sid))
+        .filter((s: string | undefined): s is string => Boolean(s)),
     ];
-  }, [employee.roleIds, employee.stationIds, roleLabel, stationLabel]);
+  }, [employee.roleIds, employee.stationIds, (employee as any).jobIds, roleLabel, stationLabel]);
 
   // Load the catalogs on mount so the chips render with names from the
   // first paint, not after the user opens the edit modal. Stations are
@@ -224,8 +226,8 @@ export function EmployeeDetailClient({ locale }: EmployeeDetailClientProps): Rea
             </div>
             <p className="mt-2 text-sm text-[var(--color-ink-2)]">
               {oneLiner({
-                roleLabels: roleLabels.length > 0 ? roleLabels : (employee.roleIds.length ? [t('detailRolesEmpty')] : []),
-                stationLabels: stationLabels.length > 0 ? stationLabels : (employee.stationIds.length ? [t('stationsEmpty')] : []),
+                roleLabels: roleLabels.length > 0 ? roleLabels : ((employee.roleIds?.length || (employee as any).jobIds?.length) ? [t('detailRolesEmpty')] : []),
+                stationLabels: stationLabels.length > 0 ? stationLabels : (employee.stationIds?.length ? [t('stationsEmpty')] : []),
                 location: employee.locationName,
               })}
             </p>

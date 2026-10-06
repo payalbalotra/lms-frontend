@@ -206,12 +206,12 @@ export function EmployeesClientTable({
                   // archived out from under a row). Multiple values join
                   // with ", " — chips would add a `--panel-2` ground that
                   // competes with the avatar's ground at this density.
-                  const roleLabels = e.roleIds
-                    .map((id) => roleLabel.get(id))
-                    .filter((s): s is string => Boolean(s));
-                  const stationLabels = e.stationIds
-                    .map((id) => stationLabel.get(id))
-                    .filter((s): s is string => Boolean(s));
+                  const roleLabels = (e.roleIds ?? (e as any).jobIds ?? [])
+                    .map((id: string) => roleLabel.get(id))
+                    .filter((s: string | undefined): s is string => Boolean(s));
+                  const stationLabels = (e.stationIds ?? [])
+                    .map((id: string) => stationLabel.get(id))
+                    .filter((s: string | undefined): s is string => Boolean(s));
 
                   // Training rows for this employee. `getTrainingRowsForEmployee`
                   // is a pure selector over the mock training store; calling

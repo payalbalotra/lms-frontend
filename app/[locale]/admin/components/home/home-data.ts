@@ -106,8 +106,8 @@ export function buildAttention(input: HomeInput): AttentionGroup[] {
       // A dishwasher at the Dishwasher station read "Dishwasher · Dishwasher".
       meta: [
         ...new Set([
-          e.roleIds[0] ? roleById.get(e.roleIds[0]) : undefined,
-          e.stationIds[0] ? stationById.get(e.stationIds[0]) : undefined,
+          (e.roleIds?.[0] ?? (e as any).jobIds?.[0]) ? roleById.get(e.roleIds?.[0] ?? (e as any).jobIds?.[0]) : undefined,
+          e.stationIds?.[0] ? stationById.get(e.stationIds[0]) : undefined,
         ]),
         t.invitedAgo(relativeDays(e.createdAt, locale, now)),
         e.languagePref === 'es' ? t.readsSpanish : undefined,

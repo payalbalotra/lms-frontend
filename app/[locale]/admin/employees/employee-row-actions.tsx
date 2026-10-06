@@ -11,6 +11,7 @@ import {
   ApiException,
 } from '@/lib/api';
 import { RowActions, type RowActionItem } from '@/components/ui/row-actions';
+import { Button } from '@/components/ui/button';
 import type { AdminEmployee, InviteResult } from '@/lib/types';
 import { LuBan, LuPencil, LuRotateCw, LuSend } from 'react-icons/lu';
 
@@ -143,27 +144,28 @@ export function EmployeeRowActions({ locale, employee, onEdit }: EmployeeRowActi
         </p>
       ) : null}
       {lastInvite ? (
-        <div className="rounded-md border border-[var(--color-line)] bg-[var(--color-panel)] p-2 text-sm text-[var(--color-ink)]">
-          <p className="mb-1 font-medium">{t('inviteCreatedHeading')}</p>
-          <p className="mb-1 break-all">
-            <span className="text-[var(--color-muted-foreground)]">{t('inviteUrlLabel')}</span>{' '}
-            <a
-              href={`/${locale}/admin/employees/new#${employee.id}`}
-              className="font-mono text-[var(--color-brand-700)] underline-offset-2 hover:underline"
+        <div className="rounded-md border border-[var(--color-line)] bg-[var(--color-panel)] p-3 text-sm text-[var(--color-ink)] max-w-xs shadow-sm">
+          <p className="mb-1 font-semibold text-[var(--color-ink)]">{t('inviteEmailSent')}</p>
+          <p className="mb-2 text-xs text-[var(--color-ink-2)]">{t('inviteUrlLabel')}</p>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              readOnly
+              value={lastInvite.url}
+              className="flex-1 rounded border border-[var(--color-line-2)] bg-[var(--color-surface)] px-2 py-1 text-xs font-mono text-[var(--color-ink)] select-all truncate"
+            />
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                  void navigator.clipboard.writeText(lastInvite.url);
+                }
+              }}
             >
-              {lastInvite.code}
-            </a>
-          </p>
-          <p className="break-all">
-            <a
-              href={lastInvite.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-mono text-[var(--color-brand-700)] underline-offset-2 hover:underline"
-            >
-              {lastInvite.url}
-            </a>
-          </p>
+              {t('copyUrl')}
+            </Button>
+          </div>
         </div>
       ) : null}
     </div>
