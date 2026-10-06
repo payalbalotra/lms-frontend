@@ -109,7 +109,7 @@ export function RecipeLivePreview({
               {methodSteps.map((step, idx) => {
                 const bodyText = step.body.en || step.body.es || '';
                 return (
-                  <div key={step.id || idx} className="flex items-start gap-2">
+                  <div key={`${step.id || 'step'}-${idx}`} className="flex items-start gap-2">
                     <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-panel)] font-mono text-sm font-bold text-[var(--color-ink)]">
                       {idx + 1}
                     </span>

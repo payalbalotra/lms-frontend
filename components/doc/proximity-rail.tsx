@@ -74,8 +74,9 @@ export function ProximityRail(): React.ReactElement | null {
         const first = Number(list.getAttribute('start')) || 1;
         list.querySelectorAll<HTMLElement>(':scope > .step').forEach((step, n) => {
           stepCount += 1;
-          if (!step.id) step.id = `step-${stepCount}`;
-          found.push({ id: step.id, kind: 'step', n: first + n, critical: step.classList.contains('is-crit') });
+          const uniqueStepId = `step-${stepCount}`;
+          step.id = uniqueStepId;
+          found.push({ id: uniqueStepId, kind: 'step', n: first + n, critical: step.classList.contains('is-crit') });
         });
       });
     });
@@ -211,9 +212,9 @@ export function ProximityRail(): React.ReactElement | null {
   return (
     <nav aria-label={t('nav')} className="proxrail">
       <div ref={listRef} className="proxrail-list">
-        {items.map((it) => (
+        {items.map((it, idx) => (
           <button
-            key={it.id}
+            key={`${it.id}-${idx}`}
             ref={(el) => {
               if (el) rows.current.set(it.id, el);
               else rows.current.delete(it.id);
