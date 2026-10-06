@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { LuLoader } from 'react-icons/lu';
@@ -26,18 +26,22 @@ export function InviteLinkForm({ locale, token }: InviteLinkFormProps): React.Re
   const t = useTranslations('inviteLink');
   const tActivate = useTranslations('activate');
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [state, setState] = useState<VerifyState>('verifying');
 
   useEffect(() => {
+    const queryToken = searchParams.get('token');
+    const actualToken = (token && token !== 'token' ? token : queryToken) || queryToken || token;
+
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://192.168.0.153:8000';
-    if (token && locale) {
+    if (actualToken && locale) {
       // Full browser redirect so backend can set the secure HttpOnly cookie
-      window.location.href = `${backendUrl}/api/v1/auth/invites/${locale}/${token}`;
+      window.location.href = `${backendUrl}/api/v1/auth/invites/${locale}/${actualToken}`;
     } else {
       router.replace(`/${locale}/login`);
     }
-  }, [locale, token, router]);
+  }, [locale, token, searchParams, router]);
 
   if (state === 'verifying' || state === 'verified') {
     return (

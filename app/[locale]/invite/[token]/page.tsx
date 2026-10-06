@@ -5,13 +5,18 @@ import { InviteLinkForm } from './invite-link-form';
 
 interface InviteTokenPageProps {
   params: Promise<{ locale: string; token: string }>;
+  searchParams: Promise<{ token?: string }>;
 }
 
 export default async function InviteTokenPage({
   params,
+  searchParams,
 }: InviteTokenPageProps): Promise<React.ReactElement> {
-  const { locale, token } = await params;
+  const { locale, token: routeToken } = await params;
+  const { token: queryToken } = await searchParams;
   setRequestLocale(locale);
+
+  const token = (routeToken && routeToken !== 'token' ? routeToken : queryToken) || queryToken || routeToken;
 
   return (
     <AuthShell locale={locale}>
