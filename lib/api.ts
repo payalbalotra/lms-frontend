@@ -26,6 +26,7 @@ import type {
 import { SEED_QUIZZES, type Quiz } from './quizzes';
 import { http } from './http';
 import { AUTH_ENDPOINTS } from '@/services/auth/endpoints';
+import { lookupInvite as authLookupInvite } from '@/services/auth/api';
 
 export const API_BASE = '';
 
@@ -2435,31 +2436,9 @@ export async function resetPassword(input: { token?: string; code?: string; pass
   return { ok: true, message: 'Password updated successfully.' };
 }
 
-export async function activate(input: { token?: string; password: string }): Promise<{ employee: Employee; redirectTo?: string }> {
-  const { data } = await http.post<{
-    success: boolean;
-    data: {
-      employee: Employee;
-      token?: string;
-      redirectTo?: string;
-    };
-  }>(AUTH_ENDPOINTS.SET_PASSWORD, {
-    password: input.password,
-  });
-
-  if (typeof window !== 'undefined') {
-    if (data.data?.token) {
-      localStorage.setItem('token', data.data.token);
-      document.cookie = `lms_token=${data.data.token}; path=/; max-age=864000; SameSite=Lax`;
-    }
-    if (data.data?.employee) {
-      setStored('current_user', data.data.employee);
-      document.cookie = `lms_role=${data.data.employee.role}; path=/; max-age=864000; SameSite=Lax`;
-      document.cookie = `lms_emp_id=${data.data.employee.id}; path=/; max-age=864000; SameSite=Lax`;
-    }
-  }
-
-  return data.data;
+export async function activate(input: { token?: string; password: string; email?: string }): Promise<{ employee: Employee; redirectTo?: string }> {
+  const { activate: authActivate } = await import('@/services/auth/api');
+  return authActivate(input);
 }
 
 export async function verifyResetToken(token: string): Promise<{
@@ -2541,30 +2520,10 @@ export async function fetchMe(
 
 export async function listRoles(cookieHeader?: string): Promise<{ roles: Role[] }> {
   try {
-    const headers: Record<string, string> = {};
-    if (cookieHeader) {
-      headers['Cookie'] = cookieHeader;
-      const tokenMatch = cookieHeader.match(/(?:^|;\s*)lms_token=([^;]+)/);
-      if (tokenMatch) {
-        headers['Authorization'] = `Bearer ${decodeURIComponent(tokenMatch[1])}`;
-      }
-    }
-    const { data } = await http.get<{
-      success: boolean;
-      data: { jobs: Array<{ id: string; name: string; role: string; createdAt: string }> };
-    }>('/api/v1/jobs', {
-      headers: Object.keys(headers).length ? headers : undefined,
-      params: { _t: Date.now() },
-    });
-    if (data.data?.jobs?.length) {
-      const roles: Role[] = data.data.jobs.map((j) => ({
-        id: j.id,
-        name: j.name,
-        clearanceLevel: 'general',
-        stationIds: [],
-        createdAt: j.createdAt || new Date().toISOString(),
-      }));
-      return { roles };
+    const { fetchRoles } = await import('@/services/jobs/api');
+    const res = await fetchRoles(cookieHeader);
+    if (res.roles) {
+      return res;
     }
   } catch {
     // fallback
@@ -2578,26 +2537,10 @@ export async function listStations(
   opts: { includeArchived?: boolean } = {},
 ): Promise<{ stations: Station[] }> {
   try {
-    const headers: Record<string, string> = {};
-    if (cookieHeader) {
-      headers['Cookie'] = cookieHeader;
-      const tokenMatch = cookieHeader.match(/(?:^|;\s*)lms_token=([^;]+)/);
-      if (tokenMatch) {
-        headers['Authorization'] = `Bearer ${decodeURIComponent(tokenMatch[1])}`;
-      }
-    }
-    const { data } = await http.get<{
-      success: boolean;
-      data: { stations: Station[] };
-    }>('/api/v1/stations', {
-      headers: Object.keys(headers).length ? headers : undefined,
-      params: { _t: Date.now() },
-    });
-    if (data.data?.stations?.length) {
-      const filtered = data.data.stations.filter(
-        (s) => (!locationId || s.locationId === locationId) && (opts.includeArchived || !s.isArchived),
-      );
-      return { stations: filtered };
+    const { fetchStations } = await import('@/services/stations/api');
+    const res = await fetchStations({ locationId, includeArchived: opts.includeArchived }, cookieHeader);
+    if (res.stations) {
+      return res;
     }
   } catch {
     // fallback
@@ -2610,23 +2553,10 @@ export async function listStations(
 
 export async function listLocations(cookieHeader?: string): Promise<{ locations: Location[] }> {
   try {
-    const headers: Record<string, string> = {};
-    if (cookieHeader) {
-      headers['Cookie'] = cookieHeader;
-      const tokenMatch = cookieHeader.match(/(?:^|;\s*)lms_token=([^;]+)/);
-      if (tokenMatch) {
-        headers['Authorization'] = `Bearer ${decodeURIComponent(tokenMatch[1])}`;
-      }
-    }
-    const { data } = await http.get<{
-      success: boolean;
-      data: { locations: Location[] };
-    }>('/api/v1/locations', {
-      headers: Object.keys(headers).length ? headers : undefined,
-      params: { _t: Date.now() },
-    });
-    if (data.data?.locations?.length) {
-      return { locations: data.data.locations };
+    const { fetchLocations } = await import('@/services/locations/api');
+    const res = await fetchLocations(cookieHeader);
+    if (res.locations) {
+      return res;
     }
   } catch {
     // fallback
@@ -2644,23 +2574,10 @@ export async function listEmployees(
 ): Promise<{ employees: AdminEmployee[] }> {
   const status = opts.status ?? 'all';
   try {
-    const headers: Record<string, string> = {};
-    if (cookieHeader) {
-      headers['Cookie'] = cookieHeader;
-      const tokenMatch = cookieHeader.match(/(?:^|;\s*)lms_token=([^;]+)/);
-      if (tokenMatch) {
-        headers['Authorization'] = `Bearer ${decodeURIComponent(tokenMatch[1])}`;
-      }
-    }
-    const { data } = await http.get<{
-      success: boolean;
-      data: { employees: AdminEmployee[] };
-    }>('/api/v1/employees', {
-      headers: Object.keys(headers).length ? headers : undefined,
-      params: { status: status !== 'all' ? status : undefined, _t: Date.now() },
-    });
-    if (data.data?.employees) {
-      return { employees: data.data.employees };
+    const { fetchEmployees } = await import('@/services/employees/api');
+    const res = await fetchEmployees({ status }, cookieHeader);
+    if (res.employees) {
+      return res;
     }
   } catch {
     // fallback
@@ -2673,67 +2590,23 @@ export async function listEmployees(
 export async function createEmployee(
   input: CreateEmployeeInput,
 ): Promise<{ employee: Employee; invite: InviteResult }> {
-  const { data } = await http.post<{
-    success: boolean;
-    data: {
-      employee: Employee;
-      inviteUrl?: string;
-    };
-  }>('/api/v1/employees', {
-    name: input.name,
-    email: input.email,
-    locationId: input.locationId,
-    role: input.accessLevel === 'manager' ? 'manager' : 'employee',
-    jobIds: input.roleIds,
-    stationIds: input.stationIds ?? [],
-    employeeCode: input.employeeCode || undefined,
-    languagePref: input.languagePref ?? 'en',
-  });
-
-  const invite: InviteResult = {
-    url: data.data?.inviteUrl || '',
-    code: '',
-    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-  };
-
-  return { employee: data.data.employee, invite };
+  const { createEmployee: apiCreate } = await import('@/services/employees/api');
+  return apiCreate(input);
 }
 
 export async function resendInvite(employeeId: string): Promise<{ invite: InviteResult }> {
-  const { data } = await http.post<{
-    success: boolean;
-    data: {
-      inviteUrl: string;
-    };
-  }>(`/api/v1/employees/${employeeId}/invites`);
-
-  return {
-    invite: {
-      url: data.data?.inviteUrl || '',
-      code: '',
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-    },
-  };
+  const { resendInvite: apiResend } = await import('@/services/employees/api');
+  return apiResend(employeeId);
 }
 
 export async function deactivateEmployee(employeeId: string): Promise<{ employee: AdminEmployee }> {
-  const { data } = await http.post<{
-    success: boolean;
-    data: {
-      employee: AdminEmployee;
-    };
-  }>(`/api/v1/employees/${employeeId}/deactivate`);
-  return { employee: data.data.employee };
+  const { deactivateEmployee: apiDeactivate } = await import('@/services/employees/api');
+  return apiDeactivate(employeeId);
 }
 
 export async function reactivateEmployee(employeeId: string): Promise<{ employee: AdminEmployee }> {
-  const { data } = await http.post<{
-    success: boolean;
-    data: {
-      employee: AdminEmployee;
-    };
-  }>(`/api/v1/employees/${employeeId}/reactivate`);
-  return { employee: data.data.employee };
+  const { reactivateEmployee: apiReactivate } = await import('@/services/employees/api');
+  return apiReactivate(employeeId);
 }
 
 // ----------------------------------------------------------------------------
@@ -2741,23 +2614,33 @@ export async function reactivateEmployee(employeeId: string): Promise<{ employee
 // ----------------------------------------------------------------------------
 
 export async function createStation(input: CreateStationInput): Promise<{ station: Station }> {
-  const newStation: Station = {
-    id: `stn-${Date.now()}`,
-    name: input.name,
-    locationId: input.locationId,
-    sortOrder: input.sortOrder ?? mockStations.length + 1,
-    isArchived: false,
-  };
-  mockStations = [...mockStations, newStation];
-  setStored('stations', mockStations);
-  return { station: newStation };
+  try {
+    const { createStation: apiCreate } = await import('@/services/stations/api');
+    return await apiCreate(input);
+  } catch {
+    const newStation: Station = {
+      id: `stn-${Date.now()}`,
+      name: input.name,
+      locationId: input.locationId,
+      sortOrder: input.sortOrder ?? mockStations.length + 1,
+      isArchived: false,
+    };
+    mockStations = [...mockStations, newStation];
+    setStored('stations', mockStations);
+    return { station: newStation };
+  }
 }
 
 export async function updateStation(stationId: string, patch: UpdateStationInput): Promise<{ station: Station }> {
-  mockStations = mockStations.map((s) => (s.id === stationId ? { ...s, ...patch } : s));
-  setStored('stations', mockStations);
-  const updated = mockStations.find((s) => s.id === stationId)!;
-  return { station: updated };
+  try {
+    const { updateStation: apiUpdate } = await import('@/services/stations/api');
+    return await apiUpdate(stationId, patch);
+  } catch {
+    mockStations = mockStations.map((s) => (s.id === stationId ? { ...s, ...patch } : s));
+    setStored('stations', mockStations);
+    const updated = mockStations.find((s) => s.id === stationId)!;
+    return { station: updated };
+  }
 }
 
 export async function archiveStation(stationId: string): Promise<{ station: Station }> {
@@ -2765,19 +2648,40 @@ export async function archiveStation(stationId: string): Promise<{ station: Stat
 }
 
 export async function createRole(input: CreateRoleInput): Promise<{ role: Role }> {
-  const newRole: Role = {
-    id: `role-${Date.now()}`,
-    name: input.name,
-    clearanceLevel: input.clearanceLevel,
-    stationIds: input.stationIds ?? [],
-    createdAt: new Date().toISOString(),
-  };
-  mockRoles = [...mockRoles, newRole];
-  setStored('roles', mockRoles);
-  return { role: newRole };
+  try {
+    const { createJob } = await import('@/services/jobs/api');
+    const { job } = await createJob({ name: input.name });
+    const role: Role = {
+      id: job.id,
+      name: job.name,
+      clearanceLevel: input.clearanceLevel,
+      stationIds: input.stationIds ?? [],
+      createdAt: job.createdAt || new Date().toISOString(),
+    };
+    return { role };
+  } catch {
+    const newRole: Role = {
+      id: `role-${Date.now()}`,
+      name: input.name,
+      clearanceLevel: input.clearanceLevel,
+      stationIds: input.stationIds ?? [],
+      createdAt: new Date().toISOString(),
+    };
+    mockRoles = [...mockRoles, newRole];
+    setStored('roles', mockRoles);
+    return { role: newRole };
+  }
 }
 
 export async function updateRole(roleId: string, patch: UpdateRoleInput): Promise<{ role: Role }> {
+  try {
+    if (patch.name) {
+      const { updateJob } = await import('@/services/jobs/api');
+      await updateJob(roleId, { name: patch.name });
+    }
+  } catch {
+    // ignore
+  }
   mockRoles = mockRoles.map((r) => (r.id === roleId ? { ...r, ...patch } : r));
   setStored('roles', mockRoles);
   const updated = mockRoles.find((r) => r.id === roleId)!;
@@ -2785,29 +2689,51 @@ export async function updateRole(roleId: string, patch: UpdateRoleInput): Promis
 }
 
 export async function deleteRole(roleId: string): Promise<{ ok: true }> {
+  try {
+    const { deleteJob } = await import('@/services/jobs/api');
+    await deleteJob(roleId);
+  } catch {
+    // ignore
+  }
   mockRoles = mockRoles.filter((r) => r.id !== roleId);
   setStored('roles', mockRoles);
   return { ok: true };
 }
 
 export async function createLocation(input: CreateLocationInput): Promise<{ location: Location }> {
-  const newLoc: Location = {
-    id: `loc-${Date.now()}`,
-    name: input.name,
-  };
-  mockLocations = [...mockLocations, newLoc];
-  setStored('locations', mockLocations);
-  return { location: newLoc };
+  try {
+    const { createLocation: apiCreate } = await import('@/services/locations/api');
+    return await apiCreate(input);
+  } catch {
+    const newLoc: Location = {
+      id: `loc-${Date.now()}`,
+      name: input.name,
+    };
+    mockLocations = [...mockLocations, newLoc];
+    setStored('locations', mockLocations);
+    return { location: newLoc };
+  }
 }
 
 export async function updateLocation(locationId: string, patch: UpdateLocationInput): Promise<{ location: Location }> {
-  mockLocations = mockLocations.map((l) => (l.id === locationId ? { ...l, ...patch } : l));
-  setStored('locations', mockLocations);
-  const updated = mockLocations.find((l) => l.id === locationId)!;
-  return { location: updated };
+  try {
+    const { updateLocation: apiUpdate } = await import('@/services/locations/api');
+    return await apiUpdate(locationId, patch);
+  } catch {
+    mockLocations = mockLocations.map((l) => (l.id === locationId ? { ...l, ...patch } : l));
+    setStored('locations', mockLocations);
+    const updated = mockLocations.find((l) => l.id === locationId)!;
+    return { location: updated };
+  }
 }
 
 export async function deleteLocation(locationId: string): Promise<{ ok: true }> {
+  try {
+    const { deleteLocation: apiDelete } = await import('@/services/locations/api');
+    await apiDelete(locationId);
+  } catch {
+    // ignore
+  }
   mockLocations = mockLocations.filter((l) => l.id !== locationId);
   setStored('locations', mockLocations);
   return { ok: true };
@@ -2817,16 +2743,12 @@ export async function deleteLocation(locationId: string): Promise<{ ok: true }> 
 // Activate
 // ----------------------------------------------------------------------------
 
-export async function lookupInvite(_token: string): Promise<{
+export async function lookupInvite(token: string): Promise<{
   employeeName: string;
   expiresAt: string;
   employeeStatus: 'pending' | 'active' | 'deactivated';
 }> {
-  return {
-    employeeName: 'Demo Employee',
-    expiresAt: new Date(Date.now() + 86400 * 1000).toISOString(),
-    employeeStatus: 'pending',
-  };
+  return authLookupInvite(token);
 }
 
 

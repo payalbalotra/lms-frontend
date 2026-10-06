@@ -27,8 +27,11 @@ http.interceptors.request.use(
     config.headers.set('x-request-id', crypto.randomUUID());
 
     if (typeof window !== 'undefined') {
+      const isActivation =
+        config.url?.includes('set-password') ||
+        config.url?.includes('invites');
       const token = localStorage.getItem('token');
-      if (token) {
+      if (token && !isActivation) {
         config.headers.set('Authorization', `Bearer ${token}`);
       }
     }
