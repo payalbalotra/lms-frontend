@@ -25,11 +25,12 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { activate, ApiException } from '@/lib/api';
+import { http } from '@/lib/http';
 
 interface SetPasswordFormProps {
   locale: string;
-  token: string;
-  employeeName: string;
+  token?: string;
+  employeeName?: string;
 }
 
 export function SetPasswordForm({ locale, token, employeeName }: SetPasswordFormProps): React.ReactElement {
@@ -43,7 +44,10 @@ export function SetPasswordForm({ locale, token, employeeName }: SetPasswordForm
   const [isPending, startTransition] = useTransition();
 
   const isMinLength = password.length >= 8;
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasSpecial = /[^A-Za-z0-9]/.test(password);
   const isMatching = password.length > 0 && password === confirm;
+  const isValidPassword = isMinLength && hasUppercase && hasSpecial;
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -53,6 +57,14 @@ export function SetPasswordForm({ locale, token, employeeName }: SetPasswordForm
       setError(t('errorPassword'));
       return;
     }
+    if (!hasUppercase) {
+      setError(locale === 'es' ? 'La contraseña debe tener al menos una letra mayúscula.' : 'Password must contain at least one uppercase letter.');
+      return;
+    }
+    if (!hasSpecial) {
+      setError(locale === 'es' ? 'La contraseña debe tener al menos un carácter especial.' : 'Password must contain at least one special character.');
+      return;
+    }
     if (!isMatching) {
       setError(t('errorMismatch'));
       return;
@@ -60,17 +72,47 @@ export function SetPasswordForm({ locale, token, employeeName }: SetPasswordForm
 
     startTransition(async () => {
       try {
-        await activate({ token, password });
-        router.replace(`/${locale}/employee/home`);
-        router.refresh();
-      } catch (err) {
+        // Primary flow: cookie-based Better Auth set-password
+        const res = await http.post<{ success: boolean; data?: { redirectTo?: string }; message?: string }>(
+          '/api/v1/auth/set-password',
+          { password },
+        );
+
+        if (res.data?.success) {
+          const destination = res.data.data?.redirectTo || `/${locale}/employee/home`;
+          window.location.href = destination;
+          return;
+        }
+
+        setError(res.data?.message || t('errorGeneric'));
+      } catch (err: unknown) {
+        // Fallback for direct token invites
+        if (token) {
+          try {
+            await activate({ token, password });
+            router.replace(`/${locale}/employee/home`);
+            router.refresh();
+            return;
+          } catch {
+            // fall through to handle err
+          }
+        }
+
         if (err instanceof ApiException) {
-          if (err.code === 'ACCOUNT_LOCKED') setError(t('errorLocked'));
-          else if (err.code === 'INVITE_EXPIRED') setError(t('errorExpired'));
-          else if (err.code === 'INVITE_ALREADY_USED') setError(t('errorUsed'));
-          else if (err.code === 'INVITE_CANCELLED') setError(t('errorCancelled'));
-          else if (err.code === 'EMPLOYEE_ALREADY_ACTIVE') setError(t('errorAlreadyActive'));
-          else setError(err.message);
+          if (err.status === 401 || err.code === 'UNAUTHENTICATED' || err.code === 'INVITE_EXPIRED') {
+            setError(t('errorExpired'));
+          } else if (err.code === 'ACCOUNT_LOCKED') {
+            setError(t('errorLocked'));
+          } else {
+            setError(err.message || t('errorGeneric'));
+          }
+        } else if (err && typeof err === 'object' && 'response' in err) {
+          const axiosErr = err as { response?: { status?: number; data?: { message?: string } } };
+          if (axiosErr.response?.status === 401) {
+            setError(t('errorExpired'));
+          } else {
+            setError(axiosErr.response?.data?.message || t('errorGeneric'));
+          }
         } else {
           setError(t('errorGeneric'));
         }
@@ -114,7 +156,11 @@ export function SetPasswordForm({ locale, token, employeeName }: SetPasswordForm
           {t('title')}
         </CardTitle>
         <CardDescription className="text-xs sm:text-sm text-[var(--color-ink-2)] mt-1.5 max-w-sm mx-auto leading-relaxed">
-          {t('intro', { name: employeeName })}
+          {employeeName
+            ? t('intro', { name: employeeName })
+            : locale === 'es'
+              ? 'Establece tu contraseña para completar la configuración de tu cuenta.'
+              : 'Set your password to finish setting up your account.'}
         </CardDescription>
       </CardHeader>
 
@@ -229,6 +275,7 @@ export function SetPasswordForm({ locale, token, employeeName }: SetPasswordForm
             className="rounded-2xl border border-[var(--color-line)] bg-[var(--color-panel)] flex flex-col gap-2"
             style={{ padding: '14px 16px' }}
           >
+            {/* Rule: Min 8 chars */}
             <div
               className={`flex items-center gap-2.5 transition-colors ${
                 isMinLength ? 'text-[var(--color-ok)] font-medium' : 'text-[var(--color-ink-3)]'
@@ -246,6 +293,47 @@ export function SetPasswordForm({ locale, token, employeeName }: SetPasswordForm
               <span className="pl-1 text-xs sm:text-sm">{t('ruleLength')}</span>
             </div>
 
+            {/* Rule: Uppercase letter */}
+            <div
+              className={`flex items-center gap-2.5 transition-colors ${
+                hasUppercase ? 'text-[var(--color-ok)] font-medium' : 'text-[var(--color-ink-3)]'
+              }`}
+            >
+              <div
+                className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] ${
+                  hasUppercase
+                    ? 'bg-[var(--color-ok-tint)] text-[var(--color-ok)] font-bold'
+                    : 'bg-[var(--color-line-2)] text-[var(--color-ink-3)]'
+                }`}
+              >
+                {hasUppercase ? <LuCheck /> : '•'}
+              </div>
+              <span className="pl-1 text-xs sm:text-sm">
+                {locale === 'es' ? 'Al menos 1 letra mayúscula (A-Z)' : 'At least 1 uppercase letter (A-Z)'}
+              </span>
+            </div>
+
+            {/* Rule: Special character */}
+            <div
+              className={`flex items-center gap-2.5 transition-colors ${
+                hasSpecial ? 'text-[var(--color-ok)] font-medium' : 'text-[var(--color-ink-3)]'
+              }`}
+            >
+              <div
+                className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] ${
+                  hasSpecial
+                    ? 'bg-[var(--color-ok-tint)] text-[var(--color-ok)] font-bold'
+                    : 'bg-[var(--color-line-2)] text-[var(--color-ink-3)]'
+                }`}
+              >
+                {hasSpecial ? <LuCheck /> : '•'}
+              </div>
+              <span className="pl-1 text-xs sm:text-sm">
+                {locale === 'es' ? 'Al menos 1 carácter especial (!@#$%...)' : 'At least 1 special character (!@#$%...)'}
+              </span>
+            </div>
+
+            {/* Rule: Passwords match */}
             <div
               className={`flex items-center gap-2.5 transition-colors ${
                 isMatching ? 'text-[var(--color-ok)] font-medium' : 'text-[var(--color-ink-3)]'
@@ -269,7 +357,7 @@ export function SetPasswordForm({ locale, token, employeeName }: SetPasswordForm
           <Button
             type="submit"
             className="w-full h-12 rounded-full font-semibold text-base bg-[var(--color-brand-600)] hover:bg-[var(--color-brand-700)] text-white shadow-md shadow-[var(--color-brand-600)]/20 active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer"
-            disabled={isPending || !isMinLength || !isMatching}
+            disabled={isPending || !isValidPassword || !isMatching}
           >
             {isPending ? (
               <>

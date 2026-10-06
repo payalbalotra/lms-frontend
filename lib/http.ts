@@ -6,7 +6,7 @@ import axios, {
 } from 'axios';
 import { ApiException } from './errors';
 
-const baseURL = process.env.NEXT_PUBLIC_API_BASE ?? '';
+const baseURL = process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_API_URL || '';
 
 export const http: AxiosInstance = axios.create({
   baseURL,
