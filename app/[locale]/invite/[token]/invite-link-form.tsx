@@ -14,7 +14,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { authClient } from '@/lib/auth-client';
 
 type VerifyState = 'verifying' | 'verified' | 'error';
 
@@ -31,36 +30,13 @@ export function InviteLinkForm({ locale, token }: InviteLinkFormProps): React.Re
   const [state, setState] = useState<VerifyState>('verifying');
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function verify(): Promise<void> {
-      try {
-        const callbackURL = `/${locale}/set-password`;
-        const { error } = await authClient.magicLink.verify({
-          query: { token, callbackURL },
-        });
-
-        if (cancelled) return;
-
-        if (error) {
-          setState('error');
-          return;
-        }
-
-        setState('verified');
-        // Cookie is set by the response; hand off to set-password immediately.
-        router.replace(callbackURL);
-      } catch {
-        if (!cancelled) {
-          setState('error');
-        }
-      }
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE || 'http://192.168.0.153:8000';
+    if (token && locale) {
+      // Full browser redirect so backend can set the secure HttpOnly cookie
+      window.location.href = `${backendUrl}/api/v1/auth/invites/${locale}/${token}`;
+    } else {
+      router.replace(`/${locale}/login`);
     }
-
-    void verify();
-    return () => {
-      cancelled = true;
-    };
   }, [locale, token, router]);
 
   if (state === 'verifying' || state === 'verified') {
