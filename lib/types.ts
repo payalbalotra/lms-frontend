@@ -137,6 +137,8 @@ export interface UpdateLocationInput {
 // ============================================================================
 
 export type ProcedureStatus = 'draft' | 'published';
+export type ProcedureSeason = 'summer' | 'winter';
+export type ActiveSeason = ProcedureSeason | null;
 
 /** Manager-defined category. Slug is the stable handle (URL-safe, unique
  *  per location); `nameEn` / `nameEs` are the bilingual display labels.
@@ -471,6 +473,8 @@ export interface Procedure {
    *  kept until training chapters own their own acknowledgement
    *  columns in the training-module slice (stage 3). */
   acknowledgement?: ProcedureAcknowledgement | null;
+  /** Active seasons for seasonal recipes. */
+  seasons?: ProcedureSeason[];
 }
 
 /** Course acknowledgement — the `I have read and understood` checkbox at
@@ -538,6 +542,8 @@ export interface CreateProcedureInput {
   /** Acknowledgement statement shown on read; null/undefined disables.
    *  Legacy training-course shape. */
   acknowledgement?: ProcedureAcknowledgement | null;
+  /** Active seasons for seasonal recipes. */
+  seasons?: ProcedureSeason[];
 }
 
 // ============================================================================

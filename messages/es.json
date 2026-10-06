@@ -1533,6 +1533,11 @@
     "errorLocked": "Demasiados códigos incorrectos. Pide a tu gerente una nueva invitación.",
     "errorGeneric": "No se pudo activar. Inténtalo de nuevo."
   },
+  "seasons": {
+    "both": "Verano e Invierno",
+    "summer": "Verano",
+    "winter": "Invierno"
+  },
   "common": {
     "loading": "Cargando..."
   }

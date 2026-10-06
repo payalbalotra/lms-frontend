@@ -1533,6 +1533,11 @@
     "errorLocked": "Too many wrong codes. Ask your manager for a new invite.",
     "errorGeneric": "Activation failed. Please try again."
   },
+  "seasons": {
+    "both": "Summer & Winter",
+    "summer": "Summer",
+    "winter": "Winter"
+  },
   "common": {
     "loading": "Loading..."
   }
