@@ -98,7 +98,12 @@ export default async function SetPasswordTokenPage({ params }: PageProps): Promi
 
   return (
     <AuthShell locale={locale}>
-      <SetPasswordForm locale={locale} token={token} employeeName={info.employeeName} />
+      <SetPasswordForm
+        locale={locale}
+        token={token}
+        employeeName={info.employeeName}
+        employeeEmail={(info as { email?: string })?.email}
+      />
     </AuthShell>
   );
 }

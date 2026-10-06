@@ -59,8 +59,8 @@ export default async function EmployeeHomePage({ params, searchParams }: PagePro
   // `titleEn`), which is its only correct job.
 
   const viewAs = await readViewAs();
-  const stationId = employee.stationIds[0] ?? null;
-  const roleId = employee.roleIds[0] ?? null;
+  const stationId = (employee.stationIds && employee.stationIds[0]) ?? null;
+  const roleId = (employee.jobIds && employee.jobIds[0]) ?? (employee.roleIds && employee.roleIds[0]) ?? null;
 
   // Only what this person may read: the API applies audience and clearance.
   const [procedures, roleName, stationName] = await Promise.all([
