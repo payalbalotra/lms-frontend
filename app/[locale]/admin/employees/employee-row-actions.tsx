@@ -8,8 +8,8 @@ import {
   deactivateEmployee,
   reactivateEmployee,
   resendInvite,
-  ApiException,
-} from '@/lib/api';
+} from '@/services/employees/api';
+import { ApiException } from '@/lib/errors';
 import { RowActions, type RowActionItem } from '@/components/ui/row-actions';
 import { Button } from '@/components/ui/button';
 import type { AdminEmployee, InviteResult } from '@/lib/types';

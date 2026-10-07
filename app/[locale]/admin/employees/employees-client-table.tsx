@@ -3,7 +3,6 @@
 import * as React from 'react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { listEmployees } from '@/lib/api';
 import type {
   AdminEmployee,
   EmployeeStatus,
@@ -18,13 +17,10 @@ import { EmployeeRowActions } from './employee-row-actions';
 import { EditRolesModal } from './[id]/edit-roles-modal';
 import { Card, CardContent } from '@/components/ui/card';
 import { getTrainingRowsForEmployee } from '@/lib/mock-training';
-import {
-  loadLocations,
-  loadRoles,
-  loadStationsForLocation,
-  useEmployees,
-  type UpdateEmployeeInput,
-} from '@/lib/mock-employees';
+import { fetchRoles } from '@/services/jobs/api';
+import { fetchLocations } from '@/services/locations/api';
+import { fetchStations } from '@/services/stations/api';
+import type { UpdateEmployeeInput } from '@/lib/mock-employees';
 import { fold } from '@/lib/utils';
 
 interface EmployeesClientTableProps {
@@ -65,10 +61,11 @@ export function EmployeesClientTable({
 }: EmployeesClientTableProps): React.ReactElement {
   const router = useRouter();
 
-  // Live list — re-hydrates on storage events and on the same-tab custom
-  // event the detail modal fires after a write. The SSR snapshot is the
-  // first paint, replaced on mount.
-  const employees = useEmployees(initialEmployees);
+  const [employees, setEmployees] = useState<AdminEmployee[]>(initialEmployees);
+
+  React.useEffect(() => {
+    setEmployees(initialEmployees);
+  }, [initialEmployees]);
 
   // In-place edit modal. The kebab's Edit item calls `openEdit(employee)`
   // instead of navigating to the detail page — so the user can edit
@@ -83,25 +80,44 @@ export function EmployeesClientTable({
   async function openEdit(employee: AdminEmployee): Promise<void> {
     setEditing(employee);
     if (editRoles.length === 0) {
-      setEditRoles(await loadRoles());
+      try {
+        const { roles: r } = await fetchRoles();
+        setEditRoles(r);
+      } catch {
+        setEditRoles([]);
+      }
     }
     if (editLocations.length === 0) {
-      setEditLocations(await loadLocations());
+      try {
+        const { locations: l } = await fetchLocations();
+        setEditLocations(l);
+      } catch {
+        setEditLocations([]);
+      }
     }
-    // Always reload stations for the employee's location — the catalog is
-    // tied to the location, and the working location may have changed
-    // since the last time the modal was open.
-    setEditStations(await loadStationsForLocation(employee.locationId));
+    try {
+      const { stations: s } = await fetchStations({ locationId: employee.locationId });
+      setEditStations(s);
+    } catch {
+      setEditStations([]);
+    }
   }
 
   async function onModalLocationChange(locationId: string): Promise<void> {
-    setEditStations(await loadStationsForLocation(locationId));
+    try {
+      const { stations: s } = await fetchStations({ locationId });
+      setEditStations(s);
+    } catch {
+      setEditStations([]);
+    }
   }
 
-  function onModalSaved(_next: AdminEmployee, _prior: UpdateEmployeeInput): void {
-    // The mock store dispatches the same-tab event, which `useEmployees`
-    // listens to — so the table refreshes on its own. Nothing else to do.
+  function onModalSaved(next: AdminEmployee, _prior: UpdateEmployeeInput): void {
+    setEmployees((prev) =>
+      prev.map((e) => (e.id === next.id ? { ...e, ...next } : e)),
+    );
     setEditing(null);
+    router.refresh();
   }
 
   // Filter the live list on the client so the chip / search changes
@@ -247,20 +263,16 @@ export function EmployeesClientTable({
                               {e.name}
                             </div>
                             <div className="truncate text-sm text-[var(--color-ink-3)]">
-                              {e.email ?? (
-                                <span className="italic">
-                                  {labels.emailMissing}
-                                </span>
-                              )}
+                              {e.email || '—'}
                             </div>
                           </div>
                         </div>
                       </td>
                       <td className="text-sm text-[var(--color-ink-2)]">
-                        {roleLabels.length > 0 ? roleLabels.join(', ') : labels.jobRolesEmpty}
+                        {roleLabels.length > 0 ? roleLabels.join(', ') : '—'}
                       </td>
                       <td className="text-sm text-[var(--color-ink-2)]">
-                        {stationLabels.length > 0 ? stationLabels.join(', ') : labels.stationsEmpty}
+                        {stationLabels.length > 0 ? stationLabels.join(', ') : '—'}
                       </td>
                       <td>
                         <TrainingSummary rows={trainingRows} />
