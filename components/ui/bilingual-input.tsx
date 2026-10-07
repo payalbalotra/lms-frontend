@@ -1,8 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import { useId, useState, useRef, useEffect } from 'react';
+import { useId, useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
+import { useBilingualTranslation } from '@/lib/use-bilingual-translation';
 
 export interface BilingualValue {
   en: string;
@@ -17,6 +18,10 @@ export interface BilingualInputProps {
   multiline?: boolean;
   maxLength?: number;
   placeholder?: { en?: string; es?: string };
+  /**
+   * Optional override for the translator. Left unset, the field auto-translates
+   * with Gemini (see `lib/gemini-translate.ts`) after the user stops typing.
+   */
   translate?: (text: string, from: 'en' | 'es', to: 'en' | 'es') => string | Promise<string>;
   defaultLang?: 'en' | 'es';
   name?: string;
@@ -36,9 +41,16 @@ const DEFAULT_PLACEHOLDER: Record<'en' | 'es', string> = {
   es: 'Escribe en español...',
 };
 
-// Default fallback translator without language prefix (swap for a real API call later).
+/** Kept exported for backwards compatibility; no longer the default. */
 export const dummyTranslate = (text: string, _from: 'en' | 'es', _to: 'en' | 'es'): string =>
   text;
+
+// Self-contained strings rather than new i18n keys — the label language follows
+// the field being written, which is the only thing that can change here.
+const STATUS_TEXT: Record<'en' | 'es', { translating: string; error: string }> = {
+  en: { translating: 'Translating…', error: 'Translation failed' },
+  es: { translating: 'Traduciendo…', error: 'Error al traducir' },
+};
 
 export function BilingualInput({
   label,
@@ -48,7 +60,7 @@ export function BilingualInput({
   multiline,
   maxLength,
   placeholder,
-  translate = dummyTranslate,
+  translate,
   defaultLang = 'en',
   name,
   className,
@@ -69,52 +81,37 @@ export function BilingualInput({
   const valueRef = useRef(value);
   valueRef.current = value;
 
-  const typed = useRef({ en: Boolean(value?.en), es: Boolean(value?.es) });
-  const requestId = useRef(0);
-
-  useEffect(() => {
-    LANGS.forEach((l) => {
-      if (value?.[l] === '') typed.current[l] = false;
-    });
-  }, [value?.en, value?.es]);
-
-  const clip = (s: string): string => (maxLength ? s.slice(0, maxLength) : s);
   const commit = (next: BilingualValue): void => {
     valueRef.current = next;
     onChange(next);
   };
 
+  const { markUserEdit, status, activeTarget } = useBilingualTranslation({
+    englishValue: value?.en ?? '',
+    spanishValue: value?.es ?? '',
+    // `valueRef` is written before `onChange`, so a write that lands in the
+    // same tick as an edit still composes from the freshest value.
+    onEnglishChange: (text) => commit({ ...(valueRef.current ?? value), en: text }),
+    onSpanishChange: (text) => commit({ ...(valueRef.current ?? value), es: text }),
+    maxLength,
+    translate,
+  });
+
   const handleChange = (lang: 'en' | 'es', text: string): void => {
-    const other: 'en' | 'es' = lang === 'en' ? 'es' : 'en';
-    typed.current[lang] = text !== '';
     const next: BilingualValue = {
       en: valueRef.current?.en ?? '',
       es: valueRef.current?.es ?? '',
       [lang]: text,
     };
-    const myRequest = ++requestId.current;
-
-    if (typed.current[other]) {
-      commit(next);
-      return;
-    }
-
-    const result = translate(text, lang, other);
-    if (typeof result === 'string') {
-      commit({ ...next, [other]: clip(result) });
-      return;
-    }
-
     commit(next);
-    result
-      .then((translated) => {
-        if (myRequest !== requestId.current || typed.current[other]) return;
-        commit({ ...valueRef.current, [other]: clip(translated) });
-      })
-      .catch(() => {});
+    // Real DOM edits only — this is what distinguishes user input from a
+    // programmatic write, so translation can never trigger translation.
+    markUserEdit(lang, text);
   };
 
   const groupId = label ? `${baseId}-label` : undefined;
+  const showStatus =
+    activeTarget !== null && (status === 'translating' || status === 'error');
 
   return (
     <div
@@ -187,6 +184,16 @@ export function BilingualInput({
           );
         })}
       </div>
+
+      {activeTarget !== null && showStatus && (
+        <span
+          className={cn('bli__status', status === 'error' && 'is-error')}
+          role="status"
+          aria-live="polite"
+        >
+          {STATUS_TEXT[activeTarget][status === 'error' ? 'error' : 'translating']}
+        </span>
+      )}
     </div>
   );
 }

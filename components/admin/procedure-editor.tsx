@@ -37,6 +37,11 @@ import { QuizEditor } from "@/components/admin/quiz-editor";
 import { type RecipeIngredientItem } from "@/components/admin/recipe-ingredients-editor";
 import { BlockRenderer } from "@/components/doc/block-renderer";
 import { NotionBlockList } from "@/app/[locale]/admin/library/new/notion-block-list";
+import {
+  isTranslating,
+  subscribeTranslations,
+  waitForTranslations,
+} from "@/lib/use-bilingual-translation";
 import { cn } from "@/lib/utils";
 import {
   ApiException,
@@ -202,6 +207,15 @@ export function ProcedureEditor({
   const [error, setError] = React.useState<string | null>(null);
   const [stationsError, setStationsError] = React.useState<boolean>(false);
   const [pending, startTransition] = React.useTransition();
+  // A translation scheduled or in flight blocks Save — `save()` reads state
+  // captured at render time, so saving mid-translation would persist the
+  // pre-translation values. Once this flips false the render already carries
+  // the translated text.
+  const translating = React.useSyncExternalStore(
+    subscribeTranslations,
+    isTranslating,
+    () => false,
+  );
   // Ref to the stations section in the Access step. Publish-time
   // validation scrolls here (not to top) so the manager sees the inline
   // error next to the picker they need to touch, instead of having to
@@ -397,6 +411,11 @@ export function ProcedureEditor({
     setStationsError(false);
     startTransition(async () => {
       try {
+        // Safety net: the buttons are already disabled while a translation is
+        // pending, so this normally returns immediately. Bounded either way,
+        // so a hung request can never wedge the save.
+        await waitForTranslations();
+
         // The quiz lives in its own table: keep its row, make one, or drop it.
         let quizId: string | null = null;
         if (quiz && hasQuizContent && quiz.questions.length > 0) {
@@ -1038,7 +1057,7 @@ export function ProcedureEditor({
             <Button
               type="button"
               variant="surface"
-              disabled={pending}
+              disabled={pending || translating}
               onClick={() => save("draft")}
             >
               {t("saveDraft")}
@@ -1047,7 +1066,7 @@ export function ProcedureEditor({
           {isLastStep ? (
             <Button
               type="button"
-              disabled={pending}
+              disabled={pending || translating}
               onClick={() => save("published")}
             >
               {published ? t("saveChanges") : t("publishNow")}
@@ -1093,7 +1112,9 @@ export function ProcedureEditor({
             </p>
           ) : null}
           {blocks.length || isRecipe ? (
-            <BlockRenderer blocks={body.blocks} locale={lang} />
+            <div className="doc">
+              <BlockRenderer blocks={body.blocks} locale={lang} />
+            </div>
           ) : (
             <p className="text-[var(--color-ink-3)]">{t("previewEmpty")}</p>
           )}

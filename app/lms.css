@@ -4963,6 +4963,52 @@ textarea.bli__control {
    transition: color 0.22s ease;
 }
 
+/* ---------- Auto-translation status ----------
+   Rendered after .bli__fields so the :first-child / :last-child rules that
+   shape the stacked field borders keep matching the fields themselves. */
+
+.bli__status {
+   display: flex;
+   align-items: center;
+   gap: var(--s-1-5);
+   align-self: flex-start;
+   font-family: var(--bli-font);
+   font-size: 11px;
+   font-weight: 600;
+   line-height: var(--lh-meta);
+   color: var(--bli-muted);
+   white-space: nowrap;
+}
+
+.bli__status::before {
+   content: '';
+   inline-size: 6px;
+   block-size: 6px;
+   flex: none;
+   border-radius: 999px;
+   background: currentColor;
+   animation: bli-status-pulse 1s ease-in-out infinite;
+}
+
+.bli__status.is-error {
+   color: var(--bli-required);
+}
+
+.bli__status.is-error::before {
+   animation: none;
+}
+
+@keyframes bli-status-pulse {
+   0%,
+   100% {
+      opacity: 0.3;
+   }
+
+   50% {
+      opacity: 1;
+   }
+}
+
 .bli__field.is-active .bli__tag {
    background: transparent !important;
    box-shadow: none !important;

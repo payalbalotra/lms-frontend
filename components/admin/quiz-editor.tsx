@@ -4,6 +4,7 @@ import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import type { ProcedureQuiz, ProcedureQuizQuestion } from '@/lib/types';
+import { LocalisedInput } from '@/components/ui/localised-input';
 import { LuCheck, LuCircle, LuPlus, LuTrash2 } from 'react-icons/lu';
 
 const MIN_CHOICES = 2;
@@ -202,11 +203,13 @@ export function QuizEditor({ value, onChange, isSaving, hideHeader }: QuizEditor
                           >
                             {lang === 'en' ? 'Question' : 'Pregunta'}
                           </label>
-                          <input
+                          <LocalisedInput
                             id={`q-${q.id}-prompt-${lang}`}
+                            lang={lang}
+                            value={q.prompt}
+                            onText={(nextLang, text) => updatePrompt(qi, nextLang, text)}
+                            showStatus
                             type="text"
-                            value={q.prompt[lang] ?? ''}
-                            onChange={(e) => updatePrompt(qi, lang, e.target.value)}
                             placeholder={lang === 'en' ? t('promptPlaceholder') : 'Escribe la pregunta en español...'}
                             disabled={isSaving}
                             className="w-full rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold text-[var(--color-ink)] placeholder:font-normal placeholder:text-[var(--color-ink-3)] focus:border-[var(--color-ring)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-tint)]"
@@ -244,10 +247,11 @@ export function QuizEditor({ value, onChange, isSaving, hideHeader }: QuizEditor
                                   >
                                     {isCorrect ? <LuCheck className="size-4" aria-hidden="true" /> : <LuCircle className="size-4" aria-hidden="true" />}
                                   </button>
-                                  <input
+                                  <LocalisedInput
+                                    lang={lang}
+                                    value={c.label}
+                                    onText={(nextLang, text) => updateChoice(qi, ci, nextLang, text)}
                                     type="text"
-                                    value={c.label[lang] ?? ''}
-                                    onChange={(e) => updateChoice(qi, ci, lang, e.target.value)}
                                     placeholder={
                                       lang === 'en'
                                         ? t('choicePlaceholder', { n: ci + 1 })
