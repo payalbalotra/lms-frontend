@@ -50,6 +50,17 @@ const emptyIngredient = (factorCount: number): ProcedureIngredient => ({
   amounts: Array.from({ length: factorCount }, () => ''),
 });
 
+export function newIngredientsBlock(): ProcedureBlock {
+  return {
+    id: nextBlockId(),
+    kind: 'ingredients',
+    audience: '',
+    yieldItems: [emptyYield()],
+    factors: [...DEFAULT_FACTORS],
+    ingredients: [emptyIngredient(DEFAULT_FACTORS.length)],
+  };
+}
+
 export function newRecipeBlock(): ProcedureBlock {
   return {
     id: nextBlockId(),
@@ -118,6 +129,7 @@ export const BLOCK_FACTORIES: Record<ProcedureBlockKind, () => ProcedureBlock> =
   text: newTextBlock,
   heading: newHeadingBlock,
   method: newMethodBlock,
+  ingredients: newIngredientsBlock,
   recipe: newRecipeBlock,
   image: newImageBlock,
   video: newVideoBlock,
@@ -131,6 +143,7 @@ export const BLOCK_KIND_LABELS: ProcedureBlockKind[] = [
   'text',
   'heading',
   'method',
+  'ingredients',
   'recipe',
   'image',
   'video',
@@ -195,6 +208,16 @@ export function duplicateBlock(block: ProcedureBlock): ProcedureBlock {
       return { id, kind: 'heading', level: block.level, text: cloneLocalised(block.text) };
     case 'method':
       return { id, kind: 'method', steps: block.steps.map(cloneStep) };
+    case 'ingredients':
+      return {
+        id,
+        kind: 'ingredients',
+        audience: block.audience,
+        allergen: block.allergen ? { ...block.allergen } : undefined,
+        yieldItems: block.yieldItems?.map((y) => ({ ...y })),
+        factors: block.factors?.slice(),
+        ingredients: block.ingredients?.map((i) => ({ ...i, amounts: i.amounts.slice() })),
+      };
     case 'recipe':
       return {
         id,

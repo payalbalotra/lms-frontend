@@ -199,13 +199,14 @@ export function ProcedureViewClient({
   // same localStorage slot the launcher writes to. Multiple recipes in one
   // procedure would each need their own slot — for now the first one owns
   // the doc-bar CTA; the rest show as side-thumbs only.
-  const firstRecipeBlock = React.useMemo<
-    Extract<ProcedureBlock, { kind: 'recipe' }> | null
-  >(() => {
+  const cookBlockId = React.useMemo<string | null>(() => {
     if (!proc) return null;
     const blocks = proc.bodyEn.blocks.length ? proc.bodyEn.blocks : proc.bodyEs.blocks;
-    const found = blocks.find((b): b is Extract<ProcedureBlock, { kind: 'recipe' }> => b.kind === 'recipe');
-    return found ?? null;
+    const recipe = blocks.find((b): b is Extract<ProcedureBlock, { kind: 'recipe' }> => b.kind === 'recipe');
+    if (recipe) return recipe.id ?? `recipe-${recipe.factors?.length ?? 0}`;
+    const hasMethod = blocks.some((b) => b.kind === 'method');
+    if (hasMethod) return `steps-${proc.id}`;
+    return null;
   }, [proc]);
 
   // ─── Hooks for the page-level menu (share-link + sign-out) ─────────────
@@ -317,10 +318,10 @@ export function ProcedureViewClient({
               category={proc.category?.nameEn || proc.category?.nameEs || ''}
               rightSlot={
                 <div className="flex items-center gap-2">
-                  {firstRecipeBlock ? (
+                  {cookBlockId ? (
                     <CookBarAction
                       procedureId={proc.id}
-                      recipeBlockId={firstRecipeBlock.id ?? `recipe-${firstRecipeBlock.factors?.length ?? 0}`}
+                      recipeBlockId={cookBlockId}
                       locale={locale === 'es' ? 'es' : 'en'}
                     />
                   ) : null}

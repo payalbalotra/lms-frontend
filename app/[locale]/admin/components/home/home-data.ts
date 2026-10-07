@@ -48,7 +48,7 @@ export function categoryName(c: Category | null, locale: string): string | null 
 /** A procedure a Spanish-reading cook cannot read: no Spanish title, or an
  *  English body with nothing on the Spanish side. */
 export function missingSpanish(p: Procedure): boolean {
-  return !p.titleEs.trim() || (p.bodyEn.blocks.length > 0 && p.bodyEs.blocks.length === 0);
+  return !p.titleEs?.trim() || ((p.bodyEn?.blocks?.length ?? 0) > 0 && (p.bodyEs?.blocks?.length ?? 0) === 0);
 }
 
 export function initialsOf(name: string): string {

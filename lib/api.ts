@@ -2190,6 +2190,635 @@ const SEED_PROCEDURES: Procedure[] = [
       ],
     },
   },
+  {
+    id: 'proc-halibut-tacos',
+    slug: 'halibut-tacos',
+    titleEn: 'Halibut Tacos',
+    titleEs: 'Tacos de Fletán',
+    purposeEn: 'Preparation, frying, and plating standards for fresh beer-battered Halibut Tacos on the GM station.',
+    purposeEs: 'Estándares de preparación, fritura y emplatado para los Tacos de Fletán con masa de cerveza en la estación GM.',
+    category: SEED_CATEGORIES[6],
+    subcategoryId: 'sub-cooking',
+    status: 'published',
+    iconImageUrl: null,
+    createdBy: 'emp-admin',
+    createdAt: '2026-10-07T00:00:00Z',
+    updatedAt: '2026-10-07T12:00:00Z',
+    version: 1,
+    isArchived: false,
+    stationScope: { mode: 'specific', stationIds: ['stn-gm'] },
+    quizId: null,
+    linkedTrainingId: 'course-recipes',
+    quizMode: 'training',
+    bodyEn: {
+      blocks: [
+        {
+          id: 'ht-b-ing',
+          kind: 'ingredients',
+          yieldItems: [
+            { label: 'Order yield', value: '2', unit: 'tacos', scales: true },
+          ],
+          factors: [1, 2, 4],
+          allergen: {
+            summary: 'Fish, Gluten, Egg',
+            detail: 'Contains Halibut (fish), beer batter (gluten), and mayonnaise (egg).',
+            selectedAllergens: ['fish', 'gluten', 'eggs'],
+          },
+          ingredients: [
+            {
+              name: 'Halibut (fish)',
+              form: 'portion-cut, from designated container',
+              allergen: true,
+              unit: 'pcs',
+              amounts: ['2', '4', '8'],
+            },
+            {
+              name: 'Beer batter',
+              form: 'prepared house recipe',
+              allergen: true,
+              unit: 'coat',
+              amounts: ['as needed', 'as needed', 'as needed'],
+            },
+            {
+              name: 'Taco tortillas',
+              form: '4-inch, warmed on grill',
+              allergen: false,
+              unit: 'tortillas',
+              amounts: ['4', '8', '16'],
+            },
+            {
+              name: 'Shredded cabbage',
+              form: 'fine shredded, chilled',
+              allergen: false,
+              unit: 'handful',
+              amounts: ['1', '2', '4'],
+            },
+            {
+              name: 'Pico de gallo',
+              form: 'fresh, drained',
+              allergen: false,
+              unit: 'spoonfuls',
+              amounts: ['2', '4', '8'],
+            },
+            {
+              name: 'Mayonnaise',
+              form: 'squeeze bottle',
+              allergen: true,
+              unit: 'drizzle',
+              amounts: ['to taste', 'to taste', 'to taste'],
+            },
+            {
+              name: 'Fresh cilantro',
+              form: 'picked whole leaves',
+              allergen: false,
+              unit: 'pinch',
+              amounts: ['to garnish', 'to garnish', 'to garnish'],
+            },
+            {
+              name: 'Fine salt',
+              form: 'sea salt',
+              allergen: false,
+              unit: 'pinch',
+              amounts: ['1', '2', '4'],
+            },
+            {
+              name: 'Lime wedge',
+              form: 'fresh-cut (Expo garnish)',
+              allergen: false,
+              unit: 'wedge',
+              amounts: ['1', '2', '4'],
+            },
+          ],
+        },
+        {
+          id: 'ht-h-prep',
+          kind: 'heading',
+          level: 2,
+          text: {
+            en: 'Preparation & Cooking',
+            es: 'Preparación y Cocción',
+          },
+        },
+        {
+          id: 'ht-m-prep',
+          kind: 'method',
+          steps: [
+            {
+              id: 'ht-s1',
+              body: {
+                en: 'Portion the halibut: For one order, remove 2 pieces of halibut from the designated container.',
+                es: 'Porcionar el fletán: Para una orden, retire 2 piezas de fletán del recipiente designado.',
+              },
+            },
+            {
+              id: 'ht-s2',
+              body: {
+                en: 'Coat in beer batter: Dip each piece of halibut into the beer batter, ensuring the fish is completely and evenly coated.',
+                es: 'Cubrir con masa de cerveza: Sumerja cada pieza de fletán en la masa de cerveza, asegurándose de que el pescado esté cubierto de manera uniforme.',
+              },
+            },
+            {
+              id: 'ht-s3',
+              critical: true,
+              body: {
+                en: 'Prepare the fryer: Halibut must be cooked using the third fryer only. Place a fryer basket into the oil before adding the fish.',
+                es: 'Preparar la freidora: El fletán debe cocinarse únicamente en la tercera freidora. Coloque una canasta en el aceite antes de agregar el pescado.',
+              },
+              note: {
+                severity: 'warn',
+                body: {
+                  en: 'Halibut must be cooked using the third fryer only to prevent oil cross-contamination and maintain temperature stability.',
+                  es: 'El fletán debe cocinarse únicamente en la tercera freidora para evitar contaminación cruzada de aceite y mantener estabilidad de temperatura.',
+                },
+              },
+            },
+            {
+              id: 'ht-s4',
+              body: {
+                en: 'Start the first piece: Hold the battered halibut carefully and lower approximately 1/3 of the fish into the oil. Do not release it immediately.',
+                es: 'Comenzar con la primera pieza: Sostenga el fletán rebozado con cuidado y baje aproximadamente 1/3 del pescado en el aceite. No lo suelte de inmediato.',
+              },
+            },
+            {
+              id: 'ht-s5',
+              body: {
+                en: 'Allow the crust to begin forming: Once the submerged portion starts developing a crust, lower approximately 2/3 of the fish into the oil.',
+                es: 'Permitir que la costra comience a formarse: Una vez que la porción sumergida comience a desarrollar costra, baje aproximadamente 2/3 del pescado al aceite.',
+              },
+            },
+            {
+              id: 'ht-s6',
+              body: {
+                en: 'Set the batter: Hold the fish in this position for approximately 10–12 seconds, then gently release it into the fryer basket.',
+                es: 'Fijar el rebozado: Mantenga el pescado en esta posición durante 10 a 12 segundos, luego suéltelo suavemente en la canasta de la freidora.',
+              },
+              timer: {
+                seconds: 12,
+                label: 'Set batter',
+              },
+            },
+            {
+              id: 'ht-s7',
+              body: {
+                en: 'Repeat with the second piece: Follow the same process with the second piece of halibut.',
+                es: 'Repetir con la segunda pieza: Siga el mismo proceso con la segunda pieza de fletán.',
+              },
+            },
+            {
+              id: 'ht-s8',
+              body: {
+                en: 'Prevent sticking: Gently shake the fryer basket after both pieces have been released to prevent the halibut from sticking to the bottom of the basket.',
+                es: 'Evitar que se pegue: Agite suavemente la canasta después de soltar ambas piezas para evitar que el fletán se pegue al fondo de la canasta.',
+              },
+            },
+            {
+              id: 'ht-s9',
+              body: {
+                en: 'Cook the halibut: Fry for approximately 2 minutes 30 seconds.',
+                es: 'Cocinar el fletán: Freír durante aproximadamente 2 minutos y 30 segundos.',
+              },
+              timer: {
+                seconds: 150,
+                label: 'Fry halibut',
+              },
+            },
+            {
+              id: 'ht-s10',
+              body: {
+                en: 'Check for doneness: Using a clean knife or the allocated wooden pick, gently insert it into the fish.',
+                es: 'Verificar la cocción: Con un cuchillo limpio o el palillo de madera asignado, insértelo suavemente en el pescado.',
+              },
+              note: {
+                severity: 'tip',
+                body: {
+                  en: 'The halibut is ready when no fish sticks to the knife or wooden pick upon removal, and the outside coating is crisp.',
+                  es: 'El fletán está listo cuando no se pega nada al cuchillo o palillo al retirarlo y la costra exterior está crujiente.',
+                },
+              },
+            },
+            {
+              id: 'ht-s11',
+              body: {
+                en: 'Remove and season: Transfer the cooked halibut into a steel bowl lined with brown paper. Season immediately with a pinch of salt.',
+                es: 'Retirar y sazonar: Transfiera el fletán cocido a un tazón de acero forrado con papel marrón. Sazone inmediatamente con una pizca de sal.',
+              },
+            },
+          ],
+        },
+        {
+          id: 'ht-h-assembly',
+          kind: 'heading',
+          level: 2,
+          text: {
+            en: 'Taco Assembly',
+            es: 'Armado de Tacos',
+          },
+        },
+        {
+          id: 'ht-m-assembly',
+          kind: 'method',
+          steps: [
+            {
+              id: 'ht-a1',
+              body: {
+                en: 'Heat the tortillas: Heat 4 taco tortillas on the grill.',
+                es: 'Calentar las tortillas: Caliente 4 tortillas de taco en la parrilla.',
+              },
+            },
+            {
+              id: 'ht-a2',
+              body: {
+                en: 'Double-layer the tacos: Place the tortillas on the serving plate in 2 stacks of 2 tortillas each, creating two double-layered tacos.',
+                es: 'Hacer tacos de doble capa: Coloque las tortillas en el plato de servicio en 2 pilas de 2 tortillas cada una, creando dos tacos dobles.',
+              },
+            },
+            {
+              id: 'ht-a3',
+              body: {
+                en: 'Add the halibut: Place 1 piece of fried halibut onto each double-layered taco.',
+                es: 'Agregar el fletán: Coloque 1 pieza de fletán frito en cada taco de doble capa.',
+              },
+            },
+            {
+              id: 'ht-a4',
+              body: {
+                en: 'Add the cabbage: Place a handful of cabbage over the two tacos.',
+                es: 'Agregar el repollo: Coloque un puñado de repollo sobre los dos tacos.',
+              },
+            },
+            {
+              id: 'ht-a5',
+              body: {
+                en: 'Add the pico de gallo: Add 1 spoonful of pico de gallo to each taco, positioning it primarily over the halibut.',
+                es: 'Agregar el pico de gallo: Agregue 1 cucharada de pico de gallo a cada taco, colocándolo principalmente sobre el fletán.',
+              },
+            },
+            {
+              id: 'ht-a6',
+              body: {
+                en: 'Finish with mayo: Drizzle mayo over the top of each taco.',
+                es: 'Terminar con mayonesa: Rocíe mayonesa sobre la parte superior de cada taco.',
+              },
+            },
+            {
+              id: 'ht-a7',
+              body: {
+                en: 'Add cilantro: Place the cilantro directly on top of the fish. Keep the garnish concentrated on the halibut rather than spreading it across the entire taco.',
+                es: 'Agregar cilantro: Coloque el cilantro directamente sobre el pescado. Mantenga la guarnición concentrada en el fletán en lugar de esparcirla por todo el taco.',
+              },
+              note: {
+                severity: 'tip',
+                body: {
+                  en: 'Keep cilantro garnish concentrated over the fried fish for clean visual presentation.',
+                  es: 'Mantenga la guarnición de cilantro concentrada sobre el pescado frito para una presentación visual limpia.',
+                },
+              },
+            },
+          ],
+        },
+        {
+          id: 'ht-h-handoff',
+          kind: 'heading',
+          level: 2,
+          text: {
+            en: 'Final Handoff',
+            es: 'Entrega Final',
+          },
+        },
+        {
+          id: 'ht-m-handoff',
+          kind: 'method',
+          steps: [
+            {
+              id: 'ht-o1',
+              body: {
+                en: 'Send to Expo: Hand the completed plate to the Expo Chef.',
+                es: 'Enviar a Expo: Entregue el plato terminado al Chef de Expo.',
+              },
+            },
+            {
+              id: 'ht-o2',
+              body: {
+                en: 'Final garnish and quality check: The Expo Chef adds the lime, checks the plate for presentation and completeness, and sends the finished order to the server.',
+                es: 'Guarnición final y control de calidad: El Chef de Expo agrega la lima, verifica la presentación y envía la orden terminada al mesero.',
+              },
+              note: {
+                severity: 'tip',
+                body: {
+                  en: 'Expo Chef verifies plate presentation and adds fresh lime wedge before handoff to server.',
+                  es: 'El Chef de Expo verifica el plato y añade la rodaja de lima fresca antes de entregar al mesero.',
+                },
+              },
+            },
+          ],
+        },
+      ],
+    },
+    bodyEs: {
+      blocks: [
+        {
+          id: 'ht-b-ing',
+          kind: 'ingredients',
+          yieldItems: [
+            { label: 'Rendimiento', value: '2', unit: 'tacos', scales: true },
+          ],
+          factors: [1, 2, 4],
+          allergen: {
+            summary: 'Pescado, Gluten, Huevo',
+            detail: 'Contiene fletán (pescado), masa con cerveza (gluten) y mayonesa (huevo).',
+            selectedAllergens: ['fish', 'gluten', 'eggs'],
+          },
+          ingredients: [
+            {
+              name: 'Fletán (pescado)',
+              form: 'cortado en porciones, del contenedor designado',
+              allergen: true,
+              unit: 'pzas',
+              amounts: ['2', '4', '8'],
+            },
+            {
+              name: 'Masa de cerveza',
+              form: 'receta de la casa',
+              allergen: true,
+              unit: 'cubierta',
+              amounts: ['al gusto', 'al gusto', 'al gusto'],
+            },
+            {
+              name: 'Tortillas de taco',
+              form: 'calentadas en la parrilla',
+              allergen: false,
+              unit: 'tortillas',
+              amounts: ['4', '8', '16'],
+            },
+            {
+              name: 'Repollo rallado',
+              form: 'fino, frío',
+              allergen: false,
+              unit: 'puñado',
+              amounts: ['1', '2', '4'],
+            },
+            {
+              name: 'Pico de gallo',
+              form: 'fresco, escurrido',
+              allergen: false,
+              unit: 'cucharadas',
+              amounts: ['2', '4', '8'],
+            },
+            {
+              name: 'Mayonesa',
+              form: 'botella exprimible',
+              allergen: true,
+              unit: 'chorrito',
+              amounts: ['al gusto', 'al gusto', 'al gusto'],
+            },
+            {
+              name: 'Cilantro fresco',
+              form: 'hojas enteras',
+              allergen: false,
+              unit: 'pizca',
+              amounts: ['para decorar', 'para decorar', 'para decorar'],
+            },
+            {
+              name: 'Sal fina',
+              form: 'sal de mar',
+              allergen: false,
+              unit: 'pizca',
+              amounts: ['1', '2', '4'],
+            },
+            {
+              name: 'Rodaja de lima',
+              form: 'corte fresco (guarnición de Expo)',
+              allergen: false,
+              unit: 'rodaja',
+              amounts: ['1', '2', '4'],
+            },
+          ],
+        },
+        {
+          id: 'ht-h-prep',
+          kind: 'heading',
+          level: 2,
+          text: {
+            en: 'Preparation & Cooking',
+            es: 'Preparación y Cocción',
+          },
+        },
+        {
+          id: 'ht-m-prep',
+          kind: 'method',
+          steps: [
+            {
+              id: 'ht-s1',
+              body: {
+                en: 'Portion the halibut: For one order, remove 2 pieces of halibut from the designated container.',
+                es: 'Porcionar el fletán: Para una orden, retire 2 piezas de fletán del recipiente designado.',
+              },
+            },
+            {
+              id: 'ht-s2',
+              body: {
+                en: 'Coat in beer batter: Dip each piece of halibut into the beer batter, ensuring the fish is completely and evenly coated.',
+                es: 'Cubrir con masa de cerveza: Sumerja cada pieza de fletán en la masa de cerveza, asegurándose de que el pescado esté cubierto de manera uniforme.',
+              },
+            },
+            {
+              id: 'ht-s3',
+              critical: true,
+              body: {
+                en: 'Prepare the fryer: Halibut must be cooked using the third fryer only. Place a fryer basket into the oil before adding the fish.',
+                es: 'Preparar la freidora: El fletán debe cocinarse únicamente en la tercera freidora. Coloque una canasta en el aceite antes de agregar el pescado.',
+              },
+              note: {
+                severity: 'warn',
+                body: {
+                  en: 'Halibut must be cooked using the third fryer only to prevent oil cross-contamination and maintain temperature stability.',
+                  es: 'El fletán debe cocinarse únicamente en la tercera freidora para evitar contaminación cruzada de aceite y mantener estabilidad de temperatura.',
+                },
+              },
+            },
+            {
+              id: 'ht-s4',
+              body: {
+                en: 'Start the first piece: Hold the battered halibut carefully and lower approximately 1/3 of the fish into the oil. Do not release it immediately.',
+                es: 'Comenzar con la primera pieza: Sostenga el fletán rebozado con cuidado y baje aproximadamente 1/3 del pescado en el aceite. No lo suelte de inmediato.',
+              },
+            },
+            {
+              id: 'ht-s5',
+              body: {
+                en: 'Allow the crust to begin forming: Once the submerged portion starts developing a crust, lower approximately 2/3 of the fish into the oil.',
+                es: 'Permitir que la costra comience a formarse: Una vez que la porción sumergida comience a desarrollar costra, baje aproximadamente 2/3 del pescado al aceite.',
+              },
+            },
+            {
+              id: 'ht-s6',
+              body: {
+                en: 'Set the batter: Hold the fish in this position for approximately 10–12 seconds, then gently release it into the fryer basket.',
+                es: 'Fijar el rebozado: Mantenga el pescado en esta posición durante 10 a 12 segundos, luego suéltelo suavemente en la canasta de la freidora.',
+              },
+              timer: {
+                seconds: 12,
+                label: 'Set batter',
+              },
+            },
+            {
+              id: 'ht-s7',
+              body: {
+                en: 'Repeat with the second piece: Follow the same process with the second piece of halibut.',
+                es: 'Repetir con la segunda pieza: Siga el mismo proceso con la segunda pieza de fletán.',
+              },
+            },
+            {
+              id: 'ht-s8',
+              body: {
+                en: 'Prevent sticking: Gently shake the fryer basket after both pieces have been released to prevent the halibut from sticking to the bottom of the basket.',
+                es: 'Evitar que se pegue: Agite suavemente la canasta después de soltar ambas piezas para evitar que el fletán se pegue al fondo de la canasta.',
+              },
+            },
+            {
+              id: 'ht-s9',
+              body: {
+                en: 'Cook the halibut: Fry for approximately 2 minutes 30 seconds.',
+                es: 'Cocinar el fletán: Freír durante aproximadamente 2 minutos y 30 segundos.',
+              },
+              timer: {
+                seconds: 150,
+                label: 'Fry halibut',
+              },
+            },
+            {
+              id: 'ht-s10',
+              body: {
+                en: 'Check for doneness: Using a clean knife or the allocated wooden pick, gently insert it into the fish.',
+                es: 'Verificar la cocción: Con un cuchillo limpio o el palillo de madera asignado, insértelo suavemente en el pescado.',
+              },
+              note: {
+                severity: 'tip',
+                body: {
+                  en: 'The halibut is ready when no fish sticks to the knife or wooden pick upon removal, and the outside coating is crisp.',
+                  es: 'El fletán está listo cuando no se pega nada al cuchillo o palillo al retirarlo y la costra exterior está crujiente.',
+                },
+              },
+            },
+            {
+              id: 'ht-s11',
+              body: {
+                en: 'Remove and season: Transfer the cooked halibut into a steel bowl lined with brown paper. Season immediately with a pinch of salt.',
+                es: 'Retirar y sazonar: Transfiera el fletán cocido a un tazón de acero forrado con papel marrón. Sazone inmediatamente con una pizca de sal.',
+              },
+            },
+          ],
+        },
+        {
+          id: 'ht-h-assembly',
+          kind: 'heading',
+          level: 2,
+          text: {
+            en: 'Taco Assembly',
+            es: 'Armado de Tacos',
+          },
+        },
+        {
+          id: 'ht-m-assembly',
+          kind: 'method',
+          steps: [
+            {
+              id: 'ht-a1',
+              body: {
+                en: 'Heat the tortillas: Heat 4 taco tortillas on the grill.',
+                es: 'Calentar las tortillas: Caliente 4 tortillas de taco en la parrilla.',
+              },
+            },
+            {
+              id: 'ht-a2',
+              body: {
+                en: 'Double-layer the tacos: Place the tortillas on the serving plate in 2 stacks of 2 tortillas each, creating two double-layered tacos.',
+                es: 'Hacer tacos de doble capa: Coloque las tortillas en el plato de servicio en 2 pilas de 2 tortillas cada una, creando dos tacos dobles.',
+              },
+            },
+            {
+              id: 'ht-a3',
+              body: {
+                en: 'Add the halibut: Place 1 piece of fried halibut onto each double-layered taco.',
+                es: 'Agregar el fletán: Coloque 1 pieza de fletán frito en cada taco de doble capa.',
+              },
+            },
+            {
+              id: 'ht-a4',
+              body: {
+                en: 'Add the cabbage: Place a handful of cabbage over the two tacos.',
+                es: 'Agregar el repollo: Coloque un puñado de repollo sobre los dos tacos.',
+              },
+            },
+            {
+              id: 'ht-a5',
+              body: {
+                en: 'Add the pico de gallo: Add 1 spoonful of pico de gallo to each taco, positioning it primarily over the halibut.',
+                es: 'Agregar el pico de gallo: Agregue 1 cucharada de pico de gallo a cada taco, colocándolo principalmente sobre el fletán.',
+              },
+            },
+            {
+              id: 'ht-a6',
+              body: {
+                en: 'Finish with mayo: Drizzle mayo over the top of each taco.',
+                es: 'Terminar con mayonesa: Rocíe mayonesa sobre la parte superior de cada taco.',
+              },
+            },
+            {
+              id: 'ht-a7',
+              body: {
+                en: 'Add cilantro: Place the cilantro directly on top of the fish. Keep the garnish concentrated on the halibut rather than spreading it across the entire taco.',
+                es: 'Agregar cilantro: Coloque el cilantro directamente sobre el pescado. Mantenga la guarnición concentrada en el fletán en lugar de esparcirla por todo el taco.',
+              },
+              note: {
+                severity: 'tip',
+                body: {
+                  en: 'Keep cilantro garnish concentrated over the fried fish for clean visual presentation.',
+                  es: 'Mantenga la guarnición de cilantro concentrada sobre el pescado frito para una presentación visual limpia.',
+                },
+              },
+            },
+          ],
+        },
+        {
+          id: 'ht-h-handoff',
+          kind: 'heading',
+          level: 2,
+          text: {
+            en: 'Final Handoff',
+            es: 'Entrega Final',
+          },
+        },
+        {
+          id: 'ht-m-handoff',
+          kind: 'method',
+          steps: [
+            {
+              id: 'ht-o1',
+              body: {
+                en: 'Send to Expo: Hand the completed plate to the Expo Chef.',
+                es: 'Enviar a Expo: Entregue el plato terminado al Chef de Expo.',
+              },
+            },
+            {
+              id: 'ht-o2',
+              body: {
+                en: 'Final garnish and quality check: The Expo Chef adds the lime, checks the plate for presentation and completeness, and sends the finished order to the server.',
+                es: 'Guarnición final y control de calidad: El Chef de Expo agrega la lima, verifica la presentación y envía la orden terminada al mesero.',
+              },
+              note: {
+                severity: 'tip',
+                body: {
+                  en: 'Expo Chef verifies plate presentation and adds fresh lime wedge before handoff to server.',
+                  es: 'El Chef de Expo verifica el plato y añade la rodaja de lima fresca antes de entregar al mesero.',
+                },
+              },
+            },
+          ],
+        },
+      ],
+    },
+  },
 ];
 
 // ----------------------------------------------------------------------------
@@ -3202,12 +3831,40 @@ export async function requestVideoUpload(
   };
 }
 
+export async function requestDocumentUpload(
+  input: { filename: string; contentType: string; size: number },
+  _cookieHeader?: string,
+): Promise<PresignedUpload> {
+  try {
+    const res = await http.post<{ success: boolean; data: PresignedUpload } | PresignedUpload>(
+      '/api/admin/uploads/document',
+      input,
+    );
+    const data = (res.data as any)?.data ?? res.data;
+    if (data && data.uploadUrl) return data;
+  } catch {
+    // Mock / fallback for local development without active R2 credentials
+  }
+  return {
+    uploadUrl: 'mock-upload',
+    key: `documents/${Date.now()}-${input.filename}`,
+    publicUrl: `/uploads/${input.filename}`,
+    expiresIn: 3600,
+  };
+}
+
 export async function uploadToR2(
-  _uploadUrl: string,
-  _file: Blob,
-  _contentType: string,
+  uploadUrl: string,
+  file: Blob,
+  contentType: string,
 ): Promise<void> {
-  // Demo mode: No-op
+  if (uploadUrl && uploadUrl !== 'mock-upload') {
+    await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': contentType },
+      body: file,
+    });
+  }
 }
 
 export async function deleteUpload(_input: { url: string }): Promise<{ ok: true }> {

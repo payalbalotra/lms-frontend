@@ -80,6 +80,7 @@ const KIND_META: Record<ProcedureBlockKind, { label: string; icon: IconType }> =
   attachment: { label: 'Attachment', icon: LuPaperclip },
   table: { label: 'Table', icon: LuTable },
   checklist: { label: 'Checklist', icon: LuListChecks },
+  ingredients: { label: 'Ingredients', icon: LuListOrdered },
   recipe: { label: 'Recipe', icon: LuListOrdered }, // never offered in COURSE_KINDS
 };
 

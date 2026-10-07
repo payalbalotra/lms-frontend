@@ -139,12 +139,13 @@ export function AdminProcedureView({
   // The cook-mode CTA in the top chrome bar belongs to the page's first
   // recipe block. We compute it from the loaded `proc` so a freshly-edited
   // procedure re-evaluates on save without unmounting the chrome.
-  const firstRecipeBlock = React.useMemo<
-    Extract<ProcedureBlock, { kind: 'recipe' }> | null
-  >(() => {
+  const cookBlockId = React.useMemo<string | null>(() => {
     const blocks = proc.bodyEn.blocks.length ? proc.bodyEn.blocks : proc.bodyEs.blocks;
-    const found = blocks.find((b): b is Extract<ProcedureBlock, { kind: 'recipe' }> => b.kind === 'recipe');
-    return found ?? null;
+    const recipe = blocks.find((b): b is Extract<ProcedureBlock, { kind: 'recipe' }> => b.kind === 'recipe');
+    if (recipe) return recipe.id ?? `recipe-${recipe.factors?.length ?? 0}`;
+    const hasMethod = blocks.some((b) => b.kind === 'method');
+    if (hasMethod) return `steps-${proc.id}`;
+    return null;
   }, [proc]);
 
   return (
@@ -168,10 +169,10 @@ export function AdminProcedureView({
           </Link>
         </div>
         <div className="flex items-center gap-3">
-          {firstRecipeBlock ? (
+          {cookBlockId ? (
             <CookBarAction
               procedureId={proc.id}
-              recipeBlockId={firstRecipeBlock.id ?? `recipe-${firstRecipeBlock.factors?.length ?? 0}`}
+              recipeBlockId={cookBlockId}
               locale={locale === 'es' ? 'es' : 'en'}
             />
           ) : null}

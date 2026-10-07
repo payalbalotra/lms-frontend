@@ -68,6 +68,8 @@ function blockText(b: ProcedureBlock): string {
     case 'recipe':
       return b.steps.map((s) => both(s.body)).join(' ') +
         (b.kind === 'recipe' ? ' ' + (b.ingredients ?? []).map((i) => i.name).join(' ') : '');
+    case 'ingredients':
+      return (b.ingredients ?? []).map((i) => i.name).join(' ');
     case 'checklist':
       return both(b.title) + ' ' + b.items.map((i) => both(i.text)).join(' ');
     case 'table':

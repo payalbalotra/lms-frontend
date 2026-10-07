@@ -8,7 +8,7 @@ const BACKEND_ORIGIN =
   process.env.BACKEND_API_URL ??
   process.env.NEXT_PUBLIC_API_BASE ??
   process.env.NEXT_PUBLIC_API_URL ??
-  'http://192.168.0.153:8000';
+  'http://localhost:8000';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,

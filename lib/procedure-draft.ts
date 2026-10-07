@@ -56,9 +56,30 @@ export function isBlockEmpty(block: ProcedureBlock): boolean {
     case 'attachment':
       return locEmpty(block.title) && block.href.trim() === '';
     case 'method':
-      return block.steps.every((s) => locEmpty(s.body));
+      return (
+        block.steps.length === 0 ||
+        block.steps.every(
+          (s) =>
+            locEmpty(s.body) &&
+            (!s.images || s.images.length === 0) &&
+            !s.imageSrc &&
+            !s.videoSrc &&
+            !s.timer &&
+            !s.note,
+        )
+      );
     case 'recipe':
-      return block.steps.every((s) => locEmpty(s.body)) && (block.ingredients ?? []).every((i) => i.name.trim() === '');
+      return (
+        block.steps.every(
+          (s) =>
+            locEmpty(s.body) &&
+            (!s.images || s.images.length === 0) &&
+            !s.imageSrc &&
+            !s.videoSrc &&
+            !s.timer &&
+            !s.note,
+        ) && (block.ingredients ?? []).every((i) => i.name.trim() === '')
+      );
     case 'table':
       return block.headers.every((h) => locEmpty(h)) && block.rows.every((r) => r.every((c) => locEmpty(c)));
     case 'checklist':
@@ -103,7 +124,22 @@ function backfillBlock(block: ProcedureBlock): ProcedureBlock {
       return { ...block, title: backfill(block.title) as Localised };
     case 'method':
     case 'recipe':
-      return { ...block, steps: block.steps.map((s) => ({ ...s, body: backfill(s.body) as Localised })) } as ProcedureBlock;
+      return {
+        ...block,
+        steps: block.steps.map((s) => ({
+          ...s,
+          body: backfill(s.body) as Localised,
+          ...(s.note ? { note: { ...s.note, body: backfill(s.note.body) as Localised } } : {}),
+          ...(s.images
+            ? {
+                images: s.images.map((img) => ({
+                  ...img,
+                  alt: backfill(img.alt) as Localised,
+                })),
+              }
+            : {}),
+        })),
+      } as ProcedureBlock;
     case 'table':
       return {
         ...block,
@@ -220,5 +256,5 @@ export function toEditorContent(p: Procedure): {
 
 /** A procedure a Spanish-reading cook cannot read yet. */
 export function missingSpanish(p: Pick<Procedure, 'titleEs' | 'bodyEn' | 'bodyEs'>): boolean {
-  return !p.titleEs.trim() || (p.bodyEn.blocks.length > 0 && p.bodyEs.blocks.length === 0);
+  return !p.titleEs?.trim() || ((p.bodyEn?.blocks?.length ?? 0) > 0 && (p.bodyEs?.blocks?.length ?? 0) === 0);
 }

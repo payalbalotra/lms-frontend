@@ -775,9 +775,9 @@ export function LibraryProcedureExplorer({
             const catName = p.category ? (isEs ? p.category.nameEs : p.category.nameEn) : 'General';
             const title = (isEs ? p.titleEs || p.titleEn : p.titleEn || p.titleEs) || p.slug;
             const purpose = isEs ? p.purposeEs || p.purposeEn : p.purposeEn || p.purposeEs;
-            // The same test the admin home uses: a Spanish-reading cook cannot
-            // read it. A bare "EN" beside "EN / ES" did not say that was a gap.
-            const noSpanish = !p.titleEs.trim() || (p.bodyEn.blocks.length > 0 && p.bodyEs.blocks.length === 0);
+            const noSpanish =
+              !p.titleEs?.trim() ||
+              ((p.bodyEn?.blocks?.length ?? 0) > 0 && (p.bodyEs?.blocks?.length ?? 0) === 0);
             // Subcategory resolves from the FK via the map the catalog already
             // builds; absent subcategories just don't render, no string-sniffing
             // fallback that used to lie about recipe sections.

@@ -10,11 +10,15 @@ import { classifyVideoUrl } from '@/lib/procedure-media';
 import {
   Allergen,
   CriticalLimitFull,
+  IngredientsTable,
   MethodSteps,
   NoteBlock,
+  Scaler,
   Section,
   Shot,
   Triggers,
+  Yield,
+  type Ingredient,
   type MethodStep,
   type ChapterRow,
 } from './index';
@@ -135,18 +139,21 @@ function toMethodStep(step: ProcedureMethodStep, locale: 'en' | 'es', noteLabels
       if (!img.src) continue;
       const compare =
         step.compareImages && step.images.length >= 2 && idx < 2 ? (idx === 0 ? 'ok' : 'no') : undefined;
+      const altText = pickText(img.alt ?? { en: '', es: '' }, locale) || '';
       shots.push({
         src: img.src,
-        alt: pickText(img.alt ?? { en: '', es: '' }, locale) || '',
+        alt: altText,
+        caption: altText || undefined,
         compare,
       });
     }
   }
   if (step.imageSrc) {
+    const altText = pickText(step.imageAlt ?? { en: '', es: '' }, locale) || '';
     shots.push({
       src: step.imageSrc,
-      alt: pickText(step.imageAlt ?? { en: '', es: '' }, locale) || '',
-      caption: step.videoCaption,
+      alt: altText,
+      caption: step.videoCaption || altText || undefined,
     });
   }
   if (shots.length > 0) {
@@ -200,9 +207,57 @@ export function findAllergen(
   blocks: ProcedureBlock[],
 ): { id: string; allergen: { summary: string; detail: string; selectedAllergens?: readonly string[] } } | null {
   for (const [i, b] of blocks.entries()) {
-    if (b.kind === 'recipe' && b.allergen) return { id: b.id ?? String(i), allergen: b.allergen };
+    if ((b.kind === 'recipe' || b.kind === 'ingredients') && b.allergen) return { id: b.id ?? String(i), allergen: b.allergen };
   }
   return null;
+}
+
+function IngredientsSection({
+  factors,
+  yieldItems,
+  ingredients,
+  batchLabel,
+  yieldTitle,
+}: {
+  factors: number[];
+  yieldItems: { label: string; value: string; unit?: string; scales?: boolean }[];
+  ingredients: Ingredient[];
+  batchLabel: string;
+  yieldTitle: string;
+}): React.ReactElement {
+  const [factor, setFactor] = React.useState(factors[0] ?? 1);
+  const base = factors[0] ?? 1;
+
+  const scaled = React.useMemo(
+    () =>
+      yieldItems.map((y) => {
+        if (!y.scales) return y;
+        const n = parseFloat(y.value.replace(',', '.'));
+        if (!Number.isFinite(n)) return y;
+        const value = String(Math.round(((n * factor) / base) * 100) / 100);
+        return { ...y, value };
+      }),
+    [yieldItems, factor, base],
+  );
+
+  const showTable = ingredients.length > 0 && factors.length > 0;
+  const hasYield = scaled.length > 0 || factors.length > 0 || showTable;
+
+  if (!hasYield) return <></>;
+
+  return (
+    <Section title={yieldTitle}>
+      {factors.length > 1 ? (
+        <Scaler factors={factors} selected={factor} onSelect={setFactor} label={batchLabel} />
+      ) : null}
+      {scaled.length > 0 ? (
+        <Yield items={scaled.map((y) => ({ label: y.label, value: y.unit ? `${y.value} ${y.unit}` : y.value }))} />
+      ) : null}
+      {showTable ? (
+        <IngredientsTable ingredients={ingredients} factors={factors} selectedFactor={factor} />
+      ) : null}
+    </Section>
+  );
 }
 
 export function BlockRenderer({
@@ -344,12 +399,45 @@ export function BlockRenderer({
         return;
       }
       case 'method': {
-        flush();
+        const sectionTitle = open?.title ?? t.method;
+        const sectionKey = open?.key ?? key;
+        const extraNodes = open?.nodes ?? [];
+        open = null;
         const steps = block.steps.map((s) => toMethodStep(s, locale, t.notes));
         out.push(
-          <Section key={key} title={t.method} count={t.steps(steps.length)}>
+          <Section key={sectionKey} title={sectionTitle} count={t.steps(steps.length)}>
+            {extraNodes}
             <MethodSteps steps={steps} />
           </Section>,
+        );
+        return;
+      }
+      case 'ingredients': {
+        flush();
+        const factorList = block.factors && block.factors.length > 0 ? block.factors : [1];
+        out.push(
+          <React.Fragment key={key}>
+            {block.allergen && key !== hoistedAllergenId ? (
+              <Allergen
+                summary={block.allergen.summary}
+                detail={block.allergen.detail}
+                selectedAllergens={block.allergen.selectedAllergens}
+                locale={locale}
+              />
+            ) : null}
+            <IngredientsSection
+              factors={factorList}
+              yieldItems={block.yieldItems ?? []}
+              ingredients={(block.ingredients ?? []).map((ing) => ({
+                name: ing.name,
+                form: ing.form,
+                allergen: ing.allergen,
+                amounts: ing.amounts,
+              }))}
+              batchLabel={t.batch}
+              yieldTitle={t.yieldTitle}
+            />
+          </React.Fragment>,
         );
         return;
       }
@@ -412,7 +500,13 @@ export function BlockRenderer({
         <Section title={t.attachments}>
           <div className="chapters">
             {attachmentRows.map((r, i) => (
-              <a key={i} className="chapter" href={r.href}>
+              <a
+                key={i}
+                className="chapter"
+                href={r.href}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <span className="idx">
                   <Icon icon={r.icon} className="i i-sm" />
                 </span>

@@ -292,6 +292,15 @@ export type ProcedureBlock =
   | { id: string; kind: 'method'; steps: ProcedureMethodStep[] }
   | {
       id: string;
+      kind: 'ingredients';
+      audience?: string;
+      allergen?: ProcedureAllergen;
+      yieldItems?: ProcedureYieldItem[];
+      factors?: number[];
+      ingredients: ProcedureIngredient[];
+    }
+  | {
+      id: string;
       kind: 'recipe';
       audience?: string;
       allergen?: ProcedureAllergen;

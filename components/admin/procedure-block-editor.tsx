@@ -40,7 +40,13 @@ import type {
 } from '@/lib/types';
 import { syncAmountsWithFactors } from '@/lib/procedure-blocks';
 import { ALLERGEN_KEYS, type AllergenKey } from '@/lib/allergens';
-import { requestImageUpload, requestVideoUpload, uploadToR2, deleteUpload } from '@/lib/api';
+import {
+  requestImageUpload,
+  requestVideoUpload,
+  requestDocumentUpload,
+  uploadToR2,
+  deleteUpload,
+} from '@/lib/api';
 import { classifyVideoUrl } from '@/lib/procedure-media';
 import { LuArrowDown, LuArrowUp, LuCamera, LuChevronDown, LuChevronUp, LuCircleAlert, LuCirclePlay, LuCloudUpload, LuCopy, LuFocus, LuGripVertical, LuHeading1, LuHeading2, LuHeading3, LuImage, LuImagePlus, LuLightbulb, LuLink, LuListChecks, LuListOrdered, LuPaperclip, LuPlus, LuRefreshCw, LuRotateCcw, LuTable, LuTrash2, LuTriangleAlert, LuType, LuUpload, LuUtensils, LuVideo, LuWorkflow, LuWrench, LuX } from 'react-icons/lu';
 import { Icon } from '@/components/ui/icon';
@@ -1825,14 +1831,76 @@ function AttachmentEditor({
 }: EditorProps<Extract<ProcedureBlock, { kind: 'attachment' }>>): React.ReactElement {
   const t = useTranslations('admin.library.new.form.composer');
   const [lang, setLang] = React.useState<'en' | 'es'>('en');
+  const [uploading, setUploading] = React.useState(false);
+  const fileRef = React.useRef<HTMLInputElement>(null);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setUploading(true);
+    try {
+      const presigned = await requestDocumentUpload({
+        filename: file.name,
+        contentType: file.type || 'application/octet-stream',
+        size: file.size,
+      });
+      await uploadToR2(presigned.uploadUrl, file, file.type || 'application/octet-stream');
+      const objectUrl = typeof window !== 'undefined' ? URL.createObjectURL(file) : '';
+      const finalUrl = presigned.uploadUrl === 'mock-upload' && objectUrl ? objectUrl : presigned.publicUrl;
+      const filenameNoExt = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
+      const ext = file.name.split('.').pop()?.toUpperCase() ?? 'FILE';
+      const sizeKb = Math.round(file.size / 1024);
+      const metaStr = sizeKb > 1024 ? `${ext} · ${(sizeKb / 1024).toFixed(1)} MB` : `${ext} · ${sizeKb} KB`;
+
+      onChange({
+        ...block,
+        href: finalUrl,
+        meta: block.meta?.trim() ? block.meta : metaStr,
+        title: {
+          en: block.title?.en?.trim() ? block.title.en : filenameNoExt,
+          es: block.title?.es?.trim() ? block.title.es : filenameNoExt,
+        },
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <div className="space-y-3">
-      <Field label={t('attachmentHref')} required>
-        <Input
-          value={block.href}
-          onChange={(e) => onChange({ ...block, href: e.target.value })}
+      <div className="flex items-end gap-2">
+        <div className="flex-1">
+          <Field label={t('attachmentHref')} required>
+            <Input
+              value={block.href}
+              onChange={(e) => onChange({ ...block, href: e.target.value })}
+              placeholder="https://example.com/file.pdf"
+            />
+          </Field>
+        </div>
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={uploading}
+          onClick={() => fileRef.current?.click()}
+          className="mb-0.5 shrink-0"
+        >
+          {uploading ? (
+            <span className="spinner mr-1.5" />
+          ) : (
+            <LuUpload className="mr-1.5" />
+          )}
+          {uploading ? 'Uploading…' : 'Upload file'}
+        </Button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.md,image/jpeg,image/png,image/webp"
+          onChange={(e) => void handleUpload(e)}
+          className="hidden"
         />
-      </Field>
+      </div>
       <BilingualTabs active={lang} onChange={setLang} enLabel={t('tabs.en')} esLabel={t('tabs.es')} />
       <Field label={t('attachmentTitle')} required>
         <Input
@@ -1844,6 +1912,7 @@ function AttachmentEditor({
         <Input
           value={block.meta ?? ''}
           onChange={(e) => onChange({ ...block, meta: e.target.value })}
+          placeholder="e.g. PDF · 2.4 MB"
         />
       </Field>
     </div>
@@ -2099,6 +2168,7 @@ const KIND_ICON: Record<ProcedureBlockKind, IconType> = {
   text: LuType,
   heading: LuHeading1,
   method: LuListOrdered,
+  ingredients: LuUtensils,
   recipe: LuUtensils,
   image: LuImage,
   video: LuVideo,
@@ -2129,8 +2199,9 @@ export function ProcedureBlockEditor({
     case 'method':
       body = <MethodEditor block={block} onChange={onChange} />;
       break;
+    case 'ingredients':
     case 'recipe':
-      body = <RecipeEditor block={block} onChange={onChange} />;
+      body = <RecipeEditor block={block as never} onChange={onChange as never} />;
       break;
     case 'image':
       body = <ImageEditor block={block} onChange={onChange} />;

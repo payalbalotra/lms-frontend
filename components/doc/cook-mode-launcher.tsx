@@ -225,18 +225,30 @@ function toMethodStep(step: ProcedureMethodStep, locale: 'en' | 'es', noteLabels
   return out;
 }
 
+export type CookModeBlockInput = {
+  id?: string;
+  kind?: string;
+  factors?: number[];
+  yieldItems?: Array<{ label: string; value: string; unit?: string; scales?: boolean }>;
+  ingredients?: Array<{ name: string; form?: string; allergen?: boolean; amounts: string[] }>;
+  steps: ProcedureMethodStep[];
+  allergen?: { summary: string; detail: string; selectedAllergens?: readonly string[] };
+};
+
 export function CookModeLauncher({
   block,
   procedureId,
   procedureTitle,
   locale,
   skipAllergen,
+  modalOnly = false,
 }: {
-  block: Extract<ProcedureBlock, { kind: 'recipe' }>;
+  block: CookModeBlockInput;
   procedureId: string;
   procedureTitle: string;
   locale: 'en' | 'es';
   skipAllergen?: boolean;
+  modalOnly?: boolean;
 }): React.ReactElement | null {
   const recipeBlockId = block.id ?? `recipe-${block.factors?.length ?? 0}`;
   const labels = locale === 'es' ? COOK_LABELS_ES : COOK_LABELS_EN;
@@ -347,30 +359,34 @@ export function CookModeLauncher({
 
   return (
     <>
-      {!skipAllergen && block.allergen ? (
-        <Allergen
-          summary={block.allergen.summary}
-          detail={block.allergen.detail}
-          selectedAllergens={block.allergen.selectedAllergens}
-          locale={locale}
-        />
-      ) : null}
-      <RecipeBody
-        factors={block.factors ?? []}
-        yieldItems={block.yieldItems ?? []}
-        ingredients={(block.ingredients ?? []).map((ing) => ({
-          name: ing.name,
-          form: ing.form,
-          allergen: ing.allergen,
-          amounts: ing.amounts,
-        }))}
-        steps={steps}
-        batchLabel={t.batch}
-        yieldTitle={t.yieldTitle}
-        methodTitle={t.method}
-        stepsCount={t.steps(steps.length)}
-        cookMode={cookMode}
-      />
+      {!modalOnly && (
+        <>
+          {!skipAllergen && block.allergen ? (
+            <Allergen
+              summary={block.allergen.summary}
+              detail={block.allergen.detail}
+              selectedAllergens={block.allergen.selectedAllergens}
+              locale={locale}
+            />
+          ) : null}
+          <RecipeBody
+            factors={block.factors ?? []}
+            yieldItems={block.yieldItems ?? []}
+            ingredients={(block.ingredients ?? []).map((ing) => ({
+              name: ing.name,
+              form: ing.form,
+              allergen: ing.allergen,
+              amounts: ing.amounts,
+            }))}
+            steps={steps}
+            batchLabel={t.batch}
+            yieldTitle={t.yieldTitle}
+            methodTitle={t.method}
+            stepsCount={t.steps(steps.length)}
+            cookMode={cookMode}
+          />
+        </>
+      )}
       <CookMode
         open={open}
         start={start}

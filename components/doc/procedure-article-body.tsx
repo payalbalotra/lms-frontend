@@ -136,26 +136,6 @@ export function ProcedureArticleBody({
   const quizExists = Boolean(quiz && quiz.questions.length > 0);
   const quizVisible = Boolean(quiz && (quiz.attached || proc.attachedToTraining));
   const showAttachBanner = isAdmin && quizExists && !quizVisible;
-
-  const factsItems = [
-      { icon: 'folder', label: labels.factCategory, value: categoryLabel },
-      {
-        icon: proc.status === 'published' ? 'check' : 'draft',
-        label: labels.factStatus,
-        value: proc.status === 'published' ? labels.published : labels.draft,
-        kind: (proc.status === 'published' ? 'ok' : 'default') as 'ok' | 'default',
-      },
-      { icon: 'clock', label: labels.factUpdated, value: updated },
-      { icon: 'languages', label: labels.factLanguages, value: languages || 'EN' },
-    ];
-
-  const docControlEntries = [
-      { label: labels.ctlReference, value: proc.slug },
-      { label: labels.ctlUpdated, value: updated },
-      { label: labels.ctlStatus, value: proc.status === 'published' ? labels.published : labels.draft },
-      { label: labels.ctlLanguages, value: languages || 'EN' },
-    ];
-
   return (
     <article className="doc">
       <DocBehaviour />
@@ -201,8 +181,6 @@ export function ProcedureArticleBody({
 
       {purpose ? <DocPurpose>{purpose}</DocPurpose> : null}
 
-      {isAdmin ? <Facts items={factsItems} /> : null}
-
       {englishOnly ? (
         <p className="doc-sec">
           <span className="pill pill-due">{labels.englishOnly}</span>
@@ -218,16 +196,48 @@ export function ProcedureArticleBody({
         const recipeBlocks = (rest ?? []).filter(
           (b): b is Extract<ProcedureBlock, { kind: 'recipe' }> => b.kind === 'recipe',
         );
-        return recipeBlocks.map((b) => (
-          <CookModeLauncher
-            key={b.id ?? 'recipe'}
-            block={b}
-            procedureId={proc.id}
-            procedureTitle={title || 'Recipe'}
-            locale={isEs ? 'es' : 'en'}
-            skipAllergen={Boolean(allergen && (hoisted?.id === b.id || !hoisted?.id))}
-          />
-        ));
+        if (recipeBlocks.length > 0) {
+          return recipeBlocks.map((b) => (
+            <CookModeLauncher
+              key={b.id ?? 'recipe'}
+              block={b}
+              procedureId={proc.id}
+              procedureTitle={title || 'Recipe'}
+              locale={isEs ? 'es' : 'en'}
+              skipAllergen={Boolean(allergen && (hoisted?.id === b.id || !hoisted?.id))}
+            />
+          ));
+        }
+
+        // Discrete blocks: ingredients + numbered steps (method)
+        const methodBlocks = (rest ?? []).filter(
+          (b): b is Extract<ProcedureBlock, { kind: 'method' }> => b.kind === 'method',
+        );
+        if (methodBlocks.length > 0) {
+          const ingBlock = (rest ?? []).find(
+            (b): b is Extract<ProcedureBlock, { kind: 'ingredients' }> => b.kind === 'ingredients',
+          );
+          const allSteps = methodBlocks.flatMap((b) => b.steps);
+          return (
+            <CookModeLauncher
+              key={`cook-steps-${proc.id}`}
+              block={{
+                id: `steps-${proc.id}`,
+                factors: ingBlock?.factors ?? [1],
+                yieldItems: ingBlock?.yieldItems ?? [],
+                ingredients: ingBlock?.ingredients ?? [],
+                steps: allSteps,
+                allergen: ingBlock?.allergen,
+              }}
+              procedureId={proc.id}
+              procedureTitle={title || 'Procedure'}
+              locale={isEs ? 'es' : 'en'}
+              modalOnly
+            />
+          );
+        }
+
+        return null;
       })()}
 
       <BlockRenderer
@@ -248,8 +258,6 @@ export function ProcedureArticleBody({
       {quiz && (quiz.attached || proc.attachedToTraining) ? (
         <QuizReader quiz={quiz} locale={isEs ? 'es' : 'en'} />
       ) : null}
-
-      {isAdmin ? <DocControl entries={docControlEntries} /> : null}
     </article>
   );
 }
