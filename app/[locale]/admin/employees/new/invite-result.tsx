@@ -25,10 +25,28 @@ export function InviteResultCard({
   const t = useTranslations('admin');
   const [copied, setCopied] = useState(false);
 
+  const displayUrl = React.useMemo(() => {
+    if (!invite?.url) return '';
+    try {
+      if (typeof window !== 'undefined') {
+        const isLocal =
+          window.location.hostname === 'localhost' ||
+          window.location.hostname === '127.0.0.1';
+        if (isLocal) {
+          const urlObj = new URL(invite.url);
+          return `${window.location.origin}${urlObj.pathname}${urlObj.search}`;
+        }
+      }
+    } catch {
+      // fallback
+    }
+    return invite.url;
+  }, [invite?.url]);
+
   async function copyUrl(): Promise<void> {
     try {
       if (typeof navigator !== 'undefined' && navigator.clipboard) {
-        await navigator.clipboard.writeText(invite.url);
+        await navigator.clipboard.writeText(displayUrl);
         setCopied(true);
         setTimeout(() => setCopied(false), 2500);
       }
@@ -38,8 +56,9 @@ export function InviteResultCard({
   }
 
   return (
-    <Card className="mx-auto max-w-lg shadow-e2 border border-[var(--color-line-2)] rounded-[var(--radius-xl)] overflow-hidden">
-      <div className="h-2 w-full bg-gradient-to-r from-[var(--color-brand)] via-[var(--color-brand-600)] to-[var(--color-brand-700)]" />
+    <div className="mx-auto max-w-[580px] w-full py-4">
+      <Card className="w-full shadow-e2 border border-[var(--color-line-2)] rounded-[var(--radius-xl)] overflow-hidden">
+        <div className="h-2 w-full bg-gradient-to-r from-[var(--color-brand)] via-[var(--color-brand-600)] to-[var(--color-brand-700)]" />
       <CardHeader className="text-center pt-8 pb-3 px-6 sm:px-8">
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-brand-tint)] text-[var(--color-brand-700)]">
           <LuMail className="h-7 w-7" />
@@ -70,7 +89,7 @@ export function InviteResultCard({
           </label>
           <div className="flex items-center gap-2">
             <code className="flex-1 break-all rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-panel)] px-3 py-2 text-xs font-mono text-[var(--color-ink)] select-all">
-              {invite.url}
+              {displayUrl}
             </code>
             <Button
               size="sm"
@@ -105,5 +124,6 @@ export function InviteResultCard({
         </div>
       </CardContent>
     </Card>
+    </div>
   );
 }

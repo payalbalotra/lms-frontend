@@ -7,13 +7,11 @@ import { useTranslations } from 'next-intl';
 import {
   deactivateEmployee,
   reactivateEmployee,
-  resendInvite,
 } from '@/services/employees/api';
-import { ApiException } from '@/lib/errors';
 import { RowActions, type RowActionItem } from '@/components/ui/row-actions';
-import { Button } from '@/components/ui/button';
-import type { AdminEmployee, InviteResult } from '@/lib/types';
+import type { AdminEmployee } from '@/lib/types';
 import { LuBan, LuPencil, LuRotateCw, LuSend } from 'react-icons/lu';
+import { ResendInviteModal } from './resend-invite-modal';
 
 interface EmployeeRowActionsProps {
   locale: string;
@@ -30,8 +28,7 @@ export function EmployeeRowActions({ locale, employee, onEdit }: EmployeeRowActi
   const t = useTranslations('admin');
   const router = useRouter();
   const [_pending, startTransition] = useTransition();
-  const [resendError, setResendError] = useState<string | null>(null);
-  const [lastInvite, setLastInvite] = useState<InviteResult | null>(null);
+  const [isResendOpen, setIsResendOpen] = useState(false);
 
   function refresh(): void {
     router.refresh();
@@ -49,18 +46,7 @@ export function EmployeeRowActions({ locale, employee, onEdit }: EmployeeRowActi
   }
 
   function onResend(): void {
-    setResendError(null);
-    setLastInvite(null);
-    startTransition(async () => {
-      try {
-        const { invite } = await resendInvite(employee.id);
-        setLastInvite(invite);
-        refresh();
-      } catch (err) {
-        if (err instanceof ApiException) setResendError(err.message);
-        else setResendError(t('errorGeneric'));
-      }
-    });
+    setIsResendOpen(true);
   }
 
   function onDeactivate(): void {
@@ -133,41 +119,19 @@ export function EmployeeRowActions({ locale, employee, onEdit }: EmployeeRowActi
   }
 
   return (
-    <div className="flex flex-col items-end gap-2">
+    <>
       <RowActions
         items={buildItems()}
         triggerLabel={`${t('rowActionsLabel')}: ${employee.name}`}
       />
-      {resendError ? (
-        <p role="alert" className="text-sm text-[var(--color-bad)]">
-          {resendError}
-        </p>
+      {employee.status === 'pending' ? (
+        <ResendInviteModal
+          open={isResendOpen}
+          onClose={() => setIsResendOpen(false)}
+          employee={employee}
+          locale={locale}
+        />
       ) : null}
-      {lastInvite ? (
-        <div className="rounded-md border border-[var(--color-line)] bg-[var(--color-panel)] p-3 text-sm text-[var(--color-ink)] max-w-xs shadow-sm">
-          <p className="mb-1 font-semibold text-[var(--color-ink)]">{t('inviteEmailSent')}</p>
-          <p className="mb-2 text-xs text-[var(--color-ink-2)]">{t('inviteUrlLabel')}</p>
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              readOnly
-              value={lastInvite.url}
-              className="flex-1 rounded border border-[var(--color-line-2)] bg-[var(--color-surface)] px-2 py-1 text-xs font-mono text-[var(--color-ink)] select-all truncate"
-            />
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => {
-                if (typeof navigator !== 'undefined' && navigator.clipboard) {
-                  void navigator.clipboard.writeText(lastInvite.url);
-                }
-              }}
-            >
-              {t('copyUrl')}
-            </Button>
-          </div>
-        </div>
-      ) : null}
-    </div>
+    </>
   );
 }

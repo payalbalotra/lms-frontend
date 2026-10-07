@@ -78,23 +78,60 @@ export async function fetchRoles(
 
 export async function fetchJobStations(
   jobIds: string[],
+  cookieHeader?: string,
 ): Promise<{ stations: Array<{ id: string; name: string }> }> {
   if (!jobIds.length) {
     return { stations: [] };
   }
 
-  const { jobs } = await fetchJobsWithStations();
-  const stationMap = new Map<string, { id: string; name: string }>();
-
-  for (const job of jobs) {
-    if (jobIds.includes(job.id)) {
-      for (const st of job.stations || []) {
-        stationMap.set(st.id, st);
-      }
+  const headers: Record<string, string> = {};
+  if (cookieHeader) {
+    headers['Cookie'] = cookieHeader;
+    const tokenMatch = cookieHeader.match(/(?:^|;\s*)lms_token=([^;]+)/);
+    if (tokenMatch) {
+      headers['Authorization'] = `Bearer ${decodeURIComponent(tokenMatch[1])}`;
     }
   }
 
-  return { stations: Array.from(stationMap.values()) };
+  try {
+    // 1. Send HTTP QUERY with body { jobIds } as per backend specification
+    const { data } = await http.request<{
+      success: boolean;
+      data: { stations: Array<{ id: string; name: string }> };
+    }>({
+      method: 'QUERY',
+      url: JOBS_ENDPOINTS.STATIONS,
+      data: { jobIds },
+      headers: Object.keys(headers).length ? headers : undefined,
+    });
+
+    return { stations: data.data?.stations ?? [] };
+  } catch {
+    try {
+      // 2. Fallback: GET with comma-separated query string ?jobIds=id1,id2
+      const { data } = await http.get<{
+        success: boolean;
+        data: { stations: Array<{ id: string; name: string }> };
+      }>(JOBS_ENDPOINTS.STATIONS, {
+        params: { jobIds: jobIds.join(','), _t: Date.now() },
+        headers: Object.keys(headers).length ? headers : undefined,
+      });
+
+      return { stations: data.data?.stations ?? [] };
+    } catch {
+      // 3. Fallback: POST with JSON body
+      const { data } = await http.post<{
+        success: boolean;
+        data: { stations: Array<{ id: string; name: string }> };
+      }>(
+        JOBS_ENDPOINTS.STATIONS,
+        { jobIds },
+        { headers: Object.keys(headers).length ? headers : undefined },
+      );
+
+      return { stations: data.data?.stations ?? [] };
+    }
+  }
 }
 
 export async function createJob(

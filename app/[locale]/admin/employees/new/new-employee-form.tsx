@@ -13,8 +13,7 @@ import { PageHeader } from '@/components/admin/page-header';
 import { LuUserPlus } from 'react-icons/lu';
 import { createEmployee } from '@/services/employees/api';
 import { fetchLocations } from '@/services/locations/api';
-import { fetchRoles, fetchJobStations, fetchJobsWithStations } from '@/services/jobs/api';
-import type { JobWithStations } from '@/services/jobs/types';
+import { fetchJobs, fetchRoles, fetchJobStations } from '@/services/jobs/api';
 import { fetchStations } from '@/services/stations/api';
 import { ApiException } from '@/lib/api';
 import type {
@@ -69,7 +68,6 @@ export function NewEmployeeForm({
   const validInitialLocations = initialLocations.filter((l) => l.id !== 'loc-main');
   const [locations, setLocations] = useState<Location[]>(validInitialLocations);
   const [roles, setRoles] = useState<Role[]>(initialRoles);
-  const [jobsWithStations, setJobsWithStations] = useState<JobWithStations[]>([]);
 
   const defaultLocationId = validInitialLocations[0]?.id ?? '';
   const [form, setForm] = useState<FormState>(initialState(defaultLocationId));
@@ -113,39 +111,31 @@ export function NewEmployeeForm({
   }
 
   // Handle access level toggle:
-  // When Employee is selected: fetch jobs and their stations; keep selections empty until user selects role
-  // When Manager is selected: fetch jobs and their stations; preselect all jobs and all stations
+  // When Employee is selected: fetch jobs from jobs API; keep selections empty until user selects role
+  // When Manager is selected: fetch jobs and send all jobs to get all stations; preselect all jobs and all stations
   async function setAccessLevel(next: AccessLevel | ''): Promise<void> {
     if (next === 'manager') {
       try {
-        const { jobs } = await fetchJobsWithStations();
-        setJobsWithStations(jobs);
-
-        const currentRoles: Role[] = jobs.map((j) => ({
+        const { jobs: fetchedJobs } = await fetchJobs();
+        const currentRoles: Role[] = fetchedJobs.map((j) => ({
           id: j.id,
           name: j.name,
           clearanceLevel: 'general',
-          stationIds: j.stations.map((s) => s.id),
+          stationIds: [],
           createdAt: j.createdAt || new Date().toISOString(),
         }));
-
-        const stationMap = new Map<string, Station>();
-        jobs.forEach((j) => {
-          (j.stations || []).forEach((s, idx) => {
-            if (!stationMap.has(s.id)) {
-              stationMap.set(s.id, {
-                id: s.id,
-                name: s.name,
-                locationId: form.locationId,
-                sortOrder: idx + 1,
-                isArchived: false,
-              });
-            }
-          });
-        });
-        const uniqueStations = Array.from(stationMap.values());
-
         setRoles(currentRoles);
+
+        const allJobIds = fetchedJobs.map((j) => j.id);
+        const { stations: fetchedStations } = await fetchJobStations(allJobIds);
+        const uniqueStations: Station[] = fetchedStations.map((s, idx) => ({
+          id: s.id,
+          name: s.name,
+          locationId: form.locationId,
+          sortOrder: idx + 1,
+          isArchived: false,
+        }));
+
         setAllStations(uniqueStations);
         setAvailableStations(uniqueStations);
 
@@ -156,7 +146,8 @@ export function NewEmployeeForm({
           roleIds: currentRoles.map((r) => r.id),
           stationIds: uniqueStations.map((s) => s.id),
         }));
-      } catch {
+      } catch (err) {
+        console.error('Failed to configure manager access:', err);
         setAvailableStations(allStations);
         setForm((f) => ({
           ...f,
@@ -170,19 +161,17 @@ export function NewEmployeeForm({
 
     if (next === 'employee') {
       try {
-        const { jobs } = await fetchJobsWithStations();
-        setJobsWithStations(jobs);
-
-        const currentRoles: Role[] = jobs.map((j) => ({
+        const { jobs: fetchedJobs } = await fetchJobs();
+        const currentRoles: Role[] = fetchedJobs.map((j) => ({
           id: j.id,
           name: j.name,
           clearanceLevel: 'general',
-          stationIds: j.stations.map((s) => s.id),
+          stationIds: [],
           createdAt: j.createdAt || new Date().toISOString(),
         }));
         setRoles(currentRoles);
-      } catch {
-        // keep fallback
+      } catch (err) {
+        console.error('Failed to fetch jobs for employee:', err);
       }
 
       setAvailableStations([]);
@@ -206,8 +195,8 @@ export function NewEmployeeForm({
   }
 
   // Handle role selection change:
-  // When a role is selected/removed, update available stations to only those of remaining roles.
-  // Automatically remove any stations that belonged to the removed job role.
+  // When a role is selected/removed, call /api/v1/jobs/stations for the selected jobs.
+  // If jobs are cancelled, remove stations per their job.
   async function handleRoleIdsChange(nextRoleIds: string[]): Promise<void> {
     if (nextRoleIds.length === 0) {
       setAvailableStations([]);
@@ -219,69 +208,38 @@ export function NewEmployeeForm({
       return;
     }
 
-    // Recompute stations belonging to nextRoleIds
-    const activeStationMap = new Map<string, Station>();
-    jobsWithStations.forEach((j) => {
-      if (nextRoleIds.includes(j.id)) {
-        (j.stations || []).forEach((s, idx) => {
-          if (!activeStationMap.has(s.id)) {
-            activeStationMap.set(s.id, {
-              id: s.id,
-              name: s.name,
-              locationId: form.locationId,
-              sortOrder: idx + 1,
-              isArchived: false,
-            });
-          }
-        });
-      }
-    });
+    try {
+      const { stations: fetchedStations } = await fetchJobStations(nextRoleIds);
+      const newAvailableStations: Station[] = fetchedStations.map((s, idx) => ({
+        id: s.id,
+        name: s.name,
+        locationId: form.locationId,
+        sortOrder: idx + 1,
+        isArchived: false,
+      }));
 
-    const newAvailableStations = Array.from(activeStationMap.values());
-    setAvailableStations(newAvailableStations);
-    setForm((f) => ({
-      ...f,
-      roleIds: nextRoleIds,
-      // Automatically remove any stations that belonged to the removed job role
-      stationIds: f.stationIds.filter((id) => activeStationMap.has(id)),
-    }));
+      const availableStationIdSet = new Set(newAvailableStations.map((s) => s.id));
+
+      setAvailableStations(newAvailableStations);
+      setForm((f) => ({
+        ...f,
+        roleIds: nextRoleIds,
+        // Automatically remove any stations that belonged to the cancelled/deselected job
+        stationIds: f.stationIds.filter((id) => availableStationIdSet.has(id)),
+      }));
+    } catch (err) {
+      console.error('Failed to fetch stations for selected jobs:', err);
+      setForm((f) => ({
+        ...f,
+        roleIds: nextRoleIds,
+      }));
+    }
   }
 
-  // Handle station selection change:
-  // If the admin removes all stations belonging to a job role, that job role is automatically removed.
   function handleStationIdsChange(nextStationIds: string[]): void {
-    // If a job role has stations and all of them are deselected, remove that job role
-    const remainingRoleIds = form.roleIds.filter((roleId) => {
-      const job = jobsWithStations.find((j) => j.id === roleId);
-      if (job && job.stations && job.stations.length > 0) {
-        return job.stations.some((st) => nextStationIds.includes(st.id));
-      }
-      return true;
-    });
-
-    // Recompute available stations based on remaining job roles
-    const activeStationMap = new Map<string, Station>();
-    jobsWithStations.forEach((j) => {
-      if (remainingRoleIds.includes(j.id)) {
-        (j.stations || []).forEach((s, idx) => {
-          if (!activeStationMap.has(s.id)) {
-            activeStationMap.set(s.id, {
-              id: s.id,
-              name: s.name,
-              locationId: form.locationId,
-              sortOrder: idx + 1,
-              isArchived: false,
-            });
-          }
-        });
-      }
-    });
-
-    setAvailableStations(Array.from(activeStationMap.values()));
     setForm((f) => ({
       ...f,
-      roleIds: remainingRoleIds,
-      stationIds: nextStationIds.filter((id) => activeStationMap.has(id)),
+      stationIds: nextStationIds,
     }));
   }
 
@@ -364,7 +322,7 @@ export function NewEmployeeForm({
     form.roleIds.length > 0;
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6">
+    <div className="mx-auto max-w-[760px] w-full space-y-6">
       <PageHeader
         title={t('newHeading')}
         subtitle={t('newDescription')}

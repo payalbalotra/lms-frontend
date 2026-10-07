@@ -7,9 +7,12 @@ import axios, {
 import { ApiException } from './errors';
 
 const baseURL =
-  process.env.NEXT_PUBLIC_API_BASE ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  'http://localhost:8000';
+  typeof window !== 'undefined'
+    ? '' // In browser, use same-origin relative URLs to proxy through Next.js rewrites (zero CORS)
+    : process.env.BACKEND_API_URL ||
+      process.env.NEXT_PUBLIC_API_BASE ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      'http://192.168.0.153:8000';
 
 export const http: AxiosInstance = axios.create({
   baseURL,
@@ -27,11 +30,13 @@ http.interceptors.request.use(
     config.headers.set('x-request-id', crypto.randomUUID());
 
     if (typeof window !== 'undefined') {
-      const isActivation =
-        config.url?.includes('set-password') ||
-        config.url?.includes('invites');
-      const token = localStorage.getItem('token');
-      if (token && !isActivation) {
+      const isPublicActivation =
+        config.url?.includes('/auth/set-password') ||
+        config.url?.includes('/auth/invites');
+      const token =
+        localStorage.getItem('token') ||
+        (document.cookie.match(/(?:^|;\s*)lms_token=([^;]+)/)?.[1]);
+      if (token && !isPublicActivation) {
         config.headers.set('Authorization', `Bearer ${token}`);
       }
     }
