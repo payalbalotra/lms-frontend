@@ -1,30 +1,27 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { fetchEmployees } from './api';
-import type { AdminEmployee, EmployeeFilterOptions } from './types';
+import type { EmployeeFilterOptions } from './types';
 
+export const EMPLOYEES_QUERY_KEY = ['employees'] as const;
+
+/**
+ * Employees list through TanStack Query (5 min staleTime, no refetch on
+ * focus — provider defaults). Previously a hand-rolled useState+useEffect
+ * loader with no dedup or TTL, so every mount paid a backend round-trip.
+ */
 export function useEmployees(options: EmployeeFilterOptions = {}) {
-  const [employees, setEmployees] = useState<AdminEmployee[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const status = options.status ?? 'all';
+  const query = useQuery({
+    queryKey: [...EMPLOYEES_QUERY_KEY, { status }],
+    queryFn: () => fetchEmployees({ status }).then((r) => r.employees),
+  });
 
-  const load = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const res = await fetchEmployees(options);
-      setEmployees(res.employees);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch employees'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [options.status]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  return { employees, isLoading, error, refetch: load };
+  return {
+    employees: query.data ?? [],
+    isLoading: query.isLoading,
+    error: query.error instanceof Error ? query.error : query.error ? new Error('Failed to fetch employees') : null,
+    refetch: () => void query.refetch(),
+  };
 }

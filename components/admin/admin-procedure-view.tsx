@@ -14,7 +14,7 @@ import {
   LuPencil,
   LuTrash2,
 } from 'react-icons/lu';
-import { ApiException, deleteProcedure, fetchQuizById, getQuizById, setProcedureState, updateQuiz } from '@/lib/api';
+import { ApiException, canPublishProcedure, deleteProcedure, fetchQuizById, getQuizById, setProcedureState, updateQuiz } from '@/lib/api';
 import type { Employee, Procedure, ProcedureStatus } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { RowActions, type RowActionItem } from '@/components/ui/row-actions';
@@ -109,18 +109,23 @@ export function AdminProcedureView({
 
   // The kebab's three items follow the same shape as the explorer's row
   // kebab, so the manager learns one menu and meets it twice.
+  const publishable = canPublishProcedure(proc);
   const actionItems = React.useMemo<RowActionItem[]>(() => {
     const items: (RowActionItem | null)[] = [
       // 1. Status toggle: hidden while archived — restore first, status flips
-      //    after. Same ordering as the list-row kebab.
+      //    after. Same ordering as the list-row kebab. Publish is offered
+      //    only for procedures with stations (or General ones); the guard in
+      //    setProcedureState backs this up for direct callers.
       proc.isArchived
         ? null
         : proc.status === 'draft'
-          ? {
-              label: t('actionsPublish'),
-              icon: LuCircleCheck,
-              onSelect: () => void transition({ status: 'published' }),
-            }
+          ? publishable
+            ? {
+                label: t('actionsPublish'),
+                icon: LuCircleCheck,
+                onSelect: () => void transition({ status: 'published' }),
+              }
+            : null
           : {
               label: t('actionsMoveToDraft'),
               icon: LuCircleDashed,
@@ -162,7 +167,7 @@ export function AdminProcedureView({
       },
     ];
     return items.filter((item): item is RowActionItem => item !== null);
-  }, [proc, t, transition, handleDelete]);
+  }, [proc, t, publishable, transition, handleDelete]);
 
   // The cook-mode CTA in the top chrome bar belongs to the page's first
   // recipe block. We compute it from the loaded `proc` so a freshly-edited
@@ -221,6 +226,15 @@ export function AdminProcedureView({
           className="rounded-md border border-[var(--color-line)] bg-[var(--color-bad-tint)] px-4 py-2 text-sm font-semibold text-[var(--color-bad)]"
         >
           {error}
+        </p>
+      ) : null}
+
+      {/* Why Publish is missing from the kebab: drafts without stations that
+          aren't General can't go live. Shown instead of silence so the
+          manager knows what to fix (assign a station in the editor). */}
+      {!proc.isArchived && proc.status === 'draft' && !publishable ? (
+        <p className="rounded-md border border-[var(--color-line)] bg-[var(--color-panel)] px-4 py-2 text-sm text-[var(--color-ink-2)]">
+          {t('publishBlocked')}
         </p>
       ) : null}
 

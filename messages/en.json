@@ -338,6 +338,12 @@
     "navStations": "Stations",
     "navRoles": "Roles",
     "navLocations": "Locations",
+    "notFound": {
+      "eyebrow": "Admin",
+      "title": "We couldn't find that page",
+      "body": "It may have been deleted, or the link is from an older version.",
+      "back": "Back to dashboard"
+    },
     "library": {
       "editor": {
         "addPurpose": "Add a one-line purpose",
@@ -1047,7 +1053,8 @@
         "errorLoad": "This procedure isn't available.",
         "statusDraft": "Draft",
         "statusPublished": "Published",
-        "statusArchived": "Archived"
+        "statusArchived": "Archived",
+        "publishBlocked": "Publishing needs stations — assign at least one station, or keep the procedure General."
       }
     },
     "shell": {

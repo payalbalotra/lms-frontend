@@ -1813,10 +1813,11 @@ export async function fetchMe(
 
   const mePromise = (async () => {
     try {
-      const headers: Record<string, string> = {
-        'Cache-Control': 'no-cache, no-store',
-        Pragma: 'no-cache',
-      };
+      // No `Cache-Control: no-cache` / `_t` buster here: freshness is owned
+      // by the 10s in-memory TTL + in-flight dedup below. Busters force a
+      // full backend round-trip on every call and defeat the rewrite proxy
+      // cache for an idempotent session check.
+      const headers: Record<string, string> = {};
 
       if (cookieHeader) {
         headers['Cookie'] = cookieHeader;
@@ -1834,8 +1835,7 @@ export async function fetchMe(
           role?: string;
         };
       }>(AUTH_ENDPOINTS.ME, {
-        headers,
-        params: { _t: Date.now() },
+        headers: Object.keys(headers).length ? headers : undefined,
         signal: _signal,
       });
 
@@ -2373,7 +2373,13 @@ async function loadProceduresList(
 
   try {
     const { fetchProcedures } = await import('@/services/library/api');
-    const apiRes = await fetchProcedures({ status: filter.status }, false, cookieHeader);
+    // The procedure rows and the viewer resolve together: canRead filtering
+    // is local, so awaiting fetchMe after fetchProcedures wastes a full
+    // backend round-trip on every procedure list.
+    const [apiRes, { employee: viewer }] = await Promise.all([
+      fetchProcedures({ status: filter.status }, false, cookieHeader),
+      fetchMe(cookieHeader),
+    ]);
     const dbProcs = apiRes.procedures || [];
 
     const localStore = getProceduresStore();
@@ -2399,7 +2405,6 @@ async function loadProceduresList(
       mockProcedures = [...combined, ...others];
       setStored('procedures_v2', mockProcedures);
     }
-    const { employee: viewer } = await fetchMe(cookieHeader);
     const visible = combined.filter((p) => canRead(p, viewer));
     const filtered = filter.status ? visible.filter((p) => p.status === filter.status) : visible;
     return filtered;
@@ -2433,13 +2438,83 @@ export async function getProcedureById(id: string): Promise<{ procedure: Procedu
   return { procedure: found };
 }
 
+/** Publishing rule: a procedure may go live only when it knows where it
+ *  belongs — explicitly scoped to ≥1 station (specific scope or a direct
+ *  stationId), or General (no category and no subcategory: kitchen-wide by
+ *  definition). A categorized procedure with no station assignment stays a
+ *  draft until someone places it. */
+export function canPublishProcedure(p: Procedure): boolean {
+  if (!p.category && !p.subcategoryId) return true;
+  const scope = p.stationScope;
+  if (scope && scope.mode === 'specific') return scope.stationIds.length > 0;
+  const stationId = (p as { stationId?: string | null }).stationId;
+  return Boolean(stationId);
+}
+
+/** A 404 with Express' default HTML body (no API envelope, so code stays
+ *  'UNKNOWN') or a 405 means the route itself doesn't exist yet — as opposed
+ *  to a real 404/400 the API returns with its own `code`. Used to fall back
+ *  to the local store only while a backend route is still landing. */
+function isRouteMissing(err: unknown): boolean {
+  if (!(err instanceof ApiException)) return false;
+  return err.status === 405 || (err.status === 404 && err.code === 'UNKNOWN');
+}
+
 /** Move a procedure through its states: draft -> published -> archived, and
- *  back. Mock: rewrites the local store. Publishing bumps the version, which
- *  the printed QR code points at. */
+ *  back. Publishing bumps the version, which the printed QR code points at.
+ *
+ *  Real APIs first, mock fallback while they land:
+ *  - publish guard runs before anything: unplaced procedures stay drafts.
+ *  - `isArchived` goes to the dedicated archive/unarchive routes (exist).
+ *  - `status` goes to PATCH /:id (lands later — see `patchProcedure`).
+ *  A 404-without-body or 405 means "route not here yet" and falls back to
+ *  the local store; real failures (400 validation, 401/403, row-not-found)
+ *  propagate so the UI can show them. */
 export async function setProcedureState(
   id: string,
   change: { status?: Procedure['status']; isArchived?: boolean },
 ): Promise<Procedure> {
+  if (change.status === 'published') {
+    const existing = getProceduresStore().find((p) => p.id === id || p.slug === id);
+    if (existing && !canPublishProcedure(existing)) {
+      throw new ApiException(
+        400,
+        'PUBLISH_BLOCKED',
+        'Only procedures with stations, or General procedures, can be published',
+      );
+    }
+  }
+
+  if (change.isArchived !== undefined) {
+    try {
+      const { archiveProcedure, unarchiveProcedure } = await import('@/services/library/api');
+      const updated = change.isArchived
+        ? await archiveProcedure(id)
+        : await unarchiveProcedure(id);
+      mockProcedures = getProceduresStore().map((p) =>
+        p.id === id || p.slug === id ? { ...updated, id: p.id } : p,
+      );
+      setStored('procedures_v2', mockProcedures);
+      clearLibraryListCache();
+      return { ...updated, id };
+    } catch (err) {
+      if (!isRouteMissing(err)) throw err;
+    }
+  } else if (change.status !== undefined) {
+    try {
+      const { patchProcedure } = await import('@/services/library/api');
+      const updated = await patchProcedure(id, { status: change.status });
+      mockProcedures = getProceduresStore().map((p) =>
+        p.id === id || p.slug === id ? { ...updated, id: p.id } : p,
+      );
+      setStored('procedures_v2', mockProcedures);
+      clearLibraryListCache();
+      return { ...updated, id };
+    } catch (err) {
+      if (!isRouteMissing(err)) throw err;
+    }
+  }
+
   const now = new Date().toISOString();
   mockProcedures = getProceduresStore().map((p) =>
     p.id === id

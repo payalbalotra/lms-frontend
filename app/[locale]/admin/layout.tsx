@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { setRequestLocale } from 'next-intl/server';
 import { fetchMe, ApiException, listLocations, logout } from '@/lib/api';
+import type { Employee } from '@/lib/types';
 import { AdminShell } from './admin-shell';
 
 /**
@@ -36,10 +37,23 @@ export default async function AdminLayout({ children, params }: AdminLayoutProps
     .map((c) => `${c.name}=${c.value}`)
     .join('; ');
 
-  let employee;
+  let employee: Employee;
+  let workspace = '';
   try {
-    const me = await fetchMe(cookieHeader);
-    employee = me.employee;
+    // Auth + workspace resolve together: the locations list does not depend
+    // on the /auth/me result (the location match happens locally below),
+    // so awaiting them one after the other wastes a full backend round-trip
+    // (~2s) on every /admin navigation.
+    const [meRes, locRes] = await Promise.allSettled([
+      fetchMe(cookieHeader),
+      listLocations(cookieHeader),
+    ]);
+    if (meRes.status === 'rejected') throw meRes.reason;
+    employee = meRes.value.employee;
+    if (locRes.status === 'fulfilled') {
+      const { locations } = locRes.value;
+      workspace = (locations.find((l) => l.id === employee.locationId) ?? locations[0])?.name ?? '';
+    }
   } catch (err) {
     if (!(err instanceof ApiException) || err.code !== 'SESSION_INVALID') {
       // Transient / unknown error — don't bounce the user to /login.
@@ -47,16 +61,6 @@ export default async function AdminLayout({ children, params }: AdminLayoutProps
       return <AuthGateError />;
     }
     redirect(`/${locale}/login`);
-  }
-
-  // The workspace name for the sidebar. A failure here is not worth blocking the
-  // admin area for: the sidebar then shows only the section name.
-  let workspace = '';
-  try {
-    const { locations } = await listLocations(cookieHeader);
-    workspace = (locations.find((l) => l.id === employee.locationId) ?? locations[0])?.name ?? '';
-  } catch {
-    workspace = '';
   }
 
   async function signOut(): Promise<void> {

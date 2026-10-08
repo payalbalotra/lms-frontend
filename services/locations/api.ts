@@ -20,7 +20,8 @@ export async function fetchLocations(
     data: { locations: Location[] };
   }>(LOCATIONS_ENDPOINTS.LIST, {
     headers: Object.keys(headers).length ? headers : undefined,
-    params: { _t: Date.now() },
+    // Backend paginates (default 10) — locations fit one page.
+    params: { limit: 200 },
   });
 
   return { locations: data.data?.locations ?? [] };

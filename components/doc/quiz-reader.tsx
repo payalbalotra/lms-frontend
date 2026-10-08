@@ -132,7 +132,7 @@ export function QuizReader({ quiz, locale }: QuizReaderProps): React.ReactElemen
                           stateStyle =
                             'border-2 border-[var(--ok)] bg-[var(--ok-tint)] text-[var(--ink)]';
                           badge = (
-                            <span className="inline-flex items-center gap-1 rounded-[var(--radius-sm)] bg-[var(--ok)]/15 px-2.5 py-1 text-xs font-semibold text-[var(--ok)]">
+                            <span className="inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] bg-[var(--ok)]/15 px-3 py-1.5 text-xs font-semibold text-[var(--ok)]">
                               <LuCheck className="size-3.5 stroke-[3]" aria-hidden="true" />
                               {correctLabel}
                             </span>
@@ -141,7 +141,7 @@ export function QuizReader({ quiz, locale }: QuizReaderProps): React.ReactElemen
                           stateStyle =
                             'border-2 border-[var(--bad)] bg-[var(--bad-tint)] text-[var(--ink)]';
                           badge = (
-                            <span className="inline-flex items-center gap-1 rounded-[var(--radius-sm)] bg-[var(--bad)]/15 px-2.5 py-1 text-xs font-semibold text-[var(--bad)]">
+                            <span className="inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] bg-[var(--bad)]/15 px-3 py-1.5 text-xs font-semibold text-[var(--bad)]">
                               <LuX className="size-3.5 stroke-[3]" aria-hidden="true" />
                               {incorrectLabel}
                             </span>

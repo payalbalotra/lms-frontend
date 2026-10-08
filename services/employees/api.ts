@@ -51,7 +51,9 @@ export async function fetchEmployees(
     headers: Object.keys(headers).length ? headers : undefined,
     params: {
       status: status !== 'all' ? status : undefined,
-      _t: Date.now(),
+      // Backend paginates (default 10) — ask for the whole roster: the
+      // dashboard counts and People filters need every row to be correct.
+      limit: 200,
     },
   });
 

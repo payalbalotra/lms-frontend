@@ -65,3 +65,85 @@ export async function archiveCategory(id: string): Promise<Category> {
   const { category } = await mockArchiveCategory(id);
   return category;
 }
+
+// ---------------------------------------------------------------------------
+// Backend-backed reads (GET /api/v1/categories — any logged-in employee).
+// The mock store above holds demo/seed rows only; real categories live in
+// the backend since the pagination update. These mappers translate the
+// backend shape (no slug, no embedded subcategories) to the frontend
+// Category used by the explorer's filters and counts.
+// ---------------------------------------------------------------------------
+
+const CATEGORIES_ENDPOINTS = {
+  LIST: '/api/v1/categories',
+} as const;
+
+/** Backend categories carry no slug — derive it the same way the mock
+ *  creator does so backend and mock rows share one stable handle space. */
+export function backendSlug(nameEn: string): string {
+  return (nameEn || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function makeBackendHeaders(cookieHeader?: string): Record<string, string> {
+  const headers: Record<string, string> = {};
+  if (cookieHeader) {
+    headers['Cookie'] = cookieHeader;
+    const tokenMatch = cookieHeader.match(/(?:^|;\s*)lms_token=([^;]+)/);
+    if (tokenMatch) {
+      headers['Authorization'] = `Bearer ${decodeURIComponent(tokenMatch[1])}`;
+    }
+  }
+  return headers;
+}
+
+export interface BackendCategoryOptions {
+  search?: string;
+  page?: number;
+  /** Backend defaults to 10 — pass explicitly so the list never truncates. */
+  limit?: number;
+}
+
+export async function fetchBackendCategories(
+  options: BackendCategoryOptions = {},
+  cookieHeader?: string,
+): Promise<Category[]> {
+  const headers = makeBackendHeaders(cookieHeader);
+  const { default: http } = await import('@/lib/http');
+  const { data } = await http.get<{
+    success: boolean;
+    data: {
+      categories: Array<{
+        id: string;
+        nameEn: string;
+        nameEs: string;
+        categoryType: string;
+        categoryIcon: string;
+      }>;
+      meta?: { total: number };
+    };
+  }>(CATEGORIES_ENDPOINTS.LIST, {
+    headers: Object.keys(headers).length ? headers : undefined,
+    params: {
+      search: options.search || undefined,
+      page: options.page ?? 1,
+      limit: options.limit ?? 100,
+    },
+  });
+
+  const rawList = Array.isArray(data.data?.categories) ? data.data.categories : [];
+  return rawList.map(
+    (c): Category => ({
+      id: c.id,
+      slug: backendSlug(c.nameEn),
+      nameEn: c.nameEn,
+      nameEs: c.nameEs,
+      icon: c.categoryIcon || undefined,
+      isArchived: false,
+      kind: 'general',
+      subcategories: [],
+    }),
+  );
+}

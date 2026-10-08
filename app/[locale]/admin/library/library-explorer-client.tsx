@@ -2,40 +2,42 @@
 
 import * as React from 'react';
 import { useLocations } from '@/services/locations/hooks';
-import { useCategories } from '@/services/categories/hooks';
+import { useCategories, useBackendCategories } from '@/services/categories/hooks';
 import { useStations } from '@/services/stations/hooks';
 import { useBrowseProcedures } from '@/services/library/hooks';
 import { LibraryProcedureExplorer } from '@/components/admin/library-procedure-explorer';
-import { LibraryExplorerSkeleton } from '@/components/admin/library-explorer-skeleton';
 
 /**
  * Client data layer for the admin library explorer.
  *
- * The page renders its header instantly; the explorer's categories,
- * stations and procedures resolve through TanStack Query — cached for
- * 5 minutes, so navigating out and back in is instant with no skeleton
- * at all. Only the first-ever visit (or an invalidated cache) shows
- * the skeleton.
+ * Progressive paint: the header (page) is already instant, and the explorer
+ * renders its filter bar as soon as the component mounts — only the rows
+ * skeletonize while the procedures query resolves. Nothing waits for every
+ * query before painting; each dataset lands when it lands (React Query
+ * cache makes repeat visits fully instant with no skeleton at all).
  */
 export function LibraryExplorerClient({ locale }: { locale: string }): React.ReactElement {
   const locationsQuery = useLocations();
   const locationId = locationsQuery.data?.locations?.[0]?.id;
   const categoriesQuery = useCategories(locationId);
+  const backendCategoriesQuery = useBackendCategories();
   const stationsQuery = useStations({ locationId });
   const proceduresQuery = useBrowseProcedures();
 
-  const isLoading = proceduresQuery.isLoading || categoriesQuery.isLoading;
-
-  if (isLoading) {
-    return <LibraryExplorerSkeleton />;
-  }
+  // Backend rows first (real data wins on slug clashes), mock store rows
+  // after for demo/seed content. The explorer dedupes by slug.
+  const categories = React.useMemo(
+    () => [...(backendCategoriesQuery.data ?? []), ...(categoriesQuery.data ?? [])],
+    [backendCategoriesQuery.data, categoriesQuery.data],
+  );
 
   return (
     <LibraryProcedureExplorer
       procedures={proceduresQuery.data ?? []}
-      categories={categoriesQuery.data ?? []}
+      categories={categories}
       stations={stationsQuery.data ?? []}
       locale={locale}
+      proceduresLoading={proceduresQuery.isLoading}
     />
   );
 }

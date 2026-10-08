@@ -65,9 +65,11 @@ export default async function AdminHomePage({ params }: PageProps): Promise<Reac
   let stations: Station[] = [];
 
   try {
-    const me = await fetchMe(cookieHeader);
+    // Auth + workspace resolve together: listLocations does not depend on
+    // the /auth/me result (the match is local below), so running them in
+    // parallel saves one full backend round-trip before first paint.
+    const [me, { locations }] = await Promise.all([fetchMe(cookieHeader), listLocations(cookieHeader)]);
     meId = me.employee.id;
-    const { locations } = await listLocations(cookieHeader);
     const location = locations.find((l) => l.id === me.employee.locationId) ?? locations[0];
     const locationId = location?.id ?? me.employee.locationId;
     [{ employees }, { procedures }, { roles }, { stations }] = await Promise.all([

@@ -1,55 +1,40 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { fetchJobs, fetchRoles } from './api';
-import type { Job, Role } from './types';
 
+export const JOBS_QUERY_KEY = ['jobs'] as const;
+export const ROLES_QUERY_KEY = ['roles'] as const;
+
+/**
+ * Jobs / roles through TanStack Query (5 min staleTime, no refetch on
+ * focus — provider defaults). Previously hand-rolled useState+useEffect
+ * loaders with no dedup or TTL, so every mount paid a backend round-trip.
+ */
 export function useJobs() {
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const query = useQuery({
+    queryKey: JOBS_QUERY_KEY,
+    queryFn: () => fetchJobs().then((r) => r.jobs),
+  });
 
-  const load = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const res = await fetchJobs();
-      setJobs(res.jobs);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch jobs'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  return { jobs, isLoading, error, refetch: load };
+  return {
+    jobs: query.data ?? [],
+    isLoading: query.isLoading,
+    error: query.error instanceof Error ? query.error : query.error ? new Error('Failed to fetch jobs') : null,
+    refetch: () => void query.refetch(),
+  };
 }
 
 export function useRoles() {
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const query = useQuery({
+    queryKey: ROLES_QUERY_KEY,
+    queryFn: () => fetchRoles().then((r) => r.roles),
+  });
 
-  const load = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const res = await fetchRoles();
-      setRoles(res.roles);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch roles'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  return { roles, isLoading, error, refetch: load };
+  return {
+    roles: query.data ?? [],
+    isLoading: query.isLoading,
+    error: query.error instanceof Error ? query.error : query.error ? new Error('Failed to fetch roles') : null,
+    refetch: () => void query.refetch(),
+  };
 }

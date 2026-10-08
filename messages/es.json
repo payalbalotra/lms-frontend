@@ -338,6 +338,12 @@
     "navStations": "Estaciones",
     "navRoles": "Roles",
     "navLocations": "Ubicaciones",
+    "notFound": {
+      "eyebrow": "Administración",
+      "title": "No encontramos esa página",
+      "body": "Puede que se haya eliminado o que el enlace sea de una versión anterior.",
+      "back": "Volver al panel"
+    },
     "library": {
       "editor": {
         "addPurpose": "Añadir un propósito de una línea",
@@ -1047,7 +1053,8 @@
         "errorLoad": "Este procedimiento no está disponible.",
         "statusDraft": "Borrador",
         "statusPublished": "Publicado",
-        "statusArchived": "Archivado"
+        "statusArchived": "Archivado",
+        "publishBlocked": "Para publicar se necesitan estaciones: asigna al menos una estación o mantén el procedimiento como General."
       }
     },
     "shell": {

@@ -45,7 +45,8 @@ export async function fetchStations(
         data: { stations: Array<{ id: string; name: string }> };
       }>(STATIONS_ENDPOINTS.LIST, {
         headers: Object.keys(headers).length ? headers : undefined,
-        params: { _t: Date.now() },
+        // Backend paginates (default 10) — stations per location fit one page.
+        params: { limit: 200 },
       });
 
       const rawStations = data.data?.stations ?? [];
