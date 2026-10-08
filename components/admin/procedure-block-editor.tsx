@@ -45,6 +45,7 @@ import {
   requestVideoUpload,
   requestDocumentUpload,
   uploadToR2,
+  uploadMedia,
   deleteUpload,
 } from '@/lib/api';
 import { classifyVideoUrl } from '@/lib/procedure-media';
@@ -323,13 +324,8 @@ function StepRow({
     }
     setUpload({ state: 'uploading', fileName: file.name });
     try {
-      const presigned = await requestVideoUpload({
-        filename: file.name,
-        contentType: file.type,
-        size: file.size,
-      });
-      await uploadToR2(presigned.uploadUrl, file, file.type);
-      patchSegment({ src: presigned.publicUrl });
+      const src = await uploadMedia(file, 'video');
+      patchSegment({ src });
       setUpload({ state: 'idle' });
     } catch (err) {
       const message = err instanceof Error ? err.message : tComp('video.uploadFailed');
@@ -1356,12 +1352,13 @@ function ImageEditor({
 
     setUpload({ state: 'uploading', fileName: file.name });
     try {
-      const presigned = await requestImageUpload({
-        filename: file.name,
-        contentType: file.type,
-        size: file.size,
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error('Failed to read image file'));
+        reader.readAsDataURL(file);
       });
-      await uploadToR2(presigned.uploadUrl, file, file.type);
+      let finalSrc = (await uploadMedia(file, 'image')) || dataUrl;
       // Backfill alt from the filename so the block survives buildGenericBody's
       // isBlockEmpty filter (image blocks with empty alt + caption are dropped
       // before save). Only fills the empty side — anything the user already
@@ -1371,7 +1368,7 @@ function ImageEditor({
       const currentEs = block.alt?.es?.trim() ?? '';
       onChange({
         ...block,
-        src: presigned.publicUrl,
+        src: finalSrc,
         alt: {
           en: currentEn || filenameNoExt,
           es: currentEs || filenameNoExt,
@@ -1599,14 +1596,9 @@ function VideoEditor({
 
     setUpload({ state: 'uploading', fileName: file.name });
     try {
-      const presigned = await requestVideoUpload({
-        filename: file.name,
-        contentType: file.type,
-        size: file.size,
-      });
-      await uploadToR2(presigned.uploadUrl, file, file.type);
+      const src = await uploadMedia(file, 'video');
       setSource('upload');
-      onChange({ ...block, src: presigned.publicUrl });
+      onChange({ ...block, src });
       setUpload({ state: 'idle' });
     } catch (err) {
       const message =
@@ -1840,14 +1832,9 @@ function AttachmentEditor({
     e.target.value = '';
     setUploading(true);
     try {
-      const presigned = await requestDocumentUpload({
-        filename: file.name,
-        contentType: file.type || 'application/octet-stream',
-        size: file.size,
-      });
-      await uploadToR2(presigned.uploadUrl, file, file.type || 'application/octet-stream');
+      const uploadedUrl = await uploadMedia(file, 'document');
       const objectUrl = typeof window !== 'undefined' ? URL.createObjectURL(file) : '';
-      const finalUrl = presigned.uploadUrl === 'mock-upload' && objectUrl ? objectUrl : presigned.publicUrl;
+      const finalUrl = uploadedUrl || objectUrl;
       const filenameNoExt = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
       const ext = file.name.split('.').pop()?.toUpperCase() ?? 'FILE';
       const sizeKb = Math.round(file.size / 1024);

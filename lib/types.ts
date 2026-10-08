@@ -339,6 +339,7 @@ export interface ProcedureBody {
 export interface ProcedureQuizQuestion {
   id: string;
   prompt: Localised;
+  question?: Localised;
   choices: { id: string; label: Localised }[];
   correctChoiceId: string;
 }
@@ -361,6 +362,9 @@ export interface ProcedureQuiz {
  *  stamps its id back onto the procedure. */
 export interface Quiz {
   id: string;
+  nameEn?: string;
+  nameEs?: string;
+  quizType?: string;
   questions: ProcedureQuizQuestion[];
   /** Manual toggle. Visibility on the read side is the OR of this flag
    *  and the parent procedure / course's training-attached flag. */
@@ -502,6 +506,9 @@ export interface CreateProcedureInput {
    *  subcategory belongs to a category that defines subcategories;
    *  optional otherwise. */
   subcategoryId?: string | null;
+  stationId?: string | null;
+  procedureImage?: string | null;
+  assignUsers?: string[];
   /** Per-procedure station scope. The subcategory carries a default
    *  hint; the procedure may narrow or widen it. Omit when the
    *  procedure has no station scope (general / subcategory is general). */

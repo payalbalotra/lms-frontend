@@ -136,21 +136,6 @@ function toMethodStep(step: ProcedureMethodStep, locale: 'en' | 'es', noteLabels
 
   const extraNodes: React.ReactNode[] = [];
   if (noteNode) extraNodes.push(noteNode);
-  if (step.criticalLimit) {
-    const l = step.criticalLimit;
-    extraNodes.push(
-      <CriticalLimitFull
-        key="crit-limit"
-        icon={l.icon}
-        label={l.label}
-        value={l.value}
-        subtitle={l.subtitle}
-        howToCheck={l.howToCheck}
-        breachLabel={l.breachLabel}
-        breachResponse={l.breachResponse}
-      />,
-    );
-  }
 
   const out: MethodStep = {
     body: (
@@ -189,8 +174,8 @@ function toMethodStep(step: ProcedureMethodStep, locale: 'en' | 'es', noteLabels
   if (shots.length > 0) {
     out.shots = shots;
   }
-  if (step.videoSrc) {
-    out.video = { src: step.videoSrc, caption: step.videoCaption };
+  if (step.videoSegment?.src || step.videoSrc) {
+    out.video = { src: step.videoSegment?.src ?? step.videoSrc!, caption: step.videoCaption };
   }
 
   // Populate mediaThumb with badge if video clip or images exist

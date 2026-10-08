@@ -102,21 +102,6 @@ function toMethodStep(step: ProcedureMethodStep, locale: 'en' | 'es', noteLabels
 
   const extraNodes: React.ReactNode[] = [];
   if (noteNode) extraNodes.push(noteNode);
-  if (step.criticalLimit) {
-    const l = step.criticalLimit;
-    extraNodes.push(
-      <CriticalLimitFull
-        key="crit-limit"
-        icon={l.icon}
-        label={l.label}
-        value={l.value}
-        subtitle={l.subtitle}
-        howToCheck={l.howToCheck}
-        breachLabel={l.breachLabel}
-        breachResponse={l.breachResponse}
-      />,
-    );
-  }
 
   const out: MethodStep = {
     body: (
@@ -159,8 +144,8 @@ function toMethodStep(step: ProcedureMethodStep, locale: 'en' | 'es', noteLabels
   if (shots.length > 0) {
     out.shots = shots;
   }
-  if (step.videoSrc) {
-    out.video = { src: step.videoSrc, caption: step.videoCaption };
+  if (step.videoSegment?.src || step.videoSrc) {
+    out.video = { src: step.videoSegment?.src ?? step.videoSrc!, caption: step.videoCaption };
   }
 
   // Populate mediaThumb with badge if video clip or images exist
@@ -230,13 +215,15 @@ function IngredientsSection({
 
   const scaled = React.useMemo(
     () =>
-      yieldItems.map((y) => {
-        if (!y.scales) return y;
-        const n = parseFloat(y.value.replace(',', '.'));
-        if (!Number.isFinite(n)) return y;
-        const value = String(Math.round(((n * factor) / base) * 100) / 100);
-        return { ...y, value };
-      }),
+      yieldItems
+        .filter((y) => (y.value ?? '').trim() !== '')
+        .map((y) => {
+          if (!y.scales) return y;
+          const n = parseFloat(y.value.replace(',', '.'));
+          if (!Number.isFinite(n)) return y;
+          const value = String(Math.round(((n * factor) / base) * 100) / 100);
+          return { ...y, value };
+        }),
     [yieldItems, factor, base],
   );
 

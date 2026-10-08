@@ -24,6 +24,7 @@ import type {
   UpdateStationInput,
 } from './types';
 import { SEED_QUIZZES, type Quiz } from './quizzes';
+export type { Quiz };
 import { http } from './http';
 import { AUTH_ENDPOINTS } from '@/services/auth/endpoints';
 import { lookupInvite as authLookupInvite } from '@/services/auth/api';
@@ -470,313 +471,6 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
 ];
 
 const SEED_PROCEDURES: Procedure[] = [
-  {
-    id: 'proc-cleaning',
-    slug: 'cleaning-and-sanitising',
-    titleEn: 'Cleaning and sanitising food contact surfaces',
-    titleEs: 'Limpieza y desinfección de superficies en contacto con alimentos',
-    purposeEn: 'To prevent foodborne illness by making sure every surface that touches food is cleaned and sanitised before it is used.',
-    purposeEs: 'Para prevenir enfermedades transmitidas por alimentos asegurando que cada superficie que toque alimentos se limpie y desinfecte.',
-    category: SEED_CATEGORIES[3],
-    subcategoryId: 'sub-dishwashing',
-    status: 'published',
-    createdBy: 'emp-admin',
-    createdAt: '2026-09-04T00:00:00Z',
-    updatedAt: '2026-09-20T00:00:00Z',
-    version: 1,
-    isArchived: false,
-    // Dishwashing hygiene belongs to every line, not just one station —
-    // including Dishwasher explicitly because they own it, and leaving the
-    // scope non-narrowing for everyone else (mode: 'all' would over-promise
-    // to the line; mode: 'specific' with the dishwasher station lets the
-    // filter narrow to "who runs this" without hiding the procedure from
-    // the rest of the floor, because the explorer keeps mode:'all' rows).
-    // Using mode: 'all' here is the cleanest "everyone follows this" marker.
-    stationScope: { mode: 'all', stationIds: [] },
-    quizId: 'quiz-cleaning',
-    linkedTrainingId: 'course-food-safety',
-    quizMode: 'training',
-    bodyEn: {
-      blocks: [
-        { id: 'cl-img', kind: 'image', src: '/img/cover-sanitising.jpg', hint: 'photo',
-          alt: { en: 'Two red buckets on a stainless bench, labelled WASH and SANITISE, a cloth over each rim and a bottle of test strips beside them.', es: 'Dos cubetas rojas sobre una mesa de acero, rotuladas LAVAR y DESINFECTAR, con un paño en cada borde y un frasco de tiras reactivas al lado.' } },
-        { id: 'b1', kind: 'heading', level: 2, text: { en: 'Who this is for', es: 'A quién está dirigido' } },
-        { id: 'b2', kind: 'text', body: { en: 'Everyone who prepares, cooks or plates food. It covers cutting boards, prep tables, knives, tongs, and slicers.', es: 'Todos los que preparan o sirven alimentos.' } },
-        { id: 'b3', kind: 'heading', level: 2, text: { en: 'Equipment Needed', es: 'Equipo Necesario' } },
-        { id: 'b4', kind: 'text', body: { en: 'Two buckets (Wash & Sanitise), detergent, clean cloths, quaternary ammonium sanitiser, and test strips.', es: 'Dos cubetas (Lavar y Desinfectar), detergente, paños limpios y tiras reactivas.' } },
-        { id: 'b5', kind: 'warning', severity: 'warn', body: { en: 'Sanitiser is a chemical. Never mix it with bleach or ammonia products: fumes are dangerous.', es: 'El desinfectante es un producto químico. Nunca lo mezcle con blanqueador.' } },
-        {
-          id: 'b6',
-          kind: 'method',
-          steps: [
-            { id: 's1', body: { en: 'Scrape all food debris off the surface into the bin.', es: 'Raspe todos los residuos de alimentos.' } },
-            { id: 's2', body: { en: 'Wash with detergent and warm water from the Wash bucket.', es: 'Lave con detergente y agua tibia.' } },
-            { id: 's3', body: { en: 'Rinse thoroughly with clean water.', es: 'Enjuague con agua limpia.' } },
-            {
-              id: 's4',
-              critical: true,
-              body: { en: 'Apply sanitiser from Sanitise bucket. Leave for full contact time (30 sec).', es: 'Aplique el desinfectante y deje actuar 30 segundos.' },
-              criticalLimit: {
-                value: '200 ppm, for at least 30 seconds',
-                subtitle: 'Quaternary ammonium solution strength',
-                howToCheck: 'Dip a test strip into the sanitiser bucket.',
-                breachLabel: 'If reading is below 200 ppm',
-                breachResponse: 'Remake the sanitiser bucket fresh and test again.',
-              },
-            },
-            { id: 's5', body: { en: 'Let surface air dry completely. Do not wipe dry with towels.', es: 'Deje secar al aire libre. No use toallas.' } },
-          ],
-        },
-      ],
-    },
-    bodyEs: {
-      blocks: [
-        { id: 'cl-img', kind: 'image', src: '/img/cover-sanitising.jpg', hint: 'photo',
-          alt: { en: 'Two red buckets on a stainless bench, labelled WASH and SANITISE, a cloth over each rim and a bottle of test strips beside them.', es: 'Dos cubetas rojas sobre una mesa de acero, rotuladas LAVAR y DESINFECTAR, con un paño en cada borde y un frasco de tiras reactivas al lado.' } },
-        { id: 'b1', kind: 'heading', level: 2, text: { en: 'Who this is for', es: 'A quién está dirigido' } },
-        { id: 'b2', kind: 'text', body: { en: 'Everyone who prepares, cooks or plates food.', es: 'Todos los que preparan o sirven alimentos.' } },
-        { id: 'b3', kind: 'heading', level: 2, text: { en: 'Equipment Needed', es: 'Equipo Necesario' } },
-        { id: 'b4', kind: 'text', body: { en: 'Two buckets (Wash & Sanitise), detergent, clean cloths.', es: 'Dos cubetas (Lavar y Desinfectar), detergente, paños limpios.' } },
-        { id: 'b5', kind: 'warning', severity: 'warn', body: { en: 'Sanitiser is a chemical.', es: 'El desinfectante es un producto químico. Nunca lo mezcle con blanqueador.' } },
-        {
-          id: 'b6',
-          kind: 'method',
-          steps: [
-            { id: 's1', body: { en: 'Scrape food debris.', es: 'Raspe todos los residuos de alimentos.' } },
-            { id: 's2', body: { en: 'Wash with detergent.', es: 'Lave con detergente y agua tibia.' } },
-            { id: 's3', body: { en: 'Rinse with clean water.', es: 'Enjuague con agua limpia.' } },
-            {
-              id: 's4',
-              critical: true,
-              body: { en: 'Apply sanitiser.', es: 'Aplique el desinfectante y deje actuar 30 segundos.' },
-              criticalLimit: {
-                value: '200 ppm por 30 segundos',
-                subtitle: 'Concentración de solución desinfectante',
-                howToCheck: 'Sumerja una tira reactiva.',
-                breachLabel: 'Si es menor a 200 ppm',
-                breachResponse: 'Prepare una nueva solución.',
-              },
-            },
-            { id: 's5', body: { en: 'Air dry.', es: 'Deje secar al aire libre.' } },
-          ],
-        },
-      ],
-    },
-  },
-  {
-    id: 'proc-handwashing',
-    slug: 'handwashing-procedure',
-    titleEn: 'Handwashing and Personal Hygiene Standard',
-    titleEs: 'Norma de Lavado de Manos e Higiene Personal',
-    purposeEn: 'Ensure all team members clean hands thoroughly before handling food.',
-    purposeEs: 'Garantizar que todos se laven las manos antes de manipular alimentos.',
-    category: SEED_CATEGORIES[1],
-    subcategoryId: 'sub-hygiene',
-    status: 'published',
-    createdBy: 'emp-admin',
-    createdAt: '2026-09-01T00:00:00Z',
-    updatedAt: '2026-09-01T00:00:00Z',
-    version: 1,
-    isArchived: false,
-    stationScope: { mode: 'all', stationIds: [] },
-    quizId: null,
-    linkedTrainingId: 'course-food-safety',
-    quizMode: 'training',
-    bodyEn: {
-      blocks: [
-        { id: 'h1', kind: 'heading', level: 1, text: { en: 'Proper Handwashing Procedure', es: 'Procedimiento Correcto de Lavado de Manos' } },
-        { id: 'h2', kind: 'text', body: { en: 'Wash hands for 20 seconds using warm water (100°F/38°C) and anti-bacterial soap.', es: 'Lávese las manos durante 20 segundos con agua tibia y jabón.' } },
-        { id: 'h3', kind: 'heading', level: 2, text: { en: 'When to Wash Hands', es: 'Cuándo Lavarse las Manos' } },
-        { id: 'h4', kind: 'text', body: { en: 'Wash before starting work, after handling raw meat, after using restrooms, and after touching face or phone.', es: 'Lávese antes de empezar a trabajar, después de manipular carne cruda y después de usar el baño.' } },
-      ],
-    },
-    bodyEs: {
-      blocks: [
-        { id: 'h1', kind: 'heading', level: 1, text: { en: 'Proper Handwashing Procedure', es: 'Procedimiento Correcto de Lavado de Manos' } },
-        { id: 'h2', kind: 'text', body: { en: 'Wash hands for 20 seconds using warm water (100°F/38°C) and anti-bacterial soap.', es: 'Lávese las manos durante 20 segundos con agua tibia y jabón.' } },
-        { id: 'h3', kind: 'heading', level: 2, text: { en: 'When to Wash Hands', es: 'Cuándo Lavarse las Manos' } },
-        { id: 'h4', kind: 'text', body: { en: 'Wash before starting work, after handling raw meat, after using restrooms, and after touching face or phone.', es: 'Lávese antes de empezar a trabajar, después de manipular carne cruda y después de usar el baño.' } },
-      ],
-    },
-  },
-  {
-    id: 'proc-opening-shift',
-    slug: 'opening-shift-checklist',
-    titleEn: 'Kitchen Opening Shift Prep & Checklist',
-    titleEs: 'Lista de Control de Apertura de Cocina',
-    purposeEn: 'Ensure all station refrigeration, hot holding, and prep lines are verified before service.',
-    purposeEs: 'Asegurar la refrigeración, mantenimiento en caliente y líneas de preparación antes del servicio.',
-    category: SEED_CATEGORIES[4],
-    subcategoryId: 'sub-opening',
-    status: 'published',
-    createdBy: 'emp-admin',
-    createdAt: '2026-09-02T00:00:00Z',
-    updatedAt: '2026-09-02T00:00:00Z',
-    version: 1,
-    isArchived: false,
-    stationScope: { mode: 'all', stationIds: [] },
-    quizId: null,
-    linkedTrainingId: 'course-kitchen-ops',
-    quizMode: 'training',
-    bodyEn: {
-      blocks: [
-        { id: 'op-img', kind: 'image', src: '/img/equipment.jpg', hint: 'photo',
-          alt: { en: 'Everything for the shift laid out on the bench before service: produce, a stone molcajete, a digital scale and a stainless pan.', es: 'Todo lo del turno dispuesto en la mesa antes del servicio: producto, un molcajete de piedra, una báscula digital y una charola de acero.' } },
-        { id: 'op-h1', kind: 'heading', level: 1, text: { en: 'Opening Sequence', es: 'Secuencia de Apertura' } },
-        { id: 'op-t1', kind: 'text', body: { en: 'Turn on main ventilation hoods and verify air flow.', es: 'Encienda las campanas de extracción y verifique el flujo de aire.' } },
-        { id: 'op-t2', kind: 'text', body: { en: 'Inspect walk-in cooler temperatures (must be below 40°F / 4°C).', es: 'Inspeccione la temperatura del refrigerador (debe estar por debajo de 4°C).' } },
-        { id: 'op-t3', kind: 'text', body: { en: 'Prepare fresh sanitiser buckets for all stations.', es: 'Prepare cubetas de desinfectante fresco para todas las estaciones.' } },
-        { id: 'op-t4', kind: 'text', body: { en: 'Log initial temperatures on the Morning Opening Temperature Sheet.', es: 'Registre las temperaturas iniciales en la hoja de apertura.' } },
-      ],
-    },
-    bodyEs: {
-      blocks: [
-        { id: 'op-img', kind: 'image', src: '/img/equipment.jpg', hint: 'photo',
-          alt: { en: 'Everything for the shift laid out on the bench before service: produce, a stone molcajete, a digital scale and a stainless pan.', es: 'Todo lo del turno dispuesto en la mesa antes del servicio: producto, un molcajete de piedra, una báscula digital y una charola de acero.' } },
-        { id: 'op-h1', kind: 'heading', level: 1, text: { en: 'Opening Sequence', es: 'Secuencia de Apertura' } },
-        { id: 'op-t1', kind: 'text', body: { en: 'Turn on main ventilation hoods and verify air flow.', es: 'Encienda las campanas de extracción y verifique el flujo de aire.' } },
-        { id: 'op-t2', kind: 'text', body: { en: 'Inspect walk-in cooler temperatures (must be below 40°F / 4°C).', es: 'Inspeccione la temperatura del refrigerador (debe estar por debajo de 4°C).' } },
-        { id: 'op-t3', kind: 'text', body: { en: 'Prepare fresh sanitiser buckets for all stations.', es: 'Prepare cubetas de desinfectante fresco para todas las estaciones.' } },
-        { id: 'op-t4', kind: 'text', body: { en: 'Log initial temperatures on the Morning Opening Temperature Sheet.', es: 'Registre las temperaturas iniciales en la hoja de apertura.' } },
-      ],
-    },
-  },
-  {
-    id: 'proc-salsa-verde',
-    slug: 'salsa-verde-prep',
-    titleEn: 'Salsa Verde Batch Preparation SOP',
-    titleEs: 'Preparación de Lote de Salsa Verde',
-    purposeEn: 'Standard procedure for roasting tomatillos, blending fresh ingredients, and storing salsa verde.',
-    purposeEs: 'Procedimiento estándar para asar tomatillos, licuar e ingredientes y almacenar salsa verde.',
-    category: SEED_CATEGORIES[6],
-    subcategoryId: 'sub-cooking',
-    status: 'published',
-    createdBy: 'emp-admin',
-    createdAt: '2026-09-03T00:00:00Z',
-    updatedAt: '2026-09-03T00:00:00Z',
-    version: 1,
-    isArchived: false,
-    stationScope: { mode: 'specific', stationIds: ['stn-gm'] },
-    // The house salsa is a confidential recipe: confidential clearance and up.
-    protection: 'confidential',
-    quizId: null,
-    linkedTrainingId: 'course-recipes',
-    quizMode: 'training',
-    bodyEn: {
-      blocks: [
-        { id: 'sv-img', kind: 'image', src: '/img/video-cover.jpg', hint: 'photo',
-          alt: { en: 'Finished green salsa in a stone molcajete, on a bench with limes and chillies.', es: 'Salsa verde terminada en un molcajete de piedra, sobre la mesa con limones y chiles.' } },
-        { id: 'sv-h1', kind: 'heading', level: 1, text: { en: 'Ingredients & Preparation', es: 'Ingredientes y Preparación' } },
-        { id: 'sv-t1', kind: 'text', body: { en: 'Roast 5kg husked tomatillos on the plancha until evenly charred.', es: 'Ase 5 kg de tomatillos pelados en la plancha hasta que estén tatemados.' } },
-        { id: 'sv-t2', kind: 'text', body: { en: 'Blend with fresh cilantro, jalapeno, garlic, onion, and sea salt.', es: 'Licúe con cilantro fresco, jalapeño, ajo, cebolla y sal de mar.' } },
-        { id: 'sv-t3', kind: 'text', body: { en: 'Chill rapidly in an ice bath to below 41°F (5°C) within 2 hours.', es: 'Enfríe rápidamente en baño de hielo por debajo de 5°C en 2 horas.' } },
-        { id: 'sv-t4', kind: 'text', body: { en: 'Label with name, prep date, use-by date (4 days max), and chef initials.', es: 'Etiquete con nombre, fecha de preparación, fecha de caducidad (máx. 4 días) e iniciales.' } },
-      ],
-    },
-    bodyEs: {
-      blocks: [
-        { id: 'sv-img', kind: 'image', src: '/img/video-cover.jpg', hint: 'photo',
-          alt: { en: 'Finished green salsa in a stone molcajete, on a bench with limes and chillies.', es: 'Salsa verde terminada en un molcajete de piedra, sobre la mesa con limones y chiles.' } },
-        { id: 'sv-h1', kind: 'heading', level: 1, text: { en: 'Ingredients & Preparation', es: 'Ingredientes y Preparación' } },
-        { id: 'sv-t1', kind: 'text', body: { en: 'Roast 5kg husked tomatillos on the plancha until evenly charred.', es: 'Ase 5 kg de tomatillos pelados en la plancha hasta que estén tatemados.' } },
-        { id: 'sv-t2', kind: 'text', body: { en: 'Blend with fresh cilantro, jalapeno, garlic, onion, and sea salt.', es: 'Licúe con cilantro fresco, jalapeño, ajo, cebolla y sal de mar.' } },
-        { id: 'sv-t3', kind: 'text', body: { en: 'Chill rapidly in an ice bath to below 41°F (5°C) within 2 hours.', es: 'Enfríe rápidamente en baño de hielo por debajo de 5°C en 2 horas.' } },
-        { id: 'sv-t4', kind: 'text', body: { en: 'Label with name, prep date, use-by date (4 days max), and chef initials.', es: 'Etiquete con nombre, fecha de preparación, fecha de caducidad (máx. 4 días) e iniciales.' } },
-      ],
-    },
-  },
-  {
-    id: 'proc-grill-safety',
-    slug: 'grill-station-safety',
-    titleEn: 'Grill Station Setup & Temperature Logging',
-    titleEs: 'Configuración de Estación de Parrilla y Registro de Temperatura',
-    purposeEn: 'Ensure grill line safety standards, grease trap inspection, and core cooking temperature compliance.',
-    purposeEs: 'Garantizar normas de seguridad en la parrilla, inspección de trampa de grasa y temperaturas de cocción.',
-    category: SEED_CATEGORIES[2],
-    subcategoryId: 'sub-station-setup',
-    status: 'published',
-    createdBy: 'emp-admin',
-    createdAt: '2026-09-05T00:00:00Z',
-    updatedAt: '2026-09-05T00:00:00Z',
-    version: 1,
-    isArchived: false,
-    // Only the grill needs its own setup.
-    audience: { mode: 'some', stationIds: ['stn-grill'], roleIds: [], employeeIds: [] },
-    stationScope: { mode: 'specific', stationIds: ['stn-grill'] },
-    quizId: null,
-    linkedTrainingId: 'course-kitchen-ops',
-    quizMode: 'training',
-    bodyEn: {
-      blocks: [
-        { id: 'gr-h1', kind: 'heading', level: 1, text: { en: 'Safety & Setup Guidelines', es: 'Instrucciones de Seguridad y Configuración' } },
-        { id: 'gr-t1', kind: 'text', body: { en: 'Verify grease trays are emptied and flame guards are positioned correctly.', es: 'Verifique que las charolas de grasa estén vacías y los protectores colocados.' } },
-        { id: 'gr-t2', kind: 'text', body: { en: 'Preheat grill surface to minimum 450°F (230°C) before placing proteins.', es: 'Precaliente la superficie de la parrilla a un mínimo de 230°C.' } },
-        { id: 'gr-t3', kind: 'text', body: { en: 'Use separate red tongs for raw proteins and yellow tongs for cooked meats.', es: 'Use pinzas rojas separadas para proteínas crudas y pinzas amarillas para carnes cocidas.' } },
-      ],
-    },
-    bodyEs: {
-      blocks: [
-        { id: 'gr-h1', kind: 'heading', level: 1, text: { en: 'Safety & Setup Guidelines', es: 'Instrucciones de Seguridad y Configuración' } },
-        { id: 'gr-t1', kind: 'text', body: { en: 'Verify grease trays are emptied and flame guards are positioned correctly.', es: 'Verifique que las charolas de grasa estén vacías y los protectores colocados.' } },
-        { id: 'gr-t2', kind: 'text', body: { en: 'Preheat grill surface to minimum 450°F (230°C) before placing proteins.', es: 'Precaliente la superficie de la parrilla a un mínimo de 230°C.' } },
-        { id: 'gr-t3', kind: 'text', body: { en: 'Use separate red tongs for raw proteins and yellow tongs for cooked meats.', es: 'Use pinzas rojas separadas para proteínas crudas y pinzas amarillas para carnes cocidas.' } },
-      ],
-    },
-  },
-  {
-    id: 'proc-fryer-oil',
-    slug: 'fryer-oil-change',
-    titleEn: 'Fryer oil change and filtering',
-    titleEs: '',
-    purposeEn: 'When and how to filter the fryer oil, and when to change it.',
-    purposeEs: '',
-    category: SEED_CATEGORIES[5] ?? null,
-    subcategoryId: 'sub-operation',
-    status: 'draft',
-    createdBy: 'emp-admin',
-    createdAt: '2026-09-21T00:00:00Z',
-    updatedAt: '2026-09-22T00:00:00Z',
-    version: 1,
-    isArchived: false,
-    stationScope: { mode: 'specific', stationIds: ['stn-gm'] },
-    quizId: null,
-    linkedTrainingId: null,
-    quizMode: 'training',
-    bodyEn: {
-      blocks: [
-        { id: 'fo-img', kind: 'image', src: '/img/cover-fryer-oil.jpg', hint: 'photo',
-          alt: { en: 'A fryer with its basket, the filter and the oil being changed.', es: 'Una freidora con su canasta, el filtro y el aceite en cambio.' } },
-        { id: 'fo1', kind: 'text', body: { en: 'Filter the oil at the end of every shift. Change it when it darkens or smokes below 350°F.', es: '' } },
-      ],
-    },
-    bodyEs: { blocks: [] },
-  },
-  {
-    id: 'proc-walkin',
-    slug: 'walk-in-cooler-temperature-log',
-    titleEn: 'Walk-in cooler temperature log',
-    titleEs: '',
-    purposeEn: 'Check and record the walk-in temperature twice a shift.',
-    purposeEs: '',
-    category: SEED_CATEGORIES[1] ?? null,
-    subcategoryId: 'sub-hygiene',
-    status: 'published',
-    createdBy: 'emp-admin',
-    createdAt: '2026-09-10T00:00:00Z',
-    updatedAt: '2026-09-10T00:00:00Z',
-    version: 1,
-    isArchived: false,
-    stationScope: { mode: 'specific', stationIds: ['stn-prep'] },
-    quizId: null,
-    linkedTrainingId: null,
-    quizMode: 'training',
-    bodyEn: {
-      blocks: [
-        { id: 'wc1', kind: 'text', body: { en: 'Read the thermometer at opening and at mid-shift. It must read 41°F or below. Write the time, the reading and your initials on the log.', es: '' } },
-      ],
-    },
-    bodyEs: { blocks: [] },
-  },
   // --------------------------------------------------------------------------
   // Recipe: Guacamole Fresco (REC-014)
   // The full procedure as it appears in /sop-recipe-format.html. Built with
@@ -1817,1008 +1511,6 @@ const SEED_PROCEDURES: Procedure[] = [
       ],
     },
   },
-  // -------------------------------------------------------------------
-  // Second promo dish — limited-time premium menu item. Mirror the Sea
-  // Bass entry shape exactly so `pickPromoProcedures` picks both up and
-  // the home renders them as identical ProcedureRow tiles. Backend
-  // `promo` column will replace the slug list when it ships.
-  // -------------------------------------------------------------------
-  {
-    id: 'proc-promo-risotto',
-    slug: 'truffle-mushroom-risotto',
-    titleEn: 'Truffle Mushroom Risotto',
-    titleEs: 'Risotto de Hongos y Trufa',
-    purposeEn:
-      'A rich and creamy wild mushroom risotto finished with aromatic black truffle, aged Parmesan, crispy shallots, and fresh microgreens. A premium comfort dish designed for an elegant restaurant presentation.',
-    purposeEs:
-      'Un risotto de hongos silvestres rico y cremoso, terminado con trufa negra aromática, parmesano añejado, chalotas crujientes y microgreens frescos. Un plato premium diseñado para una presentación elegante de restaurante.',
-    category: SEED_CATEGORIES[6],
-    subcategoryId: 'sub-cooking',
-    status: 'published',
-    iconImageUrl: '/img/promo2.jpg',
-    createdBy: 'emp-admin',
-    createdAt: '2026-09-22T00:00:00Z',
-    updatedAt: '2026-09-30T09:00:00Z',
-    version: 1,
-    isArchived: false,
-    stationScope: { mode: 'specific', stationIds: ['stn-grill', 'stn-expo'] },
-    quizId: null,
-    linkedTrainingId: null,
-    quizMode: 'training',
-    bodyEn: {
-      blocks: [
-        {
-          id: 'tr-cover',
-          kind: 'image',
-          src: '/img/promo2.jpg',
-          alt: {
-            en: 'A finished plate: creamy truffle mushroom risotto topped with crispy shallots, shaved Parmesan and microgreens.',
-            es: 'Plato terminado: risotto cremoso de hongos y trufa coronado con chalotas crujientes, lascas de parmesano y microgreens.',
-          },
-          hint: 'photo',
-        },
-        {
-          id: 'tr-purpose',
-          kind: 'text',
-          body: {
-            en: 'A rich and creamy wild mushroom risotto finished with aromatic black truffle, aged Parmesan, crispy shallots, and fresh microgreens. A premium comfort dish designed for an elegant restaurant presentation. Serves 1.',
-            es: 'Un risotto de hongos silvestres rico y cremoso, terminado con trufa negra aromática, parmesano añejado, chalotas crujientes y microgreens frescos. Un plato premium diseñado para una presentación elegante de restaurante. Rinde 1 porción.',
-          },
-        },
-        {
-          id: 'tr-facts',
-          kind: 'heading',
-          level: 2,
-          text: { en: 'At a glance', es: 'De un vistazo' },
-        },
-        {
-          id: 'tr-facts-t',
-          kind: 'text',
-          body: {
-            en: 'Serves 1 · Prep 10 min · Cook 25 min · Add Parmesan and butter off the heat.',
-            es: 'Rinde 1 porción · Prep 10 min · Cocción 25 min · Agrega el parmesano y la mantequilla fuera del fuego.',
-          },
-        },
-        {
-          id: 'tr-ingredients-h',
-          kind: 'heading',
-          level: 2,
-          text: { en: 'Ingredients', es: 'Ingredientes' },
-        },
-        {
-          id: 'tr-ingredients-t',
-          kind: 'text',
-          body: {
-            en: '1 cup Arborio rice · 1 cup wild mushrooms, sliced · ½ cup onion, finely chopped · 2 garlic cloves · ¼ cup white wine · 4 cups warm vegetable or chicken stock · ½ cup Parmesan · 2 tbsp butter · 1 tbsp olive oil · 1 tsp truffle oil · 2 tbsp crispy shallots · ¼ cup microgreens · salt and black pepper to taste.',
-            es: '1 taza de arroz Arborio · 1 taza de hongos silvestres, en rodajas · ½ taza de cebolla, finamente picada · 2 dientes de ajo · ¼ taza de vino blanco · 4 tazas de caldo de verduras o pollo, tibio · ½ taza de parmesano · 2 cdas de mantequilla · 1 cda de aceite de oliva · 1 cdta de aceite de trufa · 2 cdas de chalotas crujientes · ¼ taza de microgreens · sal y pimienta negra al gusto.',
-          },
-        },
-        {
-          id: 'tr-recipe',
-          kind: 'recipe',
-          audience: '',
-          allergen: {
-            summary: 'Contains dairy',
-            detail: 'Check the ticket for dairy allergies before plating.',
-            selectedAllergens: ['milk'],
-          },
-          yieldItems: [
-            { label: 'Portions', value: '1', scales: true },
-            { label: 'Portion size', value: '1', unit: 'bowl' },
-            { label: 'Prep', value: '10', unit: 'min' },
-            { label: 'Cook', value: '25', unit: 'min' },
-          ],
-          steps: [
-            {
-              id: 'tr-s1',
-              body: {
-                en: 'Heat olive oil in a heavy pan over medium-high heat. Sauté the mushrooms until golden, then remove and set aside.',
-                es: 'Calienta el aceite de oliva en un sartén pesado a fuego medio-alto. Saltea los hongos hasta que estén dorados, retíralos y resérvalos.',
-              },
-            },
-            {
-              id: 'tr-s2',
-              body: {
-                en: 'In the same pan, cook the onion and garlic until soft and translucent. Add the Arborio rice and toast lightly for 1-2 minutes.',
-                es: 'En el mismo sartén, cocina la cebolla y el ajo hasta que estén suaves y translúcidos. Agrega el arroz Arborio y tuéstalos ligeramente durante 1-2 minutos.',
-              },
-            },
-            {
-              id: 'tr-s3',
-              body: {
-                en: 'Deglaze with the white wine and let it reduce until almost dry. Begin adding the warm stock one ladle at a time, stirring frequently and waiting until each addition is absorbed before adding the next.',
-                es: 'Desglasea con el vino blanco y deja que reduzca hasta casi evaporarse. Comienza a agregar el caldo tibio un cucharón a la vez, revolviendo con frecuencia y esperando a que cada adición se absorba antes de añadir la siguiente.',
-              },
-            },
-            {
-              id: 'tr-s4',
-              body: {
-                en: 'Continue cooking for 18-20 minutes until the rice is creamy and tender, adding stock as needed. The risotto should flow slowly when you shake the pan — that is all\'onda.',
-                es: 'Continúa la cocción durante 18-20 minutos hasta que el arroz esté cremoso y tierno, agregando caldo según sea necesario. El risotto debe fluir lentamente al sacudir el sartén — eso es all\'onda.',
-              },
-            },
-            {
-              id: 'tr-s5',
-              body: {
-                en: 'Take the pan off the heat. Fold in the sautéed mushrooms, Parmesan, butter, salt and pepper. Let it rest for 1 minute so the dairy emulsifies into a silky finish.',
-                es: 'Retira el sartén del fuego. Incorpora los hongos salteados, el parmesano, la mantequilla, la sal y la pimienta. Deja reposar 1 minuto para que los lácteos emulsionen en un acabado sedoso.',
-              },
-              critical: true,
-              criticalLimit: {
-                label: 'Critical limit',
-                icon: 'LuFlame',
-                value: 'Off the heat',
-                subtitle: 'Parmesan and butter must be folded in off the burner — adding them to a hot pan breaks the emulsion and the risotto turns greasy.',
-                howToCheck: 'Pull the pan onto a cool burner or trivet before adding dairy. The pan should not be over an active flame.',
-                breachLabel: 'If added on the heat',
-                breachResponse: 'Stop stirring and let the risotto cool for 1 minute off the burner, then fold gently to recover the emulsion. Do not plate if it looks broken or greasy.',
-              },
-            },
-            {
-              id: 'tr-s6',
-              body: {
-                en: 'Plate: spoon the risotto into a warm bowl, drizzle with truffle oil, and finish with crispy shallots, shaved Parmesan and microgreens. Serve immediately.',
-                es: 'Emplata: vierte el risotto en un bowl tibio, rocía con aceite de trufa y termina con chalotas crujientes, lascas de parmesano y microgreens. Sirve de inmediato.',
-              },
-            },
-          ],
-        },
-        {
-          id: 'tr-key-h',
-          kind: 'heading',
-          level: 2,
-          text: { en: 'Key points', es: 'Puntos clave' },
-        },
-        {
-          id: 'tr-key-1',
-          kind: 'text',
-          body: {
-            en: 'Keep the stock warm while cooking — cold stock drops the pan temperature and stops the rice from releasing its starch.',
-            es: 'Mantén el caldo tibio durante la cocción — el caldo frío baja la temperatura del sartén e impide que el arroz libere su almidón.',
-          },
-        },
-        {
-          id: 'tr-key-2',
-          kind: 'text',
-          body: {
-            en: 'Stir frequently for a naturally creamy texture — the agitation is what releases the rice starch; cream is not needed.',
-            es: 'Revuelve con frecuencia para obtener una textura naturalmente cremosa — la agitación es lo que libera el almidón del arroz; no se necesita crema.',
-          },
-        },
-        {
-          id: 'tr-key-3',
-          kind: 'text',
-          body: {
-            en: 'Add Parmesan off the heat — adding it to a boiling pan will break the emulsion and the risotto will look greasy.',
-            es: 'Agrega el parmesano fuera del fuego — agregarlo a un sartén hirviendo rompe la emulsión y el risotto se verá grasoso.',
-          },
-        },
-        {
-          id: 'tr-key-4',
-          kind: 'text',
-          body: {
-            en: 'Risotto should be creamy but the rice should retain a slight bite ("al dente") — overcooking turns it into a stodgy paste.',
-            es: 'El risotto debe estar cremoso pero el arroz debe conservar una ligera mordida ("al dente") — la sobrecocción lo convierte en una pasta pesada.',
-          },
-        },
-        {
-          id: 'tr-pro-h',
-          kind: 'heading',
-          level: 2,
-          text: { en: 'Pro tip', es: 'Consejo profesional' },
-        },
-        {
-          id: 'tr-pro-t',
-          kind: 'text',
-          body: {
-            en: 'Use a mix of porcini, shiitake and cremini mushrooms for deeper flavour — a single mushroom variety reads flat against the truffle.',
-            es: 'Usa una mezcla de hongos porcini, shiitake y cremini para un sabor más profundo — una sola variedad de hongo se siente plana frente a la trufa.',
-          },
-        },
-      ],
-    },
-    bodyEs: {
-      blocks: [
-        {
-          id: 'tr-cover',
-          kind: 'image',
-          src: '/img/promo2.jpg',
-          alt: {
-            en: 'A finished plate: creamy truffle mushroom risotto topped with crispy shallots, shaved Parmesan and microgreens.',
-            es: 'Plato terminado: risotto cremoso de hongos y trufa coronado con chalotas crujientes, lascas de parmesano y microgreens.',
-          },
-          hint: 'photo',
-        },
-        {
-          id: 'tr-purpose',
-          kind: 'text',
-          body: {
-            en: 'A rich and creamy wild mushroom risotto finished with aromatic black truffle, aged Parmesan, crispy shallots, and fresh microgreens. A premium comfort dish designed for an elegant restaurant presentation. Serves 1.',
-            es: 'Un risotto de hongos silvestres rico y cremoso, terminado con trufa negra aromática, parmesano añejado, chalotas crujientes y microgreens frescos. Un plato premium diseñado para una presentación elegante de restaurante. Rinde 1 porción.',
-          },
-        },
-        {
-          id: 'tr-facts',
-          kind: 'heading',
-          level: 2,
-          text: { en: 'At a glance', es: 'De un vistazo' },
-        },
-        {
-          id: 'tr-facts-t',
-          kind: 'text',
-          body: {
-            en: 'Serves 1 · Prep 10 min · Cook 25 min · Add Parmesan and butter off the heat.',
-            es: 'Rinde 1 porción · Prep 10 min · Cocción 25 min · Agrega el parmesano y la mantequilla fuera del fuego.',
-          },
-        },
-        {
-          id: 'tr-ingredients-h',
-          kind: 'heading',
-          level: 2,
-          text: { en: 'Ingredients', es: 'Ingredientes' },
-        },
-        {
-          id: 'tr-ingredients-t',
-          kind: 'text',
-          body: {
-            en: '1 cup Arborio rice · 1 cup wild mushrooms, sliced · ½ cup onion, finely chopped · 2 garlic cloves · ¼ cup white wine · 4 cups warm vegetable or chicken stock · ½ cup Parmesan · 2 tbsp butter · 1 tbsp olive oil · 1 tsp truffle oil · 2 tbsp crispy shallots · ¼ cup microgreens · salt and black pepper to taste.',
-            es: '1 taza de arroz Arborio · 1 taza de hongos silvestres, en rodajas · ½ taza de cebolla, finamente picada · 2 dientes de ajo · ¼ taza de vino blanco · 4 tazas de caldo de verduras o pollo, tibio · ½ taza de parmesano · 2 cdas de mantequilla · 1 cda de aceite de oliva · 1 cdta de aceite de trufa · 2 cdas de chalotas crujientes · ¼ taza de microgreens · sal y pimienta negra al gusto.',
-          },
-        },
-        {
-          id: 'tr-recipe',
-          kind: 'recipe',
-          audience: '',
-          allergen: {
-            summary: 'Contains dairy',
-            detail: 'Check the ticket for dairy allergies before plating.',
-            selectedAllergens: ['milk'],
-          },
-          yieldItems: [
-            { label: 'Portions', value: '1', scales: true },
-            { label: 'Portion size', value: '1', unit: 'bowl' },
-            { label: 'Prep', value: '10', unit: 'min' },
-            { label: 'Cook', value: '25', unit: 'min' },
-          ],
-          steps: [
-            {
-              id: 'tr-s1',
-              body: {
-                en: 'Heat olive oil in a heavy pan over medium-high heat. Sauté the mushrooms until golden, then remove and set aside.',
-                es: 'Calienta el aceite de oliva en un sartén pesado a fuego medio-alto. Saltea los hongos hasta que estén dorados, retíralos y resérvalos.',
-              },
-            },
-            {
-              id: 'tr-s2',
-              body: {
-                en: 'In the same pan, cook the onion and garlic until soft and translucent. Add the Arborio rice and toast lightly for 1-2 minutes.',
-                es: 'En el mismo sartén, cocina la cebolla y el ajo hasta que estén suaves y translúcidos. Agrega el arroz Arborio y tuéstalos ligeramente durante 1-2 minutos.',
-              },
-            },
-            {
-              id: 'tr-s3',
-              body: {
-                en: 'Deglaze with the white wine and let it reduce until almost dry. Begin adding the warm stock one ladle at a time, stirring frequently and waiting until each addition is absorbed before adding the next.',
-                es: 'Desglasea con el vino blanco y deja que reduzca hasta casi evaporarse. Comienza a agregar el caldo tibio un cucharón a la vez, revolviendo con frecuencia y esperando a que cada adición se absorba antes de añadir la siguiente.',
-              },
-            },
-            {
-              id: 'tr-s4',
-              body: {
-                en: 'Continue cooking for 18-20 minutes until the rice is creamy and tender, adding stock as needed. The risotto should flow slowly when you shake the pan — that is all\'onda.',
-                es: 'Continúa la cocción durante 18-20 minutos hasta que el arroz esté cremoso y tierno, agregando caldo según sea necesario. El risotto debe fluir lentamente al sacudir el sartén — eso es all\'onda.',
-              },
-            },
-            {
-              id: 'tr-s5',
-              body: {
-                en: 'Take the pan off the heat. Fold in the sautéed mushrooms, Parmesan, butter, salt and pepper. Let it rest for 1 minute so the dairy emulsifies into a silky finish.',
-                es: 'Retira el sartén del fuego. Incorpora los hongos salteados, el parmesano, la mantequilla, la sal y la pimienta. Deja reposar 1 minuto para que los lácteos emulsionen en un acabado sedoso.',
-              },
-              critical: true,
-              criticalLimit: {
-                label: 'Critical limit',
-                icon: 'LuFlame',
-                value: 'Off the heat',
-                subtitle: 'Parmesan and butter must be folded in off the burner — adding them to a hot pan breaks the emulsion and the risotto turns greasy.',
-                howToCheck: 'Pull the pan onto a cool burner or trivet before adding dairy. The pan should not be over an active flame.',
-                breachLabel: 'If added on the heat',
-                breachResponse: 'Stop stirring and let the risotto cool for 1 minute off the burner, then fold gently to recover the emulsion. Do not plate if it looks broken or greasy.',
-              },
-            },
-            {
-              id: 'tr-s6',
-              body: {
-                en: 'Plate: spoon the risotto into a warm bowl, drizzle with truffle oil, and finish with crispy shallots, shaved Parmesan and microgreens. Serve immediately.',
-                es: 'Emplata: vierte el risotto en un bowl tibio, rocía con aceite de trufa y termina con chalotas crujientes, lascas de parmesano y microgreens. Sirve de inmediato.',
-              },
-            },
-          ],
-        },
-        {
-          id: 'tr-key-h',
-          kind: 'heading',
-          level: 2,
-          text: { en: 'Key points', es: 'Puntos clave' },
-        },
-        {
-          id: 'tr-key-1',
-          kind: 'text',
-          body: {
-            en: 'Keep the stock warm while cooking — cold stock drops the pan temperature and stops the rice from releasing its starch.',
-            es: 'Mantén el caldo tibio durante la cocción — el caldo frío baja la temperatura del sartén e impide que el arroz libere su almidón.',
-          },
-        },
-        {
-          id: 'tr-key-2',
-          kind: 'text',
-          body: {
-            en: 'Stir frequently for a naturally creamy texture — the agitation is what releases the rice starch; cream is not needed.',
-            es: 'Revuelve con frecuencia para obtener una textura naturalmente cremosa — la agitación es lo que libera el almidón del arroz; no se necesita crema.',
-          },
-        },
-        {
-          id: 'tr-key-3',
-          kind: 'text',
-          body: {
-            en: 'Add Parmesan off the heat — adding it to a boiling pan will break the emulsion and the risotto will look greasy.',
-            es: 'Agrega el parmesano fuera del fuego — agregarlo a un sartén hirviendo rompe la emulsión y el risotto se verá grasoso.',
-          },
-        },
-        {
-          id: 'tr-key-4',
-          kind: 'text',
-          body: {
-            en: 'Risotto should be creamy but the rice should retain a slight bite ("al dente") — overcooking turns it into a stodgy paste.',
-            es: 'El risotto debe estar cremoso pero el arroz debe conservar una ligera mordida ("al dente") — la sobrecocción lo convierte en una pasta pesada.',
-          },
-        },
-        {
-          id: 'tr-pro-h',
-          kind: 'heading',
-          level: 2,
-          text: { en: 'Pro tip', es: 'Consejo profesional' },
-        },
-        {
-          id: 'tr-pro-t',
-          kind: 'text',
-          body: {
-            en: 'Use a mix of porcini, shiitake and cremini mushrooms for deeper flavour — a single mushroom variety reads flat against the truffle.',
-            es: 'Usa una mezcla de hongos porcini, shiitake y cremini para un sabor más profundo — una sola variedad de hongo se siente plana frente a la trufa.',
-          },
-        },
-      ],
-    },
-  },
-  {
-    id: 'proc-halibut-tacos',
-    slug: 'halibut-tacos',
-    titleEn: 'Halibut Tacos',
-    titleEs: 'Tacos de Fletán',
-    purposeEn: 'Preparation, frying, and plating standards for fresh beer-battered Halibut Tacos on the GM station.',
-    purposeEs: 'Estándares de preparación, fritura y emplatado para los Tacos de Fletán con masa de cerveza en la estación GM.',
-    category: SEED_CATEGORIES[6],
-    subcategoryId: 'sub-cooking',
-    status: 'published',
-    iconImageUrl: null,
-    createdBy: 'emp-admin',
-    createdAt: '2026-10-07T00:00:00Z',
-    updatedAt: '2026-10-07T12:00:00Z',
-    version: 1,
-    isArchived: false,
-    stationScope: { mode: 'specific', stationIds: ['stn-gm'] },
-    quizId: null,
-    linkedTrainingId: 'course-recipes',
-    quizMode: 'training',
-    bodyEn: {
-      blocks: [
-        {
-          id: 'ht-b-ing',
-          kind: 'ingredients',
-          yieldItems: [
-            { label: 'Order yield', value: '2', unit: 'tacos', scales: true },
-          ],
-          factors: [1, 2, 4],
-          allergen: {
-            summary: 'Fish, Gluten, Egg',
-            detail: 'Contains Halibut (fish), beer batter (gluten), and mayonnaise (egg).',
-            selectedAllergens: ['fish', 'gluten', 'eggs'],
-          },
-          ingredients: [
-            {
-              name: 'Halibut (fish)',
-              form: 'portion-cut, from designated container',
-              allergen: true,
-              unit: 'pcs',
-              amounts: ['2', '4', '8'],
-            },
-            {
-              name: 'Beer batter',
-              form: 'prepared house recipe',
-              allergen: true,
-              unit: 'coat',
-              amounts: ['as needed', 'as needed', 'as needed'],
-            },
-            {
-              name: 'Taco tortillas',
-              form: '4-inch, warmed on grill',
-              allergen: false,
-              unit: 'tortillas',
-              amounts: ['4', '8', '16'],
-            },
-            {
-              name: 'Shredded cabbage',
-              form: 'fine shredded, chilled',
-              allergen: false,
-              unit: 'handful',
-              amounts: ['1', '2', '4'],
-            },
-            {
-              name: 'Pico de gallo',
-              form: 'fresh, drained',
-              allergen: false,
-              unit: 'spoonfuls',
-              amounts: ['2', '4', '8'],
-            },
-            {
-              name: 'Mayonnaise',
-              form: 'squeeze bottle',
-              allergen: true,
-              unit: 'drizzle',
-              amounts: ['to taste', 'to taste', 'to taste'],
-            },
-            {
-              name: 'Fresh cilantro',
-              form: 'picked whole leaves',
-              allergen: false,
-              unit: 'pinch',
-              amounts: ['to garnish', 'to garnish', 'to garnish'],
-            },
-            {
-              name: 'Fine salt',
-              form: 'sea salt',
-              allergen: false,
-              unit: 'pinch',
-              amounts: ['1', '2', '4'],
-            },
-            {
-              name: 'Lime wedge',
-              form: 'fresh-cut (Expo garnish)',
-              allergen: false,
-              unit: 'wedge',
-              amounts: ['1', '2', '4'],
-            },
-          ],
-        },
-        {
-          id: 'ht-h-prep',
-          kind: 'heading',
-          level: 2,
-          text: {
-            en: 'Preparation & Cooking',
-            es: 'Preparación y Cocción',
-          },
-        },
-        {
-          id: 'ht-m-prep',
-          kind: 'method',
-          steps: [
-            {
-              id: 'ht-s1',
-              body: {
-                en: 'Portion the halibut: For one order, remove 2 pieces of halibut from the designated container.',
-                es: 'Porcionar el fletán: Para una orden, retire 2 piezas de fletán del recipiente designado.',
-              },
-            },
-            {
-              id: 'ht-s2',
-              body: {
-                en: 'Coat in beer batter: Dip each piece of halibut into the beer batter, ensuring the fish is completely and evenly coated.',
-                es: 'Cubrir con masa de cerveza: Sumerja cada pieza de fletán en la masa de cerveza, asegurándose de que el pescado esté cubierto de manera uniforme.',
-              },
-            },
-            {
-              id: 'ht-s3',
-              critical: true,
-              body: {
-                en: 'Prepare the fryer: Halibut must be cooked using the third fryer only. Place a fryer basket into the oil before adding the fish.',
-                es: 'Preparar la freidora: El fletán debe cocinarse únicamente en la tercera freidora. Coloque una canasta en el aceite antes de agregar el pescado.',
-              },
-              note: {
-                severity: 'warn',
-                body: {
-                  en: 'Halibut must be cooked using the third fryer only to prevent oil cross-contamination and maintain temperature stability.',
-                  es: 'El fletán debe cocinarse únicamente en la tercera freidora para evitar contaminación cruzada de aceite y mantener estabilidad de temperatura.',
-                },
-              },
-            },
-            {
-              id: 'ht-s4',
-              body: {
-                en: 'Start the first piece: Hold the battered halibut carefully and lower approximately 1/3 of the fish into the oil. Do not release it immediately.',
-                es: 'Comenzar con la primera pieza: Sostenga el fletán rebozado con cuidado y baje aproximadamente 1/3 del pescado en el aceite. No lo suelte de inmediato.',
-              },
-            },
-            {
-              id: 'ht-s5',
-              body: {
-                en: 'Allow the crust to begin forming: Once the submerged portion starts developing a crust, lower approximately 2/3 of the fish into the oil.',
-                es: 'Permitir que la costra comience a formarse: Una vez que la porción sumergida comience a desarrollar costra, baje aproximadamente 2/3 del pescado al aceite.',
-              },
-            },
-            {
-              id: 'ht-s6',
-              body: {
-                en: 'Set the batter: Hold the fish in this position for approximately 10–12 seconds, then gently release it into the fryer basket.',
-                es: 'Fijar el rebozado: Mantenga el pescado en esta posición durante 10 a 12 segundos, luego suéltelo suavemente en la canasta de la freidora.',
-              },
-              timer: {
-                seconds: 12,
-                label: 'Set batter',
-              },
-            },
-            {
-              id: 'ht-s7',
-              body: {
-                en: 'Repeat with the second piece: Follow the same process with the second piece of halibut.',
-                es: 'Repetir con la segunda pieza: Siga el mismo proceso con la segunda pieza de fletán.',
-              },
-            },
-            {
-              id: 'ht-s8',
-              body: {
-                en: 'Prevent sticking: Gently shake the fryer basket after both pieces have been released to prevent the halibut from sticking to the bottom of the basket.',
-                es: 'Evitar que se pegue: Agite suavemente la canasta después de soltar ambas piezas para evitar que el fletán se pegue al fondo de la canasta.',
-              },
-            },
-            {
-              id: 'ht-s9',
-              body: {
-                en: 'Cook the halibut: Fry for approximately 2 minutes 30 seconds.',
-                es: 'Cocinar el fletán: Freír durante aproximadamente 2 minutos y 30 segundos.',
-              },
-              timer: {
-                seconds: 150,
-                label: 'Fry halibut',
-              },
-            },
-            {
-              id: 'ht-s10',
-              body: {
-                en: 'Check for doneness: Using a clean knife or the allocated wooden pick, gently insert it into the fish.',
-                es: 'Verificar la cocción: Con un cuchillo limpio o el palillo de madera asignado, insértelo suavemente en el pescado.',
-              },
-              note: {
-                severity: 'tip',
-                body: {
-                  en: 'The halibut is ready when no fish sticks to the knife or wooden pick upon removal, and the outside coating is crisp.',
-                  es: 'El fletán está listo cuando no se pega nada al cuchillo o palillo al retirarlo y la costra exterior está crujiente.',
-                },
-              },
-            },
-            {
-              id: 'ht-s11',
-              body: {
-                en: 'Remove and season: Transfer the cooked halibut into a steel bowl lined with brown paper. Season immediately with a pinch of salt.',
-                es: 'Retirar y sazonar: Transfiera el fletán cocido a un tazón de acero forrado con papel marrón. Sazone inmediatamente con una pizca de sal.',
-              },
-            },
-          ],
-        },
-        {
-          id: 'ht-h-assembly',
-          kind: 'heading',
-          level: 2,
-          text: {
-            en: 'Taco Assembly',
-            es: 'Armado de Tacos',
-          },
-        },
-        {
-          id: 'ht-m-assembly',
-          kind: 'method',
-          steps: [
-            {
-              id: 'ht-a1',
-              body: {
-                en: 'Heat the tortillas: Heat 4 taco tortillas on the grill.',
-                es: 'Calentar las tortillas: Caliente 4 tortillas de taco en la parrilla.',
-              },
-            },
-            {
-              id: 'ht-a2',
-              body: {
-                en: 'Double-layer the tacos: Place the tortillas on the serving plate in 2 stacks of 2 tortillas each, creating two double-layered tacos.',
-                es: 'Hacer tacos de doble capa: Coloque las tortillas en el plato de servicio en 2 pilas de 2 tortillas cada una, creando dos tacos dobles.',
-              },
-            },
-            {
-              id: 'ht-a3',
-              body: {
-                en: 'Add the halibut: Place 1 piece of fried halibut onto each double-layered taco.',
-                es: 'Agregar el fletán: Coloque 1 pieza de fletán frito en cada taco de doble capa.',
-              },
-            },
-            {
-              id: 'ht-a4',
-              body: {
-                en: 'Add the cabbage: Place a handful of cabbage over the two tacos.',
-                es: 'Agregar el repollo: Coloque un puñado de repollo sobre los dos tacos.',
-              },
-            },
-            {
-              id: 'ht-a5',
-              body: {
-                en: 'Add the pico de gallo: Add 1 spoonful of pico de gallo to each taco, positioning it primarily over the halibut.',
-                es: 'Agregar el pico de gallo: Agregue 1 cucharada de pico de gallo a cada taco, colocándolo principalmente sobre el fletán.',
-              },
-            },
-            {
-              id: 'ht-a6',
-              body: {
-                en: 'Finish with mayo: Drizzle mayo over the top of each taco.',
-                es: 'Terminar con mayonesa: Rocíe mayonesa sobre la parte superior de cada taco.',
-              },
-            },
-            {
-              id: 'ht-a7',
-              body: {
-                en: 'Add cilantro: Place the cilantro directly on top of the fish. Keep the garnish concentrated on the halibut rather than spreading it across the entire taco.',
-                es: 'Agregar cilantro: Coloque el cilantro directamente sobre el pescado. Mantenga la guarnición concentrada en el fletán en lugar de esparcirla por todo el taco.',
-              },
-              note: {
-                severity: 'tip',
-                body: {
-                  en: 'Keep cilantro garnish concentrated over the fried fish for clean visual presentation.',
-                  es: 'Mantenga la guarnición de cilantro concentrada sobre el pescado frito para una presentación visual limpia.',
-                },
-              },
-            },
-          ],
-        },
-        {
-          id: 'ht-h-handoff',
-          kind: 'heading',
-          level: 2,
-          text: {
-            en: 'Final Handoff',
-            es: 'Entrega Final',
-          },
-        },
-        {
-          id: 'ht-m-handoff',
-          kind: 'method',
-          steps: [
-            {
-              id: 'ht-o1',
-              body: {
-                en: 'Send to Expo: Hand the completed plate to the Expo Chef.',
-                es: 'Enviar a Expo: Entregue el plato terminado al Chef de Expo.',
-              },
-            },
-            {
-              id: 'ht-o2',
-              body: {
-                en: 'Final garnish and quality check: The Expo Chef adds the lime, checks the plate for presentation and completeness, and sends the finished order to the server.',
-                es: 'Guarnición final y control de calidad: El Chef de Expo agrega la lima, verifica la presentación y envía la orden terminada al mesero.',
-              },
-              note: {
-                severity: 'tip',
-                body: {
-                  en: 'Expo Chef verifies plate presentation and adds fresh lime wedge before handoff to server.',
-                  es: 'El Chef de Expo verifica el plato y añade la rodaja de lima fresca antes de entregar al mesero.',
-                },
-              },
-            },
-          ],
-        },
-      ],
-    },
-    bodyEs: {
-      blocks: [
-        {
-          id: 'ht-b-ing',
-          kind: 'ingredients',
-          yieldItems: [
-            { label: 'Rendimiento', value: '2', unit: 'tacos', scales: true },
-          ],
-          factors: [1, 2, 4],
-          allergen: {
-            summary: 'Pescado, Gluten, Huevo',
-            detail: 'Contiene fletán (pescado), masa con cerveza (gluten) y mayonesa (huevo).',
-            selectedAllergens: ['fish', 'gluten', 'eggs'],
-          },
-          ingredients: [
-            {
-              name: 'Fletán (pescado)',
-              form: 'cortado en porciones, del contenedor designado',
-              allergen: true,
-              unit: 'pzas',
-              amounts: ['2', '4', '8'],
-            },
-            {
-              name: 'Masa de cerveza',
-              form: 'receta de la casa',
-              allergen: true,
-              unit: 'cubierta',
-              amounts: ['al gusto', 'al gusto', 'al gusto'],
-            },
-            {
-              name: 'Tortillas de taco',
-              form: 'calentadas en la parrilla',
-              allergen: false,
-              unit: 'tortillas',
-              amounts: ['4', '8', '16'],
-            },
-            {
-              name: 'Repollo rallado',
-              form: 'fino, frío',
-              allergen: false,
-              unit: 'puñado',
-              amounts: ['1', '2', '4'],
-            },
-            {
-              name: 'Pico de gallo',
-              form: 'fresco, escurrido',
-              allergen: false,
-              unit: 'cucharadas',
-              amounts: ['2', '4', '8'],
-            },
-            {
-              name: 'Mayonesa',
-              form: 'botella exprimible',
-              allergen: true,
-              unit: 'chorrito',
-              amounts: ['al gusto', 'al gusto', 'al gusto'],
-            },
-            {
-              name: 'Cilantro fresco',
-              form: 'hojas enteras',
-              allergen: false,
-              unit: 'pizca',
-              amounts: ['para decorar', 'para decorar', 'para decorar'],
-            },
-            {
-              name: 'Sal fina',
-              form: 'sal de mar',
-              allergen: false,
-              unit: 'pizca',
-              amounts: ['1', '2', '4'],
-            },
-            {
-              name: 'Rodaja de lima',
-              form: 'corte fresco (guarnición de Expo)',
-              allergen: false,
-              unit: 'rodaja',
-              amounts: ['1', '2', '4'],
-            },
-          ],
-        },
-        {
-          id: 'ht-h-prep',
-          kind: 'heading',
-          level: 2,
-          text: {
-            en: 'Preparation & Cooking',
-            es: 'Preparación y Cocción',
-          },
-        },
-        {
-          id: 'ht-m-prep',
-          kind: 'method',
-          steps: [
-            {
-              id: 'ht-s1',
-              body: {
-                en: 'Portion the halibut: For one order, remove 2 pieces of halibut from the designated container.',
-                es: 'Porcionar el fletán: Para una orden, retire 2 piezas de fletán del recipiente designado.',
-              },
-            },
-            {
-              id: 'ht-s2',
-              body: {
-                en: 'Coat in beer batter: Dip each piece of halibut into the beer batter, ensuring the fish is completely and evenly coated.',
-                es: 'Cubrir con masa de cerveza: Sumerja cada pieza de fletán en la masa de cerveza, asegurándose de que el pescado esté cubierto de manera uniforme.',
-              },
-            },
-            {
-              id: 'ht-s3',
-              critical: true,
-              body: {
-                en: 'Prepare the fryer: Halibut must be cooked using the third fryer only. Place a fryer basket into the oil before adding the fish.',
-                es: 'Preparar la freidora: El fletán debe cocinarse únicamente en la tercera freidora. Coloque una canasta en el aceite antes de agregar el pescado.',
-              },
-              note: {
-                severity: 'warn',
-                body: {
-                  en: 'Halibut must be cooked using the third fryer only to prevent oil cross-contamination and maintain temperature stability.',
-                  es: 'El fletán debe cocinarse únicamente en la tercera freidora para evitar contaminación cruzada de aceite y mantener estabilidad de temperatura.',
-                },
-              },
-            },
-            {
-              id: 'ht-s4',
-              body: {
-                en: 'Start the first piece: Hold the battered halibut carefully and lower approximately 1/3 of the fish into the oil. Do not release it immediately.',
-                es: 'Comenzar con la primera pieza: Sostenga el fletán rebozado con cuidado y baje aproximadamente 1/3 del pescado en el aceite. No lo suelte de inmediato.',
-              },
-            },
-            {
-              id: 'ht-s5',
-              body: {
-                en: 'Allow the crust to begin forming: Once the submerged portion starts developing a crust, lower approximately 2/3 of the fish into the oil.',
-                es: 'Permitir que la costra comience a formarse: Una vez que la porción sumergida comience a desarrollar costra, baje aproximadamente 2/3 del pescado al aceite.',
-              },
-            },
-            {
-              id: 'ht-s6',
-              body: {
-                en: 'Set the batter: Hold the fish in this position for approximately 10–12 seconds, then gently release it into the fryer basket.',
-                es: 'Fijar el rebozado: Mantenga el pescado en esta posición durante 10 a 12 segundos, luego suéltelo suavemente en la canasta de la freidora.',
-              },
-              timer: {
-                seconds: 12,
-                label: 'Set batter',
-              },
-            },
-            {
-              id: 'ht-s7',
-              body: {
-                en: 'Repeat with the second piece: Follow the same process with the second piece of halibut.',
-                es: 'Repetir con la segunda pieza: Siga el mismo proceso con la segunda pieza de fletán.',
-              },
-            },
-            {
-              id: 'ht-s8',
-              body: {
-                en: 'Prevent sticking: Gently shake the fryer basket after both pieces have been released to prevent the halibut from sticking to the bottom of the basket.',
-                es: 'Evitar que se pegue: Agite suavemente la canasta después de soltar ambas piezas para evitar que el fletán se pegue al fondo de la canasta.',
-              },
-            },
-            {
-              id: 'ht-s9',
-              body: {
-                en: 'Cook the halibut: Fry for approximately 2 minutes 30 seconds.',
-                es: 'Cocinar el fletán: Freír durante aproximadamente 2 minutos y 30 segundos.',
-              },
-              timer: {
-                seconds: 150,
-                label: 'Fry halibut',
-              },
-            },
-            {
-              id: 'ht-s10',
-              body: {
-                en: 'Check for doneness: Using a clean knife or the allocated wooden pick, gently insert it into the fish.',
-                es: 'Verificar la cocción: Con un cuchillo limpio o el palillo de madera asignado, insértelo suavemente en el pescado.',
-              },
-              note: {
-                severity: 'tip',
-                body: {
-                  en: 'The halibut is ready when no fish sticks to the knife or wooden pick upon removal, and the outside coating is crisp.',
-                  es: 'El fletán está listo cuando no se pega nada al cuchillo o palillo al retirarlo y la costra exterior está crujiente.',
-                },
-              },
-            },
-            {
-              id: 'ht-s11',
-              body: {
-                en: 'Remove and season: Transfer the cooked halibut into a steel bowl lined with brown paper. Season immediately with a pinch of salt.',
-                es: 'Retirar y sazonar: Transfiera el fletán cocido a un tazón de acero forrado con papel marrón. Sazone inmediatamente con una pizca de sal.',
-              },
-            },
-          ],
-        },
-        {
-          id: 'ht-h-assembly',
-          kind: 'heading',
-          level: 2,
-          text: {
-            en: 'Taco Assembly',
-            es: 'Armado de Tacos',
-          },
-        },
-        {
-          id: 'ht-m-assembly',
-          kind: 'method',
-          steps: [
-            {
-              id: 'ht-a1',
-              body: {
-                en: 'Heat the tortillas: Heat 4 taco tortillas on the grill.',
-                es: 'Calentar las tortillas: Caliente 4 tortillas de taco en la parrilla.',
-              },
-            },
-            {
-              id: 'ht-a2',
-              body: {
-                en: 'Double-layer the tacos: Place the tortillas on the serving plate in 2 stacks of 2 tortillas each, creating two double-layered tacos.',
-                es: 'Hacer tacos de doble capa: Coloque las tortillas en el plato de servicio en 2 pilas de 2 tortillas cada una, creando dos tacos dobles.',
-              },
-            },
-            {
-              id: 'ht-a3',
-              body: {
-                en: 'Add the halibut: Place 1 piece of fried halibut onto each double-layered taco.',
-                es: 'Agregar el fletán: Coloque 1 pieza de fletán frito en cada taco de doble capa.',
-              },
-            },
-            {
-              id: 'ht-a4',
-              body: {
-                en: 'Add the cabbage: Place a handful of cabbage over the two tacos.',
-                es: 'Agregar el repollo: Coloque un puñado de repollo sobre los dos tacos.',
-              },
-            },
-            {
-              id: 'ht-a5',
-              body: {
-                en: 'Add the pico de gallo: Add 1 spoonful of pico de gallo to each taco, positioning it primarily over the halibut.',
-                es: 'Agregar el pico de gallo: Agregue 1 cucharada de pico de gallo a cada taco, colocándolo principalmente sobre el fletán.',
-              },
-            },
-            {
-              id: 'ht-a6',
-              body: {
-                en: 'Finish with mayo: Drizzle mayo over the top of each taco.',
-                es: 'Terminar con mayonesa: Rocíe mayonesa sobre la parte superior de cada taco.',
-              },
-            },
-            {
-              id: 'ht-a7',
-              body: {
-                en: 'Add cilantro: Place the cilantro directly on top of the fish. Keep the garnish concentrated on the halibut rather than spreading it across the entire taco.',
-                es: 'Agregar cilantro: Coloque el cilantro directamente sobre el pescado. Mantenga la guarnición concentrada en el fletán en lugar de esparcirla por todo el taco.',
-              },
-              note: {
-                severity: 'tip',
-                body: {
-                  en: 'Keep cilantro garnish concentrated over the fried fish for clean visual presentation.',
-                  es: 'Mantenga la guarnición de cilantro concentrada sobre el pescado frito para una presentación visual limpia.',
-                },
-              },
-            },
-          ],
-        },
-        {
-          id: 'ht-h-handoff',
-          kind: 'heading',
-          level: 2,
-          text: {
-            en: 'Final Handoff',
-            es: 'Entrega Final',
-          },
-        },
-        {
-          id: 'ht-m-handoff',
-          kind: 'method',
-          steps: [
-            {
-              id: 'ht-o1',
-              body: {
-                en: 'Send to Expo: Hand the completed plate to the Expo Chef.',
-                es: 'Enviar a Expo: Entregue el plato terminado al Chef de Expo.',
-              },
-            },
-            {
-              id: 'ht-o2',
-              body: {
-                en: 'Final garnish and quality check: The Expo Chef adds the lime, checks the plate for presentation and completeness, and sends the finished order to the server.',
-                es: 'Guarnición final y control de calidad: El Chef de Expo agrega la lima, verifica la presentación y envía la orden terminada al mesero.',
-              },
-              note: {
-                severity: 'tip',
-                body: {
-                  en: 'Expo Chef verifies plate presentation and adds fresh lime wedge before handoff to server.',
-                  es: 'El Chef de Expo verifica el plato y añade la rodaja de lima fresca antes de entregar al mesero.',
-                },
-              },
-            },
-          ],
-        },
-      ],
-    },
-  },
 ];
 
 // ----------------------------------------------------------------------------
@@ -2939,6 +1631,18 @@ function getEmployeesStore(): AdminEmployee[] {
 function getProceduresStore(): Procedure[] {
   if (typeof window !== 'undefined') {
     mockProcedures = getStored('procedures_v2', SEED_PROCEDURES);
+
+    // Keep ONLY allowed demo procedures (Guacamole Fresco, Herb-Crusted Sea Bass)
+    // and any non-demo custom procedures created by the user
+    const allowedDemoIds = new Set(['proc-guacamole-fresco', 'proc-promo-sea-bass']);
+    const allowedDemoSlugs = new Set(['guacamole-fresco', 'herb-crusted-sea-bass']);
+    const isAllowedDemo = (p: Procedure) =>
+      allowedDemoIds.has(p.id) || allowedDemoSlugs.has(p.slug);
+    const isCustomProcedure = (p: Procedure) =>
+      !p.id.startsWith('proc-') && !p.id.startsWith('demo-') && !p.id.startsWith('master-');
+
+    mockProcedures = mockProcedures.filter((p) => isAllowedDemo(p) || isCustomProcedure(p));
+
     const guacIdx = mockProcedures.findIndex(
       (p) => p.id === 'proc-guacamole-fresco' || p.slug === 'guacamole-fresco',
     );
@@ -2946,19 +1650,14 @@ function getProceduresStore(): Procedure[] {
       const [guac] = mockProcedures.splice(guacIdx, 1);
       guac.updatedAt = '2026-09-30T12:00:00Z';
       mockProcedures.unshift(guac);
-      setStored('procedures_v2', mockProcedures);
     }
-    // A returning visitor's localStorage was seeded before this procedure
-    // existed, so a brand-new `id` would never appear. Backfill by id: every
-    // seed entry the cache doesn't already know about is appended, and the
-    // cache is rewritten so the next call short-circuits. Anything the user
-    // has edited in the wizard keeps its own id and is left alone.
+
     const cachedIds = new Set(mockProcedures.map((p) => p.id));
     const missing = SEED_PROCEDURES.filter((p) => !cachedIds.has(p.id));
     if (missing.length > 0) {
       mockProcedures = [...mockProcedures, ...missing];
-      setStored('procedures_v2', mockProcedures);
     }
+    setStored('procedures_v2', mockProcedures);
   }
   return mockProcedures;
 }
@@ -3048,6 +1747,7 @@ export async function logout(): Promise<{ ok: true }> {
       // Ignore
     }
   }
+  clearMeCache();
   return { ok: true };
 }
 
@@ -3085,62 +1785,96 @@ export async function verifyResetToken(token: string): Promise<{
   };
 }
 
+const inFlightMe = new Map<string, Promise<{ employee: Employee }>>();
+const cachedMe = new Map<string, { data: { employee: Employee }; expiresAt: number }>();
+const ME_CACHE_TTL_MS = 10_000;
+
+export function clearMeCache(): void {
+  cachedMe.clear();
+  inFlightMe.clear();
+}
+
 export async function fetchMe(
   cookieHeader?: string,
   _signal?: AbortSignal,
 ): Promise<{ employee: Employee }> {
-  try {
-    const headers: Record<string, string> = {
-      'Cache-Control': 'no-cache, no-store',
-      Pragma: 'no-cache',
-    };
+  const cacheKey = cookieHeader || (typeof window !== 'undefined' ? 'client' : 'server_default');
+  const now = Date.now();
 
-    if (cookieHeader) {
-      headers['Cookie'] = cookieHeader;
-      const tokenMatch = cookieHeader.match(/(?:^|;\s*)lms_token=([^;]+)/);
-      if (tokenMatch) {
-        headers['Authorization'] = `Bearer ${decodeURIComponent(tokenMatch[1])}`;
-      }
-    }
-
-    const { data } = await http.get<{
-      success: boolean;
-      data: {
-        employee?: Employee;
-        user?: { id: string; name: string; email: string };
-        role?: string;
-      };
-    }>(AUTH_ENDPOINTS.ME, {
-      headers,
-      params: { _t: Date.now() },
-    });
-
-    if (data.data?.employee) {
-      return { employee: data.data.employee };
-    }
-
-    if (data.data?.user) {
-      const userRole = (data.data.role as EmployeeRole) || 'super_admin';
-      return {
-        employee: {
-          id: data.data.user.id,
-          name: data.data.user.name,
-          email: data.data.user.email,
-          role: userRole,
-          locationId: '',
-          roleIds: [],
-          stationIds: [],
-          languagePref: 'en',
-        },
-      };
-    }
-  } catch (err) {
-    if (err instanceof ApiException) {
-      throw err;
-    }
+  const cached = cachedMe.get(cacheKey);
+  if (cached && cached.expiresAt > now) {
+    return cached.data;
   }
 
-  throw new ApiException(401, 'SESSION_INVALID', 'Session expired or invalid');
+  const existing = inFlightMe.get(cacheKey);
+  if (existing) {
+    return existing;
+  }
+
+  const mePromise = (async () => {
+    try {
+      const headers: Record<string, string> = {
+        'Cache-Control': 'no-cache, no-store',
+        Pragma: 'no-cache',
+      };
+
+      if (cookieHeader) {
+        headers['Cookie'] = cookieHeader;
+        const tokenMatch = cookieHeader.match(/(?:^|;\s*)lms_token=([^;]+)/);
+        if (tokenMatch) {
+          headers['Authorization'] = `Bearer ${decodeURIComponent(tokenMatch[1])}`;
+        }
+      }
+
+      const { data } = await http.get<{
+        success: boolean;
+        data: {
+          employee?: Employee;
+          user?: { id: string; name: string; email: string };
+          role?: string;
+        };
+      }>(AUTH_ENDPOINTS.ME, {
+        headers,
+        params: { _t: Date.now() },
+        signal: _signal,
+      });
+
+      if (data.data?.employee) {
+        const res = { employee: data.data.employee };
+        cachedMe.set(cacheKey, { data: res, expiresAt: Date.now() + ME_CACHE_TTL_MS });
+        return res;
+      }
+
+      if (data.data?.user) {
+        const userRole = (data.data.role as EmployeeRole) || 'super_admin';
+        const res = {
+          employee: {
+            id: data.data.user.id,
+            name: data.data.user.name,
+            email: data.data.user.email,
+            role: userRole,
+            locationId: '',
+            roleIds: [],
+            stationIds: [],
+            languagePref: 'en' as const,
+          },
+        };
+        cachedMe.set(cacheKey, { data: res, expiresAt: Date.now() + ME_CACHE_TTL_MS });
+        return res;
+      }
+    } catch (err) {
+      if (err instanceof ApiException) {
+        throw err;
+      }
+    } finally {
+      inFlightMe.delete(cacheKey);
+    }
+
+    throw new ApiException(401, 'SESSION_INVALID', 'Session expired or invalid');
+  })();
+
+  inFlightMe.set(cacheKey, mePromise);
+  return mePromise;
 }
 
 // ----------------------------------------------------------------------------
@@ -3403,6 +2137,19 @@ function uniqueSlug(title: string, exceptId?: string): string {
 }
 
 export async function createProcedure(input: CreateProcedureInput): Promise<{ procedure: Procedure }> {
+  try {
+    const { createProcedure: apiCreate } = await import('@/services/library/api');
+    const proc = await apiCreate(input);
+    if (proc) {
+      mockProcedures = [proc, ...getProceduresStore().filter((p) => p.id !== proc.id && p.slug !== proc.slug)];
+      setStored('procedures_v2', mockProcedures);
+      return { procedure: proc };
+    }
+  } catch (err) {
+    console.error('API createProcedure error, falling back to local store:', err);
+    if (err instanceof ApiException) throw err;
+  }
+
   const cats = getCategoriesStore();
   const cat = cats.find((c) => c.id === input.categoryId) ?? null;
   const slug = uniqueSlug(input.titleEn || input.titleEs);
@@ -3566,14 +2313,62 @@ export async function listProcedures(
   filter: { status?: Procedure['status'] } = {},
   cookieHeader?: string,
 ): Promise<{ procedures: Procedure[] }> {
+  const allowedDemoSlugs = new Set(['guacamole-fresco', 'herb-crusted-sea-bass']);
+  const allowedDemoIds = new Set(['proc-guacamole-fresco', 'proc-promo-sea-bass']);
+
+  try {
+    const { fetchProcedures } = await import('@/services/library/api');
+    const apiRes = await fetchProcedures({ status: filter.status }, false, cookieHeader);
+    // [DEBUG] API path taken
+    console.log('[DEBUG listProcedures] API path:', (apiRes.procedures || []).length, apiRes.procedures);
+    const dbProcs = apiRes.procedures || [];
+
+    const localStore = getProceduresStore();
+    const existingDbSlugsOrIds = new Set(
+      dbProcs.flatMap((p) => [p.id, p.slug].filter(Boolean)),
+    );
+
+    // Pick ONLY the 2 allowed demo procedures if not already in DB
+    const demoProcs = localStore.filter(
+      (p) =>
+        (allowedDemoSlugs.has(p.slug) || allowedDemoIds.has(p.id)) &&
+        !existingDbSlugsOrIds.has(p.id) &&
+        !existingDbSlugsOrIds.has(p.slug),
+    );
+
+    const combined = [...dbProcs, ...demoProcs];
+    const { employee: viewer } = await fetchMe(cookieHeader);
+    const visible = combined.filter((p) => canRead(p, viewer));
+    const filtered = filter.status ? visible.filter((p) => p.status === filter.status) : visible;
+    return { procedures: filtered };
+  } catch (err) {
+    // [DEBUG] why the Network tab shows nothing: silent failure
+    console.warn('[DEBUG listProcedures] API failed, falling back to local store:', err);
+  }
+
   const { employee: viewer } = await fetchMe(cookieHeader);
-  const procs = getProceduresStore().filter((p) => canRead(p, viewer));
+  const procs = getProceduresStore().filter(
+    (p) =>
+      (allowedDemoSlugs.has(p.slug) || allowedDemoIds.has(p.id)) &&
+      canRead(p, viewer),
+  );
   const filtered = filter.status ? procs.filter((p) => p.status === filter.status) : procs;
+  // [DEBUG] fallback path: mock data from localStorage, no network call
+  console.log('[DEBUG listProcedures] fallback path:', filtered.length, filtered);
   return { procedures: [...filtered] };
 }
 
 /** One procedure by id, for the editor. */
 export async function getProcedureById(id: string): Promise<{ procedure: Procedure }> {
+  try {
+    const { fetchProcedureById } = await import('@/services/library/api');
+    const apiProc = await fetchProcedureById(id);
+    if (apiProc) {
+      return { procedure: apiProc };
+    }
+  } catch {
+    // fallback
+  }
   const found = getProceduresStore().find((p) => p.id === id || p.slug === id);
   if (!found) throw new ApiException(404, 'NOT_FOUND', 'Procedure not found');
   return { procedure: found };
@@ -3620,52 +2415,175 @@ export async function deleteProcedure(id: string): Promise<{ ok: true }> {
 // Library — quizzes (centralised table)
 // ----------------------------------------------------------------------------
 
-/** Look up every quiz in the centralised store. The reader-side
- *  component joins `procedure.quizId` against this list to render the
- *  quiz block. The wizard reads this list when it needs to copy an
- *  existing quiz onto a new procedure. */
+function normalizeQuiz(raw: any): Quiz {
+  const rawQuestions = Array.isArray(raw?.questions) ? raw.questions : [];
+  const questions = rawQuestions.map((q: any) => {
+    const promptText = q.prompt ?? q.question ?? { en: '', es: '' };
+    return {
+      id: q.id || `q-${Math.random().toString(36).slice(2, 7)}`,
+      prompt: promptText,
+      question: promptText,
+      choices: (q.choices ?? []).map((c: any) => ({
+        id: c.id,
+        label: c.label ?? { en: '', es: '' },
+      })),
+      correctChoiceId: q.correctChoiceId ?? '',
+    };
+  });
+
+  return {
+    id: raw.id || raw._id || `quiz-${Date.now()}`,
+    nameEn: raw.nameEn || '',
+    nameEs: raw.nameEs || '',
+    quizType: raw.quizType || 'procedure',
+    questions,
+    attached: raw.attached ?? true,
+    createdAt: raw.createdAt || new Date().toISOString(),
+    updatedAt: raw.updatedAt || new Date().toISOString(),
+  };
+}
+
+/** Look up every quiz in the centralised store / backend API.
+ *  Uses GET /api/v1/quizzes and keeps local cache in sync. */
 export async function listQuizzes(): Promise<{ quizzes: Quiz[] }> {
+  try {
+    const res = await http.get<any>('/api/v1/quizzes');
+    const raw = res.data?.data ?? res.data;
+    const items = Array.isArray(raw) ? raw : (raw?.quizzes ?? []);
+    if (Array.isArray(items) && items.length > 0) {
+      const normalized = items.map(normalizeQuiz);
+      normalized.forEach((q) => {
+        const store = getQuizzesStore();
+        const existingIdx = store.findIndex((s) => s.id === q.id);
+        if (existingIdx !== -1) {
+          store[existingIdx] = q;
+        } else {
+          store.unshift(q);
+        }
+        setStored('quizzes', store);
+      });
+      return { quizzes: normalized };
+    }
+  } catch (err) {
+    console.warn('listQuizzes API call failed, using store fallback:', err);
+  }
   return { quizzes: [...getQuizzesStore()] };
 }
 
-/** Sync lookup for a single quiz by id. Read-side components
- *  (`procedure-view-client`, training pages) read this on each render
- *  to resolve `procedure.quizId` to its quiz data. The backend will
- *  swap this for a server-side join in the procedure / course response. */
+/** Fetch a single quiz from GET /api/v1/quizzes/:id and cache it locally. */
+export async function fetchQuizById(id: string): Promise<Quiz | null> {
+  if (!id) return null;
+  try {
+    const res = await http.get<any>(`/api/v1/quizzes/${id}`);
+    const raw = res.data?.data?.quiz ?? res.data?.data ?? res.data;
+    if (raw && (raw.id || raw.questions)) {
+      const q = normalizeQuiz(raw);
+      const store = getQuizzesStore();
+      const idx = store.findIndex((s) => s.id === q.id);
+      if (idx !== -1) {
+        store[idx] = q;
+      } else {
+        store.unshift(q);
+      }
+      setStored('quizzes', store);
+      return q;
+    }
+  } catch (err) {
+    console.warn(`fetchQuizById(${id}) API call failed, using cached fallback:`, err);
+  }
+  return getQuizById(id);
+}
+
+/** Sync lookup for a single quiz by id from the cached store. */
 export function getQuizById(id: string | null): Quiz | null {
   if (!id) return null;
   return getQuizzesStore().find((q) => q.id === id) ?? null;
 }
 
-/** Materialise a quiz row from the wizard's authored form state. Returns
- *  the id the wizard then stamps onto `procedure.quizId` via
- *  `createProcedure({ quizId })`. The backend will replace this with a
- *  POST to `/api/admin/quizzes`. */
+/** Create a quiz via POST /api/v1/quizzes.
+ *  Payload matches: { nameEn, nameEs, quizType, questions: [...] } */
 export async function createQuiz(input: {
+  nameEn?: string;
+  nameEs?: string;
+  quizType?: string;
   questions: Quiz['questions'];
-  attached: boolean;
+  attached?: boolean;
 }): Promise<{ quiz: Quiz }> {
+  const payload = {
+    nameEn: input.nameEn || 'Procedure Quiz',
+    nameEs: input.nameEs || 'Cuestionario de Procedimiento',
+    quizType: input.quizType || 'procedure',
+    questions: input.questions.map((q) => ({
+      id: q.id,
+      question: q.question ?? q.prompt,
+      choices: q.choices,
+      correctChoiceId: q.correctChoiceId,
+    })),
+  };
+
+  try {
+    const res = await http.post<any>('/api/v1/quizzes', payload);
+    const raw = res.data?.data?.quiz ?? res.data?.data ?? res.data;
+    if (raw && (raw.id || raw.questions)) {
+      const created = normalizeQuiz({ ...raw, attached: input.attached ?? true });
+      const store = getQuizzesStore();
+      store.unshift(created);
+      setStored('quizzes', store);
+      return { quiz: created };
+    }
+  } catch (err) {
+    console.warn('createQuiz API call failed, saving to local store:', err);
+  }
+
   const now = new Date().toISOString();
-  const newQuiz: Quiz = {
+  const fallbackQuiz: Quiz = {
     id: `quiz-${Date.now()}`,
+    nameEn: payload.nameEn,
+    nameEs: payload.nameEs,
+    quizType: payload.quizType,
     questions: input.questions,
-    attached: input.attached,
+    attached: input.attached ?? true,
     createdAt: now,
     updatedAt: now,
   };
-  mockQuizzes = [newQuiz, ...getQuizzesStore()];
+  mockQuizzes = [fallbackQuiz, ...getQuizzesStore()];
   setStored('quizzes', mockQuizzes);
-  return { quiz: newQuiz };
+  return { quiz: fallbackQuiz };
 }
 
-/** Patch a quiz row in the mock store. Used by the procedure detail page's
- *  "Attach quiz" banner to flip `quiz.attached` so the read side starts
- *  rendering the quiz on the next render. The backend will replace this
- *  with a PATCH on `/api/admin/quizzes/:id`. */
+/** Patch/update a quiz. Calls PATCH /api/v1/quizzes/:id if available,
+ *  and updates local store. */
 export async function updateQuiz(
   id: string,
-  patch: Partial<Pick<Quiz, 'attached' | 'questions'>>,
+  patch: Partial<Pick<Quiz, 'attached' | 'questions' | 'nameEn' | 'nameEs'>>,
 ): Promise<{ quiz: Quiz }> {
+  try {
+    const patchPayload: Record<string, any> = {};
+    if (patch.nameEn) patchPayload.nameEn = patch.nameEn;
+    if (patch.nameEs) patchPayload.nameEs = patch.nameEs;
+    if (patch.questions) {
+      patchPayload.questions = patch.questions.map((q) => ({
+        id: q.id,
+        question: q.question ?? q.prompt,
+        choices: q.choices,
+        correctChoiceId: q.correctChoiceId,
+      }));
+    }
+    const res = await http.patch<any>(`/api/v1/quizzes/${id}`, patchPayload);
+    const raw = res.data?.data?.quiz ?? res.data?.data ?? res.data;
+    if (raw && (raw.id || raw.questions)) {
+      const updated = normalizeQuiz({ ...raw, attached: patch.attached ?? true });
+      const store = getQuizzesStore();
+      const idx = store.findIndex((s) => s.id === id);
+      if (idx !== -1) store[idx] = updated;
+      else store.unshift(updated);
+      setStored('quizzes', store);
+      return { quiz: updated };
+    }
+  } catch (err) {
+    console.warn(`updateQuiz(${id}) API call failed, updating local store:`, err);
+  }
+
   const store = getQuizzesStore();
   const idx = store.findIndex((q) => q.id === id);
   if (idx === -1) {
@@ -3687,6 +2605,16 @@ export async function getProcedureBySlug(
   slug: string,
   cookieHeader?: string,
 ): Promise<{ procedure: Procedure }> {
+  try {
+    const { fetchProcedureById } = await import('@/services/library/api');
+    const apiProc = await fetchProcedureById(slug, false, cookieHeader);
+    if (apiProc) {
+      return { procedure: apiProc };
+    }
+  } catch {
+    // fallback
+  }
+
   const normSlug = slug.toLowerCase();
   const procs = getProceduresStore();
   const found = procs.find((p) => p.slug.toLowerCase() === normSlug || p.id.toLowerCase() === normSlug);
@@ -3811,6 +2739,17 @@ export async function requestImageUpload(
   input: { filename: string; contentType: string; size: number },
   _cookieHeader?: string,
 ): Promise<PresignedUpload> {
+  try {
+    const res = await http.post<{ success: boolean; data: PresignedUpload } | PresignedUpload>(
+      '/api/v1/uploads/image',
+      input,
+    );
+    const data = (res.data as any)?.data ?? res.data;
+    if (data && data.uploadUrl) return data;
+  } catch (err) {
+    console.warn('requestImageUpload API call failed, falling back to mock:', err);
+  }
+
   return {
     uploadUrl: 'mock-upload',
     key: `images/${Date.now()}-${input.filename}`,
@@ -3823,6 +2762,17 @@ export async function requestVideoUpload(
   input: { filename: string; contentType: string; size: number },
   _cookieHeader?: string,
 ): Promise<PresignedUpload> {
+  try {
+    const res = await http.post<{ success: boolean; data: PresignedUpload } | PresignedUpload>(
+      '/api/v1/uploads/video',
+      input,
+    );
+    const data = (res.data as any)?.data ?? res.data;
+    if (data && data.uploadUrl) return data;
+  } catch (err) {
+    console.warn('requestVideoUpload API call failed, falling back to mock:', err);
+  }
+
   return {
     uploadUrl: 'mock-upload',
     key: `videos/${Date.now()}-${input.filename}`,
@@ -3837,13 +2787,13 @@ export async function requestDocumentUpload(
 ): Promise<PresignedUpload> {
   try {
     const res = await http.post<{ success: boolean; data: PresignedUpload } | PresignedUpload>(
-      '/api/admin/uploads/document',
+      '/api/v1/uploads/document',
       input,
     );
     const data = (res.data as any)?.data ?? res.data;
     if (data && data.uploadUrl) return data;
-  } catch {
-    // Mock / fallback for local development without active R2 credentials
+  } catch (err) {
+    console.warn('requestDocumentUpload API call failed, falling back to mock:', err);
   }
   return {
     uploadUrl: 'mock-upload',
@@ -3851,6 +2801,68 @@ export async function requestDocumentUpload(
     publicUrl: `/uploads/${input.filename}`,
     expiresIn: 3600,
   };
+}
+
+export async function uploadAsset(
+  file: File | Blob,
+  filename?: string,
+): Promise<{ url: string; key?: string }> {
+  const formData = new FormData();
+  if (file instanceof File) {
+    formData.append('file', file);
+  } else {
+    formData.append('file', file, filename || 'file');
+  }
+
+  const res = await http.post<any>('/api/v1/uploads', formData);
+  const data = res.data?.data?.data ?? res.data?.data ?? res.data;
+  const url =
+    data?.publicUrl ?? data?.url ?? data?.fileUrl ?? data?.src ?? (typeof data === 'string' ? data : '');
+  return { url, key: data?.key };
+}
+
+/** Unified upload helper for frontend components.
+ *  Uses Direct Multipart Upload (POST /api/v1/uploads) and falls back to presign flow. */
+export async function uploadMedia(
+  file: File,
+  fallbackType: 'image' | 'video' | 'document' = 'image',
+): Promise<string> {
+  try {
+    const direct = await uploadAsset(file);
+    if (direct?.url) return direct.url;
+  } catch (err) {
+    console.warn('Direct upload to /api/v1/uploads failed, trying presign:', err);
+  }
+
+  try {
+    const meta = { filename: file.name, contentType: file.type, size: file.size };
+    const presigned =
+      fallbackType === 'video'
+        ? await requestVideoUpload(meta)
+        : fallbackType === 'document'
+        ? await requestDocumentUpload(meta)
+        : await requestImageUpload(meta);
+
+    if (presigned?.uploadUrl && presigned.uploadUrl !== 'mock-upload') {
+      await uploadToR2(presigned.uploadUrl, file, file.type);
+      if (presigned.publicUrl && !presigned.publicUrl.includes('unsplash.com')) {
+        return presigned.publicUrl;
+      }
+    }
+  } catch (err) {
+    console.warn('Presign upload failed:', err);
+  }
+
+  if (file.type.startsWith('image/')) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve((reader.result as string) || '');
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
+    });
+  }
+
+  return '';
 }
 
 export async function uploadToR2(
@@ -3867,8 +2879,14 @@ export async function uploadToR2(
   }
 }
 
-export async function deleteUpload(_input: { url: string }): Promise<{ ok: true }> {
-  return { ok: true };
+export async function deleteUpload(input: { url: string }): Promise<{ ok: boolean }> {
+  try {
+    const res = await http.delete<any>('/api/v1/uploads', { data: input });
+    return res.data?.data ?? res.data ?? { ok: true };
+  } catch (err) {
+    console.warn('deleteUpload API error:', err);
+    return { ok: true };
+  }
 }
 
 // ----------------------------------------------------------------------------

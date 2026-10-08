@@ -10,10 +10,11 @@ import {
   LuArrowLeft,
   LuCircleCheck,
   LuCircleDashed,
+  LuCopy,
   LuPencil,
   LuTrash2,
 } from 'react-icons/lu';
-import { ApiException, deleteProcedure, getQuizById, setProcedureState, updateQuiz } from '@/lib/api';
+import { ApiException, deleteProcedure, fetchQuizById, getQuizById, setProcedureState, updateQuiz } from '@/lib/api';
 import type { Employee, Procedure, ProcedureStatus } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { RowActions, type RowActionItem } from '@/components/ui/row-actions';
@@ -45,6 +46,18 @@ export function AdminProcedureView({
   // gated by training. Admin-only state, mirrors the cook route's wiring.
   const [bannerDismissed, setBannerDismissed] = React.useState(false);
   const [isAttaching, setIsAttaching] = React.useState(false);
+
+  const [, setQuizTick] = React.useState(0);
+  React.useEffect(() => {
+    if (!proc?.quizId) return;
+    let isMounted = true;
+    fetchQuizById(proc.quizId).then(() => {
+      if (isMounted) setQuizTick((n) => n + 1);
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [proc?.quizId]);
 
   const transition = React.useCallback(
     async (change: { status?: ProcedureStatus; isArchived?: boolean }): Promise<void> => {
@@ -125,7 +138,22 @@ export function AdminProcedureView({
             icon: LuArchive,
             onSelect: () => void transition({ isArchived: true }),
           },
-      // 3. Delete — destructive, gets the inline-confirm panel from RowActions.
+      // 3. Export / Copy JSON (with attached Quiz if present)
+      {
+        label: 'Copy JSON (with Quiz)',
+        icon: LuCopy,
+        onSelect: () => {
+          const quiz = proc.quizId ? getQuizById(proc.quizId) : null;
+          const payload = {
+            ...proc,
+            quiz: quiz ?? null,
+          };
+          if (typeof navigator !== 'undefined' && navigator.clipboard) {
+            void navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+          }
+        },
+      },
+      // 4. Delete — destructive, gets the inline-confirm panel from RowActions.
       {
         label: t('actionsDelete'),
         icon: LuTrash2,
@@ -134,7 +162,7 @@ export function AdminProcedureView({
       },
     ];
     return items.filter((item): item is RowActionItem => item !== null);
-  }, [proc.isArchived, proc.status, t, transition, handleDelete]);
+  }, [proc, t, transition, handleDelete]);
 
   // The cook-mode CTA in the top chrome bar belongs to the page's first
   // recipe block. We compute it from the loaded `proc` so a freshly-edited

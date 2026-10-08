@@ -76,11 +76,28 @@ export function ProceduresClientList({
   const [activeCategory, setActiveCategory] = React.useState<string>(initialCategory);
 
   React.useEffect(() => {
+    if (initialCategories) setCategories(initialCategories);
+  }, [initialCategories]);
+
+  // [DEBUG] browser console — the exact data the server page handed to this component.
+  React.useEffect(() => {
+    console.log('[DEBUG client-list] initialCategories:', initialCategories);
+    console.log('[DEBUG client-list] initialProcedures:', initialProcedures);
+  }, [initialCategories, initialProcedures]);
+
+  React.useEffect(() => {
+    if (initialProcedures) setProcedures(initialProcedures);
+  }, [initialProcedures]);
+
+  React.useEffect(() => {
     let isMounted = true;
     async function syncData() {
       try {
         const catRes = await listCategories(locationId, {});
         const procRes = await listProcedures({});
+        // [DEBUG] client refetch (this one DOES appear in the Network tab).
+        console.log('[DEBUG client-list] syncData categories:', catRes.categories);
+        console.log('[DEBUG client-list] syncData procedures:', procRes.procedures);
         if (isMounted) {
           if (catRes.categories && catRes.categories.length > 0) {
             setCategories(catRes.categories);
@@ -93,7 +110,6 @@ export function ProceduresClientList({
         // Fallback
       }
     }
-    syncData();
 
     window.addEventListener('storage', syncData);
     window.addEventListener('lms_categories_updated', syncData);

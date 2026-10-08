@@ -35,7 +35,7 @@ function splitCover(blocks: ProcedureBlock[]): {
   cover?: { src: string; alt: string };
   rest: ProcedureBlock[];
 } {
-  const i = blocks.findIndex((b) => b.kind === 'image' && b.src);
+  const i = blocks.findIndex((b, idx) => b.kind === 'image' && Boolean(b.src) && idx === 0);
   if (i === -1) return { rest: blocks };
   const b = blocks[i] as Extract<ProcedureBlock, { kind: 'image' }>;
   return {
@@ -96,13 +96,20 @@ export function ProcedureArticleBody({
   const allergen = hoisted?.allergen;
 
   const cat = proc.category;
+  const rawSub = (proc as any).subcategory;
   const categoryLabel = cat
     ? isEs
       ? cat.nameEs || cat.nameEn
       : cat.nameEn || cat.nameEs
-    : labels.uncategorised;
+    : rawSub
+      ? isEs
+        ? rawSub.nameEs || rawSub.nameEn
+        : rawSub.nameEn || rawSub.nameEs
+      : labels.uncategorised;
   const procSub =
-    cat?.subcategories?.find((s) => s.id && proc.subcategoryId && s.id === proc.subcategoryId) ?? null;
+    cat?.subcategories?.find((s) => s.id && proc.subcategoryId && s.id === proc.subcategoryId) ??
+    rawSub ??
+    null;
   const iconName = proc.iconImageUrl
     ? 'file-text'
     : procSub?.slug
@@ -128,16 +135,23 @@ export function ProcedureArticleBody({
     .join(' · ');
   const englishOnly = isEs && bodyEsBlocks.length === 0;
 
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Quiz attach banner: shown to admins when the procedure has a quiz but
   // neither `quiz.attached` nor `attachedToTraining` is on. The read side
   // resolves `procedure.quizId` to its quiz row via `getQuizById` on every
-  // render.
-  const quiz = proc.quizId ? getQuizById(proc.quizId) : null;
+  // render. We gate this on `mounted` so SSR and initial client hydration
+  // match identically, preventing hydration mismatch when quiz is stored in
+  // client-only localStorage.
+  const quiz = mounted && proc.quizId ? getQuizById(proc.quizId) : null;
   const quizExists = Boolean(quiz && quiz.questions.length > 0);
   const quizVisible = Boolean(quiz && (quiz.attached || proc.attachedToTraining));
   const showAttachBanner = isAdmin && quizExists && !quizVisible;
   return (
-    <article className="doc">
+    <article className="doc" suppressHydrationWarning>
       <DocBehaviour />
       {docBar}
       {proc.protection === 'confidential' || proc.protection === 'master' ? (

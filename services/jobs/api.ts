@@ -29,37 +29,13 @@ export async function fetchJobs(
 export async function fetchJobsWithStations(
   cookieHeader?: string,
 ): Promise<{ jobs: JobWithStations[] }> {
-  const headers: Record<string, string> = {};
-
-  if (cookieHeader) {
-    headers['Cookie'] = cookieHeader;
-    const tokenMatch = cookieHeader.match(/(?:^|;\s*)lms_token=([^;]+)/);
-    if (tokenMatch) {
-      headers['Authorization'] = `Bearer ${decodeURIComponent(tokenMatch[1])}`;
-    }
-  }
-
-  // Call backend GET /api/v1/jobs/with-stations directly
-  try {
-    const { data } = await http.get<{
-      success: boolean;
-      data: { jobs: JobWithStations[] };
-    }>(JOBS_ENDPOINTS.WITH_STATIONS, {
-      headers: Object.keys(headers).length ? headers : undefined,
-      params: { _t: Date.now() },
-    });
-
-    return { jobs: data.data?.jobs ?? [] };
-  } catch {
-    // If backend route is not ready yet, return jobs with empty stations (no artificial unions)
-    const { jobs } = await fetchJobs(cookieHeader);
-    return {
-      jobs: jobs.map((j) => ({
-        ...j,
-        stations: [],
-      })),
-    };
-  }
+  const { jobs } = await fetchJobs(cookieHeader);
+  return {
+    jobs: jobs.map((j) => ({
+      ...j,
+      stations: [],
+    })),
+  };
 }
 
 export async function fetchRoles(

@@ -66,13 +66,15 @@ export function RecipeBody({
 
   const scaled = React.useMemo(
     () =>
-      yieldItems.map((y) => {
-        if (!y.scales) return y;
-        const n = parseFloat(y.value.replace(',', '.'));
-        if (!Number.isFinite(n)) return y;
-        const value = String(Math.round((n * factor) / base * 100) / 100);
-        return { ...y, value };
-      }),
+      yieldItems
+        .filter((y) => (y.value ?? '').trim() !== '')
+        .map((y) => {
+          if (!y.scales) return y;
+          const n = parseFloat(y.value.replace(',', '.'));
+          if (!Number.isFinite(n)) return y;
+          const value = String(Math.round(((n * factor) / base) * 100) / 100);
+          return { ...y, value };
+        }),
     [yieldItems, factor, base],
   );
 

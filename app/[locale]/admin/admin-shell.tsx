@@ -484,7 +484,13 @@ function NavLink({
   return (
     <Link
       href={href}
-      onClick={onClick}
+      onClick={(e) => {
+        if (active) {
+          e.preventDefault();
+          return;
+        }
+        onClick();
+      }}
       aria-current={active ? 'page' : undefined}
       className={cn(
         'group flex min-h-10 items-center gap-3 rounded-[var(--radius-md)] px-3 py-2',

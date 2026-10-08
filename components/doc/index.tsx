@@ -140,7 +140,7 @@ export function DocHead({
           <Icon icon={iconByName(icon)} className="i" />
         </div>
       ) : null}
-      <div className="doc-crumb">{category}</div>
+      <div className="doc-crumb" suppressHydrationWarning>{category}</div>
       <h1 className="doc-title display">{title}</h1>
       {!withCover && <div className="qr print-only"><span className="code">QR</span></div>}
     </header>
@@ -221,10 +221,18 @@ export function Facts({ items }: { items: Fact[] }) {
 
 export type YieldItem = { label: string; value: React.ReactNode };
 
-/** Same component, larger numbers because one holds figures. */
+/** Same component, larger numbers because one holds figures. Dynamically sizes columns to fill width. */
 export function Yield({ items }: { items: YieldItem[] }) {
+  const count = Math.max(1, items.length);
   return (
-    <dl className="yield">
+    <dl
+      className="yield"
+      data-count={count}
+      style={{
+        gridTemplateColumns:
+          count <= 3 ? `repeat(${count}, minmax(0, 1fr))` : undefined,
+      }}
+    >
       {items.map((y, i) => (
         <div key={i}>
           <dt>{y.label}</dt>
@@ -936,7 +944,7 @@ export function DocControl({ entries, defaultOpen = true }: { entries: DocContro
         {entries.map((e, i) => (
           <React.Fragment key={i}>
             <dt>{e.label}</dt>
-            <dd>{e.value}</dd>
+            <dd suppressHydrationWarning>{e.value}</dd>
           </React.Fragment>
         ))}
       </dl>

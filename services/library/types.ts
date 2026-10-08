@@ -5,6 +5,7 @@ export type { Procedure, CreateProcedureInput };
 export interface ProcedureFilterOptions {
   locationId?: string;
   categoryId?: string;
+  status?: string;
   q?: string;
   page?: number;
 }

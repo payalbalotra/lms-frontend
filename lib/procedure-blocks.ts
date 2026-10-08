@@ -41,6 +41,13 @@ export function newMethodBlock(): ProcedureBlock {
 
 const DEFAULT_FACTORS = [1, 2, 4];
 
+export const DEFAULT_YIELD_TEMPLATE: ProcedureYieldItem[] = [
+  { label: 'Total Batch Weight', value: '', unit: 'kg', scales: true },
+  { label: 'Portion Count', value: '', unit: 'tacos', scales: true },
+  { label: 'Portion Size', value: '', unit: 'g', scales: false },
+  { label: 'Total Cooking Time', value: '', unit: 'hrs', scales: false },
+];
+
 const emptyYield = (): ProcedureYieldItem => ({ label: '', value: '', unit: '' });
 
 const emptyIngredient = (factorCount: number): ProcedureIngredient => ({
@@ -55,7 +62,7 @@ export function newIngredientsBlock(): ProcedureBlock {
     id: nextBlockId(),
     kind: 'ingredients',
     audience: '',
-    yieldItems: [emptyYield()],
+    yieldItems: DEFAULT_YIELD_TEMPLATE.map((y) => ({ ...y })),
     factors: [...DEFAULT_FACTORS],
     ingredients: [emptyIngredient(DEFAULT_FACTORS.length)],
   };
@@ -66,7 +73,7 @@ export function newRecipeBlock(): ProcedureBlock {
     id: nextBlockId(),
     kind: 'recipe',
     audience: '',
-    yieldItems: [emptyYield()],
+    yieldItems: DEFAULT_YIELD_TEMPLATE.map((y) => ({ ...y })),
     factors: [...DEFAULT_FACTORS],
     ingredients: [],
     steps: [newStep()],

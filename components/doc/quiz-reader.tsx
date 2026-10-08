@@ -18,21 +18,60 @@ import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import type { Localised, ProcedureQuiz } from '@/lib/types';
-import { LuCheck, LuChevronRight, LuCircle, LuCircleCheck, LuMessageCircleQuestion } from 'react-icons/lu';
+import { LuCheck, LuChevronRight, LuCircle, LuCircleCheck, LuMessageCircleQuestion, LuX } from 'react-icons/lu';
 
 interface QuizReaderProps {
   quiz: ProcedureQuiz;
   locale: 'en' | 'es';
 }
 
-function pickText(v: Localised, locale: 'en' | 'es'): string {
+function pickText(v: Localised | undefined, locale: 'en' | 'es'): string {
+  if (!v) return '';
   return v[locale] || v.en || v.es || '';
+}
+
+function RadioDot({ selected, isCorrect, isWrong }: { selected: boolean; isCorrect?: boolean; isWrong?: boolean }) {
+  if (isCorrect) {
+    return (
+      <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--ok)] text-white shadow-xs">
+        <LuCheck className="size-3 stroke-[3]" />
+      </span>
+    );
+  }
+  if (isWrong) {
+    return (
+      <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--bad)] text-white shadow-xs">
+        <LuX className="size-3 stroke-[3]" />
+      </span>
+    );
+  }
+  if (selected) {
+    return (
+      <span className="flex size-5 shrink-0 items-center justify-center rounded-full border-2 border-[var(--ink)] bg-[var(--surface)]">
+        <span className="size-2 rounded-full bg-[var(--ink)]" />
+      </span>
+    );
+  }
+  return (
+    <span className="flex size-5 shrink-0 items-center justify-center rounded-full border-2 border-[var(--line-3)] bg-[var(--surface)] transition-colors" />
+  );
 }
 
 export function QuizReader({ quiz, locale }: QuizReaderProps): React.ReactElement {
   const t = useTranslations('employee.doc.quiz');
   const questions = quiz.questions;
   const [openId, setOpenId] = React.useState<string | null>(questions[0]?.id ?? null);
+  const [answers, setAnswers] = React.useState<Record<string, string>>({});
+
+  const handleSelectChoice = (questionId: string, choiceId: string) => {
+    setAnswers((prev) => ({
+      ...prev,
+      [questionId]: choiceId,
+    }));
+  };
+
+  const correctLabel = locale === 'es' ? 'Correcta' : 'Correct';
+  const incorrectLabel = locale === 'es' ? 'Incorrecta' : 'Incorrect';
 
   return (
     <section className="doc-sec">
@@ -42,70 +81,106 @@ export function QuizReader({ quiz, locale }: QuizReaderProps): React.ReactElemen
       </h2>
       <p className="doc-purpose">{t('intro')}</p>
 
-      <ol className="space-y-4">
+      <ol className="mt-6 space-y-4">
         {questions.map((q, i) => {
           const isOpen = openId === q.id;
+          const selectedChoiceId = answers[q.id];
+          const hasAnswered = Boolean(selectedChoiceId);
+          const hasCorrectId = Boolean(q.correctChoiceId && q.correctChoiceId.trim());
+
           return (
             <li
               key={q.id}
-              className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)]"
+              className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--line-2)] bg-[var(--surface)] shadow-xs"
             >
               <button
                 type="button"
                 onClick={() => setOpenId(isOpen ? null : q.id)}
                 aria-expanded={isOpen}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-[var(--color-wash)]"
+                className="flex w-full items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-[var(--wash)]"
               >
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-full border-2 border-[var(--color-line-2)] bg-[var(--color-surface)] text-sm font-semibold text-[var(--color-ink)]">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-[var(--radius-md)] border border-[var(--line-2)] bg-[var(--panel)] text-sm font-bold text-[var(--ink)]">
                   {i + 1}
                 </span>
-                <span className="flex-1 text-sm font-semibold text-[var(--color-ink)]">
-                  {pickText(q.prompt, locale)}
+                <span className="flex-1 text-sm sm:text-base font-semibold text-[var(--ink)]">
+                  {pickText(q.prompt || q.question, locale)}
                 </span>
                 <span
                   className={cn(
-                    'text-[var(--color-ink-3)] transition-transform',
+                    'text-[var(--ink-3)] transition-transform duration-200',
                     isOpen && 'rotate-90',
                   )}
                   aria-hidden="true"
                 >
-                  <LuChevronRight />
+                  <LuChevronRight className="size-4" />
                 </span>
               </button>
               {isOpen && (
-                <ul className="space-y-2 border-t border-[var(--color-line)] bg-[var(--color-wash)] p-3">
-                  {q.choices.map((c) => {
-                    const isCorrect = c.id === q.correctChoiceId;
-                    return (
-                      <li
-                        key={c.id}
-                        className={cn(
-                          'flex items-start gap-3 rounded-md border px-3 py-2 text-sm',
-                          isCorrect
-                            ? 'border-[var(--color-ok)] bg-[var(--color-ok-tint)] text-[var(--color-ink)]'
-                            : 'border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)]',
-                        )}
-                      >
-                        <span
+                <div className="border-t border-[var(--line)] bg-[var(--wash)] p-4 sm:p-5">
+                  <div className="space-y-3">
+                    {q.choices.map((c) => {
+                      const isSelected = selectedChoiceId === c.id;
+                      const isCorrect = hasCorrectId && c.id === q.correctChoiceId;
+                      const isWrongSelection = hasAnswered && isSelected && hasCorrectId && !isCorrect;
+
+                      let stateStyle =
+                        'border border-[var(--line-2)] bg-[var(--surface)] text-[var(--ink)] hover:border-[var(--line-3)] hover:bg-[var(--panel)]';
+                      let badge = null;
+
+                      if (hasCorrectId) {
+                        if (hasAnswered && isCorrect) {
+                          stateStyle =
+                            'border-2 border-[var(--ok)] bg-[var(--ok-tint)] text-[var(--ink)]';
+                          badge = (
+                            <span className="inline-flex items-center gap-1 rounded-[var(--radius-sm)] bg-[var(--ok)]/15 px-2.5 py-1 text-xs font-semibold text-[var(--ok)]">
+                              <LuCheck className="size-3.5 stroke-[3]" aria-hidden="true" />
+                              {correctLabel}
+                            </span>
+                          );
+                        } else if (isWrongSelection) {
+                          stateStyle =
+                            'border-2 border-[var(--bad)] bg-[var(--bad-tint)] text-[var(--ink)]';
+                          badge = (
+                            <span className="inline-flex items-center gap-1 rounded-[var(--radius-sm)] bg-[var(--bad)]/15 px-2.5 py-1 text-xs font-semibold text-[var(--bad)]">
+                              <LuX className="size-3.5 stroke-[3]" aria-hidden="true" />
+                              {incorrectLabel}
+                            </span>
+                          );
+                        } else if (isSelected) {
+                          stateStyle =
+                            'border-2 border-[var(--brand-600)] bg-[var(--brand-tint)]/25 text-[var(--ink)]';
+                        }
+                      } else {
+                        if (isSelected) {
+                          stateStyle =
+                            'border-2 border-[var(--brand-600)] bg-[var(--brand-tint)]/25 text-[var(--ink)]';
+                        }
+                      }
+
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => handleSelectChoice(q.id, c.id)}
                           className={cn(
-                            'mt-0.5 shrink-0',
-                            isCorrect ? 'text-[var(--color-ok)]' : 'text-[var(--color-ink-3)]',
+                            'flex w-full cursor-pointer items-center gap-4 rounded-[var(--radius-md)] px-4 py-3 sm:py-4 text-left text-sm sm:text-base font-medium transition-all select-none focus:outline-none',
+                            stateStyle,
                           )}
-                          aria-hidden="true"
                         >
-                          {isCorrect ? <LuCircleCheck className="size-4" /> : <LuCircle className="size-4" />}
-                        </span>
-                        <span className="flex-1">{pickText(c.label, locale)}</span>
-                        {isCorrect && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-ok-tint)] px-2 py-0.5 text-sm font-semibold uppercase text-[var(--color-ok)]">
-                            <LuCheck className="size-3" aria-hidden="true" />
-                            {t('correct')}
+                          <RadioDot
+                            selected={isSelected}
+                            isCorrect={hasCorrectId && hasAnswered && isCorrect}
+                            isWrong={isWrongSelection}
+                          />
+                          <span className="flex-1 leading-snug text-[var(--ink)]">
+                            {pickText(c.label, locale)}
                           </span>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
+                          {badge}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               )}
             </li>
           );

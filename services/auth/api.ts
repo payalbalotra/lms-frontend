@@ -59,64 +59,100 @@ export async function login(input: LoginCredentials): Promise<{ employee: Employ
   return { employee: emp, token };
 }
 
+const inFlightAuthMe = new Map<string, Promise<{ employee: Employee }>>();
+const cachedAuthMe = new Map<string, { data: { employee: Employee }; expiresAt: number }>();
+const AUTH_ME_CACHE_TTL_MS = 10_000;
+
+export function clearAuthMeCache(): void {
+  cachedAuthMe.clear();
+  inFlightAuthMe.clear();
+}
+
 export async function fetchMe(
   cookieHeader?: string,
   _signal?: AbortSignal,
 ): Promise<{ employee: Employee }> {
-  const headers: Record<string, string> = {
-    'Cache-Control': 'no-cache, no-store',
-    Pragma: 'no-cache',
-  };
+  const cacheKey = cookieHeader || (typeof window !== 'undefined' ? 'client' : 'server_default');
+  const now = Date.now();
 
-  if (cookieHeader) {
-    headers['Cookie'] = cookieHeader;
-    const tokenMatch = cookieHeader.match(/(?:^|;\s*)lms_token=([^;]+)/);
-    if (tokenMatch) {
-      headers['Authorization'] = `Bearer ${decodeURIComponent(tokenMatch[1])}`;
+  const cached = cachedAuthMe.get(cacheKey);
+  if (cached && cached.expiresAt > now) {
+    return cached.data;
+  }
+
+  const existing = inFlightAuthMe.get(cacheKey);
+  if (existing) {
+    return existing;
+  }
+
+  const promise = (async () => {
+    try {
+      const headers: Record<string, string> = {
+        'Cache-Control': 'no-cache, no-store',
+        Pragma: 'no-cache',
+      };
+
+      if (cookieHeader) {
+        headers['Cookie'] = cookieHeader;
+        const tokenMatch = cookieHeader.match(/(?:^|;\s*)lms_token=([^;]+)/);
+        if (tokenMatch) {
+          headers['Authorization'] = `Bearer ${decodeURIComponent(tokenMatch[1])}`;
+        }
+      }
+
+      const { data } = await http.get<{
+        success: boolean;
+        data: {
+          employee?: Employee;
+          user?: { id: string; name: string; email: string };
+          role?: string;
+        };
+      }>(AUTH_ENDPOINTS.ME, {
+        headers,
+        params: { _t: Date.now() },
+        signal: _signal,
+      });
+
+      if (data.data?.employee) {
+        const raw = data.data.employee as any;
+        const res = {
+          employee: {
+            ...raw,
+            roleIds: Array.isArray(raw.roleIds) ? raw.roleIds : Array.isArray(raw.jobIds) ? raw.jobIds : [],
+            jobIds: Array.isArray(raw.jobIds) ? raw.jobIds : Array.isArray(raw.roleIds) ? raw.roleIds : [],
+            stationIds: Array.isArray(raw.stationIds) ? raw.stationIds : [],
+          },
+        };
+        cachedAuthMe.set(cacheKey, { data: res, expiresAt: Date.now() + AUTH_ME_CACHE_TTL_MS });
+        return res;
+      }
+
+      if (data.data?.user) {
+        const userRole = (data.data.role as EmployeeRole) || 'super_admin';
+        const res = {
+          employee: {
+            id: data.data.user.id,
+            name: data.data.user.name,
+            email: data.data.user.email,
+            role: userRole,
+            locationId: '',
+            roleIds: [],
+            stationIds: [],
+            languagePref: 'en' as const,
+          },
+        };
+        cachedAuthMe.set(cacheKey, { data: res, expiresAt: Date.now() + AUTH_ME_CACHE_TTL_MS });
+        return res;
+      }
+
+      throw new ApiException(401, 'SESSION_INVALID', 'Session expired or invalid');
+    } finally {
+      inFlightAuthMe.delete(cacheKey);
     }
-  }
+  })();
 
-  const { data } = await http.get<{
-    success: boolean;
-    data: {
-      employee?: Employee;
-      user?: { id: string; name: string; email: string };
-      role?: string;
-    };
-  }>(AUTH_ENDPOINTS.ME, {
-    headers,
-    params: { _t: Date.now() },
-  });
-
-  if (data.data?.employee) {
-    const raw = data.data.employee as any;
-    return {
-      employee: {
-        ...raw,
-        roleIds: Array.isArray(raw.roleIds) ? raw.roleIds : Array.isArray(raw.jobIds) ? raw.jobIds : [],
-        jobIds: Array.isArray(raw.jobIds) ? raw.jobIds : Array.isArray(raw.roleIds) ? raw.roleIds : [],
-        stationIds: Array.isArray(raw.stationIds) ? raw.stationIds : [],
-      },
-    };
-  }
-
-  if (data.data?.user) {
-    const userRole = (data.data.role as EmployeeRole) || 'super_admin';
-    return {
-      employee: {
-        id: data.data.user.id,
-        name: data.data.user.name,
-        email: data.data.user.email,
-        role: userRole,
-        locationId: '',
-        roleIds: [],
-        stationIds: [],
-        languagePref: 'en',
-      },
-    };
-  }
-
-  throw new ApiException(401, 'SESSION_INVALID', 'Session expired or invalid');
+  inFlightAuthMe.set(cacheKey, promise);
+  return promise;
 }
 
 export async function lookupInvite(token: string): Promise<{

@@ -49,6 +49,7 @@ import {
   requestVideoUpload,
   requestDocumentUpload,
   uploadToR2,
+  uploadMedia,
   deleteUpload,
 } from '@/lib/api';
 import { classifyVideoUrl } from '@/lib/procedure-media';
@@ -81,6 +82,15 @@ function asOpt(v: LocalisedOptional | undefined, lang: 'en' | 'es'): string {
 }
 function setOpt(v: LocalisedOptional | undefined, lang: 'en' | 'es', value: string): LocalisedOptional {
   return { en: v?.en, es: v?.es, [lang]: value };
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('Failed to read image file'));
+    reader.readAsDataURL(file);
+  });
 }
 
 const ALLOWED_IMAGE_TYPES = new Set([
@@ -640,21 +650,16 @@ function MethodStepRow({
     const target = pendingImageIndex.current;
     setImageBusy({ state: 'uploading', target });
     try {
-      const presigned = await requestImageUpload({
-        filename: file.name,
-        contentType: file.type,
-        size: file.size,
-      });
-      await uploadToR2(presigned.uploadUrl, file, file.type);
+      const finalSrc = (await uploadMedia(file, 'image')) || (await readFileAsDataUrl(file));
       const filenameNoExt = file.name.replace(/\.[^.]+$/, '');
       const defaultAlt: Localised = { en: filenameNoExt, es: filenameNoExt };
       if (target === null) {
-        writeImages([...images, { src: presigned.publicUrl, alt: defaultAlt }]);
+        writeImages([...images, { src: finalSrc, alt: defaultAlt }]);
       } else {
         writeImages(
           images.map((img, j) =>
             j === target
-              ? { src: presigned.publicUrl, alt: img.alt.en || img.alt.es ? img.alt : defaultAlt }
+              ? { src: finalSrc, alt: img.alt.en || img.alt.es ? img.alt : defaultAlt }
               : img,
           ),
         );
@@ -680,13 +685,8 @@ function MethodStepRow({
     }
     setVideoBusy({ state: 'uploading' });
     try {
-      const presigned = await requestVideoUpload({
-        filename: file.name,
-        contentType: file.type,
-        size: file.size,
-      });
-      await uploadToR2(presigned.uploadUrl, file, file.type);
-      onUpdate({ ...step, videoSrc: presigned.publicUrl });
+      const src = await uploadMedia(file, 'video');
+      onUpdate({ ...step, videoSrc: src });
       setVideoBusy(null);
     } catch (err) {
       setVideoBusy({ state: 'failed', error: err instanceof Error ? err.message : 'Upload failed' });
@@ -1226,16 +1226,12 @@ function ImageBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind:
     }
     setUpload({ state: 'uploading' });
     try {
-      const presigned = await requestImageUpload({
-        filename: file.name,
-        contentType: file.type,
-        size: file.size,
-      });
-      await uploadToR2(presigned.uploadUrl, file, file.type);
+      const dataUrl = await readFileAsDataUrl(file);
+      let finalSrc = (await uploadMedia(file, 'image')) || dataUrl;
       const filenameNoExt = file.name.replace(/\.[^.]+$/, '');
       onPatch({
         ...block,
-        src: presigned.publicUrl,
+        src: finalSrc,
         alt: {
           en: block.alt?.en?.trim() || filenameNoExt,
           es: block.alt?.es?.trim() || filenameNoExt,
@@ -1260,7 +1256,7 @@ function ImageBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind:
         <div className="overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-wash)]">
           <div className="flex items-center justify-between border-b border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2">
             <span className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--color-brand-700)]">
-              <Icon icon="ri-image-fill" /> Image
+              <Icon icon="ri-image-fill" /> Photo / Cover Banner
             </span>
             <div className="flex items-center gap-1">
               <Button type="button" variant="ghost" size="sm" icon="ri-upload-2-line" onClick={() => fileRef.current?.click()}>
@@ -1353,13 +1349,8 @@ function VideoBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind:
     }
     setUpload({ state: 'uploading' });
     try {
-      const presigned = await requestVideoUpload({
-        filename: file.name,
-        contentType: file.type,
-        size: file.size,
-      });
-      await uploadToR2(presigned.uploadUrl, file, file.type);
-      onPatch({ ...block, src: presigned.publicUrl });
+      const src = await uploadMedia(file, 'video');
+      onPatch({ ...block, src });
       setUpload({ state: 'idle' });
     } catch (err) {
       setUpload({ state: 'failed', error: err instanceof Error ? err.message : 'Upload failed' });
@@ -1551,15 +1542,9 @@ function AttachmentBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { 
     }
     setUpload({ state: 'uploading' });
     try {
-      const presigned = await requestDocumentUpload({
-        filename: file.name,
-        contentType: file.type || 'application/octet-stream',
-        size: file.size,
-      });
-      await uploadToR2(presigned.uploadUrl, file, file.type || 'application/octet-stream');
-
+      const uploadedUrl = await uploadMedia(file, 'document');
       const objectUrl = typeof window !== 'undefined' ? URL.createObjectURL(file) : '';
-      const finalUrl = presigned.uploadUrl === 'mock-upload' && objectUrl ? objectUrl : presigned.publicUrl;
+      const finalUrl = uploadedUrl || objectUrl;
 
       const filenameNoExt = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
       const ext = file.name.split('.').pop()?.toUpperCase() ?? 'FILE';

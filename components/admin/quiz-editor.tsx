@@ -3,7 +3,8 @@
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
-import type { ProcedureQuiz, ProcedureQuizQuestion } from '@/lib/types';
+import type { ProcedureQuiz, ProcedureQuizQuestion, Quiz } from '@/lib/types';
+import { listQuizzes } from '@/lib/api';
 import { LocalisedInput } from '@/components/ui/localised-input';
 import { LuCheck, LuCircle, LuPlus, LuTrash2 } from 'react-icons/lu';
 
@@ -40,6 +41,13 @@ export function QuizEditor({ value, onChange, isSaving, hideHeader }: QuizEditor
   const t = useTranslations('admin.library.new.quiz');
   const [questionLangs, setQuestionLangs] = React.useState<Record<string, 'en' | 'es'>>({});
 
+  const [existingQuizzes, setExistingQuizzes] = React.useState<Quiz[]>([]);
+  React.useEffect(() => {
+    listQuizzes().then(({ quizzes }) => {
+      if (quizzes?.length) setExistingQuizzes(quizzes);
+    });
+  }, []);
+
   const [working, setWorking] = React.useState<ProcedureQuiz>(() => {
     if (!value) return makeBlankQuiz();
     return {
@@ -47,8 +55,8 @@ export function QuizEditor({ value, onChange, isSaving, hideHeader }: QuizEditor
       questions: value.questions.map((q) => ({
         id: q.id || makeId(),
         prompt: {
-          en: typeof q.prompt === 'string' ? q.prompt : (q.prompt?.en ?? ''),
-          es: typeof q.prompt === 'string' ? q.prompt : (q.prompt?.es ?? ''),
+          en: typeof q.prompt === 'string' ? q.prompt : (q.prompt?.en ?? q.question?.en ?? ''),
+          es: typeof q.prompt === 'string' ? q.prompt : (q.prompt?.es ?? q.question?.es ?? ''),
         },
         choices: (q.choices || []).map((c) => ({
           id: c.id || makeId(),
@@ -153,6 +161,43 @@ export function QuizEditor({ value, onChange, isSaving, hideHeader }: QuizEditor
           <span className="block text-sm text-[var(--color-ink-2)]">{t('attachedHelp')}</span>
         </label>
       </div>
+
+      {/* Copy / load from existing quiz */}
+      {existingQuizzes.length > 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-wash)] p-3">
+          <span className="text-xs font-semibold text-[var(--color-ink-2)]">
+            Load questions from existing quiz:
+          </span>
+          <select
+            id="select-existing-quiz"
+            defaultValue=""
+            onChange={(e) => {
+              const picked = existingQuizzes.find((q) => q.id === e.target.value);
+              if (picked && picked.questions.length > 0) {
+                update({
+                  ...working,
+                  questions: picked.questions.map((q: ProcedureQuizQuestion) => ({
+                    id: q.id || makeId(),
+                    prompt: q.prompt || q.question || { en: '', es: '' },
+                    choices: q.choices,
+                    correctChoiceId: q.correctChoiceId,
+                  })),
+                });
+              }
+            }}
+            className="rounded-[var(--radius-md)] border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-1.5 text-xs text-[var(--color-ink)] focus:outline-none focus:ring-1 focus:ring-[var(--color-brand-600)]"
+          >
+            <option value="" disabled>
+              Select an existing quiz...
+            </option>
+            {existingQuizzes.map((q) => (
+              <option key={q.id} value={q.id}>
+                {q.nameEn || q.nameEs || q.id} ({q.questions.length} questions)
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Question list — each question has the exact bilingual component effect (one gets bigger, one becomes shorter) */}
       <ol className="space-y-6">

@@ -217,7 +217,8 @@
       "tabTraining": "Training",
       "tabSoon": "Coming soon",
       "tabsNav": "Sections",
-      "unavailable": "The library will not load right now. Ask your manager, and use the printed copy at the station until it is back."
+      "unavailable": "The library will not load right now. Ask your manager, and use the printed copy at the station until it is back.",
+      "lockedRowReason": "Locked until orientation is done"
     },
     "doc": {
       "updatedOn": "updated {date}",
@@ -250,6 +251,8 @@
         "count": "{count, plural, =0 {no questions} =1 {1 question} other {# questions}}",
         "intro": "Before you start, make sure you've got the key numbers in your head. Tap your answer to see if you're right.",
         "correct": "Correct",
+        "incorrect": "Incorrect",
+        "selected": "Selected",
         "bannerTitle": "This procedure has an unpublished quiz",
         "bannerBody": "Attach it now so readers see it next time they open this procedure. If the procedure becomes part of training, the quiz will show automatically.",
         "bannerAttach": "Attach quiz",

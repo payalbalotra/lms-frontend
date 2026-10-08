@@ -13,7 +13,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { deleteProcedure, getProcedureBySlug, getQuizById, logRestrictedView, logout, updateQuiz } from '@/lib/api';
+import { deleteProcedure, fetchQuizById, getProcedureBySlug, getQuizById, logRestrictedView, logout, updateQuiz } from '@/lib/api';
 import type { Employee, Procedure, ProcedureBlock } from '@/lib/types';
 import { withAs, type ViewAs } from '@/lib/view-as';
 import { ProcedureArticleBody } from '@/components/doc/procedure-article-body';
@@ -84,6 +84,18 @@ export function ProcedureViewClient({
       setIsLoading(false);
     }
   }, [slugOrId, proc]);
+
+  const [, setQuizTick] = React.useState(0);
+  React.useEffect(() => {
+    if (!proc?.quizId) return;
+    let isMounted = true;
+    fetchQuizById(proc.quizId).then(() => {
+      if (isMounted) setQuizTick((n) => n + 1);
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [proc?.quizId]);
 
   // Remembered on this device, so the home can offer the way back to it.
   React.useEffect(() => {

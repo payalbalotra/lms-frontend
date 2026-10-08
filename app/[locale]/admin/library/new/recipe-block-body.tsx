@@ -39,6 +39,7 @@ import type {
   ProcedureBlock,
   ProcedureIngredient,
   ProcedureMethodStep,
+  ProcedureYieldItem,
 } from '@/lib/types';
 
 type RecipeBlock = Extract<ProcedureBlock, { kind: 'recipe' }>;
@@ -87,9 +88,15 @@ export function RecipeBlockBody({
 }: RecipeBlockBodyProps): React.ReactElement {
   const tForm = useTranslations('admin.library.new.form');
   const ingredients = block.ingredients ?? [];
+  const yieldItems = block.yieldItems ?? [];
 
   return (
     <div className="space-y-4 pt-1">
+      <RecipeYieldSection
+        yieldItems={yieldItems}
+        onChange={(nextYield) => onPatch({ ...block, yieldItems: nextYield })}
+      />
+
       <RecipeIngredients
         ingredients={ingredients}
         onChange={(next) => onPatch({ ...block, factors: [1], ingredients: next })}
@@ -124,6 +131,181 @@ export function RecipeBlockBody({
           picker: tForm('allergenPickerLabel'),
         }}
       />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Yield & Batch Metrics (e.g. Total Batch Weight, Portion Count, Portion Size)
+// ---------------------------------------------------------------------------
+
+export function RecipeYieldSection({
+  yieldItems,
+  onChange,
+}: {
+  yieldItems: ProcedureYieldItem[];
+  onChange: (next: ProcedureYieldItem[]) => void;
+}): React.ReactElement {
+  const PRESETS = [
+    { label: 'Total Batch Weight', value: '2.5', unit: 'kg', scales: true },
+    { label: 'Portion Count', value: '20', unit: 'tacos', scales: true },
+    { label: 'Portion Size', value: '125', unit: 'g', scales: false },
+    { label: 'Total Cooking Time', value: '3.5', unit: 'hrs', scales: false },
+  ];
+
+  function addPreset(p: (typeof PRESETS)[0]): void {
+    onChange([
+      ...yieldItems,
+      { label: p.label, value: p.value, unit: p.unit, scales: p.scales },
+    ]);
+  }
+
+  function addEmpty(): void {
+    onChange([
+      ...yieldItems,
+      { label: '', value: '', unit: '', scales: true },
+    ]);
+  }
+
+  function updateItem(idx: number, patch: Partial<ProcedureYieldItem>): void {
+    onChange(yieldItems.map((item, j) => (j === idx ? { ...item, ...patch } : item)));
+  }
+
+  function removeItem(idx: number): void {
+    onChange(yieldItems.filter((_, j) => j !== idx));
+  }
+
+  return (
+    <div className="space-y-2.5 pt-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <Label className="text-sm font-semibold text-[var(--color-ink)] flex items-center gap-1.5">
+          <Icon icon="ri-scales-3-line" className="text-base text-[var(--color-brand)]" />
+          Yield &amp; Batch Metrics
+          {yieldItems.length > 0 && (
+            <span className="inline-flex items-center justify-center rounded-full bg-[var(--color-wash)] border border-[var(--color-line-2)] px-2 py-0.5 text-[10px] font-bold text-[var(--color-ink-2)]">
+              {yieldItems.length}
+            </span>
+          )}
+        </Label>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={addEmpty}
+          className="h-7 text-xs font-medium"
+        >
+          <Icon icon="ri-add-line" className="mr-1" />
+          Add metric
+        </Button>
+      </div>
+
+      {/* Quick preset chips / pills with distinct spacing & states */}
+      <div className="flex flex-wrap items-center gap-2 py-0.5">
+        <span className="text-[11px] font-semibold text-[var(--color-ink-3)] uppercase tracking-wider">
+          Presets:
+        </span>
+        {PRESETS.map((p) => {
+          const exists = yieldItems.some((y) => y.label.toLowerCase() === p.label.toLowerCase());
+          return (
+            <button
+              key={p.label}
+              type="button"
+              disabled={exists}
+              onClick={() => addPreset(p)}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all border',
+                exists
+                  ? 'border-[var(--color-line-2)]/80 bg-[var(--color-wash)]/60 text-[var(--color-ink-3)] cursor-default select-none'
+                  : 'border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:border-[var(--color-brand)] hover:text-[var(--color-brand)] hover:bg-[var(--color-brand)]/5 active:scale-95 cursor-pointer shadow-2xs'
+              )}
+            >
+              {exists ? (
+                <Icon icon="ri-check-line" className="text-xs text-[var(--color-ink-3)]" />
+              ) : (
+                <Icon icon="ri-add-line" className="text-xs text-[var(--color-brand)]" />
+              )}
+              <span>{p.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {yieldItems.length === 0 ? (
+        <p className="text-[11px] text-[var(--color-ink-3)] italic py-1">
+          Optional: Click a preset above (e.g. Total Batch Weight, Portion Count) to show batch yield metrics in the recipe header.
+        </p>
+      ) : (
+        <div className="overflow-x-auto rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] shadow-2xs">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-[var(--color-line-2)] bg-[var(--color-wash)]/60 text-[var(--color-ink-2)]">
+                <th className="px-3.5 py-2.5 font-semibold">Metric Name</th>
+                <th className="w-28 px-3 py-2.5 font-semibold text-center">Value</th>
+                <th className="w-28 px-3 py-2.5 font-semibold">Unit</th>
+                <th className="w-20 px-2 py-2.5 font-semibold text-center" title="Scales when multiplying batch (1×, 2×, 4×)">
+                  Scales?
+                </th>
+                <th className="w-12 px-2 py-2.5 text-center">
+                  <span className="sr-only">Actions</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--color-line-2)]">
+              {yieldItems.map((item, idx) => (
+                <tr key={idx} className="hover:bg-[var(--color-wash)]/30 transition-colors">
+                  <td className="p-2.5 pl-3.5">
+                    <Input
+                      value={item.label}
+                      onChange={(e) => updateItem(idx, { label: e.target.value })}
+                      placeholder="e.g. Total Batch Weight"
+                      className="h-8 text-xs font-medium"
+                    />
+                  </td>
+                  <td className="w-28 p-2.5">
+                    <Input
+                      value={item.value}
+                      onChange={(e) => updateItem(idx, { value: e.target.value })}
+                      placeholder="2.5"
+                      className="h-8 text-xs text-center font-bold"
+                    />
+                  </td>
+                  <td className="w-28 p-2.5">
+                    <Input
+                      value={item.unit ?? ''}
+                      onChange={(e) => updateItem(idx, { unit: e.target.value })}
+                      placeholder="kg"
+                      className="h-8 text-xs"
+                    />
+                  </td>
+                  <td className="w-20 p-2.5 text-center">
+                    <label
+                      className="inline-flex items-center justify-center cursor-pointer p-1 rounded hover:bg-[var(--color-wash)] transition-colors"
+                      title="Scales with batch factor"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={Boolean(item.scales)}
+                        onChange={(e) => updateItem(idx, { scales: e.target.checked })}
+                        className="size-4 rounded accent-[var(--color-brand)] cursor-pointer"
+                      />
+                    </label>
+                  </td>
+                  <td className="w-12 p-2.5 text-center">
+                    <button
+                      type="button"
+                      onClick={() => removeItem(idx)}
+                      className="inline-flex size-7 items-center justify-center rounded-md text-[var(--color-ink-3)] hover:text-[var(--color-bad)] hover:bg-[var(--color-bad-tint)] transition-colors cursor-pointer"
+                      title="Remove metric"
+                    >
+                      <Icon icon="ri-delete-bin-line" className="text-sm" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

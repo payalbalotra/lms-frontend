@@ -2,38 +2,71 @@ import http from '@/lib/http';
 import { STATIONS_ENDPOINTS } from './endpoints';
 import type { Station, CreateStationInput, UpdateStationInput, StationFilterOptions } from './types';
 
+const inFlightStations = new Map<string, Promise<{ stations: Station[] }>>();
+const cachedStations = new Map<string, { data: { stations: Station[] }; expiresAt: number }>();
+const STATIONS_CACHE_TTL_MS = 15_000;
+
+export function clearStationsCache(): void {
+  cachedStations.clear();
+  inFlightStations.clear();
+}
+
 export async function fetchStations(
   opts: StationFilterOptions = {},
   cookieHeader?: string,
 ): Promise<{ stations: Station[] }> {
-  const headers: Record<string, string> = {};
+  const cacheKey = `${JSON.stringify(opts)}_${cookieHeader || (typeof window !== 'undefined' ? 'client' : 'server_default')}`;
+  const now = Date.now();
 
-  if (cookieHeader) {
-    headers['Cookie'] = cookieHeader;
-    const tokenMatch = cookieHeader.match(/(?:^|;\s*)lms_token=([^;]+)/);
-    if (tokenMatch) {
-      headers['Authorization'] = `Bearer ${decodeURIComponent(tokenMatch[1])}`;
-    }
+  const cached = cachedStations.get(cacheKey);
+  if (cached && cached.expiresAt > now) {
+    return cached.data;
   }
 
-  const { data } = await http.get<{
-    success: boolean;
-    data: { stations: Array<{ id: string; name: string }> };
-  }>(STATIONS_ENDPOINTS.LIST, {
-    headers: Object.keys(headers).length ? headers : undefined,
-    params: { _t: Date.now() },
-  });
+  const existing = inFlightStations.get(cacheKey);
+  if (existing) {
+    return existing;
+  }
 
-  const rawStations = data.data?.stations ?? [];
-  const stations: Station[] = rawStations.map((s, idx) => ({
-    id: s.id,
-    name: s.name,
-    locationId: opts.locationId || '',
-    sortOrder: idx + 1,
-    isArchived: false,
-  }));
+  const stationsPromise = (async () => {
+    try {
+      const headers: Record<string, string> = {};
 
-  return { stations };
+      if (cookieHeader) {
+        headers['Cookie'] = cookieHeader;
+        const tokenMatch = cookieHeader.match(/(?:^|;\s*)lms_token=([^;]+)/);
+        if (tokenMatch) {
+          headers['Authorization'] = `Bearer ${decodeURIComponent(tokenMatch[1])}`;
+        }
+      }
+
+      const { data } = await http.get<{
+        success: boolean;
+        data: { stations: Array<{ id: string; name: string }> };
+      }>(STATIONS_ENDPOINTS.LIST, {
+        headers: Object.keys(headers).length ? headers : undefined,
+        params: { _t: Date.now() },
+      });
+
+      const rawStations = data.data?.stations ?? [];
+      const stations: Station[] = rawStations.map((s, idx) => ({
+        id: s.id,
+        name: s.name,
+        locationId: opts.locationId || '',
+        sortOrder: idx + 1,
+        isArchived: false,
+      }));
+
+      const res = { stations };
+      cachedStations.set(cacheKey, { data: res, expiresAt: Date.now() + STATIONS_CACHE_TTL_MS });
+      return res;
+    } finally {
+      inFlightStations.delete(cacheKey);
+    }
+  })();
+
+  inFlightStations.set(cacheKey, stationsPromise);
+  return stationsPromise;
 }
 
 export async function createStation(

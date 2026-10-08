@@ -36,6 +36,7 @@ import { getCategoryIcon, getProcedureGlyphForSubcategory } from "@/lib/category
 import { QuizEditor } from "@/components/admin/quiz-editor";
 import { type RecipeIngredientItem } from "@/components/admin/recipe-ingredients-editor";
 import { BlockRenderer } from "@/components/doc/block-renderer";
+import { Cover, DocHead, DocPurpose } from "@/components/doc";
 import { NotionBlockList } from "@/app/[locale]/admin/library/new/notion-block-list";
 import {
   isTranslating,
@@ -47,6 +48,7 @@ import {
   ApiException,
   createProcedure,
   createQuiz,
+  fetchQuizById,
   getQuizById,
   listCategories,
   listEmployees,
@@ -124,28 +126,7 @@ export function ProcedureEditor({
   const [stations, setStations] = React.useState<Station[]>([]);
   const [roles, setRoles] = React.useState<Role[]>([]);
   const [people, setPeople] = React.useState<AdminEmployee[]>([]);
-  React.useEffect(() => {
-    let alive = true;
-    void Promise.all([
-      listCategories("loc-main", { includeArchived: false }),
-      listStations("loc-main"),
-      listRoles(),
-      listEmployees({ status: "active" }),
-    ])
-      .then(([c, s, r, e]) => {
-        if (!alive) return;
-        if (c.categories.length) setCategories(c.categories);
-        setStations(s.stations);
-        setRoles(r.roles);
-        setPeople(e.employees);
-      })
-      .catch(() => {
-        /* the pickers show their empty text */
-      });
-    return () => {
-      alive = false;
-    };
-  }, []);
+  const [accessDataLoaded, setAccessDataLoaded] = React.useState(false);
 
   /* ------------------------------------------------------------ content -- */
 
@@ -188,6 +169,16 @@ export function ProcedureEditor({
       ? { questions: savedQuiz.questions, attached: savedQuiz.attached }
       : null,
   );
+
+  React.useEffect(() => {
+    if (initial?.quizId && !savedQuiz) {
+      fetchQuizById(initial.quizId).then((loaded) => {
+        if (loaded) {
+          setQuiz({ questions: loaded.questions, attached: loaded.attached ?? true });
+        }
+      });
+    }
+  }, [initial?.quizId, savedQuiz]);
   const [audience, setAudience] = React.useState<ProcedureAudience>(
     initial?.audience ?? {
       ...EVERYONE,
@@ -238,6 +229,29 @@ export function ProcedureEditor({
   const stepIdx = STEPS.findIndex((s) => s.id === step);
   const isFirstStep = stepIdx === 0;
   const isLastStep = stepIdx === STEPS.length - 1;
+
+  React.useEffect(() => {
+    if (step !== "access" || accessDataLoaded) return;
+    let alive = true;
+    void Promise.all([
+      listStations("loc-main"),
+      listRoles(),
+      listEmployees({ status: "active" }),
+    ])
+      .then(([s, r, e]) => {
+        if (!alive) return;
+        setStations(s.stations);
+        setRoles(r.roles);
+        setPeople(e.employees);
+        setAccessDataLoaded(true);
+      })
+      .catch(() => {
+        /* the pickers show their empty text */
+      });
+    return () => {
+      alive = false;
+    };
+  }, [step, accessDataLoaded]);
 
   // Opened from a category page ("Add procedure" on Cleaning → Dishwashing),
   // the URL names where it goes: ?category=<slug>&subcategory=<slug>. Stations
@@ -428,6 +442,9 @@ export function ProcedureEditor({
           } else {
             quizId = (
               await createQuiz({
+                nameEn: `${title.en.trim() || 'Procedure'} Quiz`,
+                nameEs: `${title.es.trim() || 'Procedimiento'} Quiz`,
+                quizType: 'procedure',
                 questions: quiz.questions,
                 attached: quiz.attached,
               })
@@ -1102,26 +1119,57 @@ export function ProcedureEditor({
               { value: "es", label: "ES" },
             ]}
           />
-          <h2 className="font-[family-name:var(--font-display)] text-2xl font-bold leading-display tracking-tight text-[var(--color-ink)]">
-            {(lang === "en" ? title.en || title.es : title.es || title.en) ||
-              t("previewUntitled")}
-          </h2>
-          {purpose.en || purpose.es ? (
-            <p className="text-[var(--color-ink-2)]">
-              {lang === "en" ? purpose.en || purpose.es : purpose.es || purpose.en}
-            </p>
-          ) : null}
-          {blocks.length || isRecipe ? (
-            <div className="doc">
-              <BlockRenderer blocks={body.blocks} locale={lang} />
-            </div>
-          ) : (
-            <p className="text-[var(--color-ink-3)]">{t("previewEmpty")}</p>
-          )}
+          {(() => {
+            const { cover, rest } = splitCover(body.blocks);
+            const headingTitle =
+              (lang === "en" ? title.en || title.es : title.es || title.en) ||
+              t("previewUntitled");
+            const headingPurpose =
+              lang === "en" ? purpose.en || purpose.es : purpose.es || purpose.en;
+            const categoryLabel = category
+              ? lang === "es"
+                ? category.nameEs || category.nameEn
+                : category.nameEn || category.nameEs
+              : "Recipes";
+
+            return (
+              <div className="doc overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] shadow-xs">
+                {cover ? <Cover src={cover.src} alt={cover.alt} /> : null}
+                <div className="px-4 py-3 sm:px-6">
+                  <DocHead
+                    icon={subcategory?.slug ? `procedure-${subcategory.slug}` : "file-text"}
+                    iconImageUrl={iconImageUrl}
+                    category={categoryLabel}
+                    title={headingTitle}
+                    withCover={Boolean(cover)}
+                  />
+                  {headingPurpose ? <DocPurpose>{headingPurpose}</DocPurpose> : null}
+                  {rest.length ? (
+                    <BlockRenderer blocks={rest} locale={lang} />
+                  ) : (
+                    <p className="py-4 text-[var(--color-ink-3)]">{t("previewEmpty")}</p>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </Drawer>
     </div>
   );
+}
+
+function splitCover(blocks: ProcedureBlock[]): {
+  cover?: { src: string; alt: string };
+  rest: ProcedureBlock[];
+} {
+  const i = blocks.findIndex((b, idx) => b.kind === "image" && Boolean(b.src) && idx === 0);
+  if (i === -1) return { rest: blocks };
+  const b = blocks[i] as Extract<ProcedureBlock, { kind: "image" }>;
+  return {
+    cover: { src: b.src, alt: b.alt?.en || b.alt?.es || "" },
+    rest: blocks.filter((_, n) => n !== i),
+  };
 }
 
 /* ---------------------------------------------------------------- helpers -- */

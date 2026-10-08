@@ -1,10 +1,10 @@
 export const LIBRARY_ENDPOINTS = {
-  LIST_PUBLIC: '/procedures',
-  GET_PUBLIC: (id: string) => `/procedures/${id}`,
-  LIST_ADMIN: '/admin/library/procedures',
-  GET_ADMIN: (id: string) => `/admin/library/procedures/${id}`,
-  CREATE: '/admin/library/procedures',
-  UPDATE: (id: string) => `/admin/library/procedures/${id}`,
-  ARCHIVE: (id: string) => `/admin/library/procedures/${id}/archive`,
-  IMPORT: '/admin/library/import',
+  LIST_PUBLIC: '/api/v1/procedures',
+  GET_PUBLIC: (slug: string) => `/api/v1/procedures/${slug}`,
+  LIST: '/api/v1/procedures',
+  GET: (slug: string) => `/api/v1/procedures/${slug}`,
+  CREATE: '/api/v1/procedures',
+  UPDATE: (id: string) => `/api/v1/procedures/${id}`,
+  ARCHIVE: (id: string) => `/api/v1/procedures/${id}/archive`,
+  IMPORT: '/api/v1/procedures/import',
 } as const;

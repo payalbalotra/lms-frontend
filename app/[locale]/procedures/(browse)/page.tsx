@@ -69,7 +69,12 @@ export default async function ProceduresPage({ params, searchParams }: PageProps
       : !getOnboardingChapters(onboardingEmployeeId, new Date()).onboardingDone;
   const onboardingDone = effectiveRole === 'admin' || !isOrientationPending;
   const lockedHref = `/${locale}/employee/training`;
-  const lockedReason = t('lockedRowReason');
+  let lockedReason = 'Locked until orientation is done';
+  try {
+    lockedReason = t('lockedRowReason');
+  } catch {
+    // fallback
+  }
 
   let categories: Category[] = [];
   let procedures: Procedure[] = [];
@@ -90,6 +95,11 @@ export default async function ProceduresPage({ params, searchParams }: PageProps
       })
       .catch(() => {}),
   ]);
+
+  // [DEBUG] server-render data: shows in the Next.js dev server terminal,
+  // NOT the browser (this fetch happens in Node during SSR).
+  console.log('[DEBUG page] categories:', categories.length, categories);
+  console.log('[DEBUG page] procedures:', procedures.length, procedures);
 
   const readsSpanish = employee.languagePref === 'es';
   const backHref = withAs(

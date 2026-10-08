@@ -19,6 +19,7 @@ import { CustomSelect } from '@/components/ui/custom-select';
 import { Icon } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { ALLERGEN_KEYS, type AllergenKey } from '@/lib/allergens';
+import { RecipeYieldSection } from './recipe-block-body';
 import type {
   ProcedureAllergen,
   ProcedureBlock,
@@ -142,50 +143,11 @@ export function IngredientsBlockBody({
 
   return (
     <div className="space-y-4 pt-1">
-      {/* Streamlined Yield row */}
-      <div className="flex flex-wrap items-center gap-2 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2.5 text-xs">
-        <span className="font-semibold text-[var(--color-ink)] flex items-center gap-1.5 shrink-0">
-          <Icon icon="ri-scales-3-line" className="text-base text-[var(--color-brand)]" />
-          Yield / Makes:
-        </span>
-        <Input
-          value={yieldItems[0]?.value ?? ''}
-          onChange={(e) => {
-            const val = e.target.value;
-            if (!val && !yieldItems[0]?.unit) {
-              onPatch({ ...block, yieldItems: [] });
-            } else {
-              const item: ProcedureYieldItem = {
-                label: 'Order yield',
-                value: val,
-                unit: yieldItems[0]?.unit ?? 'tacos',
-                scales: true,
-              };
-              onPatch({ ...block, yieldItems: [item] });
-            }
-          }}
-          placeholder="Qty (e.g. 2)"
-          className="h-8 w-24 text-center text-xs font-semibold"
-        />
-        <Input
-          value={yieldItems[0]?.unit ?? ''}
-          onChange={(e) => {
-            const unit = e.target.value;
-            const item: ProcedureYieldItem = {
-              label: 'Order yield',
-              value: yieldItems[0]?.value ?? '',
-              unit,
-              scales: true,
-            };
-            onPatch({ ...block, yieldItems: [item] });
-          }}
-          placeholder="Unit (e.g. tacos, orders, portions)"
-          className="h-8 w-44 text-xs"
-        />
-        <span className="text-[11px] text-[var(--color-ink-3)] ml-auto">
-          Optional (e.g. 2 tacos, 1 order, 4 portions)
-        </span>
-      </div>
+      {/* Yield & Batch Metrics */}
+      <RecipeYieldSection
+        yieldItems={yieldItems}
+        onChange={(nextYield) => onPatch({ ...block, yieldItems: nextYield })}
+      />
 
       {/* Streamlined Ingredients table */}
       <div className="space-y-2">
