@@ -18,6 +18,7 @@ import {
 import type { ProcedureMethodStep } from '@/lib/types';
 import { TimerChip, fmtLeft, fmtLength, useNow, type Timer } from './procedure-timers';
 import { formatDiscardAt } from './discard-time';
+import { scaleAmount } from './index';
 
 /**
  * Cook mode: the method one step at a time, full screen, for the cook with a
@@ -131,9 +132,16 @@ const buzz = (pattern: number | number[]): void => {
 /** Format an ingredient amount for the current factor, falling back to the
  *  first slot when factor index is out of range (defensive — should never
  *  happen with a sane factors/amounts pairing). */
-function amountFor(ing: CookModeIngredient, factorIdx: number): string {
-  if (factorIdx < 0 || factorIdx >= ing.amounts.length) return ing.amounts[0] ?? '';
-  return ing.amounts[factorIdx] ?? ing.amounts[0] ?? '';
+function amountFor(ing: CookModeIngredient, factorIdx: number, factors?: number[]): string {
+  const explicit = ing.amounts[factorIdx];
+  if (explicit && explicit.trim() !== '') return explicit;
+  const base = ing.amounts[0] ?? '';
+  if (factors && factors.length > factorIdx && factorIdx >= 0) {
+    const baseFactor = factors[0] || 1;
+    const currentFactor = factors[factorIdx] || 1;
+    return scaleAmount(base, currentFactor / baseFactor);
+  }
+  return base;
 }
 
 /** Per-step media used by the modal. We re-shape ProcedureMethodStep's
@@ -520,7 +528,7 @@ export function CookMode({
                   </span>
                 ) : null}
               </span>
-              <b className="qty">{amountFor(ing, factorIdx)}</b>
+              <b className="qty">{amountFor(ing, factorIdx, recipe.factors)}</b>
             </li>
           ))}
         </ul>

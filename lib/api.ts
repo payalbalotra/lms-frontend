@@ -60,7 +60,7 @@ const SEED_STATIONS: Station[] = [
   { id: 'stn-dish', name: 'Dishwasher', locationId: 'loc-main', sortOrder: 5, isArchived: false },
 ];
 
-const SEED_CATEGORIES: Category[] = [
+export const SEED_CATEGORIES: Category[] = [
   {
     id: 'cat-onboarding',
     slug: 'onboarding',
@@ -2143,6 +2143,7 @@ export async function createProcedure(input: CreateProcedureInput): Promise<{ pr
     if (proc) {
       mockProcedures = [proc, ...getProceduresStore().filter((p) => p.id !== proc.id && p.slug !== proc.slug)];
       setStored('procedures_v2', mockProcedures);
+      clearLibraryListCache();
       return { procedure: proc };
     }
   } catch (err) {
@@ -2202,6 +2203,7 @@ export async function createProcedure(input: CreateProcedureInput): Promise<{ pr
 
   mockProcedures = [newProc, ...getProceduresStore()];
   setStored('procedures_v2', mockProcedures);
+  clearLibraryListCache();
   return { procedure: newProc };
 }
 
@@ -2248,6 +2250,7 @@ export async function updateProcedure(
   mockProcedures[idx] = updated;
   setStored('procedures_v2', mockProcedures);
   if (typeof window !== 'undefined') window.dispatchEvent(new Event('lms_procedures_updated'));
+  clearLibraryListCache();
   return { procedure: updated };
 }
 
@@ -2309,18 +2312,68 @@ export function canRead(p: Procedure, viewer: Employee): boolean {
   return CLEARANCE_RANK[viewer.roleClearance ?? 'general'] >= CLEARANCE_RANK[needs];
 }
 
+// ----------------------------------------------------------------------------
+// Server-side list cache (procedures & categories)
+// ----------------------------------------------------------------------------
+// Every server page (library, procedures browse, edit wizard, …) re-calls
+// listProcedures/listCategories on each request, so even a second look pays
+// the full API round-trip. Server calls (the ones that carry a cookieHeader)
+// are cached per session for a short TTL and concurrent loads are deduped —
+// the same pattern fetchMe uses. Client calls (no cookieHeader) pass straight
+// through: TanStack Query already caches there, and caching would also break
+// the storage-event cross-tab freshness. Every mutation below clears the map —
+// an edit must be visible to every session on the next request.
+
+const LIST_CACHE_TTL_MS = 30_000;
+
+const proceduresListCache = new Map<string, { data: Procedure[]; expiresAt: number }>();
+const proceduresListInFlight = new Map<string, Promise<Procedure[]>>();
+const categoriesListCache = new Map<string, { data: Category[]; expiresAt: number }>();
+const categoriesListInFlight = new Map<string, Promise<Category[]>>();
+
+/** Drop every cached/in-flight list read. Called by each mutation so a saved
+ *  change shows up on the very next request, not up to the TTL later. */
+export function clearLibraryListCache(): void {
+  proceduresListCache.clear();
+  proceduresListInFlight.clear();
+  categoriesListCache.clear();
+  categoriesListInFlight.clear();
+}
+
 export async function listProcedures(
   filter: { status?: Procedure['status'] } = {},
   cookieHeader?: string,
 ): Promise<{ procedures: Procedure[] }> {
+  // Client-side or cookieless: no shared cache.
+  if (!cookieHeader) return { procedures: await loadProceduresList(filter, cookieHeader) };
+
+  const cacheKey = `${cookieHeader}::${filter.status ?? '*'}`;
+  const cached = proceduresListCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return { procedures: cached.data };
+
+  const inFlight = proceduresListInFlight.get(cacheKey);
+  if (inFlight) return { procedures: await inFlight };
+
+  const promise = loadProceduresList(filter, cookieHeader)
+    .then((procedures) => {
+      proceduresListCache.set(cacheKey, { data: procedures, expiresAt: Date.now() + LIST_CACHE_TTL_MS });
+      return procedures;
+    })
+    .finally(() => proceduresListInFlight.delete(cacheKey));
+  proceduresListInFlight.set(cacheKey, promise);
+  return { procedures: await promise };
+}
+
+async function loadProceduresList(
+  filter: { status?: Procedure['status'] },
+  cookieHeader?: string,
+): Promise<Procedure[]> {
   const allowedDemoSlugs = new Set(['guacamole-fresco', 'herb-crusted-sea-bass']);
   const allowedDemoIds = new Set(['proc-guacamole-fresco', 'proc-promo-sea-bass']);
 
   try {
     const { fetchProcedures } = await import('@/services/library/api');
     const apiRes = await fetchProcedures({ status: filter.status }, false, cookieHeader);
-    // [DEBUG] API path taken
-    console.log('[DEBUG listProcedures] API path:', (apiRes.procedures || []).length, apiRes.procedures);
     const dbProcs = apiRes.procedures || [];
 
     const localStore = getProceduresStore();
@@ -2337,13 +2390,21 @@ export async function listProcedures(
     );
 
     const combined = [...dbProcs, ...demoProcs];
+    if (typeof window !== 'undefined') {
+      // Persist the merged list so detail pages can paint instantly via
+      // getCachedProcedure (and a fresh tab keeps everything the API
+      // already handed us). Rows the API didn't return stay untouched.
+      const combinedKeys = new Set(combined.flatMap((p) => [p.id, p.slug].filter(Boolean)));
+      const others = localStore.filter((p) => !combinedKeys.has(p.id) && !combinedKeys.has(p.slug));
+      mockProcedures = [...combined, ...others];
+      setStored('procedures_v2', mockProcedures);
+    }
     const { employee: viewer } = await fetchMe(cookieHeader);
     const visible = combined.filter((p) => canRead(p, viewer));
     const filtered = filter.status ? visible.filter((p) => p.status === filter.status) : visible;
-    return { procedures: filtered };
-  } catch (err) {
-    // [DEBUG] why the Network tab shows nothing: silent failure
-    console.warn('[DEBUG listProcedures] API failed, falling back to local store:', err);
+    return filtered;
+  } catch {
+    // fallback
   }
 
   const { employee: viewer } = await fetchMe(cookieHeader);
@@ -2353,9 +2414,7 @@ export async function listProcedures(
       canRead(p, viewer),
   );
   const filtered = filter.status ? procs.filter((p) => p.status === filter.status) : procs;
-  // [DEBUG] fallback path: mock data from localStorage, no network call
-  console.log('[DEBUG listProcedures] fallback path:', filtered.length, filtered);
-  return { procedures: [...filtered] };
+  return [...filtered];
 }
 
 /** One procedure by id, for the editor. */
@@ -2394,6 +2453,7 @@ export async function setProcedureState(
   );
   setStored('procedures_v2', mockProcedures);
   if (typeof window !== 'undefined') window.dispatchEvent(new Event('lms_procedures_updated'));
+  clearLibraryListCache();
   const updated = mockProcedures.find((p) => p.id === id);
   if (!updated) throw new ApiException(404, 'NOT_FOUND', 'Procedure not found');
   return updated;
@@ -2408,6 +2468,7 @@ export async function deleteProcedure(id: string): Promise<{ ok: true }> {
   mockProcedures = next;
   setStored('procedures_v2', mockProcedures);
   if (typeof window !== 'undefined') window.dispatchEvent(new Event('lms_procedures_updated'));
+  clearLibraryListCache();
   return { ok: true };
 }
 
@@ -2628,6 +2689,20 @@ export async function getProcedureBySlug(
   return { procedure: proc };
 }
 
+/** The procedure as cached on this device (the procedures list keeps
+ *  every fetched procedure in localStorage), matched by slug or id.
+ *  Returns null when absent — callers must still apply `canRead` and
+ *  refresh from the API; this is a first paint, not the source of
+ *  truth. */
+export function getCachedProcedure(slugOrId: string): Procedure | null {
+  const norm = slugOrId.toLowerCase();
+  return (
+    getProceduresStore().find(
+      (p) => p.slug.toLowerCase() === norm || p.id.toLowerCase() === norm,
+    ) ?? null
+  );
+}
+
 // ----------------------------------------------------------------------------
 // Library — categories
 // ----------------------------------------------------------------------------
@@ -2637,9 +2712,30 @@ export async function listCategories(
   opts: { includeArchived?: boolean } = {},
   _cookieHeader?: string,
 ): Promise<{ categories: Category[] }> {
+  // Client-side or cookieless: no shared cache (see listProcedures).
+  if (!_cookieHeader) return { categories: await loadCategoriesList(opts.includeArchived ?? false) };
+
+  const cacheKey = `${_cookieHeader}::${opts.includeArchived ? 'arch' : 'live'}`;
+  const cached = categoriesListCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return { categories: cached.data };
+
+  const inFlight = categoriesListInFlight.get(cacheKey);
+  if (inFlight) return { categories: await inFlight };
+
+  const promise = loadCategoriesList(opts.includeArchived ?? false)
+    .then((categories) => {
+      categoriesListCache.set(cacheKey, { data: categories, expiresAt: Date.now() + LIST_CACHE_TTL_MS });
+      return categories;
+    })
+    .finally(() => categoriesListInFlight.delete(cacheKey));
+  categoriesListInFlight.set(cacheKey, promise);
+  return { categories: await promise };
+}
+
+async function loadCategoriesList(includeArchived: boolean): Promise<Category[]> {
   const cats = getCategoriesStore();
-  const filtered = opts.includeArchived ? cats : cats.filter((c) => !c.isArchived);
-  return { categories: [...filtered] };
+  const filtered = includeArchived ? cats : cats.filter((c) => !c.isArchived);
+  return [...filtered];
 }
 
 export async function createCategory(input: {
@@ -2677,6 +2773,7 @@ export async function createCategory(input: {
   };
   mockCategories = [...getCategoriesStore(), newCat];
   setStored('categories_v3', mockCategories);
+  clearLibraryListCache();
   return { category: newCat };
 }
 
@@ -2717,6 +2814,7 @@ export async function updateCategory(
   });
   setStored('categories_v3', mockCategories);
   const updated = mockCategories.find((c) => c.id === id)!;
+  clearLibraryListCache();
   return { category: updated };
 }
 

@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { LuCircleAlert, LuEllipsisVertical } from 'react-icons/lu';
+import { LuCircleAlert, LuEllipsisVertical, LuTriangleAlert } from 'react-icons/lu';
 import { Icon } from '@/components/ui/icon';
 import type { IconType } from 'react-icons';
 
@@ -35,8 +35,12 @@ export interface RowActionItem {
   /** If true, the item is styled bad-tone and triggers an inline confirm. */
   destructive?: boolean;
   /** Overrides the confirm button's label, for a destructive item whose
-   *  consequence is worth naming ("Delete block"). */
+   *  consequence is worth naming ("Delete block", "Delete section"). */
   confirmLabel?: string;
+  /** Overrides the confirm dialog title ("Delete this section?"). */
+  confirmTitle?: string;
+  /** Overrides the confirm dialog description. */
+  confirmDescription?: string;
   /** The icon, as a component (`LuPencil`) or as a name the registry resolves
    *  (`ri-pencil-line`). Names exist because a server component cannot hand a
    *  function to a client one, and because the screens merged in from
@@ -71,12 +75,22 @@ export function RowActions({ items, triggerLabel, className }: RowActionsProps):
     const trigger = triggerRef.current;
     if (!trigger) return;
     const r = trigger.getBoundingClientRect();
-    const height = menuRef.current?.offsetHeight ?? 160;
+    const isConfirm = confirmIndex !== null;
+    const height = menuRef.current?.offsetHeight ?? (isConfirm ? 180 : 160);
+    const width = isConfirm ? 340 : (menuRef.current?.offsetWidth ?? 180);
     const below = window.innerHeight - r.bottom;
-    const flipped = below < height + 12 && r.top > height + 12;
-    const top = flipped ? r.top - height - 4 : r.bottom + 4;
-    setPos({ top, right: Math.max(8, window.innerWidth - r.right), origin: flipped ? 'bottom right' : 'top right' });
-  }, []);
+    const flipped = below < height + 16 && r.top > height + 16;
+    const top = flipped ? r.top - height - 6 : r.bottom + 6;
+    let right = window.innerWidth - r.right;
+    if (r.right - width < 16) {
+      right = Math.max(16, window.innerWidth - (r.left + width));
+    }
+    setPos({
+      top: Math.max(12, Math.min(window.innerHeight - height - 12, top)),
+      right: Math.max(12, right),
+      origin: flipped ? 'bottom right' : 'top right',
+    });
+  }, [confirmIndex]);
 
   React.useLayoutEffect(() => {
     if (!open) return;
@@ -162,66 +176,87 @@ export function RowActions({ items, triggerLabel, className }: RowActionsProps):
 
       {open && mounted
         ? createPortal(
-        <div
-          ref={menuRef}
-          role="menu"
-          aria-label={triggerLabel ?? t('rowActionsLabel')}
-          style={{ top: pos?.top ?? -9999, right: pos?.right ?? 0, ['--pop-origin' as string]: pos?.origin ?? 'top right' }}
-          className={cn(
-            'pop-in fixed z-dropdown min-w-field-md',
-            'rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)]',
-            'shadow-[var(--e-3)]',
-          )}
-        >
-          {confirmIndex !== null ? (
-            <div className="space-y-2 p-3">
-              <p className="flex items-center gap-2 text-sm font-semibold text-[var(--color-bad)]">
-                <LuCircleAlert aria-hidden="true" />
-                {t('rowActionsConfirmTitle')}
-              </p>
-              <p className="text-sm text-[var(--color-ink)]">
-                {items[confirmIndex]?.label}
-              </p>
-              <div className="flex justify-end gap-2 pt-2">
-                <Button size="sm" variant="neutral" onClick={closeAll}>
-                  {t('confirmNo')}
-                </Button>
-                <Button size="sm" variant="destructive" onClick={handleConfirm}>
-                  {items[confirmIndex]?.confirmLabel ??
-                    (items[confirmIndex]?.destructive === true ? t('confirmDelete') : t('confirmYes'))}
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <ul className="py-1">
-              {items.map((item, idx) => (
-                <li key={idx} role="none">
-                  <button
+          <div
+            ref={menuRef}
+            role="menu"
+            aria-label={triggerLabel ?? t('rowActionsLabel')}
+            style={{ top: pos?.top ?? -9999, right: pos?.right ?? 0, ['--pop-origin' as string]: pos?.origin ?? 'top right' }}
+            className={cn(
+              'pop-in fixed z-dropdown',
+              confirmIndex !== null
+                ? 'w-[340px] max-w-[calc(100vw-32px)] rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-5 shadow-[var(--e-3)] text-left'
+                : 'min-w-field-md rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] shadow-[var(--e-3)]',
+            )}
+          >
+            {confirmIndex !== null ? (
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[var(--color-bad-tint)] text-[var(--color-bad)]">
+                    <LuTriangleAlert aria-hidden="true" className="size-4.5" />
+                  </div>
+                  <div className="min-w-0 flex-1 pt-0.5">
+                    <h3 className="text-base font-semibold text-[var(--color-ink)] tracking-tight">
+                      {items[confirmIndex]?.confirmTitle ?? t('rowActionsConfirmTitle')}
+                    </h3>
+                    <p className="mt-1.5 text-xs sm:text-sm leading-relaxed text-[var(--color-ink-2)]">
+                      {items[confirmIndex]?.confirmDescription ??
+                        (items[confirmIndex]?.label
+                          ? `"${items[confirmIndex]?.label}" and its contents will be permanently removed. This can't be undone.`
+                          : "This item and its contents will be permanently removed. This can't be undone.")}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-end gap-2.5 pt-1">
+                  <Button
                     type="button"
-                    role="menuitem"
-                    onClick={() => handleSelect(idx)}
-                    className={cn(
-                      'flex w-full items-center gap-2 px-3 py-2 text-left',
-                      'text-sm font-medium',
-                      'transition-colors duration-[var(--dur)] ease-[var(--ease)]',
-                      'focus-visible:outline-none focus-visible:bg-[var(--color-panel)]',
-                      item.destructive
-                        ? 'text-[var(--color-bad)] hover:bg-[var(--color-bad-tint)]'
-                        : 'text-[var(--color-ink)] hover:bg-[var(--color-panel)]',
-                    )}
+                    size="sm"
+                    variant="neutral"
+                    onClick={closeAll}
                   >
-                    {item.icon ? (
-                      <Icon icon={item.icon} className="text-md" />
-                    ) : null}
-                    <span className="flex-1">{item.label}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>,
-            document.body,
-          )
+                    {t('confirmNo')}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="destructive"
+                    onClick={handleConfirm}
+                    className="bg-[var(--color-bad)] hover:bg-[var(--color-bad-hover)] text-white! shadow-xs"
+                  >
+                    {items[confirmIndex]?.confirmLabel ??
+                      (items[confirmIndex]?.destructive === true ? t('confirmDelete') : t('confirmYes'))}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <ul className="py-1">
+                {items.map((item, idx) => (
+                  <li key={idx} role="none">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => handleSelect(idx)}
+                      className={cn(
+                        'flex w-full items-center gap-2 px-3 py-2 text-left',
+                        'text-sm font-medium',
+                        'transition-colors duration-[var(--dur)] ease-[var(--ease)]',
+                        'focus-visible:outline-none focus-visible:bg-[var(--color-panel)]',
+                        item.destructive
+                          ? 'text-[var(--color-bad)] hover:bg-[var(--color-bad-tint)]'
+                          : 'text-[var(--color-ink)] hover:bg-[var(--color-panel)]',
+                      )}
+                    >
+                      {item.icon ? (
+                        <Icon icon={item.icon} className="text-md" />
+                      ) : null}
+                      <span className="flex-1">{item.label}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>,
+          document.body,
+        )
         : null}
     </div>
   );

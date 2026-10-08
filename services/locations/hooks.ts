@@ -1,30 +1,22 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+/**
+ * Locations data layer (TanStack Query).
+ *
+ * Same pattern as services/categories and services/library: the query
+ * key is exported so mutations elsewhere can invalidate the list, and
+ * the provider defaults apply (5 min staleTime, no refetch on focus,
+ * 4xx never retried). Consumers read `data?.locations`.
+ */
+
+import { useQuery } from '@tanstack/react-query';
 import { fetchLocations } from './api';
-import type { Location } from './types';
+
+export const LOCATIONS_QUERY_KEY = ['locations'] as const;
 
 export function useLocations() {
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  const load = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const res = await fetchLocations();
-      setLocations(res.locations);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch locations'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  return { locations, isLoading, error, refetch: load };
+  return useQuery({
+    queryKey: LOCATIONS_QUERY_KEY,
+    queryFn: () => fetchLocations(),
+  });
 }

@@ -122,7 +122,32 @@ export function ProcedureEditor({
   /* ---------------------------------------------------------- reference -- */
 
   const [categories, setCategories] =
-    React.useState<Category[]>(initialCategories);
+    React.useState<Category[]>(initialCategories ?? []);
+
+  // Sync state whenever initialCategories updates from loader
+  React.useEffect(() => {
+    if (initialCategories && initialCategories.length > 0) {
+      setCategories(initialCategories);
+    }
+  }, [initialCategories]);
+
+  // Fallback: if categories is empty, load from listCategories
+  React.useEffect(() => {
+    let alive = true;
+    if (categories.length === 0) {
+      void listCategories("loc-main")
+        .then((res) => {
+          if (alive && res.categories && res.categories.length > 0) {
+            setCategories(res.categories);
+          }
+        })
+        .catch(() => {});
+    }
+    return () => {
+      alive = false;
+    };
+  }, [categories.length]);
+
   const [stations, setStations] = React.useState<Station[]>([]);
   const [roles, setRoles] = React.useState<Role[]>([]);
   const [people, setPeople] = React.useState<AdminEmployee[]>([]);
@@ -235,14 +260,16 @@ export function ProcedureEditor({
     let alive = true;
     void Promise.all([
       listStations("loc-main"),
-      listRoles(),
       listEmployees({ status: "active" }),
+      categories.length === 0 ? listCategories("loc-main") : Promise.resolve({ categories }),
     ])
-      .then(([s, r, e]) => {
+      .then(([s, e, c]) => {
         if (!alive) return;
         setStations(s.stations);
-        setRoles(r.roles);
         setPeople(e.employees);
+        if (c?.categories && c.categories.length > 0) {
+          setCategories(c.categories);
+        }
         setAccessDataLoaded(true);
       })
       .catch(() => {
@@ -395,33 +422,113 @@ export function ProcedureEditor({
 
   /* ----------------------------------------------------------------- save -- */
 
-  function save(status: "draft" | "published"): void {
-    setError(null);
-    if (!title.en.trim() && !title.es.trim()) {
-      setError(t("titleRequired"));
+  /* ----------------------------------------------------------------- save -- */
+
+  function validateProcedureForm(status: "draft" | "published"): string | null {
+    // 1. Title validation
+    const titleEn = title.en.trim();
+    const titleEs = title.es.trim();
+    if (!titleEn && !titleEs) {
+      setStep("details");
       window.scrollTo({ top: 0, behavior: "smooth" });
-      return;
+      return t("titleRequired") || "Please enter a procedure title.";
     }
-    // Publish requires at least one station — the categories page renders
-    // the chip for the one the manager attached, but it's set here in the
-    // Access step. Drafts skip the rule: a half-finished procedure can
-    // still save without a station picked yet. The error is surfaced
-    // inline inside the stations block (and the page scrolls there)
-    // rather than at the top, since the manager clicked Publish from the
-    // sticky footer and the top banner would otherwise be off-screen.
+    if (titleEn.length > 200 || titleEs.length > 200) {
+      setStep("details");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return "Procedure title must not exceed 200 characters.";
+    }
+
+    // 2. Station validation on publish
     if (status === "published" && audience.stationIds.length === 0) {
       setStep("access");
-      setError(null);
       setStationsError(true);
-      // Wait a frame so the Access step has rendered before scrolling.
       requestAnimationFrame(() => {
         stationsSectionRef.current?.scrollIntoView({
           behavior: "smooth",
           block: "center",
         });
       });
+      return "Please select at least one station before publishing.";
+    }
+
+    // 3. Blocks validation
+    for (let i = 0; i < blocks.length; i++) {
+      const b = blocks[i];
+      if (b.kind === "table") {
+        if (!b.headers || b.headers.length === 0) {
+          setStep("details");
+          return "Table must contain at least one column header.";
+        }
+        const emptyHeaderIdx = b.headers.findIndex(
+          (h) => !h?.en?.trim() && !h?.es?.trim()
+        );
+        if (emptyHeaderIdx !== -1) {
+          setStep("details");
+          return `Please enter a name for Table column ${emptyHeaderIdx + 1}.`;
+        }
+      }
+
+      if (b.kind === "recipe") {
+        const hasStepText = b.steps?.some(
+          (s) => s.body?.en?.trim() || s.body?.es?.trim()
+        );
+        if (!hasStepText) {
+          setStep("details");
+          return "Recipe must include at least one instruction step.";
+        }
+        const namelessIng = b.ingredients?.some(
+          (ing) => !ing.name?.trim() && (ing.amounts?.some((a) => a?.trim()) || ing.unit?.trim())
+        );
+        if (namelessIng) {
+          setStep("details");
+          return "Please enter a name for all recipe ingredients.";
+        }
+      }
+
+      if (b.kind === "method") {
+        const hasStepText = b.steps?.some(
+          (s) => s.body?.en?.trim() || s.body?.es?.trim()
+        );
+        if (!hasStepText) {
+          setStep("details");
+          return "Method must include at least one instruction step.";
+        }
+      }
+
+      if (b.kind === "warning") {
+        if (!b.body?.en?.trim() && !b.body?.es?.trim()) {
+          setStep("details");
+          return "Warning/Callout block text cannot be empty.";
+        }
+      }
+
+      if (b.kind === "attachment") {
+        if (!b.href?.trim()) {
+          setStep("details");
+          return "Attachment block requires a file link or URL.";
+        }
+      }
+
+      if (b.kind === "video") {
+        if (!b.src?.trim()) {
+          setStep("details");
+          return "Video block requires a video URL.";
+        }
+      }
+    }
+
+    return null;
+  }
+
+  function save(status: "draft" | "published"): void {
+    setError(null);
+    const validationError = validateProcedureForm(status);
+    if (validationError) {
+      setError(validationError);
       return;
     }
+
     setStationsError(false);
     startTransition(async () => {
       try {
@@ -451,15 +558,25 @@ export function ProcedureEditor({
             ).quiz.id;
           }
         }
+        const effectiveSubcategoryId =
+          subcategoryId ||
+          categories.find((c) => c.id === categoryId)?.subcategories?.[0]?.id ||
+          null;
+
+        const effectiveTitleEn = (title.en.trim() || title.es.trim()).slice(0, 200);
+        const effectiveTitleEs = (title.es.trim() || title.en.trim()).slice(0, 200);
+        const effectivePurposeEn = purpose.en.trim() || purpose.es.trim() || effectiveTitleEn;
+        const effectivePurposeEs = purpose.es.trim() || purpose.en.trim() || effectiveTitleEs;
+
         const input: CreateProcedureInput = {
-          titleEn: title.en.trim() || title.es.trim(),
-          // Left empty when nobody wrote it, so the library can say "No Spanish
-          // yet" instead of passing the English off as Spanish.
-          titleEs: title.es.trim(),
-          purposeEn: purpose.en.trim() || purpose.es.trim(),
-          purposeEs: purpose.es.trim(),
+          titleEn: effectiveTitleEn,
+          titleEs: effectiveTitleEs,
+          purposeEn: effectivePurposeEn,
+          purposeEs: effectivePurposeEs,
           categoryId: categoryId || null,
-          subcategoryId: subcategoryId || null,
+          subcategoryId: effectiveSubcategoryId,
+          stationId: audience.stationIds[0] || null,
+          assignUsers: audience.employeeIds,
           stationScope:
             category?.kind === "station-tied"
               ? {
@@ -481,7 +598,14 @@ export function ProcedureEditor({
         router.push(`/${locale}/admin/library`);
         router.refresh();
       } catch (err) {
-        setError(err instanceof ApiException ? err.message : tErr("generic"));
+        if (err instanceof ApiException) {
+          const detailMsg = err.details?.length
+            ? `: ${err.details.map((d) => `${d.path ? `${d.path}: ` : ''}${d.message}`).join(', ')}`
+            : '';
+          setError(`${err.message}${detailMsg}`);
+        } else {
+          setError(err instanceof Error ? err.message : tErr("generic"));
+        }
       }
     });
   }
@@ -1380,14 +1504,14 @@ function CategoryAccordion({
 function AssignBlock({
   people,
   stations,
-  roles,
+  roles = [],
   filterStationIds,
   selected,
   onToggle,
 }: {
   people: AdminEmployee[];
   stations: Station[];
-  roles: Role[];
+  roles?: Role[];
   filterStationIds: string[] | null;
   selected: string[];
   onToggle: (id: string) => void;
@@ -1399,7 +1523,7 @@ function AssignBlock({
   const VISIBLE_COUNT = 9;
 
   const roleNameById = React.useMemo(
-    () => new Map(roles.map((r) => [r.id, r.name])),
+    () => new Map((roles ?? []).map((r) => [r.id, r.name])),
     [roles],
   );
 

@@ -2,8 +2,7 @@ import * as React from 'react';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { ApiException, fetchMe, getProcedureBySlug } from '@/lib/api';
-import type { Procedure } from '@/lib/types';
+import { ApiException, fetchMe } from '@/lib/api';
 import { readViewAs } from '@/lib/view-as-server';
 import { ProcedureViewClient } from './procedure-view-client';
 
@@ -40,14 +39,10 @@ export default async function ProcedurePage({ params }: PageProps): Promise<Reac
   const viewAs = await readViewAs();
   const effectiveRole = viewAs ?? 'employee';
 
-  let proc: Procedure | null = null;
-  try {
-    const result = await getProcedureBySlug(id, cookieHeader);
-    proc = result.procedure;
-  } catch {
-    // If not found on server (e.g. created in client-side localStorage),
-    // proc remains null and ProcedureViewClient will check localStorage on client mount.
-  }
+  // The procedure itself is NOT fetched here: ProcedureViewClient
+  // paints instantly from the on-device cache (the procedures list
+  // already fetched every procedure) and refreshes from the API in
+  // the background. Only the session is resolved server-side.
 
   const labels = {
     back: t('back'),
@@ -61,7 +56,7 @@ export default async function ProcedurePage({ params }: PageProps): Promise<Reac
   return (
     <ProcedureViewClient
       slugOrId={id}
-      initialProcedure={proc}
+      initialProcedure={null}
       employee={employee}
       effectiveRole={effectiveRole}
       viewAs={viewAs}

@@ -258,23 +258,23 @@ export function RecipeYieldSection({
                       value={item.label}
                       onChange={(e) => updateItem(idx, { label: e.target.value })}
                       placeholder="e.g. Total Batch Weight"
-                      className="h-8 text-xs font-medium"
+                      className="h-8 text-xs font-medium placeholder:font-normal placeholder:text-[var(--color-ink-3)]/50"
                     />
                   </td>
                   <td className="w-28 p-2.5">
                     <Input
                       value={item.value}
                       onChange={(e) => updateItem(idx, { value: e.target.value })}
-                      placeholder="2.5"
-                      className="h-8 text-xs text-center font-bold"
+                      placeholder="e.g. 2.5"
+                      className="h-8 text-xs text-center font-semibold placeholder:font-normal placeholder:text-[var(--color-ink-3)]/40"
                     />
                   </td>
                   <td className="w-28 p-2.5">
                     <Input
                       value={item.unit ?? ''}
                       onChange={(e) => updateItem(idx, { unit: e.target.value })}
-                      placeholder="kg"
-                      className="h-8 text-xs"
+                      placeholder="e.g. kg"
+                      className="h-8 text-xs font-medium placeholder:font-normal placeholder:text-[var(--color-ink-3)]/50"
                     />
                   </td>
                   <td className="w-20 p-2.5 text-center">
@@ -503,6 +503,9 @@ function StepRowMenu({
       label: 'Delete step',
       icon: 'ri-close-line',
       destructive: true,
+      confirmTitle: 'Delete this step?',
+      confirmLabel: 'Delete step',
+      confirmDescription: "This step and its instructions will be permanently removed. This can't be undone.",
       disabled: !canRemove,
       onSelect: () => {
         if (canRemove) onRemove();
@@ -545,8 +548,8 @@ function RecipeAllergens({
       onChange(undefined);
     } else {
       onChange({
-        summary: allergen?.summary ?? '',
-        detail: allergen?.detail ?? '',
+        summary: allergen?.summary?.trim() || 'Contains allergens',
+        detail: allergen?.detail?.trim() || 'Please check ingredients list for allergen details',
         selectedAllergens: nextSelected,
       });
     }
@@ -558,8 +561,8 @@ function RecipeAllergens({
     if (!selected.includes(trimmed as AllergenKey)) {
       const next = [...selected, trimmed as AllergenKey];
       onChange({
-        summary: allergen?.summary ?? '',
-        detail: allergen?.detail ?? '',
+        summary: allergen?.summary?.trim() || 'Contains allergens',
+        detail: allergen?.detail?.trim() || 'Please check ingredients list for allergen details',
         selectedAllergens: next,
       });
     }
@@ -572,8 +575,8 @@ function RecipeAllergens({
       onChange(undefined);
     } else {
       onChange({
-        summary: allergen?.summary ?? '',
-        detail: allergen?.detail ?? '',
+        summary: allergen?.summary?.trim() || 'Contains allergens',
+        detail: allergen?.detail?.trim() || 'Please check ingredients list for allergen details',
         selectedAllergens: next,
       });
     }

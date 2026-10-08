@@ -46,6 +46,7 @@ import { HoverImagePreview } from '@/components/ui/hover-image-preview';
 import { EmptyState } from '@/components/ui/empty-state';
 import { RowActions, type RowActionItem } from '@/components/ui/row-actions';
 import { getProcedureIcon } from '@/lib/category-icons';
+import { LibraryExplorerSkeleton } from '@/components/admin/library-explorer-skeleton';
 
 interface LibraryProcedureExplorerProps {
   procedures: Procedure[];
@@ -55,6 +56,7 @@ interface LibraryProcedureExplorerProps {
    *  existing shape; when omitted the filter is hidden. */
   stations?: Station[];
   locale: string;
+  isLoading?: boolean;
 }
 
 /**
@@ -168,7 +170,12 @@ export function LibraryProcedureExplorer({
   categories,
   stations,
   locale,
+  isLoading = false,
 }: LibraryProcedureExplorerProps): React.ReactElement {
+  if (isLoading) {
+    return <LibraryExplorerSkeleton />;
+  }
+
   const isEs = locale === 'es';
   const router = useRouter();
 

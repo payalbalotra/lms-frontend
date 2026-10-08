@@ -2,9 +2,8 @@ import * as React from 'react';
 import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { setRequestLocale } from 'next-intl/server';
-import { ApiException, fetchMe, getProcedureBySlug } from '@/lib/api';
-import type { Procedure } from '@/lib/types';
-import { AdminProcedureView } from '@/components/admin/admin-procedure-view';
+import { ApiException, fetchMe } from '@/lib/api';
+import { AdminProcedureDetailLoader } from './admin-procedure-detail-loader';
 
 interface PageProps {
   params: Promise<{ locale: string; id: string }>;
@@ -18,24 +17,17 @@ export default async function AdminLibraryDetailPage({
   const { locale, id } = await params;
   setRequestLocale(locale);
 
+  // Only the session resolves server-side — it gates the page and feeds
+  // the view's employee context (fetchMe is cached, ~10s). The procedure
+  // itself loads client-side, cache-first: navigating in from the
+  // library list paints instantly; the loader refreshes from the API
+  // behind it. See admin-procedure-detail-loader.tsx.
   const cookieStore = await cookies();
   const cookieHeader = cookieStore
     .getAll()
     .map((c) => `${c.name}=${c.value}`)
     .join('; ');
 
-  let procedure: Procedure | null = null;
-  try {
-    const result = await getProcedureBySlug(id, cookieHeader);
-    procedure = result.procedure;
-  } catch (err) {
-    if (err instanceof ApiException && err.code === 'PROCEDURE_NOT_FOUND') {
-      notFound();
-    }
-    throw err;
-  }
-
-  if (!procedure) notFound();
   let employee;
   try {
     const me = await fetchMe(cookieHeader);
@@ -50,9 +42,9 @@ export default async function AdminLibraryDetailPage({
   return (
     // Matches the demo procedure view reading column width (`max-w-doc`).
     <div className="mx-auto max-w-doc space-y-6 pb-12">
-      <AdminProcedureView
+      <AdminProcedureDetailLoader
         locale={locale}
-        procedure={procedure}
+        id={id}
         employee={employee}
       />
     </div>

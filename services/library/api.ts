@@ -29,102 +29,375 @@ function isUuid(val: string | null | undefined): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(val);
 }
 
-function normalizeStep(st: any): any {
+function cleanLoc(v: any, fallback = 'Content'): { en: string; es: string } {
+  if (typeof v === 'string') {
+    const s = v.trim() || fallback;
+    return { en: s, es: s };
+  }
+  const en = (v?.en ?? '').trim();
+  const es = (v?.es ?? '').trim();
+  const valid = en || es || fallback;
+  return {
+    en: en || valid,
+    es: es || valid,
+  };
+}
+
+function cleanLocOptional(v: any, defEn = '', defEs = ''): { en?: string; es?: string } {
+  if (!v) return defEn || defEs ? { en: defEn || undefined, es: defEs || undefined } : {};
+  if (typeof v === 'string') {
+    const s = v.trim();
+    if (!s) return defEn || defEs ? { en: defEn || undefined, es: defEs || undefined } : {};
+    return { en: s, es: s };
+  }
+  const en = (v.en ?? '').trim() || defEn;
+  const es = (v.es ?? '').trim() || defEs;
+  const res: { en?: string; es?: string } = {};
+  if (en) res.en = en;
+  if (es) res.es = es;
+  return res;
+}
+
+function normalizeStep(st: any, idx = 1): any {
   const isCrit = !!st.critical;
   let criticalLimit = st.criticalLimit;
 
-  if (isCrit) {
-    const hasValues =
-      criticalLimit &&
-      typeof criticalLimit.value === 'string' &&
-      criticalLimit.value.trim().length > 0;
-
-    if (hasValues) {
-      criticalLimit = {
-        value: criticalLimit.value.trim(),
-        howToCheck: criticalLimit.howToCheck?.trim() || 'Visual and tactile verification',
-        breachLabel: criticalLimit.breachLabel?.trim() || 'Standard threshold breached',
-        breachResponse: criticalLimit.breachResponse?.trim() || 'Stop preparation and notify kitchen lead',
-        ...(criticalLimit.label?.trim() ? { label: criticalLimit.label.trim() } : {}),
-        ...(criticalLimit.subtitle?.trim() ? { subtitle: criticalLimit.subtitle.trim() } : {}),
-        ...(criticalLimit.icon?.trim() ? { icon: criticalLimit.icon.trim() } : {}),
-      };
-    } else {
-      criticalLimit = {
-        value: 'Standard holding limit',
-        howToCheck: 'Visual and tactile verification',
-        breachLabel: 'Standard threshold breached',
-        breachResponse: 'Stop preparation and notify kitchen lead',
-      };
-    }
+  if (isCrit && criticalLimit && typeof criticalLimit.value === 'string' && criticalLimit.value.trim().length > 0) {
+    criticalLimit = {
+      value: criticalLimit.value.trim(),
+      howToCheck: criticalLimit.howToCheck?.trim() || 'Visual and tactile verification',
+      breachLabel: criticalLimit.breachLabel?.trim() || 'Standard threshold breached',
+      breachResponse: criticalLimit.breachResponse?.trim() || 'Stop preparation and notify kitchen lead',
+      ...(criticalLimit.label?.trim() ? { label: criticalLimit.label.trim() } : {}),
+      ...(criticalLimit.subtitle?.trim() ? { subtitle: criticalLimit.subtitle.trim() } : {}),
+      ...(criticalLimit.icon?.trim() ? { icon: criticalLimit.icon.trim() } : {}),
+    };
   } else {
     criticalLimit = undefined;
   }
 
+  let timer = undefined;
+  if (st.timer && typeof st.timer.seconds === 'number' && st.timer.seconds > 0) {
+    timer = {
+      seconds: Math.round(st.timer.seconds),
+      label: (st.timer.label || '').trim() || 'Timer',
+    };
+  }
+
+  let note = undefined;
+  if (st.note && (st.note.body?.en?.trim() || st.note.body?.es?.trim() || (typeof st.note.body === 'string' && st.note.body.trim()))) {
+    const validSeverities = ['warn', 'tip', 'alt', 'equip', 'allergen'];
+    note = {
+      severity: validSeverities.includes(st.note.severity) ? st.note.severity : 'tip',
+      body: cleanLoc(st.note.body, 'Note'),
+    };
+  }
+
+  let videoSegment = undefined;
+  if (st.videoSegment && typeof st.videoSegment.src === 'string' && st.videoSegment.src.trim().length > 0) {
+    videoSegment = {
+      src: st.videoSegment.src.trim(),
+      startSec: Math.max(0, Math.round(Number(st.videoSegment.startSec) || 0)),
+      endSec: Math.max(0, Math.round(Number(st.videoSegment.endSec) || 0)),
+    };
+  }
+
+  let images: any[] | undefined = undefined;
+  if (Array.isArray(st.images) && st.images.length > 0) {
+    const validImgs = st.images
+      .filter((img: any) => img && typeof img.src === 'string' && img.src.trim().length > 0)
+      .map((img: any) => ({
+        src: img.src.trim(),
+        alt: cleanLocOptional(img.alt, 'Step photo', 'Foto del paso'),
+        ...(img.caption ? { caption: cleanLocOptional(img.caption) } : {}),
+      }));
+    if (validImgs.length > 0) images = validImgs;
+  }
+
   return {
-    id: st.id || `s-${Math.random().toString(36).slice(2, 8)}`,
-    body: typeof st.body === 'string' ? { en: st.body, es: st.body } : (st.body || { en: '', es: '' }),
+    id: st.id || `s-${idx}-${Math.random().toString(36).slice(2, 8)}`,
+    body: cleanLoc(st.body, `Step ${idx}`),
     critical: isCrit,
-    criticalLimit,
-    ...(st.images ? { images: st.images } : {}),
-    ...(st.videoSegment ? { videoSegment: st.videoSegment } : {}),
-    ...(st.timer ? { timer: st.timer } : {}),
-    ...(st.note ? { note: st.note } : {}),
-    ...(st.compareImages ? { compareImages: st.compareImages } : {}),
+    ...(criticalLimit ? { criticalLimit } : {}),
+    ...(timer ? { timer } : {}),
+    ...(note ? { note } : {}),
+    ...(videoSegment ? { videoSegment } : {}),
+    ...(images ? { images } : {}),
+    ...(typeof st.discardAt === 'boolean' ? { discardAt: st.discardAt } : {}),
+    ...(typeof st.discardAtHours === 'number' ? { discardAtHours: st.discardAtHours } : {}),
+    ...(typeof st.compareImages === 'boolean' ? { compareImages: st.compareImages } : {}),
+    ...(typeof st.videoSrc === 'string' && st.videoSrc.trim() ? { videoSrc: st.videoSrc.trim() } : {}),
+    ...(typeof st.videoCaption === 'string' && st.videoCaption.trim() ? { videoCaption: st.videoCaption.trim() } : {}),
   };
 }
 
 function normalizeBlocks(blocks: any[]): any[] {
   if (!Array.isArray(blocks) || blocks.length === 0) return [];
-  return blocks.map((block) => {
+
+  const normalized: any[] = [];
+
+  for (const block of blocks) {
+    if (!block || typeof block !== 'object' || !block.kind) continue;
+
+    if (block.kind === 'text') {
+      normalized.push({
+        id: block.id || `b-${Math.random().toString(36).slice(2, 8)}`,
+        kind: 'text',
+        body: cleanLoc(block.body, 'Content text'),
+      });
+      continue;
+    }
+
+    if (block.kind === 'heading') {
+      const level = [1, 2, 3].includes(block.level) ? block.level : 2;
+      normalized.push({
+        id: block.id || `b-${Math.random().toString(36).slice(2, 8)}`,
+        kind: 'heading',
+        level,
+        text: cleanLoc(block.text, 'Heading'),
+      });
+      continue;
+    }
+
+    if (block.kind === 'warning') {
+      const validSeverities = ['warn', 'tip', 'alt', 'equip', 'allergen'];
+      const severity = validSeverities.includes(block.severity) ? block.severity : 'warn';
+      normalized.push({
+        id: block.id || `b-${Math.random().toString(36).slice(2, 8)}`,
+        kind: 'warning',
+        severity,
+        body: cleanLoc(block.body, 'Warning notification'),
+      });
+      continue;
+    }
+
     if (block.kind === 'image') {
-      let src = block.src || '';
-      if (src && !src.startsWith('http://') && !src.startsWith('https://') && !src.startsWith('data:')) {
+      let src = (block.src || '').trim();
+      if (!src) src = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80';
+      if (!src.startsWith('http://') && !src.startsWith('https://') && !src.startsWith('data:')) {
         const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
         src = `${origin}${src.startsWith('/') ? '' : '/'}${src}`;
       }
-      return {
-        ...block,
+      normalized.push({
+        id: block.id || `b-${Math.random().toString(36).slice(2, 8)}`,
+        kind: 'image',
         src,
-        alt: typeof block.alt === 'string' ? { en: block.alt, es: block.alt } : (block.alt || { en: 'Procedure image', es: 'Imagen del procedimiento' }),
+        alt: cleanLocOptional(block.alt, 'Procedure image', 'Imagen del procedimiento'),
+        ...(block.caption ? { caption: cleanLocOptional(block.caption) } : {}),
         hint: block.hint === 'diagram' ? 'diagram' : 'photo',
-      };
-    }
-    if (block.kind === 'recipe') {
-      const factors = Array.isArray(block.factors) && block.factors.length > 0 ? block.factors : [1];
-      const rawIngredients = Array.isArray(block.ingredients) ? block.ingredients : [];
-      const ingredients = rawIngredients.map((ing: any) => {
-        let amounts = Array.isArray(ing.amounts) ? [...ing.amounts] : [];
-        while (amounts.length < factors.length) amounts.push('1');
-        if (amounts.length > factors.length) amounts = amounts.slice(0, factors.length);
-        return {
-          name: ing.name || 'Ingredient',
-          form: ing.form,
-          allergen: !!ing.allergen,
-          unit: ing.unit,
-          amounts,
-        };
       });
-      const rawSteps = Array.isArray(block.steps) && block.steps.length > 0 ? block.steps : [{ id: 's-1', body: { en: 'Prepare ingredients', es: 'Preparar ingredientes' } }];
-      const steps = rawSteps.map(normalizeStep);
+      continue;
+    }
 
-      return {
-        ...block,
-        factors: ingredients.length > 0 ? factors : undefined,
-        ingredients: ingredients.length > 0 ? ingredients : undefined,
-        steps,
-      };
+    if (block.kind === 'video') {
+      const src = (block.src || '').trim() || 'https://www.youtube.com';
+      normalized.push({
+        id: block.id || `b-${Math.random().toString(36).slice(2, 8)}`,
+        kind: 'video',
+        src,
+        ...(block.caption ? { caption: cleanLocOptional(block.caption) } : {}),
+      });
+      continue;
     }
+
+    if (block.kind === 'attachment') {
+      normalized.push({
+        id: block.id || `b-${Math.random().toString(36).slice(2, 8)}`,
+        kind: 'attachment',
+        title: cleanLoc(block.title, 'Document attachment'),
+        href: (block.href || '').trim() || '#',
+        ...(block.meta?.trim() ? { meta: block.meta.trim() } : {}),
+      });
+      continue;
+    }
+
+    if (block.kind === 'table') {
+      let rawHeaders = Array.isArray(block.headers) ? block.headers : [];
+      if (rawHeaders.length === 0) {
+        rawHeaders = [{ en: 'Item', es: 'Artículo' }];
+      }
+      const headers = rawHeaders.map((h: any, j: number) => cleanLoc(h, `Column ${j + 1}`));
+      const rawRows = Array.isArray(block.rows) ? block.rows : [];
+      const rows = rawRows.map((row: any) => {
+        const rowArr = Array.isArray(row) ? row : [];
+        return headers.map((_: unknown, colIdx: number) => cleanLoc(rowArr[colIdx], '—'));
+      });
+      normalized.push({
+        id: block.id || `b-${Math.random().toString(36).slice(2, 8)}`,
+        kind: 'table',
+        headers,
+        rows: rows.length > 0 ? rows : [headers.map(() => cleanLoc(null, '—'))],
+      });
+      continue;
+    }
+
+    if (block.kind === 'checklist') {
+      const rawItems = Array.isArray(block.items) ? block.items : [];
+      const items = (rawItems.length > 0 ? rawItems : [{ id: 'cl-1', text: { en: 'Item 1', es: 'Elemento 1' } }])
+        .map((it: any, j: number) => ({
+          id: it.id || `cl-${j + 1}`,
+          text: cleanLoc(it.text, `Item ${j + 1}`),
+        }));
+      normalized.push({
+        id: block.id || `b-${Math.random().toString(36).slice(2, 8)}`,
+        kind: 'checklist',
+        title: cleanLoc(block.title, 'Checklist'),
+        items,
+      });
+      continue;
+    }
+
     if (block.kind === 'method') {
-      const rawSteps = Array.isArray(block.steps) && block.steps.length > 0 ? block.steps : [{ id: 's-1', body: { en: 'Follow instructions', es: 'Seguir instrucciones' } }];
-      const steps = rawSteps.map(normalizeStep);
-      return {
-        ...block,
+      const rawSteps = Array.isArray(block.steps) && block.steps.length > 0
+        ? block.steps.filter((s: any) => s && (s.body?.en?.trim() || s.body?.es?.trim() || (typeof s.body === 'string' && s.body.trim()) || s.images?.length || s.timer))
+        : [];
+      const steps = (rawSteps.length > 0 ? rawSteps : [{ id: 's-1', body: { en: 'Follow instructions', es: 'Seguir instrucciones' } }])
+        .map((s: any, idx: number) => normalizeStep(s, idx + 1));
+      normalized.push({
+        id: block.id || `b-${Math.random().toString(36).slice(2, 8)}`,
+        kind: 'method',
         steps,
-      };
+      });
+      continue;
     }
-    return block;
-  });
+
+    if (block.kind === 'recipe') {
+      const rawIngredients = Array.isArray(block.ingredients) ? block.ingredients : [];
+      const validIngredients = rawIngredients.filter(
+        (ing: any) => ing && typeof ing.name === 'string' && ing.name.trim().length > 0,
+      );
+
+      let factors: number[] | undefined = undefined;
+      let ingredients: any[] | undefined = undefined;
+
+      if (validIngredients.length > 0) {
+        factors = Array.isArray(block.factors) && block.factors.length > 0
+          ? block.factors.map((f: any) => Math.max(1, Math.round(Number(f) || 1)))
+          : [1];
+
+        ingredients = validIngredients.map((ing: any) => {
+          let amounts = Array.isArray(ing.amounts) ? [...ing.amounts] : [];
+          amounts = amounts.map((a: any) => (typeof a === 'string' && a.trim().length > 0 ? a.trim() : '1'));
+          while (amounts.length < factors!.length) amounts.push('1');
+          if (amounts.length > factors!.length) amounts = amounts.slice(0, factors!.length);
+
+          return {
+            name: ing.name.trim(),
+            ...(ing.form?.trim() ? { form: ing.form.trim() } : {}),
+            allergen: !!ing.allergen,
+            ...(ing.unit?.trim() ? { unit: ing.unit.trim() } : {}),
+            amounts,
+          };
+        });
+      }
+
+      let allergen = undefined;
+      if (block.allergen && Array.isArray(block.allergen.selectedAllergens) && block.allergen.selectedAllergens.length > 0) {
+        const validChips = block.allergen.selectedAllergens.filter((k: any) => typeof k === 'string' && k.trim().length > 0);
+        if (validChips.length > 0) {
+          allergen = {
+            summary: (block.allergen.summary || '').trim() || 'Contains allergens',
+            detail: (block.allergen.detail || '').trim() || 'Please check ingredients list for allergen details',
+            selectedAllergens: validChips,
+          };
+        }
+      }
+
+      const rawYield = Array.isArray(block.yieldItems) ? block.yieldItems : [];
+      const yieldItems = rawYield
+        .filter((y: any) => y && typeof y.label === 'string' && y.label.trim().length > 0 && typeof y.value === 'string' && y.value.trim().length > 0)
+        .map((y: any) => ({
+          label: y.label.trim(),
+          value: y.value.trim(),
+          ...(y.unit?.trim() ? { unit: y.unit.trim() } : {}),
+          ...(typeof y.scales === 'boolean' ? { scales: y.scales } : {}),
+        }));
+
+      const rawSteps = Array.isArray(block.steps) && block.steps.length > 0
+        ? block.steps.filter((s: any) => s && (s.body?.en?.trim() || s.body?.es?.trim() || (typeof s.body === 'string' && s.body.trim()) || s.images?.length || s.timer))
+        : [];
+      const steps = (rawSteps.length > 0 ? rawSteps : [{ id: 's-1', body: { en: 'Prepare ingredients', es: 'Preparar ingredientes' } }])
+        .map((s: any, idx: number) => normalizeStep(s, idx + 1));
+
+      normalized.push({
+        id: block.id || `b-${Math.random().toString(36).slice(2, 8)}`,
+        kind: 'recipe',
+        ...(block.audience?.trim() ? { audience: block.audience.trim() } : {}),
+        ...(allergen ? { allergen } : {}),
+        ...(yieldItems.length > 0 ? { yieldItems } : {}),
+        ...(factors ? { factors } : {}),
+        ...(ingredients ? { ingredients } : {}),
+        steps,
+      });
+      continue;
+    }
+
+    if (block.kind === 'ingredients') {
+      const rawIngredients = Array.isArray(block.ingredients) ? block.ingredients : [];
+      const validIngredients = rawIngredients.filter(
+        (ing: any) => ing && typeof ing.name === 'string' && ing.name.trim().length > 0,
+      );
+
+      let factors: number[] | undefined = undefined;
+      let ingredients: any[] | undefined = undefined;
+
+      if (validIngredients.length > 0) {
+        factors = Array.isArray(block.factors) && block.factors.length > 0
+          ? block.factors.map((f: any) => Math.max(1, Math.round(Number(f) || 1)))
+          : [1];
+
+        ingredients = validIngredients.map((ing: any) => {
+          let amounts = Array.isArray(ing.amounts) ? [...ing.amounts] : [];
+          amounts = amounts.map((a: any) => (typeof a === 'string' && a.trim().length > 0 ? a.trim() : '1'));
+          while (amounts.length < factors!.length) amounts.push('1');
+          if (amounts.length > factors!.length) amounts = amounts.slice(0, factors!.length);
+
+          return {
+            name: ing.name.trim(),
+            ...(ing.form?.trim() ? { form: ing.form.trim() } : {}),
+            allergen: !!ing.allergen,
+            ...(ing.unit?.trim() ? { unit: ing.unit.trim() } : {}),
+            amounts,
+          };
+        });
+      }
+
+      let allergen = undefined;
+      if (block.allergen && Array.isArray(block.allergen.selectedAllergens) && block.allergen.selectedAllergens.length > 0) {
+        const validChips = block.allergen.selectedAllergens.filter((k: any) => typeof k === 'string' && k.trim().length > 0);
+        if (validChips.length > 0) {
+          allergen = {
+            summary: (block.allergen.summary || '').trim() || 'Contains allergens',
+            detail: (block.allergen.detail || '').trim() || 'Please check ingredients list for allergen details',
+            selectedAllergens: validChips,
+          };
+        }
+      }
+
+      const rawYield = Array.isArray(block.yieldItems) ? block.yieldItems : [];
+      const yieldItems = rawYield
+        .filter((y: any) => y && typeof y.label === 'string' && y.label.trim().length > 0 && typeof y.value === 'string' && y.value.trim().length > 0)
+        .map((y: any) => ({
+          label: y.label.trim(),
+          value: y.value.trim(),
+          ...(y.unit?.trim() ? { unit: y.unit.trim() } : {}),
+          ...(typeof y.scales === 'boolean' ? { scales: y.scales } : {}),
+        }));
+
+      normalized.push({
+        id: block.id || `b-${Math.random().toString(36).slice(2, 8)}`,
+        kind: 'ingredients',
+        ...(block.audience?.trim() ? { audience: block.audience.trim() } : {}),
+        ...(allergen ? { allergen } : {}),
+        ...(yieldItems.length > 0 ? { yieldItems } : {}),
+        ...(factors ? { factors } : {}),
+        ...(ingredients ? { ingredients } : {}),
+      });
+      continue;
+    }
+  }
+
+  return normalized;
 }
 
 export function normalizeBackendProcedure(raw: any): Procedure {
@@ -187,14 +460,18 @@ export async function fetchProcedureById(
   return normalizeBackendProcedure(data.data.procedure);
 }
 
-export async function createProcedure(
-  input: CreateProcedureInput,
-  cookieHeader?: string,
-): Promise<Procedure> {
-  const titleEn = (input.titleEn || input.titleEs || '').trim();
-  const titleEs = (input.titleEs || input.titleEn || '').trim();
-  const purposeEn = (input.purposeEn || input.purposeEs || titleEn).trim();
-  const purposeEs = (input.purposeEs || input.purposeEn || titleEs).trim();
+/** Backend PUT/POST validate against the full create schema, so every
+ *  write must ship the complete payload. Shared between create and
+ *  update: titles/purposes fall back across languages, blocks get
+ *  normalised, and mock-only ids are mapped to their real UUIDs. */
+function buildProcedurePayload(input: Partial<CreateProcedureInput>): Record<string, any> {
+  let titleEn = (input.titleEn || input.titleEs || 'Untitled Procedure').trim();
+  let titleEs = (input.titleEs || input.titleEn || 'Procedimiento sin título').trim();
+  if (titleEn.length > 200) titleEn = titleEn.slice(0, 200);
+  if (titleEs.length > 200) titleEs = titleEs.slice(0, 200);
+
+  const purposeEn = (input.purposeEn || input.purposeEs || titleEn).trim() || titleEn;
+  const purposeEs = (input.purposeEs || input.purposeEn || titleEs).trim() || titleEs;
 
   const blocksEn = normalizeBlocks(input.bodyEn?.blocks ?? []);
   const blocksEs = normalizeBlocks(input.bodyEs?.blocks ?? []);
@@ -239,7 +516,9 @@ export async function createProcedure(
     ? input.stationId
     : input.stationScope?.stationIds?.[0] && isUuid(input.stationScope.stationIds[0])
       ? input.stationScope.stationIds[0]
-      : null;
+      : input.audience?.stationIds?.[0] && isUuid(input.audience.stationIds[0])
+        ? input.audience.stationIds[0]
+        : null;
   const quizId = isUuid(input.quizId) ? input.quizId : null;
   const procedureImage =
     typeof input.procedureImage === 'string' && input.procedureImage.startsWith('http')
@@ -247,6 +526,14 @@ export async function createProcedure(
       : typeof input.iconImageUrl === 'string' && input.iconImageUrl.startsWith('http')
         ? input.iconImageUrl
         : null;
+
+  const rawAssignUsers =
+    Array.isArray(input.assignUsers) && input.assignUsers.length > 0
+      ? input.assignUsers
+      : Array.isArray(input.audience?.employeeIds) && input.audience.employeeIds.length > 0
+        ? input.audience.employeeIds
+        : [];
+  const validUsers = rawAssignUsers.filter(isUuid);
 
   const payload: Record<string, any> = {
     titleEn,
@@ -262,11 +549,36 @@ export async function createProcedure(
   if (stationId) payload.stationId = stationId;
   if (quizId) payload.quizId = quizId;
   if (procedureImage) payload.procedureImage = procedureImage;
-  if (Array.isArray(input.assignUsers) && input.assignUsers.length > 0) {
-    const validUsers = input.assignUsers.filter(isUuid);
-    if (validUsers.length > 0) payload.assignUsers = validUsers;
-  }
+  if (validUsers.length > 0) payload.assignUsers = validUsers;
 
+  return payload;
+}
+
+/** The backend's returned row, merged back onto the caller's intent so
+ *  fields the API doesn't echo (stationScope, audience, …) survive. */
+function normalizeWrittenProcedure(
+  apiProcedure: Procedure,
+  input: Partial<CreateProcedureInput>,
+): Procedure {
+  return {
+    ...apiProcedure,
+    subcategoryId: 'subcategoryId' in input ? (input.subcategoryId ?? null) : apiProcedure.subcategoryId,
+    stationScope: input.stationScope ?? null,
+    version: apiProcedure.version ?? input.version ?? 1,
+    isArchived: apiProcedure.isArchived ?? false,
+    audience: input.audience ?? null,
+    protection: input.protection ?? 'standard',
+    quizId: input.quizId ?? null,
+    linkedTrainingId: input.linkedTrainingId ?? null,
+    quizMode: input.quizMode ?? 'training',
+  };
+}
+
+export async function createProcedure(
+  input: CreateProcedureInput,
+  cookieHeader?: string,
+): Promise<Procedure> {
+  const payload = buildProcedurePayload(input);
   const headers = makeHeaders(cookieHeader);
 
   const { data } = await http.post<{
@@ -278,30 +590,49 @@ export async function createProcedure(
   });
 
   if (data.data?.procedure) {
-    return {
-      ...data.data.procedure,
-      subcategoryId: input.subcategoryId ?? null,
-      stationScope: input.stationScope ?? null,
-      version: data.data.procedure.version ?? input.version ?? 1,
-      isArchived: data.data.procedure.isArchived ?? false,
-      audience: input.audience ?? null,
-      protection: input.protection ?? 'standard',
-      quizId: input.quizId ?? null,
-      linkedTrainingId: input.linkedTrainingId ?? null,
-      quizMode: input.quizMode ?? 'training',
-    };
+    return normalizeWrittenProcedure(data.data.procedure, input);
   }
 
   throw new Error('Backend did not return created procedure');
 }
 
+/** PUT /api/v1/procedures/:id — the backend validates with the same
+ *  full create schema, so this ships a complete payload, not a patch. */
 export async function updateProcedure(
-  _id: string,
-  _input: Partial<CreateProcedureInput>
+  id: string,
+  input: Partial<CreateProcedureInput>,
+  cookieHeader?: string,
 ): Promise<Procedure> {
-  throw new Error('updateProcedure: not implemented yet');
+  const payload = buildProcedurePayload(input);
+  const headers = makeHeaders(cookieHeader);
+
+  const { data } = await http.put<{
+    success: boolean;
+    message: string;
+    data: { procedure: Procedure };
+  }>(LIBRARY_ENDPOINTS.UPDATE(id), payload, {
+    headers: Object.keys(headers).length ? headers : undefined,
+  });
+
+  if (data.data?.procedure) {
+    return normalizeWrittenProcedure(data.data.procedure, input);
+  }
+
+  throw new Error('Backend did not return updated procedure');
 }
 
-export async function archiveProcedure(_id: string): Promise<Procedure> {
-  throw new Error('archiveProcedure: not implemented yet');
+/** POST /api/v1/procedures/:id/archive — soft delete; the backend has
+ *  no hard-delete route, archive is the remove. */
+export async function archiveProcedure(id: string): Promise<Procedure> {
+  const { data } = await http.post<{
+    success: boolean;
+    message: string;
+    data: { procedure: Procedure };
+  }>(LIBRARY_ENDPOINTS.ARCHIVE(id));
+
+  if (data.data?.procedure) {
+    return data.data.procedure;
+  }
+
+  throw new Error('Backend did not return archived procedure');
 }
