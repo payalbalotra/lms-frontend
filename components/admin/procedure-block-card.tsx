@@ -16,6 +16,7 @@ const KIND_ICON: Record<ProcedureBlockKind, IconType> = {
   text: LuType,
   heading: LuHeading1,
   method: LuListOrdered,
+  ingredients: LuUtensils,
   recipe: LuUtensils,
   image: LuImage,
   video: LuVideo,
@@ -107,6 +108,15 @@ const BLOCK_THEMES: Record<ProcedureBlockKind, BlockTheme> = {
     badgeBorder: 'border-[var(--color-line)]',
     iconColor: 'text-[var(--color-ink-2)]',
     label: 'Attachment',
+  },
+  ingredients: {
+    border: 'border-l-[var(--color-line-2)]',
+    bgHeader: 'bg-[var(--color-bg-admin)]',
+    badgeBg: 'bg-[var(--color-panel)]',
+    badgeText: 'text-[var(--color-ink)]',
+    badgeBorder: 'border-[var(--color-line)]',
+    iconColor: 'text-[var(--color-ink-2)]',
+    label: 'Ingredients',
   },
   recipe: {
     border: 'border-l-[var(--color-line-2)]',

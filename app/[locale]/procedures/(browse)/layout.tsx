@@ -62,7 +62,7 @@ export default async function ProceduresLayout({ children, params }: ProceduresL
         <EmployeeTopBar
           locale={locale}
           name={employee.name}
-          canEnterAdmin={employee.role === 'admin' || employee.accessLevel === 'manager'}
+          canEnterAdmin={employee.role === 'admin' || employee.role === 'super_admin' || employee.accessLevel === 'manager'}
           signOutAction={signOut}
           labels={{
             signedInAs: t('signedInAs', { name: employee.name }),

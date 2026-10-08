@@ -7,7 +7,7 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { InviteResult } from '@/lib/types';
-import { LuPlus } from 'react-icons/lu';
+import { LuPlus, LuMail, LuCheck, LuCopy, LuArrowLeft } from 'react-icons/lu';
 
 interface InviteResultProps {
   locale: string;
@@ -16,16 +16,39 @@ interface InviteResultProps {
   onCreateAnother: () => void;
 }
 
-export function InviteResultCard({ locale, invite, employeeName, onCreateAnother }: InviteResultProps): React.ReactElement {
+export function InviteResultCard({
+  locale,
+  invite,
+  employeeName,
+  onCreateAnother,
+}: InviteResultProps): React.ReactElement {
   const t = useTranslations('admin');
-  const [copied, setCopied] = useState<'url' | 'code' | null>(null);
+  const [copied, setCopied] = useState(false);
 
-  async function copy(text: string, kind: 'url' | 'code'): Promise<void> {
+  const displayUrl = React.useMemo(() => {
+    if (!invite?.url) return '';
+    try {
+      if (typeof window !== 'undefined') {
+        const isLocal =
+          window.location.hostname === 'localhost' ||
+          window.location.hostname === '127.0.0.1';
+        if (isLocal) {
+          const urlObj = new URL(invite.url);
+          return `${window.location.origin}${urlObj.pathname}${urlObj.search}`;
+        }
+      }
+    } catch {
+      // fallback
+    }
+    return invite.url;
+  }, [invite?.url]);
+
+  async function copyUrl(): Promise<void> {
     try {
       if (typeof navigator !== 'undefined' && navigator.clipboard) {
-        await navigator.clipboard.writeText(text);
-        setCopied(kind);
-        setTimeout(() => setCopied(null), 2000);
+        await navigator.clipboard.writeText(displayUrl);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2500);
       }
     } catch {
       // ignore
@@ -33,52 +56,74 @@ export function InviteResultCard({ locale, invite, employeeName, onCreateAnother
   }
 
   return (
-    <Card className="mx-auto max-w-narrow">
-      <CardHeader>
-        <CardTitle>{t('inviteCreatedHeading')}</CardTitle>
-        <p className="text-sm text-[var(--color-muted-foreground)]">
+    <div className="mx-auto max-w-[580px] w-full py-4">
+      <Card className="w-full shadow-e2 border border-[var(--color-line-2)] rounded-[var(--radius-xl)] overflow-hidden">
+        <div className="h-2 w-full bg-gradient-to-r from-[var(--color-brand)] via-[var(--color-brand-600)] to-[var(--color-brand-700)]" />
+      <CardHeader className="text-center pt-8 pb-3 px-6 sm:px-8">
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-brand-tint)] text-[var(--color-brand-700)]">
+          <LuMail className="h-7 w-7" />
+        </div>
+        <CardTitle className="text-2xl font-bold tracking-tight text-[var(--color-ink)]">
+          {t('inviteCreatedHeading')}
+        </CardTitle>
+        <p className="text-base font-medium text-[var(--color-ink-2)] mt-1">
           {employeeName}
         </p>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-6 px-6 sm:px-8 pb-8">
+        {/* Email confirmation callout */}
+        <div className="rounded-[var(--radius-lg)] border border-[var(--color-brand-line,var(--color-line))] bg-[var(--color-brand-tint,#fef7f2)] p-4 text-sm text-[var(--color-ink)] space-y-1.5">
+          <p className="font-semibold text-[var(--color-brand-800,#9c3b12)] flex items-center gap-2">
+            <LuMail className="h-4 w-4 shrink-0 text-[var(--color-brand)]" />
+            {t('inviteEmailSent')}
+          </p>
+          <p className="text-xs text-[var(--color-ink-2)] leading-relaxed">
+            {t('inviteEmailDesc')}
+          </p>
+        </div>
+
+        {/* Direct link fallback */}
         <div>
-          <p className="mb-1 text-sm font-medium">{t('inviteUrlLabel')}</p>
+          <label className="mb-2 block text-xs font-semibold text-[var(--color-ink-2)] uppercase tracking-wider">
+            {t('inviteUrlLabel')}
+          </label>
           <div className="flex items-center gap-2">
-            <code className="flex-1 break-all rounded-md border border-[var(--color-line)] bg-[var(--color-panel)] px-2 py-1 text-sm text-[var(--color-ink)]">
-              {invite.url}
+            <code className="flex-1 break-all rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-panel)] px-3 py-2 text-xs font-mono text-[var(--color-ink)] select-all">
+              {displayUrl}
             </code>
-            <Button size="sm" variant="neutral" onClick={() => void copy(invite.url, 'url')}>
-              {copied === 'url' ? t('copied') : t('copyUrl')}
+            <Button
+              size="sm"
+              variant={copied ? 'secondary' : 'neutral'}
+              onClick={() => void copyUrl()}
+              icon={copied ? LuCheck : LuCopy}
+            >
+              {copied ? t('copied') : t('copyUrl')}
             </Button>
           </div>
         </div>
 
-        <div>
-          <p className="mb-1 text-sm font-medium">{t('codeLabel')}</p>
-          <div className="flex items-center gap-2">
-            <code className="rounded-md border border-[var(--color-line)] bg-[var(--color-panel)] px-4 py-2 font-mono text-2xl text-[var(--color-ink)]">
-              {invite.code}
-            </code>
-            <Button size="sm" variant="neutral" onClick={() => void copy(invite.code, 'code')}>
-              {copied === 'code' ? t('copied') : t('copyCode')}
-            </Button>
-          </div>
-          <p className="mt-2 text-sm text-[var(--color-bad)]">{t('codeWarning')}</p>
-        </div>
-
-        <p className="text-sm text-[var(--color-muted-foreground)]">
+        <p className="text-xs text-center text-[var(--color-ink-3,#8a9099)]">
           {t('expiresAt', { time: new Date(invite.expiresAt).toLocaleString() })}
         </p>
 
-        <div className="flex flex-wrap gap-2 pt-2">
-          <Button variant="secondary" onClick={onCreateAnother} icon={LuPlus}>
+        {/* Action buttons */}
+        <div className="flex flex-col sm:flex-row gap-3 pt-2">
+          <Button
+            variant="secondary"
+            className="flex-1"
+            onClick={onCreateAnother}
+            icon={LuPlus}
+          >
             {t('createAnother')}
           </Button>
-          <Link href={`/${locale}/admin/employees`}>
-            <Button variant="primary">{t('backToList')}</Button>
+          <Link href={`/${locale}/admin/employees`} className="flex-1">
+            <Button variant="primary" className="w-full" icon={LuArrowLeft}>
+              {t('backToList')}
+            </Button>
           </Link>
         </div>
       </CardContent>
     </Card>
+    </div>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useState, useTransition, useMemo } from 'react';
+import { useState, useTransition, useMemo, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,11 @@ import { CustomSelect } from '@/components/ui/custom-select';
 import { MultiSelectChips } from '@/components/ui/multi-select-chips';
 import { PageHeader } from '@/components/admin/page-header';
 import { LuUserPlus } from 'react-icons/lu';
-import { createEmployee, listStations, ApiException } from '@/lib/api';
+import { createEmployee } from '@/services/employees/api';
+import { fetchLocations } from '@/services/locations/api';
+import { fetchJobs, fetchRoles, fetchJobStations } from '@/services/jobs/api';
+import { fetchStations } from '@/services/stations/api';
+import { ApiException } from '@/lib/api';
 import type {
   AccessLevel,
   Employee,
@@ -55,146 +59,205 @@ const initialState = (defaultLocationId: string): FormState => ({
 
 export function NewEmployeeForm({
   locale,
-  locations,
-  roles,
+  locations: initialLocations,
+  roles: initialRoles,
 }: NewEmployeeFormProps): React.ReactElement {
   const t = useTranslations('admin');
-  const defaultLocationId = locations[0]?.id ?? '';
 
+  // Filter out any mock 'loc-main' id from initial locations
+  const validInitialLocations = initialLocations.filter((l) => l.id !== 'loc-main');
+  const [locations, setLocations] = useState<Location[]>(validInitialLocations);
+  const [roles, setRoles] = useState<Role[]>(initialRoles);
+
+  const defaultLocationId = validInitialLocations[0]?.id ?? '';
   const [form, setForm] = useState<FormState>(initialState(defaultLocationId));
-  const [stations, setStations] = useState<Station[]>([]);
+
+  const [allStations, setAllStations] = useState<Station[]>([]);
+  const [availableStations, setAvailableStations] = useState<Station[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ employee: Employee; invite: InviteResult } | null>(null);
   const [isPending, startTransition] = useTransition();
+  const hasLoadedRef = React.useRef(false);
 
-  // Initial station load for the default location.
-  React.useEffect(() => {
-    if (defaultLocationId) {
-      void loadStations(defaultLocationId);
+  // Load real locations from the API on mount (do NOT load jobs or stations yet)
+  useEffect(() => {
+    if (hasLoadedRef.current) return;
+    hasLoadedRef.current = true;
+
+    async function loadInitial() {
+      try {
+        const locsRes = await fetchLocations();
+        if (locsRes.locations.length > 0) {
+          setLocations(locsRes.locations);
+          setForm((f) => ({
+            ...f,
+            locationId: !f.locationId || f.locationId === 'loc-main' ? locsRes.locations[0].id : f.locationId,
+          }));
+        }
+      } catch {
+        // keep fallback
+      }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    void loadInitial();
   }, []);
-
-  async function loadStations(locationId: string): Promise<void> {
-    try {
-      const data = await listStations(locationId);
-      setStations(data.stations);
-    } catch {
-      setStations([]);
-    }
-  }
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]): void {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
   function onLocationChange(newLocationId: string): void {
-    setForm((f) => ({ ...f, locationId: newLocationId, stationIds: [] }));
-    void loadStations(newLocationId);
+    setForm((f) => ({ ...f, locationId: newLocationId }));
   }
 
-  // The dependency flow per the client's job→station mapping:
-  //   job role(s) ──► station(s)         (employee)
-  //   access = manager ──► all roles + all stations
-  // Each Role carries the stations it works on (Line Cook → gm/grill/expo,
-  // Prep Cook → prep, Dishwasher → dish). Empty `stationIds` on a role means
-  // "any station at the location" — useful for roles that haven't been
-  // configured yet. A Manager bypasses the filter entirely.
-  const roleById = useMemo<Map<string, Role>>(
-    () => new Map(roles.map((r) => [r.id, r])),
-    [roles],
-  );
-
-  /** Union of station ids the current role-set covers. Empty role.stationIds
-   *  is treated as "no constraint" — every station at the location matches. */
-  const stationsCoveredByRoles = useMemo<Set<string>>(() => {
-    const covered = new Set<string>();
-    for (const roleId of form.roleIds) {
-      const role = roleById.get(roleId);
-      if (!role) continue;
-      if (role.stationIds.length === 0) {
-        // "Any station" — short-circuit: the location's full set is in.
-        return new Set(stations.map((s) => s.id));
-      }
-      for (const stationId of role.stationIds) covered.add(stationId);
-    }
-    return covered;
-  }, [form.roleIds, roleById, stations]);
-
-  const availableStations = useMemo<Station[]>(() => {
-    if (form.accessLevel === 'manager') return stations;
-    if (form.roleIds.length === 0) return [];
-    return stations.filter((s) => stationsCoveredByRoles.has(s.id));
-  }, [form.accessLevel, form.roleIds.length, stations, stationsCoveredByRoles]);
-
-  const stationsBlockedReason = useMemo<string | undefined>(() => {
-    if (form.accessLevel === 'manager') return undefined;
-    if (form.roleIds.length === 0) return t('stationsEmptyNeedRole');
-    if (stations.length === 0) return t('stationsEmptyForLocation');
-    if (availableStations.length === 0) return t('stationsEmptyForRoles');
-    return undefined;
-  }, [form.accessLevel, form.roleIds.length, stations.length, availableStations.length, t]);
-
-  // Manager tier: preselect every job role and every station at the location.
-  // Switching away from Manager clears the role/station chips — the manager
-  // auto-fill is no longer valid for an employee, and the role-station filter
-  // would otherwise leave stale chips in place.
-  function setAccessLevel(next: AccessLevel | ''): void {
+  // Handle access level toggle:
+  // When Employee is selected: fetch jobs from jobs API; keep selections empty until user selects role
+  // When Manager is selected: fetch jobs and send all jobs to get all stations; preselect all jobs and all stations
+  async function setAccessLevel(next: AccessLevel | ''): Promise<void> {
     if (next === 'manager') {
+      try {
+        const { jobs: fetchedJobs } = await fetchJobs();
+        const currentRoles: Role[] = fetchedJobs.map((j) => ({
+          id: j.id,
+          name: j.name,
+          clearanceLevel: 'general',
+          stationIds: [],
+          createdAt: j.createdAt || new Date().toISOString(),
+        }));
+        setRoles(currentRoles);
+
+        const allJobIds = fetchedJobs.map((j) => j.id);
+        const { stations: fetchedStations } = await fetchJobStations(allJobIds);
+        const uniqueStations: Station[] = fetchedStations.map((s, idx) => ({
+          id: s.id,
+          name: s.name,
+          locationId: form.locationId,
+          sortOrder: idx + 1,
+          isArchived: false,
+        }));
+
+        setAllStations(uniqueStations);
+        setAvailableStations(uniqueStations);
+
+        // Preselect ALL job roles and ALL stations for Manager
+        setForm((f) => ({
+          ...f,
+          accessLevel: 'manager',
+          roleIds: currentRoles.map((r) => r.id),
+          stationIds: uniqueStations.map((s) => s.id),
+        }));
+      } catch (err) {
+        console.error('Failed to configure manager access:', err);
+        setAvailableStations(allStations);
+        setForm((f) => ({
+          ...f,
+          accessLevel: 'manager',
+          roleIds: roles.map((r) => r.id),
+          stationIds: allStations.map((s) => s.id),
+        }));
+      }
+      return;
+    }
+
+    if (next === 'employee') {
+      try {
+        const { jobs: fetchedJobs } = await fetchJobs();
+        const currentRoles: Role[] = fetchedJobs.map((j) => ({
+          id: j.id,
+          name: j.name,
+          clearanceLevel: 'general',
+          stationIds: [],
+          createdAt: j.createdAt || new Date().toISOString(),
+        }));
+        setRoles(currentRoles);
+      } catch (err) {
+        console.error('Failed to fetch jobs for employee:', err);
+      }
+
+      setAvailableStations([]);
       setForm((f) => ({
         ...f,
-        accessLevel: 'manager',
-        roleIds: roles.map((r) => r.id),
-        stationIds: stations.map((s) => s.id),
+        accessLevel: 'employee',
+        roleIds: [],
+        stationIds: [],
       }));
       return;
     }
+
+    // Switched to none
+    setAvailableStations([]);
     setForm((f) => ({
       ...f,
-      accessLevel: next,
+      accessLevel: '',
       roleIds: [],
       stationIds: [],
     }));
   }
 
-  // Preserve already-selected stations only if they remain valid for the
-  // current location + role-set. Drop everything else so the submit payload
-  // never contains an orphan id. Manager bypasses the role-stations filter.
-  function setRoleIds(next: string[]): void {
-    if (form.accessLevel === 'manager') {
-      setForm((f) => ({ ...f, roleIds: next }));
+  // Handle role selection change:
+  // When a role is selected/removed, call /api/v1/jobs/stations for the selected jobs.
+  // If jobs are cancelled, remove stations per their job.
+  async function handleRoleIdsChange(nextRoleIds: string[]): Promise<void> {
+    if (nextRoleIds.length === 0) {
+      setAvailableStations([]);
+      setForm((f) => ({
+        ...f,
+        roleIds: [],
+        stationIds: [],
+      }));
       return;
     }
-    const covered = new Set<string>();
-    for (const roleId of next) {
-      const role = roleById.get(roleId);
-      if (!role) continue;
-      if (role.stationIds.length === 0) {
-        for (const s of stations) covered.add(s.id);
-        break;
-      }
-      for (const stationId of role.stationIds) covered.add(stationId);
+
+    try {
+      const { stations: fetchedStations } = await fetchJobStations(nextRoleIds);
+      const newAvailableStations: Station[] = fetchedStations.map((s, idx) => ({
+        id: s.id,
+        name: s.name,
+        locationId: form.locationId,
+        sortOrder: idx + 1,
+        isArchived: false,
+      }));
+
+      const availableStationIdSet = new Set(newAvailableStations.map((s) => s.id));
+
+      setAvailableStations(newAvailableStations);
+      setForm((f) => ({
+        ...f,
+        roleIds: nextRoleIds,
+        // Automatically remove any stations that belonged to the cancelled/deselected job
+        stationIds: f.stationIds.filter((id) => availableStationIdSet.has(id)),
+      }));
+    } catch (err) {
+      console.error('Failed to fetch stations for selected jobs:', err);
+      setForm((f) => ({
+        ...f,
+        roleIds: nextRoleIds,
+      }));
     }
-    const stillValidStations = form.stationIds.filter((id) => covered.has(id));
+  }
+
+  function handleStationIdsChange(nextStationIds: string[]): void {
     setForm((f) => ({
       ...f,
-      roleIds: next,
-      stationIds: stillValidStations,
+      stationIds: nextStationIds,
     }));
   }
 
-  function setStationIds(next: string[]): void {
-    update('stationIds', next);
-  }
+  const stationsBlockedReason = useMemo<string | undefined>(() => {
+    if (!form.accessLevel || form.roleIds.length === 0) return t('stationsEmptyNeedRole');
+    if (availableStations.length === 0) return t('stationsEmptyForRoles');
+    return undefined;
+  }, [form.accessLevel, form.roleIds.length, availableStations.length, t]);
 
   function reset(): void {
-    setForm(initialState(defaultLocationId));
+    setForm(initialState(locations[0]?.id ?? ''));
+    setAvailableStations([]);
     setError(null);
-    void loadStations(defaultLocationId);
   }
 
   function validate(): string | null {
     if (!form.name.trim()) return t('errorNeedName');
+    if (!form.locationId) return t('locationLabel');
     if (!form.accessLevel) return t('errorNeedAccessLevel');
     if (form.roleIds.length === 0) return t('errorNeedJobRole');
     return null;
@@ -228,6 +291,8 @@ export function NewEmployeeForm({
           if (err.code === 'EMPLOYEE_CODE_TAKEN') setError(t('errorDuplicateCode'));
           else if (err.code === 'FORBIDDEN') setError(t('forbidden'));
           else setError(err.message);
+        } else if (err instanceof Error) {
+          setError(err.message);
         } else {
           setError(t('errorGeneric'));
         }
@@ -252,11 +317,12 @@ export function NewEmployeeForm({
   const field = 'grid gap-2';
   const canSubmit =
     Boolean(form.name.trim()) &&
+    Boolean(form.locationId) &&
     Boolean(form.accessLevel) &&
     form.roleIds.length > 0;
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6">
+    <div className="mx-auto max-w-[760px] w-full space-y-6">
       <PageHeader
         title={t('newHeading')}
         subtitle={t('newDescription')}
@@ -310,7 +376,7 @@ export function NewEmployeeForm({
                 ariaLabelledBy="locationId-label"
                 value={form.locationId}
                 onChange={onLocationChange}
-                disabled={isPending || locations.length === 1}
+                disabled={isPending || locations.length <= 1}
                 options={locations.map((l) => ({ value: l.id, label: l.name }))}
               />
             </div>
@@ -357,7 +423,7 @@ export function NewEmployeeForm({
                         value={level}
                         checked={selected}
                         disabled={isPending}
-                        onChange={() => setAccessLevel(level)}
+                        onChange={() => void setAccessLevel(level)}
                         className="sr-only"
                       />
                       <span
@@ -378,38 +444,34 @@ export function NewEmployeeForm({
               </div>
             </fieldset>
 
-            <div className="grid gap-5 lg:grid-cols-12">
-              <div className="lg:col-span-5">
-                <MultiSelectChips
-                  id="jobRoles"
-                  label={t('jobRolesLabel')}
-                  hint={t('jobRolesHint')}
-                  value={form.roleIds}
-                  onChange={setRoleIds}
-                  options={roles.map((r) => ({ value: r.id, label: r.name }))}
-                  disabled={isPending}
-                  addLabel={t('jobRolesAdd')}
-                  emptyText={t('jobRolesPrompt')}
-                />
-              </div>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <MultiSelectChips
+                id="jobRoles"
+                label={t('jobRolesLabel')}
+                hint={t('jobRolesHint')}
+                value={form.roleIds}
+                onChange={(ids) => void handleRoleIdsChange(ids)}
+                options={roles.map((r) => ({ value: r.id, label: r.name }))}
+                disabled={isPending || !form.accessLevel}
+                addLabel={t('jobRolesAdd')}
+                emptyText={t('jobRolesPrompt')}
+              />
 
-              <div className="lg:col-span-7">
-                <MultiSelectChips
-                  id="stations"
-                  label={t('stationsLabel')}
-                  hint={t('stationsHint')}
-                  value={form.stationIds}
-                  onChange={setStationIds}
-                  options={availableStations.map((s) => ({
-                    value: s.id,
-                    label: s.name || t('selectPlaceholder'),
-                  }))}
-                  disabled={isPending || availableStations.length === 0}
-                  blockedReason={stationsBlockedReason}
-                  addLabel={t('stationsAdd')}
-                  emptyText={t('stationsPrompt')}
-                />
-              </div>
+              <MultiSelectChips
+                id="stations"
+                label={t('stationsLabel')}
+                hint={t('stationsHint')}
+                value={form.stationIds}
+                onChange={handleStationIdsChange}
+                options={availableStations.map((s) => ({
+                  value: s.id,
+                  label: s.name || t('selectPlaceholder'),
+                }))}
+                disabled={isPending || availableStations.length === 0}
+                blockedReason={stationsBlockedReason}
+                addLabel={t('stationsAdd')}
+                emptyText={t('stationsPrompt')}
+              />
             </div>
           </div>
         </FormSection>
@@ -471,17 +533,6 @@ export function NewEmployeeForm({
   );
 }
 
-/**
- * A bordered surface for one form section. One section per concern —
- * Employee details / Access & job assignment / Additional details — so the
- * scanning order matches the conceptual hierarchy the manager is following.
- *
- * Card shape follows DESIGN.md §3.4 (12 px radius, 1.6 px hairline, white
- * on the near-neutral admin ground). Padding matches the rest of the admin
- * form surface so no section reads as more "indented" than another, and the
- * heading is 16 px / weight 600 to sit between the page subtitle and the
- * field labels.
- */
 function FormSection({
   title,
   hint,

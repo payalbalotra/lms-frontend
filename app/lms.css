@@ -2708,10 +2708,55 @@ dl.yield {
    letter-spacing: var(--heading-track);
 }
 
+dl.yield[data-count="1"] {
+   grid-template-columns: 1fr;
+}
+dl.yield[data-count="1"]>div {
+   border-right: 0;
+   border-bottom: 0;
+}
+
+dl.yield[data-count="2"] {
+   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+dl.yield[data-count="2"]>div {
+   border-bottom: 0;
+}
+dl.yield[data-count="2"]>div:last-child {
+   border-right: 0;
+}
+
+dl.yield[data-count="3"] {
+   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+dl.yield[data-count="3"]>div {
+   border-bottom: 0;
+}
+dl.yield[data-count="3"]>div:last-child {
+   border-right: 0;
+}
+
 @media (min-width: 600px) {
 
    .facts,
    dl.yield {
+      grid-template-columns: repeat(4, 1fr);
+   }
+
+   dl.yield[data-count="1"] {
+      grid-template-columns: 1fr;
+   }
+
+   dl.yield[data-count="2"] {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+   }
+
+   dl.yield[data-count="3"] {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+   }
+
+   dl.yield[data-count="4"],
+   dl.yield:not([data-count]) {
       grid-template-columns: repeat(4, 1fr);
    }
 
@@ -4961,6 +5006,52 @@ textarea.bli__control {
    pointer-events: none;
    user-select: none;
    transition: color 0.22s ease;
+}
+
+/* ---------- Auto-translation status ----------
+   Rendered after .bli__fields so the :first-child / :last-child rules that
+   shape the stacked field borders keep matching the fields themselves. */
+
+.bli__status {
+   display: flex;
+   align-items: center;
+   gap: var(--s-1-5);
+   align-self: flex-start;
+   font-family: var(--bli-font);
+   font-size: 11px;
+   font-weight: 600;
+   line-height: var(--lh-meta);
+   color: var(--bli-muted);
+   white-space: nowrap;
+}
+
+.bli__status::before {
+   content: '';
+   inline-size: 6px;
+   block-size: 6px;
+   flex: none;
+   border-radius: 999px;
+   background: currentColor;
+   animation: bli-status-pulse 1s ease-in-out infinite;
+}
+
+.bli__status.is-error {
+   color: var(--bli-required);
+}
+
+.bli__status.is-error::before {
+   animation: none;
+}
+
+@keyframes bli-status-pulse {
+   0%,
+   100% {
+      opacity: 0.3;
+   }
+
+   50% {
+      opacity: 1;
+   }
 }
 
 .bli__field.is-active .bli__tag {

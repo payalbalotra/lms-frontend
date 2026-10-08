@@ -1,8 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useTransition, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import {
@@ -25,23 +25,38 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { activate, ApiException } from '@/lib/api';
-import { http } from '@/lib/http';
 
 interface SetPasswordFormProps {
   locale: string;
   token?: string;
   employeeName?: string;
+  employeeEmail?: string;
 }
 
-export function SetPasswordForm({ locale, token, employeeName }: SetPasswordFormProps): React.ReactElement {
+export function SetPasswordForm({
+  locale,
+  token: propToken,
+  employeeName,
+  employeeEmail,
+}: SetPasswordFormProps): React.ReactElement {
   const t = useTranslations('activate');
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const token = propToken || searchParams.get('token') || undefined;
+
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    // Clear lingering admin token from localStorage to prevent cross-session pollution
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+    }
+  }, []);
 
   const isMinLength = password.length >= 8;
   const hasUppercase = /[A-Z]/.test(password);
@@ -72,32 +87,15 @@ export function SetPasswordForm({ locale, token, employeeName }: SetPasswordForm
 
     startTransition(async () => {
       try {
-        // Primary flow: cookie-based Better Auth set-password
-        const res = await http.post<{ success: boolean; data?: { redirectTo?: string }; message?: string }>(
-          '/api/v1/auth/set-password',
-          { password },
-        );
-
-        if (res.data?.success) {
-          const destination = res.data.data?.redirectTo || `/${locale}/employee/home`;
-          window.location.href = destination;
-          return;
-        }
-
-        setError(res.data?.message || t('errorGeneric'));
+        const res = await activate({ token, password, email: employeeEmail });
+        const role = res.employee?.role;
+        const defaultDest = (role === 'admin' || role === 'super_admin')
+          ? `/${locale}/admin`
+          : `/${locale}/employee/home`;
+        const destination = res.redirectTo || defaultDest;
+        router.replace(destination);
+        router.refresh();
       } catch (err: unknown) {
-        // Fallback for direct token invites
-        if (token) {
-          try {
-            await activate({ token, password });
-            router.replace(`/${locale}/employee/home`);
-            router.refresh();
-            return;
-          } catch {
-            // fall through to handle err
-          }
-        }
-
         if (err instanceof ApiException) {
           if (err.status === 401 || err.code === 'UNAUTHENTICATED' || err.code === 'INVITE_EXPIRED') {
             setError(t('errorExpired'));
@@ -105,13 +103,6 @@ export function SetPasswordForm({ locale, token, employeeName }: SetPasswordForm
             setError(t('errorLocked'));
           } else {
             setError(err.message || t('errorGeneric'));
-          }
-        } else if (err && typeof err === 'object' && 'response' in err) {
-          const axiosErr = err as { response?: { status?: number; data?: { message?: string } } };
-          if (axiosErr.response?.status === 401) {
-            setError(t('errorExpired'));
-          } else {
-            setError(axiosErr.response?.data?.message || t('errorGeneric'));
           }
         } else {
           setError(t('errorGeneric'));

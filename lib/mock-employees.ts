@@ -1,7 +1,15 @@
 'use client';
 
 import * as React from 'react';
-import type { AdminEmployee, AccessLevel, ClearanceLevel, EmployeeStatus, Role, Station } from './types';
+import type {
+  AdminEmployee,
+  AccessLevel,
+  ClearanceLevel,
+  EmployeeStatus,
+  EmployeeRole,
+  Role,
+  Station,
+} from './types';
 import { listRoles, listStations, listLocations } from './api';
 
 // ----------------------------------------------------------------------------
@@ -32,8 +40,7 @@ export const EMPLOYEES_UPDATED_EVENT = 'lms_employees_updated';
 const SEED_EMPLOYEES: AdminEmployee[] = [
   {
     id: 'emp-maria', name: 'María González', locationId: 'loc-main',
-    accessLevel: 'employee', roleIds: ['role-cook'], stationIds: ['stn-grill'],
-    clearanceLevel: 'station', role: 'employee', languagePref: 'es',
+    accessLevel: 'employee', roleIds: ['role-cook'], stationIds: ['stn-grill'], role: 'employee', languagePref: 'es',
     employeeCode: 'EMP-001', status: 'active',
     createdAt: '2026-01-10T00:00:00Z', deactivatedAt: null,
     locationName: 'Almentria Mexicana - Main Kitchen',
@@ -42,8 +49,7 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
   },
   {
     id: 'emp-james', name: 'James Carter', locationId: 'loc-main',
-    accessLevel: 'employee', roleIds: ['role-cook', 'role-prep'], stationIds: ['stn-gm', 'stn-grill'],
-    clearanceLevel: 'station', role: 'employee', languagePref: 'en',
+    accessLevel: 'employee', roleIds: ['role-cook', 'role-prep'], stationIds: ['stn-gm', 'stn-grill'], role: 'employee', languagePref: 'en',
     employeeCode: 'EMP-002', status: 'active',
     createdAt: '2026-01-12T00:00:00Z', deactivatedAt: null,
     locationName: 'Almentria Mexicana - Main Kitchen',
@@ -52,8 +58,7 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
   },
   {
     id: 'emp-ana', name: 'Ana Martínez', locationId: 'loc-main',
-    accessLevel: 'employee', roleIds: ['role-pastry'], stationIds: ['stn-prep'],
-    clearanceLevel: 'station', role: 'employee', languagePref: 'es',
+    accessLevel: 'employee', roleIds: ['role-pastry'], stationIds: ['stn-prep'], role: 'employee', languagePref: 'es',
     employeeCode: 'EMP-003', status: 'active',
     createdAt: '2026-01-15T00:00:00Z', deactivatedAt: null,
     locationName: 'Almentria Mexicana - Main Kitchen',
@@ -62,8 +67,7 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
   },
   {
     id: 'emp-david', name: 'David Park', locationId: 'loc-main',
-    accessLevel: 'employee', roleIds: ['role-prep'], stationIds: ['stn-gm'],
-    clearanceLevel: 'station', role: 'employee', languagePref: 'en',
+    accessLevel: 'employee', roleIds: ['role-prep'], stationIds: ['stn-gm'], role: 'employee', languagePref: 'en',
     employeeCode: 'EMP-004', status: 'active',
     createdAt: '2026-01-20T00:00:00Z', deactivatedAt: null,
     locationName: 'Almentria Mexicana - Main Kitchen',
@@ -72,8 +76,7 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
   },
   {
     id: 'emp-sofia', name: 'Sofía Hernández', locationId: 'loc-main',
-    accessLevel: 'manager', roleIds: ['role-cook'], stationIds: ['stn-expo', 'stn-gm'],
-    clearanceLevel: 'station', role: 'admin', languagePref: 'es',
+    accessLevel: 'manager', roleIds: ['role-cook'], stationIds: ['stn-expo', 'stn-gm'], role: 'admin', languagePref: 'es',
     employeeCode: 'EMP-005', status: 'active',
     createdAt: '2026-01-05T00:00:00Z', deactivatedAt: null,
     locationName: 'Almentria Mexicana - Main Kitchen',
@@ -82,8 +85,7 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
   },
   {
     id: 'emp-lucas', name: 'Lucas Silva', locationId: 'loc-main',
-    accessLevel: 'employee', roleIds: ['role-dish'], stationIds: ['stn-dish'],
-    clearanceLevel: 'general', role: 'employee', languagePref: 'es',
+    accessLevel: 'employee', roleIds: ['role-dish'], stationIds: ['stn-dish'], role: 'employee', languagePref: 'es',
     employeeCode: 'EMP-006', status: 'active',
     createdAt: '2026-01-25T00:00:00Z', deactivatedAt: null,
     locationName: 'Almentria Mexicana - Main Kitchen',
@@ -92,8 +94,7 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
   },
   {
     id: 'emp-priya', name: 'Priya Patel', locationId: 'loc-main',
-    accessLevel: 'employee', roleIds: ['role-cook'], stationIds: ['stn-gm'],
-    clearanceLevel: 'station', role: 'employee', languagePref: 'en',
+    accessLevel: 'employee', roleIds: ['role-cook'], stationIds: ['stn-gm'], role: 'employee', languagePref: 'en',
     employeeCode: 'EMP-007', status: 'active',
     createdAt: '2026-02-01T00:00:00Z', deactivatedAt: null,
     locationName: 'Almentria Mexicana - Main Kitchen',
@@ -102,8 +103,7 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
   },
   {
     id: 'emp-hiroshi', name: 'Hiroshi Tanaka', locationId: 'loc-main',
-    accessLevel: 'employee', roleIds: ['role-pastry'], stationIds: ['stn-prep'],
-    clearanceLevel: 'station', role: 'employee', languagePref: 'en',
+    accessLevel: 'employee', roleIds: ['role-pastry'], stationIds: ['stn-prep'], role: 'employee', languagePref: 'en',
     employeeCode: 'EMP-008', status: 'active',
     createdAt: '2026-02-05T00:00:00Z', deactivatedAt: null,
     locationName: 'Almentria Mexicana - Main Kitchen',
@@ -112,8 +112,7 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
   },
   {
     id: 'emp-carla', name: 'Carla Fernández', locationId: 'loc-main',
-    accessLevel: 'employee', roleIds: ['role-prep'], stationIds: ['stn-gm'],
-    clearanceLevel: 'station', role: 'employee', languagePref: 'es',
+    accessLevel: 'employee', roleIds: ['role-prep'], stationIds: ['stn-gm'], role: 'employee', languagePref: 'es',
     employeeCode: 'EMP-009', status: 'active',
     createdAt: '2026-02-10T00:00:00Z', deactivatedAt: null,
     locationName: 'Almentria Mexicana - Main Kitchen',
@@ -122,8 +121,7 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
   },
   {
     id: 'emp-admin', name: 'Chef Raúl Medina', locationId: 'loc-main',
-    accessLevel: 'manager', roleIds: ['role-cook'], stationIds: ['stn-expo'],
-    clearanceLevel: 'master', role: 'admin', languagePref: 'en',
+    accessLevel: 'manager', roleIds: ['role-cook'], stationIds: ['stn-expo'], role: 'admin', languagePref: 'en',
     employeeCode: 'EMP-010', status: 'active',
     createdAt: '2026-01-10T00:00:00Z', deactivatedAt: null,
     locationName: 'Almentria Mexicana - Main Kitchen',
@@ -132,8 +130,7 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
   },
   {
     id: 'emp-cook', name: 'Carlos Gomez', locationId: 'loc-main',
-    accessLevel: 'employee', roleIds: ['role-cook'], stationIds: ['stn-grill', 'stn-gm'],
-    clearanceLevel: 'station', role: 'employee', languagePref: 'es',
+    accessLevel: 'employee', roleIds: ['role-cook'], stationIds: ['stn-grill', 'stn-gm'], role: 'employee', languagePref: 'es',
     employeeCode: 'EMP-011', status: 'active',
     createdAt: '2026-02-01T00:00:00Z', deactivatedAt: null,
     locationName: 'Almentria Mexicana - Main Kitchen',
@@ -142,8 +139,7 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
   },
   {
     id: 'emp-prep', name: 'Maria Santos', locationId: 'loc-main',
-    accessLevel: 'employee', roleIds: ['role-prep'], stationIds: ['stn-prep'],
-    clearanceLevel: 'general', role: 'employee', languagePref: 'es',
+    accessLevel: 'employee', roleIds: ['role-prep'], stationIds: ['stn-prep'], role: 'employee', languagePref: 'es',
     employeeCode: 'EMP-012', status: 'active',
     createdAt: '2026-02-15T00:00:00Z', deactivatedAt: null,
     locationName: 'Almentria Mexicana - Main Kitchen',
@@ -152,8 +148,7 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
   },
   {
     id: 'emp-001', name: 'Marisol Ruiz', locationId: 'loc-main',
-    accessLevel: 'employee', roleIds: ['role-prep'], stationIds: ['stn-gm'],
-    clearanceLevel: 'general', role: 'employee', languagePref: 'es',
+    accessLevel: 'employee', roleIds: ['role-prep'], stationIds: ['stn-gm'], role: 'employee', languagePref: 'es',
     employeeCode: 'EMP-013', status: 'active',
     createdAt: '2026-09-20T00:00:00Z', deactivatedAt: null,
     locationName: 'Almentria Mexicana - Main Kitchen',
@@ -162,8 +157,7 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
   },
   {
     id: 'emp-004', name: 'Hiro Watanabe', locationId: 'loc-main',
-    accessLevel: 'employee', roleIds: ['role-cook'], stationIds: ['stn-grill'],
-    clearanceLevel: 'station', role: 'employee', languagePref: 'en',
+    accessLevel: 'employee', roleIds: ['role-cook'], stationIds: ['stn-grill'], role: 'employee', languagePref: 'en',
     employeeCode: 'EMP-014', status: 'active',
     createdAt: '2026-08-20T00:00:00Z', deactivatedAt: null,
     locationName: 'Almentria Mexicana - Main Kitchen',
@@ -172,8 +166,7 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
   },
   {
     id: 'emp-006', name: 'Ana López', locationId: 'loc-main',
-    accessLevel: 'employee', roleIds: ['role-dish'], stationIds: ['stn-dish'],
-    clearanceLevel: 'general', role: 'employee', languagePref: 'es',
+    accessLevel: 'employee', roleIds: ['role-dish'], stationIds: ['stn-dish'], role: 'employee', languagePref: 'es',
     employeeCode: 'EMP-015', status: 'active',
     createdAt: '2026-09-21T00:00:00Z', deactivatedAt: null,
     locationName: 'Almentria Mexicana - Main Kitchen',
@@ -182,8 +175,7 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
   },
   {
     id: 'emp-elena', name: 'Elena Rostova', locationId: 'loc-main',
-    accessLevel: 'employee', roleIds: ['role-pastry'], stationIds: ['stn-prep'],
-    clearanceLevel: 'station', role: 'employee', languagePref: 'en',
+    accessLevel: 'employee', roleIds: ['role-pastry'], stationIds: ['stn-prep'], role: 'employee', languagePref: 'en',
     employeeCode: 'EMP-016', status: 'active',
     createdAt: '2026-09-22T00:00:00Z', deactivatedAt: null,
     locationName: 'Almentria Mexicana - Main Kitchen',
@@ -192,8 +184,7 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
   },
   {
     id: 'emp-mateo', name: 'Mateo Rossi', locationId: 'loc-main',
-    accessLevel: 'employee', roleIds: ['role-cook'], stationIds: ['stn-grill'],
-    clearanceLevel: 'station', role: 'employee', languagePref: 'en',
+    accessLevel: 'employee', roleIds: ['role-cook'], stationIds: ['stn-grill'], role: 'employee', languagePref: 'en',
     employeeCode: 'EMP-017', status: 'active',
     createdAt: '2026-09-22T00:00:00Z', deactivatedAt: null,
     locationName: 'Almentria Mexicana - Main Kitchen',
@@ -202,8 +193,7 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
   },
   {
     id: 'emp-chloe', name: 'Chloe Dubois', locationId: 'loc-main',
-    accessLevel: 'employee', roleIds: ['role-prep'], stationIds: ['stn-gm'],
-    clearanceLevel: 'station', role: 'employee', languagePref: 'en',
+    accessLevel: 'employee', roleIds: ['role-prep'], stationIds: ['stn-gm'], role: 'employee', languagePref: 'en',
     employeeCode: 'EMP-018', status: 'active',
     createdAt: '2026-09-23T00:00:00Z', deactivatedAt: null,
     locationName: 'Almentria Mexicana - Main Kitchen',
@@ -212,8 +202,7 @@ const SEED_EMPLOYEES: AdminEmployee[] = [
   },
   {
     id: 'emp-007', name: 'Luis Ortega', locationId: 'loc-main',
-    accessLevel: 'employee', roleIds: ['role-prep'], stationIds: ['stn-prep'],
-    clearanceLevel: 'general', role: 'employee', languagePref: 'es',
+    accessLevel: 'employee', roleIds: ['role-prep'], stationIds: ['stn-prep'], role: 'employee', languagePref: 'es',
     employeeCode: 'EMP-019', status: 'pending',
     createdAt: '2026-09-22T00:00:00Z', deactivatedAt: null,
     locationName: 'Almentria Mexicana - Main Kitchen',
@@ -327,7 +316,7 @@ export interface UpdateEmployeeInput {
    *  employee reads as Admin in the detail page; the three union
    *  members map to the 3-tier model. The persisted field is
    *  `AdminEmployee.role`; `'employee'` here means "not an admin". */
-  role: 'admin' | 'employee';
+  role: EmployeeRole;
   roleIds: string[];
   stationIds: string[];
 }
@@ -367,13 +356,12 @@ export function updateEmployeeRoleStation(
     .filter((lvl): lvl is ClearanceLevel => Boolean(lvl && (known as string[]).includes(lvl)));
   const highestAccessTier: ClearanceLevel = levels.length
     ? levels.reduce((acc, lvl) => (clearanceRank[lvl] > clearanceRank[acc] ? lvl : acc))
-    : employees[idx].clearanceLevel;
+    : (employees[idx].roleClearance ?? 'general');
 
   const updated: AdminEmployee = {
     ...employees[idx],
     roleIds: [...patch.roleIds],
     stationIds: [...patch.stationIds],
-    clearanceLevel: highestAccessTier,
     roleClearance: highestAccessTier,
   };
 
@@ -417,10 +405,9 @@ export function updateEmployee(
     .filter((lvl): lvl is ClearanceLevel => Boolean(lvl && (known as string[]).includes(lvl)));
   const highestAccessTier: ClearanceLevel = levels.length
     ? levels.reduce((acc, lvl) => (clearanceRank[lvl] > clearanceRank[acc] ? lvl : acc))
-    : employees[idx].clearanceLevel;
+    : (employees[idx].roleClearance ?? 'general');
 
-  // Resolve the new location name. Same one-line lookup the create flow
-  // does — keep the cell label correct without a second round-trip.
+  // Resolve the new location name.
   let locationName = employees[idx].locationName;
   if (patch.locationId !== employees[idx].locationId) {
     try {
@@ -445,7 +432,6 @@ export function updateEmployee(
     role: patch.role,
     roleIds: [...patch.roleIds],
     stationIds: [...patch.stationIds],
-    clearanceLevel: highestAccessTier,
     roleClearance: highestAccessTier,
   };
 

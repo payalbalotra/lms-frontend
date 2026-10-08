@@ -14,6 +14,7 @@ import {
   updateEmployee,
   type UpdateEmployeeInput,
 } from '@/lib/mock-employees';
+import { fetchJobStations } from '@/services/jobs/api';
 import type { AdminEmployee, Role, Station } from '@/lib/types';
 
 interface EditRolesModalProps {
@@ -80,7 +81,8 @@ export function EditRolesModal({
   const [name, setName] = useState<string>(employee.name);
   const [email, setEmail] = useState<string>(employee.email ?? '');
   const [locationId, setLocationId] = useState<string>(employee.locationId);
-  const [tier, setTier] = useState<Tier>(employee.accessLevel);
+  const initialTier: Tier = employee.accessLevel ?? (employee.role === 'manager' ? 'manager' : 'employee');
+  const [tier, setTier] = useState<Tier>(initialTier);
   const [roleIds, setRoleIds] = useState<string[]>(employee.roleIds);
   const [stationIds, setStationIds] = useState<string[]>(employee.stationIds);
 
@@ -91,7 +93,7 @@ export function EditRolesModal({
     setName(employee.name);
     setEmail(employee.email ?? '');
     setLocationId(employee.locationId);
-    setTier(employee.accessLevel);
+    setTier(employee.accessLevel ?? (employee.role === 'manager' ? 'manager' : 'employee'));
     setRoleIds(employee.roleIds);
     setStationIds(employee.stationIds);
   }, [open, employee]);
@@ -124,24 +126,52 @@ export function EditRolesModal({
     return covered;
   }, [roleIds, roleById, stations]);
 
+  const [dynamicStations, setDynamicStations] = useState<Station[] | null>(null);
+
+  React.useEffect(() => {
+    if (roleIds.length === 0) {
+      setDynamicStations([]);
+      setStationIds([]);
+      return;
+    }
+    let cancelled = false;
+    void fetchJobStations(roleIds).then((res) => {
+      if (cancelled) return;
+      if (res.stations.length > 0) {
+        const mapped = res.stations.map((s, idx) => ({
+          id: s.id,
+          name: s.name,
+          locationId,
+          sortOrder: idx + 1,
+          isArchived: false,
+        }));
+        setDynamicStations(mapped);
+        // Automatically drop stations that are no longer valid for the remaining roleIds
+        setStationIds((prev) => prev.filter((id) => mapped.some((m) => m.id === id)));
+      } else {
+        setDynamicStations([]);
+        setStationIds([]);
+      }
+    }).catch(() => {
+      if (!cancelled) setDynamicStations(null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [roleIds, locationId]);
+
   const availableStations = useMemo<Station[]>(() => {
-    if (tier === 'manager') return stations;
     if (roleIds.length === 0) return [];
+    if (dynamicStations !== null) return dynamicStations;
     return stations.filter((s) => stationsCoveredByRoles.has(s.id));
-  }, [tier, roleIds.length, stations, stationsCoveredByRoles]);
+  }, [roleIds.length, stations, dynamicStations, stationsCoveredByRoles]);
 
   const stationsBlockedReason = useMemo<string | undefined>(() => {
-    if (tier === 'manager') return undefined;
     if (roleIds.length === 0) return t('detailEditRolesNeedRole');
-    if (stations.length === 0) return t('stationsEmptyForLocation');
     if (availableStations.length === 0) return t('stationsEmptyForRoles');
     return undefined;
-  }, [tier, roleIds.length, stations.length, availableStations.length, t]);
+  }, [roleIds.length, availableStations.length, t]);
 
-  // Manager tier: preselect every job role and every station at the location.
-  // Switching away from Manager clears the chips — the auto-fill is no longer
-  // valid for an employee, and the role-station filter would otherwise leave
-  // stale chips in place.
   function onTierChange(next: Tier): void {
     if (next === 'manager') {
       setTier('manager');
@@ -154,27 +184,8 @@ export function EditRolesModal({
     setStationIds([]);
   }
 
-  // Preserve already-selected stations only if they remain valid for the
-  // current location + role-set. Drop everything else so the save payload
-  // never contains an orphan id. Manager bypasses the role-stations filter.
   function onRolesChange(next: string[]): void {
-    if (tier === 'manager') {
-      setRoleIds(next);
-      return;
-    }
-    const covered = new Set<string>();
-    for (const roleId of next) {
-      const role = roleById.get(roleId);
-      if (!role) continue;
-      if (role.stationIds.length === 0) {
-        for (const s of stations) covered.add(s.id);
-        break;
-      }
-      for (const stationId of role.stationIds) covered.add(stationId);
-    }
-    const stillValidStations = stationIds.filter((id) => covered.has(id));
     setRoleIds(next);
-    setStationIds(stillValidStations);
   }
 
   function onLocationChangeLocal(newLocationId: string): void {
@@ -216,7 +227,7 @@ export function EditRolesModal({
       name: employee.name,
       email: employee.email ?? null,
       locationId: employee.locationId,
-      accessLevel: employee.accessLevel,
+      accessLevel: employee.accessLevel ?? (employee.role === 'manager' ? 'manager' : 'employee'),
       role: employee.role,
       roleIds: [...employee.roleIds],
       stationIds: [...employee.stationIds],

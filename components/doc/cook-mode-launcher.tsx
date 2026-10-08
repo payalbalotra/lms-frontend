@@ -136,21 +136,6 @@ function toMethodStep(step: ProcedureMethodStep, locale: 'en' | 'es', noteLabels
 
   const extraNodes: React.ReactNode[] = [];
   if (noteNode) extraNodes.push(noteNode);
-  if (step.criticalLimit) {
-    const l = step.criticalLimit;
-    extraNodes.push(
-      <CriticalLimitFull
-        key="crit-limit"
-        icon={l.icon}
-        label={l.label}
-        value={l.value}
-        subtitle={l.subtitle}
-        howToCheck={l.howToCheck}
-        breachLabel={l.breachLabel}
-        breachResponse={l.breachResponse}
-      />,
-    );
-  }
 
   const out: MethodStep = {
     body: (
@@ -189,8 +174,8 @@ function toMethodStep(step: ProcedureMethodStep, locale: 'en' | 'es', noteLabels
   if (shots.length > 0) {
     out.shots = shots;
   }
-  if (step.videoSrc) {
-    out.video = { src: step.videoSrc, caption: step.videoCaption };
+  if (step.videoSegment?.src || step.videoSrc) {
+    out.video = { src: step.videoSegment?.src ?? step.videoSrc!, caption: step.videoCaption };
   }
 
   // Populate mediaThumb with badge if video clip or images exist
@@ -225,18 +210,30 @@ function toMethodStep(step: ProcedureMethodStep, locale: 'en' | 'es', noteLabels
   return out;
 }
 
+export type CookModeBlockInput = {
+  id?: string;
+  kind?: string;
+  factors?: number[];
+  yieldItems?: Array<{ label: string; value: string; unit?: string; scales?: boolean }>;
+  ingredients?: Array<{ name: string; form?: string; allergen?: boolean; amounts: string[] }>;
+  steps: ProcedureMethodStep[];
+  allergen?: { summary: string; detail: string; selectedAllergens?: readonly string[] };
+};
+
 export function CookModeLauncher({
   block,
   procedureId,
   procedureTitle,
   locale,
   skipAllergen,
+  modalOnly = false,
 }: {
-  block: Extract<ProcedureBlock, { kind: 'recipe' }>;
+  block: CookModeBlockInput;
   procedureId: string;
   procedureTitle: string;
   locale: 'en' | 'es';
   skipAllergen?: boolean;
+  modalOnly?: boolean;
 }): React.ReactElement | null {
   const recipeBlockId = block.id ?? `recipe-${block.factors?.length ?? 0}`;
   const labels = locale === 'es' ? COOK_LABELS_ES : COOK_LABELS_EN;
@@ -347,30 +344,34 @@ export function CookModeLauncher({
 
   return (
     <>
-      {!skipAllergen && block.allergen ? (
-        <Allergen
-          summary={block.allergen.summary}
-          detail={block.allergen.detail}
-          selectedAllergens={block.allergen.selectedAllergens}
-          locale={locale}
-        />
-      ) : null}
-      <RecipeBody
-        factors={block.factors ?? []}
-        yieldItems={block.yieldItems ?? []}
-        ingredients={(block.ingredients ?? []).map((ing) => ({
-          name: ing.name,
-          form: ing.form,
-          allergen: ing.allergen,
-          amounts: ing.amounts,
-        }))}
-        steps={steps}
-        batchLabel={t.batch}
-        yieldTitle={t.yieldTitle}
-        methodTitle={t.method}
-        stepsCount={t.steps(steps.length)}
-        cookMode={cookMode}
-      />
+      {!modalOnly && (
+        <>
+          {!skipAllergen && block.allergen ? (
+            <Allergen
+              summary={block.allergen.summary}
+              detail={block.allergen.detail}
+              selectedAllergens={block.allergen.selectedAllergens}
+              locale={locale}
+            />
+          ) : null}
+          <RecipeBody
+            factors={block.factors ?? []}
+            yieldItems={block.yieldItems ?? []}
+            ingredients={(block.ingredients ?? []).map((ing) => ({
+              name: ing.name,
+              form: ing.form,
+              allergen: ing.allergen,
+              amounts: ing.amounts,
+            }))}
+            steps={steps}
+            batchLabel={t.batch}
+            yieldTitle={t.yieldTitle}
+            methodTitle={t.method}
+            stepsCount={t.steps(steps.length)}
+            cookMode={cookMode}
+          />
+        </>
+      )}
       <CookMode
         open={open}
         start={start}

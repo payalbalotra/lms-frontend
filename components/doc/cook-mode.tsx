@@ -601,7 +601,7 @@ export function CookMode({
               <span>{labels.discard(discard)}</span>
             </p>
           ) : null}
-          {step.critical ? <CritLimitBlock value={step.criticalLimit} /> : null}
+
 
           {upNext ? (
             <div className="cook-next">

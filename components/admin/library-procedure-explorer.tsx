@@ -177,6 +177,16 @@ export function LibraryProcedureExplorer({
   const [liveStations, setLiveStations] = React.useState<Station[]>(stations ?? []);
 
   React.useEffect(() => {
+    if (categories) setLiveCategories(categories);
+  }, [categories]);
+  React.useEffect(() => {
+    if (procedures) setLiveProcedures(procedures);
+  }, [procedures]);
+  React.useEffect(() => {
+    if (stations) setLiveStations(stations);
+  }, [stations]);
+
+  React.useEffect(() => {
     let isMounted = true;
     async function syncData() {
       try {
@@ -184,7 +194,6 @@ export function LibraryProcedureExplorer({
           includeArchived: true,
         });
         const procRes = await listProcedures({});
-        const stationRes = await listStations('loc-main');
         if (isMounted) {
           if (catRes.categories && catRes.categories.length > 0) {
             setLiveCategories(catRes.categories);
@@ -192,15 +201,11 @@ export function LibraryProcedureExplorer({
           if (procRes.procedures && procRes.procedures.length > 0) {
             setLiveProcedures(procRes.procedures);
           }
-          if (stationRes.stations) {
-            setLiveStations(stationRes.stations);
-          }
         }
       } catch {
         // Fallback
       }
     }
-    syncData();
 
     window.addEventListener('lms_categories_updated', syncData);
     window.addEventListener('storage', syncData);
@@ -332,12 +337,13 @@ export function LibraryProcedureExplorer({
     const counts: Record<string, number> = { all: current.length };
 
     for (const p of current) {
-      if (!p.category) {
+      const procCat = p.category ?? (p.subcategoryId ? uniqueCategories.find((c) => c.subcategories?.some((s) => s.id === p.subcategoryId)) : null);
+      if (!procCat) {
         counts['general'] = (counts['general'] || 0) + 1;
         continue;
       }
-      const rawKey = p.category.slug || p.category.id;
-      const canonicalSlug = slugToCanonicalSlug.get(rawKey) || p.category.slug;
+      const rawKey = procCat.slug || procCat.id;
+      const canonicalSlug = slugToCanonicalSlug.get(rawKey) || procCat.slug;
       counts[canonicalSlug] = (counts[canonicalSlug] || 0) + 1;
     }
 
@@ -476,11 +482,12 @@ export function LibraryProcedureExplorer({
       .filter((p) => {
         // Category Filter
         if (selectedCategorySlug !== 'all') {
-          if (!p.category) {
+          const procCat = p.category ?? (p.subcategoryId ? categoryList.find((c) => c.subcategories?.some((s) => s.id === p.subcategoryId)) : null);
+          if (!procCat) {
             if (selectedCategorySlug !== 'general') return false;
           } else {
-            const rawKey = p.category.slug || p.category.id;
-            const canonicalSlug = categorySlugMap.get(rawKey) || p.category.slug;
+            const rawKey = procCat.slug || procCat.id;
+            const canonicalSlug = categorySlugMap.get(rawKey) || procCat.slug;
             if (canonicalSlug !== selectedCategorySlug) return false;
           }
         }
@@ -772,12 +779,13 @@ export function LibraryProcedureExplorer({
       ) : (
         <ul className="divide-y divide-[var(--color-line)] rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)]">
           {paginatedProcedures.map((p) => {
-            const catName = p.category ? (isEs ? p.category.nameEs : p.category.nameEn) : 'General';
+            const procCategory = p.category ?? (p.subcategoryId ? categoryList.find((c) => c.subcategories?.some((s) => s.id === p.subcategoryId)) : null);
+            const catName = procCategory ? (isEs ? procCategory.nameEs : procCategory.nameEn) : 'General';
             const title = (isEs ? p.titleEs || p.titleEn : p.titleEn || p.titleEs) || p.slug;
             const purpose = isEs ? p.purposeEs || p.purposeEn : p.purposeEn || p.purposeEs;
-            // The same test the admin home uses: a Spanish-reading cook cannot
-            // read it. A bare "EN" beside "EN / ES" did not say that was a gap.
-            const noSpanish = !p.titleEs.trim() || (p.bodyEn.blocks.length > 0 && p.bodyEs.blocks.length === 0);
+            const noSpanish =
+              !p.titleEs?.trim() ||
+              ((p.bodyEn?.blocks?.length ?? 0) > 0 && (p.bodyEs?.blocks?.length ?? 0) === 0);
             // Subcategory resolves from the FK via the map the catalog already
             // builds; absent subcategories just don't render, no string-sniffing
             // fallback that used to lie about recipe sections.

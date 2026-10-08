@@ -119,28 +119,28 @@ export function DocHead({
   title,
   withCover = true,
 }: {
-  /** Icon name, not the component: this crosses the server/client boundary.
-   *  Absent, no tile: without a photo it was a large empty square above the
-   *  title that said nothing the category line does not. */
   icon?: string;
   iconImageUrl?: string | null;
   category: string;
   title: React.ReactNode;
   withCover?: boolean;
 }) {
+  const [imgError, setImgError] = React.useState(false);
+  const showImg = Boolean(iconImageUrl && !imgError);
+
   return (
-    <header className={icon || iconImageUrl ? 'doc-head' : 'doc-head pt-6'}>
-      {iconImageUrl ? (
+    <header className={icon || showImg ? 'doc-head' : 'doc-head pt-6'}>
+      {showImg ? (
         <div className="doc-icon is-img">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={iconImageUrl} alt="" />
+          <img src={iconImageUrl!} alt="" onError={() => setImgError(true)} />
         </div>
       ) : icon ? (
         <div className="doc-icon">
           <Icon icon={iconByName(icon)} className="i" />
         </div>
       ) : null}
-      <div className="doc-crumb">{category}</div>
+      <div className="doc-crumb" suppressHydrationWarning>{category}</div>
       <h1 className="doc-title display">{title}</h1>
       {!withCover && <div className="qr print-only"><span className="code">QR</span></div>}
     </header>
@@ -221,10 +221,18 @@ export function Facts({ items }: { items: Fact[] }) {
 
 export type YieldItem = { label: string; value: React.ReactNode };
 
-/** Same component, larger numbers because one holds figures. */
+/** Same component, larger numbers because one holds figures. Dynamically sizes columns to fill width. */
 export function Yield({ items }: { items: YieldItem[] }) {
+  const count = Math.max(1, items.length);
   return (
-    <dl className="yield">
+    <dl
+      className="yield"
+      data-count={count}
+      style={{
+        gridTemplateColumns:
+          count <= 3 ? `repeat(${count}, minmax(0, 1fr))` : undefined,
+      }}
+    >
       {items.map((y, i) => (
         <div key={i}>
           <dt>{y.label}</dt>
@@ -415,12 +423,14 @@ export function MethodSteps({
     <ol className="steps compact">
       {steps.map((s, i) => {
         const isDone = Boolean(done[i]);
+        // Only use the 3-column has-media layout when a side thumbnail is actually rendered
+        const showSideThumb = Boolean(s.mediaThumb && (!s.shots || s.shots.length === 0));
         const classes = cn(
           'step',
           s.critical && 'is-crit',
           isDone && 'is-done',
           nowIndex === i && 'is-now',
-          s.mediaThumb && 'has-media',
+          showSideThumb && 'has-media',
         );
         return (
           <li key={i} id={`step-${i + 1}`} className={classes || undefined}>
@@ -447,12 +457,12 @@ export function MethodSteps({
               ) : (
                 <div className="step-line">{s.body}</div>
               )}
-              {!s.mediaThumb && s.watchAt && (
+              {!showSideThumb && s.watchAt && (
                 <button className="step-time">
                   <LuPlay aria-hidden="true" className="i i-sm" /> Watch · {s.watchAt}
                 </button>
               )}
-              {!s.mediaThumb && s.clip && (
+              {!showSideThumb && s.clip && (
                 <a
                   className="step-time"
                   href={s.clip.src}
@@ -462,18 +472,33 @@ export function MethodSteps({
                   <LuPlay aria-hidden="true" className="i i-sm" /> Watch · {fmtClock(s.clip.startSec)}–{fmtClock(s.clip.endSec)}
                 </a>
               )}
-              {!s.mediaThumb && s.shots?.map((sh, j) => (
-                <Shot key={`shot-${j}`} src={sh.src} alt={sh.alt} caption={sh.caption} compare={sh.compare} />
-              ))}
-              {!s.mediaThumb && s.video ? (
-                <StepVideo src={s.video.src} caption={s.video.caption} />
+              {/* Photographs: when multiple photos are attached, render as responsive grid; when 1, render full detail */}
+              {s.shots && s.shots.length > 1 ? (
+                <div
+                  className={cn(
+                    'grid gap-3 mt-3',
+                    s.shots.length === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3',
+                  )}
+                >
+                  {s.shots.map((sh, j) => (
+                    <Shot key={`shot-${j}`} src={sh.src} alt={sh.alt} caption={sh.caption} compare={sh.compare} />
+                  ))}
+                </div>
+              ) : s.shots && s.shots.length === 1 ? (
+                <div className="mt-3 max-w-xl">
+                  <Shot src={s.shots[0].src} alt={s.shots[0].alt} caption={s.shots[0].caption} compare={s.shots[0].compare} />
+                </div>
               ) : null}
+
+              {/* In-step Video: always visible when present */}
+              {s.video && (
+                <div className="mt-3 max-w-xl">
+                  <StepVideo src={s.video.src} caption={s.video.caption} />
+                </div>
+              )}
             </div>
-            {/* Right-side thumb, mirroring demo3's per-step photo. The thumb is
-                a button (not an `<img>`) because tapping it opens cook mode
-                at this step. `is-pair` lays two photos side-by-side with
-                green/red bottom borders for "right vs wrong" comparisons. */}
-            {s.mediaThumb ? (
+            {/* Right-side thumb: rendered only when no inline body photos */}
+            {showSideThumb && s.mediaThumb ? (
               s.mediaThumb.compare === 'ok' && s.mediaThumb.pairSrc ? (
                 <button
                   type="button"
@@ -919,7 +944,7 @@ export function DocControl({ entries, defaultOpen = true }: { entries: DocContro
         {entries.map((e, i) => (
           <React.Fragment key={i}>
             <dt>{e.label}</dt>
-            <dd>{e.value}</dd>
+            <dd suppressHydrationWarning>{e.value}</dd>
           </React.Fragment>
         ))}
       </dl>

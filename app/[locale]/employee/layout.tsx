@@ -56,7 +56,7 @@ export default async function EmployeeLayout({ children, params }: EmployeeLayou
         // Admins are seeded (Raúl) and managers are the heads of station —
         // both can enter the admin chrome. Plain employees don't get the
         // link; they only have Sign out.
-        canEnterAdmin={employee.role === 'admin' || employee.accessLevel === 'manager'}
+        canEnterAdmin={employee.role === 'admin' || employee.role === 'super_admin' || employee.accessLevel === 'manager'}
         signOutAction={signOut}
         labels={{
           signedInAs: t('signedInAs', { name: employee.name }),

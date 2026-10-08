@@ -44,7 +44,14 @@ import {
   duplicateBlock,
   nextStepId,
 } from '@/lib/procedure-blocks';
-import { requestImageUpload, requestVideoUpload, uploadToR2, deleteUpload } from '@/lib/api';
+import {
+  requestImageUpload,
+  requestVideoUpload,
+  requestDocumentUpload,
+  uploadToR2,
+  uploadMedia,
+  deleteUpload,
+} from '@/lib/api';
 import { classifyVideoUrl } from '@/lib/procedure-media';
 import { Icon } from '@/components/ui/icon';
 import type {
@@ -56,8 +63,9 @@ import type {
   ProcedureNoteKind,
 } from '@/lib/types';
 import { IconTile } from '@/components/ui/icon-tile';
-import { RecipeBlockBody } from './recipe-block-body';
+import { IngredientsBlockBody } from './ingredients-block-body';
 import { BilingualInput } from '@/components/ui/bilingual-input';
+import { LocalisedInput } from '@/components/ui/localised-input';
 
 // ---------------------------------------------------------------------------
 // Localised helpers (kept local — this file is self-contained).
@@ -76,6 +84,15 @@ function setOpt(v: LocalisedOptional | undefined, lang: 'en' | 'es', value: stri
   return { en: v?.en, es: v?.es, [lang]: value };
 }
 
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('Failed to read image file'));
+    reader.readAsDataURL(file);
+  });
+}
+
 const ALLOWED_IMAGE_TYPES = new Set([
   'image/jpeg',
   'image/png',
@@ -89,6 +106,7 @@ const ALLOWED_VIDEO_TYPES = new Set([
 ]);
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
+const MAX_DOCUMENT_BYTES = 25 * 1024 * 1024;
 
 const NOTE_KINDS: ProcedureNoteKind[] = ['warn', 'tip', 'alt', 'equip', 'allergen'];
 
@@ -221,6 +239,8 @@ function BlockRow({
             ? 'Checklist'
             : block.kind === 'warning'
             ? 'Callout'
+            : block.kind === 'ingredients'
+            ? 'Ingredients'
             : block.kind === 'recipe'
             ? 'Recipe'
             : block.kind === 'image'
@@ -297,7 +317,7 @@ function InsertAfterButton({
             { kind: 'image', label: 'Photograph', icon: 'ri-image-line' },
             { kind: 'video', label: 'Video', icon: 'ri-video-line' },
             { kind: 'attachment', label: 'Attachment', icon: 'ri-attachment-line' },
-            { kind: 'recipe', label: 'Recipe', icon: 'ri-restaurant-line' },
+            { kind: 'ingredients', label: 'Ingredients', icon: 'ri-restaurant-line' },
           ] as { kind: ProcedureBlockKind; label: string; icon: string }[]).map((opt) => (
             <button
               key={opt.kind}
@@ -345,8 +365,10 @@ function BlockBody({
       return <HeadingBody block={block} onPatch={onPatch} />;
     case 'method':
       return <MethodBody block={block} onPatch={onPatch} />;
+    case 'ingredients':
+      return <IngredientsBlockBody block={block} onPatch={onPatch} />;
     case 'recipe':
-      return <RecipeBlockBody block={block} onPatch={onPatch} />;
+      return <MethodBody block={{ ...block, kind: 'method', steps: block.steps }} onPatch={onPatch as any} />;
     case 'image':
       return <ImageBody block={block} onPatch={onPatch} />;
     case 'video':
@@ -377,7 +399,7 @@ const SLASH_BLOCK_OPTIONS: { kind: ProcedureBlockKind; label: string; icon: stri
   { kind: 'image', label: 'Photograph', icon: 'ri-image-line' },
   { kind: 'video', label: 'Video', icon: 'ri-video-line' },
   { kind: 'attachment', label: 'Attachment', icon: 'ri-attachment-line' },
-  { kind: 'recipe', label: 'Recipe', icon: 'ri-restaurant-line' },
+  { kind: 'ingredients', label: 'Ingredients', icon: 'ri-restaurant-line' },
 ];
 
 function TextBody({
@@ -505,101 +527,74 @@ function headingCls(level: 1 | 2 | 3): string {
 
 // ---- Method (numbered steps) ----
 
-function MethodBody({
-  block,
-  onPatch,
-}: BodyProps<Extract<ProcedureBlock, { kind: 'method' }>>): React.ReactElement {
-  const update = (idx: number, next: ProcedureMethodStep): void => {
-    onPatch({ ...block, steps: block.steps.map((s, i) => (i === idx ? next : s)) });
-  };
-  const remove = (idx: number): void => {
-    onPatch({ ...block, steps: block.steps.filter((_, i) => i !== idx) });
-  };
-  const move = (idx: number, dir: 'up' | 'down'): void => {
-    const j = dir === 'up' ? idx - 1 : idx + 1;
-    if (j < 0 || j >= block.steps.length) return;
-    const next = arrayMove(block.steps, idx, j);
-    onPatch({ ...block, steps: next });
-  };
-  const add = (): void => {
-    onPatch({ ...block, steps: [...block.steps, { id: nextStepId(), body: { en: '', es: '' } }] });
-  };
+const STEP_TONE_CONFIGS: Record<
+  ProcedureNoteKind,
+  {
+    label: string;
+    icon: string;
+    activeBg: string;
+    activeColor: string;
+    tintBg: string;
+    iconColor: string;
+  }
+> = {
+  warn: {
+    label: 'Warning',
+    icon: 'ri-alert-line',
+    activeBg: '#d97706',
+    activeColor: '#ffffff',
+    tintBg: 'var(--color-warn-tint)',
+    iconColor: '#d97706',
+  },
+  tip: {
+    label: 'Tip',
+    icon: 'ri-lightbulb-line',
+    activeBg: '#166534',
+    activeColor: '#ffffff',
+    tintBg: 'var(--color-ok-tint)',
+    iconColor: '#166534',
+  },
+  allergen: {
+    label: 'Allergen',
+    icon: 'ri-error-warning-line',
+    activeBg: '#b91c1c',
+    activeColor: '#ffffff',
+    tintBg: 'var(--color-bad-tint)',
+    iconColor: '#b91c1c',
+  },
+  equip: {
+    label: 'Equipment',
+    icon: 'ri-tools-line',
+    activeBg: '#2563eb',
+    activeColor: '#ffffff',
+    tintBg: 'var(--color-wash)',
+    iconColor: '#2563eb',
+  },
+  alt: {
+    label: 'Alternative',
+    icon: 'ri-information-line',
+    activeBg: '#475569',
+    activeColor: '#ffffff',
+    tintBg: 'var(--color-wash)',
+    iconColor: '#475569',
+  },
+};
 
-  return (
-    <div className="space-y-2">
-      <ol className="space-y-3">
-        {block.steps.map((step, i) => (
-          <li key={step.id ?? i} className="flex gap-3 items-start">
-            <span className="mt-2 inline-flex size-6 shrink-0 items-center justify-center rounded-full border-2 border-[var(--color-line-2)] bg-[var(--color-surface)] font-mono text-sm font-semibold text-[var(--color-ink)]">
-              {String(i + 1).padStart(2, '0')}
-            </span>
-            <div className="flex-1 space-y-2">
-              <BilingualInput
-                value={step.body}
-                onChange={(val) => update(i, { ...step, body: val })}
-                multiline
-                placeholder={{
-                  en: 'Describe this step in English…',
-                  es: 'Describe este paso en español…',
-                }}
-              />
-              {step.critical && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-warn-tint)] px-2 py-0.5 text-xs font-semibold uppercase text-[var(--color-warn-ink)]">
-                  <Icon icon="ri-focus-3-line" />
-                  Critical
-                </span>
-              )}
-              {/* Per-step media. The photographer or short-clip author can pin
-                  one of each to this exact step — "this is what the grill marks
-                  should look like", "this is the right whisking motion" — so
-                  it sits next to the words that describe it, not floating in
-                  its own block far above. */}
-              <StepMedia
-                step={step}
-                onPatch={(patched) => update(i, patched)}
-              />
-            </div>
-            <StepRowMenu
-              index={i}
-              total={block.steps.length}
-              onMove={(dir) => move(i, dir)}
-              onRemove={() => remove(i)}
-            />
-          </li>
-        ))}
-      </ol>
-      <button
-        type="button"
-        onClick={add}
-        className="ml-10 inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-medium text-[var(--color-ink-3)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)]"
-      >
-        <Icon icon="ri-add-line" />
-        Add step
-      </button>
-    </div>
-  );
-}
-
-/** Per-step image / video attachments. Anchored right beneath the step body
- *  so the cook reading the procedure sees the media where it's described.
- *  Image and video both go through the same presigned upload the rest of
- *  the composer uses — same size/format limits, same error states.
- *
- *  A step can carry any number of photos (the `images` array) plus one
- *  optional video. The legacy single-slot `imageSrc`/`imageAlt` is read on
- *  mount so procedures written before the array shipped keep showing one
- *  photo; new writes go through the array. */
-function StepMedia({
+function MethodStepRow({
   step,
-  onPatch,
+  index,
+  total,
+  onUpdate,
+  onRemove,
+  onMove,
 }: {
   step: ProcedureMethodStep;
-  onPatch: (next: ProcedureMethodStep) => void;
-}): React.ReactElement | null {
-  // Normalize the images list: prefer `step.images`; fall back to the legacy
-  // single-slot fields so older procedures render without a migration step.
-  // Writes always go through `images` and clear the legacy slots, so this
-  // is one-way: the next save promotes old data into the array shape.
+  index: number;
+  total: number;
+  onUpdate: (next: ProcedureMethodStep) => void;
+  onRemove: () => void;
+  onMove: (dir: 'up' | 'down') => void;
+}): React.ReactElement {
   const legacyFirst = step.imageSrc
     ? [{ src: step.imageSrc, alt: step.imageAlt ?? { en: '', es: '' } }]
     : [];
@@ -608,7 +603,6 @@ function StepMedia({
 
   const imageFileRef = React.useRef<HTMLInputElement>(null);
   const videoFileRef = React.useRef<HTMLInputElement>(null);
-  // `null` = append a new image at the end; a number = replace that index.
   const pendingImageIndex = React.useRef<number | null>(null);
   const [imageBusy, setImageBusy] = React.useState<
     { state: 'uploading' | 'failed'; target: number | null; error?: string } | null
@@ -618,7 +612,7 @@ function StepMedia({
   >(null);
 
   const hasVideo = Boolean(step.videoSrc);
-  const hasAny = images.length > 0 || hasVideo || imageBusy || videoBusy;
+  const hasAnyMedia = images.length > 0 || hasVideo || imageBusy || videoBusy;
 
   const triggerImageUpload = (target: number | null): void => {
     pendingImageIndex.current = target;
@@ -626,11 +620,9 @@ function StepMedia({
   };
 
   const writeImages = (next: Array<{ src: string; alt: Localised }>): void => {
-    onPatch({
+    onUpdate({
       ...step,
       images: next,
-      // Clear the legacy slots once the new array owns the data — keeps
-      // legacy and new paths from drifting apart on subsequent edits.
       imageSrc: undefined,
       imageAlt: undefined,
     });
@@ -658,21 +650,16 @@ function StepMedia({
     const target = pendingImageIndex.current;
     setImageBusy({ state: 'uploading', target });
     try {
-      const presigned = await requestImageUpload({
-        filename: file.name,
-        contentType: file.type,
-        size: file.size,
-      });
-      await uploadToR2(presigned.uploadUrl, file, file.type);
+      const finalSrc = (await uploadMedia(file, 'image')) || (await readFileAsDataUrl(file));
       const filenameNoExt = file.name.replace(/\.[^.]+$/, '');
       const defaultAlt: Localised = { en: filenameNoExt, es: filenameNoExt };
       if (target === null) {
-        writeImages([...images, { src: presigned.publicUrl, alt: defaultAlt }]);
+        writeImages([...images, { src: finalSrc, alt: defaultAlt }]);
       } else {
         writeImages(
           images.map((img, j) =>
             j === target
-              ? { src: presigned.publicUrl, alt: img.alt.en || img.alt.es ? img.alt : defaultAlt }
+              ? { src: finalSrc, alt: img.alt.en || img.alt.es ? img.alt : defaultAlt }
               : img,
           ),
         );
@@ -698,288 +685,503 @@ function StepMedia({
     }
     setVideoBusy({ state: 'uploading' });
     try {
-      const presigned = await requestVideoUpload({
-        filename: file.name,
-        contentType: file.type,
-        size: file.size,
-      });
-      await uploadToR2(presigned.uploadUrl, file, file.type);
-      onPatch({ ...step, videoSrc: presigned.publicUrl });
+      const src = await uploadMedia(file, 'video');
+      onUpdate({ ...step, videoSrc: src });
       setVideoBusy(null);
     } catch (err) {
       setVideoBusy({ state: 'failed', error: err instanceof Error ? err.message : 'Upload failed' });
     }
   }
 
-  // Empty state — a tiny inline pair of ghost buttons, no card chrome.
-  // Most steps don't need media; surfacing the affordance as a card before
-  // anything is attached would be visual noise.
-  if (!hasAny) {
-    return (
-      <div className="flex items-center gap-2 pt-1">
-        <button
-          type="button"
-          onClick={() => triggerImageUpload(null)}
-          className="inline-flex items-center gap-2 rounded-full border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-1 text-xs font-semibold text-[var(--color-ink)] hover:bg-[var(--color-panel)] hover:border-[var(--color-line-3)] transition-colors"
-        >
-          <Icon icon="ri-image-add-line" className="text-[var(--color-brand-600)]" />
-          <span>Add photo</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => videoFileRef.current?.click()}
-          className="inline-flex items-center gap-2 rounded-full border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-1 text-xs font-semibold text-[var(--color-ink)] hover:bg-[var(--color-panel)] hover:border-[var(--color-line-3)] transition-colors"
-        >
-          <Icon icon="ri-video-add-line" className="text-[var(--color-brand-600)]" />
-          <span>Add video</span>
-        </button>
-        <input
-          ref={imageFileRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            e.target.value = '';
-            if (f) void uploadImage(f);
-          }}
-        />
-        <input
-          ref={videoFileRef}
-          type="file"
-          accept="video/mp4,video/webm,video/quicktime"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            e.target.value = '';
-            if (f) void uploadVideo(f);
-          }}
-        />
-      </div>
-    );
-  }
-
-  // Busy-target labels — the failed state shows next to whichever image it
-  // belongs to, not at the card level, so the user knows which row to retry.
   const uploadingIndex = imageBusy?.state === 'uploading' ? imageBusy.target : null;
   const failedIndex = imageBusy?.state === 'failed' ? imageBusy.target : null;
 
   return (
-    <div className="space-y-3 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-wash)] p-3">
-      {/* Photos list */}
-      {images.length > 0 ? (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="flex items-center gap-2 text-xs font-semibold text-[var(--color-ink)]">
-              <Icon icon="ri-image-line" className="text-[var(--color-ink-3)]" />
-              <span>Step Photos</span>
-              <span className="rounded-full bg-[var(--color-surface)] border border-[var(--color-line-2)] px-2 py-0.5 text-[10px] font-bold text-[var(--color-ink-2)]">
-                {images.length}
-              </span>
-            </span>
-          </div>
+    <li className="flex gap-3 items-start">
+      <span className="mt-2 inline-flex size-6 shrink-0 items-center justify-center rounded-full border-2 border-[var(--color-line-2)] bg-[var(--color-surface)] font-mono text-sm font-semibold text-[var(--color-ink)]">
+        {String(index + 1).padStart(2, '0')}
+      </span>
 
-          <div className="space-y-2">
-            {images.map((img, i) => {
-              const isUploading = uploadingIndex === i;
-              const isFailed = failedIndex === i;
-              return (
-                <div
-                  key={i}
-                  className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-3 shadow-xs"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <div className="relative size-12 shrink-0 overflow-hidden rounded-[var(--radius-sm)] border border-[var(--color-line-2)] bg-[var(--color-panel)]">
-                    <img
-                      src={img.src}
-                      alt={img.alt.en ?? ''}
-                      className="size-full object-cover"
-                    />
-                    {isUploading && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[1px]">
-                        <span className="spinner text-white" aria-hidden="true" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <BilingualInput
-                      value={img.alt ?? { en: '', es: '' }}
-                      onChange={(val) => updateImageAlt(i, val)}
-                      size="compact"
-                      placeholder={{
-                        en: 'Alt text (English)…',
-                        es: 'Texto alternativo (Español)…',
-                      }}
-                    />
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => triggerImageUpload(i)}
-                      title="Replace photo"
-                      aria-label="Replace photo"
-                      className="inline-flex size-8 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-ink-2)] hover:bg-[var(--color-panel)] hover:text-[var(--color-ink)] transition-colors"
-                    >
-                      <Icon icon="ri-upload-2-line" className="text-base" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => removeImage(i)}
-                      title="Remove photo"
-                      aria-label="Remove photo"
-                      className="inline-flex size-8 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-bad)] hover:bg-[var(--color-bad-tint)] transition-colors"
-                    >
-                      <Icon icon="ri-delete-bin-line" className="text-base" />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+      <div className="flex-1 space-y-3">
+        {/* Step description input */}
+        <BilingualInput
+          value={step.body}
+          onChange={(val) => onUpdate({ ...step, body: val })}
+          multiline
+          placeholder={{
+            en: 'Describe this step in English…',
+            es: 'Describe este paso en español…',
+          }}
+        />
 
-          {failedIndex !== null ? (
-            <div className="flex items-center gap-2 text-xs text-[var(--color-bad)]">
-              <Icon icon="ri-error-warning-line" />
-              <span>{imageBusy?.error}</span>
-              <button
-                type="button"
-                onClick={() => triggerImageUpload(failedIndex)}
-                className="underline font-semibold hover:no-underline ml-1"
-              >
-                Try again
-              </button>
-            </div>
-          ) : null}
+        {/* Step action chips toolbar — ALL in ONE row */}
+        <div className="flex flex-wrap items-center gap-2 pt-0.5">
+          {/* Critical Step toggle */}
+          <button
+            type="button"
+            onClick={() => onUpdate({ ...step, critical: !step.critical })}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-all shadow-2xs cursor-pointer',
+              step.critical
+                ? 'bg-[var(--color-bad-tint)] text-[var(--color-bad)] border border-[var(--color-bad)]/40'
+                : 'bg-[var(--color-surface)] text-[var(--color-ink-2)] border border-[var(--color-line-2)] hover:border-[var(--color-line-3)] hover:bg-[var(--color-wash)]',
+            )}
+            title="Critical steps are highlighted with an alert badge to ensure compliance"
+          >
+            <Icon
+              icon="ri-alert-line"
+              className={cn('text-sm', step.critical ? 'text-[var(--color-bad)]' : 'text-[var(--color-ink-3)]')}
+            />
+            {step.critical ? 'Critical Step' : 'Mark as Critical'}
+          </button>
 
-          {uploadingIndex === null && imageBusy?.state === 'uploading' ? (
-            <div className="flex items-center gap-2 text-xs text-[var(--color-ink-2)]">
-              <span className="spinner" aria-hidden="true" />
-              Uploading photo…
-            </div>
-          ) : null}
-        </div>
-      ) : null}
+          {/* Add Timer affordance */}
+          {!step.timer && (
+            <button
+              type="button"
+              onClick={() => onUpdate({ ...step, timer: { label: 'Timer', seconds: 60 } })}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-1 text-xs font-medium text-[var(--color-ink-2)] hover:border-[var(--color-line-3)] hover:bg-[var(--color-wash)] transition-colors cursor-pointer"
+            >
+              <Icon icon="ri-time-line" className="text-sm text-[var(--color-ink-3)]" />
+              + Timer
+            </button>
+          )}
 
-      {/* Video section */}
-      {hasVideo ? (
-        <div className="space-y-2 border-t border-[var(--color-line-2)] pt-3">
-          <div className="flex items-center gap-2 text-xs font-semibold text-[var(--color-ink)]">
-            <Icon icon="ri-video-line" className="text-[var(--color-ink-3)]" />
-            <span>Step Video</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <input
-                type="url"
-                value={step.videoSrc ?? ''}
-                onChange={(e) => onPatch({ ...step, videoSrc: e.target.value })}
-                placeholder="Paste a YouTube, Vimeo, or video URL…"
-                aria-label="Video URL"
-                className="h-8 w-full rounded-[var(--radius-sm)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 text-xs text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] focus:border-[var(--color-brand)] focus:outline-none"
-              />
-            </div>
+          {/* Add Callout Note affordance */}
+          {!step.note && (
+            <button
+              type="button"
+              onClick={() => onUpdate({ ...step, note: { severity: 'warn', body: { en: '', es: '' } } })}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-1 text-xs font-medium text-[var(--color-ink-2)] hover:border-[var(--color-line-3)] hover:bg-[var(--color-wash)] transition-colors cursor-pointer"
+            >
+              <Icon icon="ri-lightbulb-line" className="text-sm text-[var(--color-ink-3)]" />
+              + Tip / Callout
+            </button>
+          )}
+
+          {/* Add Photo affordance */}
+          <button
+            type="button"
+            onClick={() => triggerImageUpload(null)}
+            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-1 text-xs font-medium text-[var(--color-ink-2)] hover:border-[var(--color-line-3)] hover:bg-[var(--color-wash)] transition-colors cursor-pointer"
+          >
+            <Icon icon="ri-image-add-line" className="text-sm text-[var(--color-brand)]" />
+            <span>Add photo</span>
+          </button>
+
+          {/* Add Video affordance */}
+          {!hasVideo && (
             <button
               type="button"
               onClick={() => videoFileRef.current?.click()}
-              title="Replace video"
-              aria-label="Replace video"
-              className="inline-flex size-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:bg-[var(--color-panel)] hover:text-[var(--color-ink)] transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-1 text-xs font-medium text-[var(--color-ink-2)] hover:border-[var(--color-line-3)] hover:bg-[var(--color-wash)] transition-colors cursor-pointer"
             >
-              <Icon icon="ri-upload-2-line" className="text-base" />
+              <Icon icon="ri-video-add-line" className="text-sm text-[var(--color-brand)]" />
+              <span>Add video</span>
             </button>
+          )}
+
+          {/* Hidden file inputs */}
+          <input
+            ref={imageFileRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = '';
+              if (f) void uploadImage(f);
+            }}
+          />
+          <input
+            ref={videoFileRef}
+            type="file"
+            accept="video/mp4,video/webm,video/quicktime"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = '';
+              if (f) void uploadVideo(f);
+            }}
+          />
+        </div>
+
+        {/* Inline Timer Editor (clean segmented control and aligned inputs) */}
+        {step.timer && (
+          <div className="flex flex-wrap items-center gap-3 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-wash)]/70 p-3 text-xs">
+            <span className="flex items-center gap-1.5 font-semibold text-[var(--color-ink)] shrink-0">
+              <Icon icon="ri-time-line" className="text-sm text-[var(--color-brand)]" />
+              Timer:
+            </span>
+            <input
+              type="text"
+              value={step.timer.label}
+              onChange={(e) => onUpdate({ ...step, timer: { ...step.timer!, label: e.target.value } })}
+              placeholder="Timer label"
+              className="h-8 w-[160px] rounded-[var(--radius-sm)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 text-xs font-medium text-[var(--color-ink)] focus:border-[var(--color-brand)] focus:outline-none"
+            />
+            <div className="flex items-center gap-2 shrink-0">
+              <input
+                type="number"
+                min="1"
+                value={step.timer.seconds}
+                onChange={(e) => {
+                  const sec = parseInt(e.target.value, 10);
+                  onUpdate({ ...step, timer: { ...step.timer!, seconds: Number.isNaN(sec) ? 0 : sec } });
+                }}
+                className="h-8 w-[72px] rounded-[var(--radius-sm)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-2 text-center text-xs font-mono font-medium text-[var(--color-ink)] focus:border-[var(--color-brand)] focus:outline-none"
+              />
+              <span className="text-[var(--color-ink-3)] font-medium">sec</span>
+            </div>
+            <div className="inline-flex items-center gap-1 rounded-[var(--radius-sm)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-1 shadow-2xs shrink-0">
+              {[
+                { label: '12s', sec: 12 },
+                { label: '30s', sec: 30 },
+                { label: '1m', sec: 60 },
+                { label: '2.5m', sec: 150 },
+                { label: '5m', sec: 300 },
+              ].map((p) => {
+                const active = step.timer?.seconds === p.sec;
+                return (
+                  <button
+                    key={p.sec}
+                    type="button"
+                    onClick={() => onUpdate({ ...step, timer: { ...step.timer!, seconds: p.sec } })}
+                    className={cn(
+                      'rounded-[var(--radius-xs)] px-3 py-1 text-xs font-mono font-semibold transition-all cursor-pointer',
+                      active
+                        ? 'bg-[var(--color-ink)] text-[var(--color-surface)] shadow-2xs'
+                        : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)] hover:bg-[var(--color-wash)]',
+                    )}
+                  >
+                    {p.label}
+                  </button>
+                );
+              })}
+            </div>
             <button
               type="button"
-              onClick={() => {
-                const nextSrc = step.videoSrc;
-                onPatch({ ...step, videoSrc: '', videoCaption: undefined });
-                if (nextSrc && classifyVideoUrl(nextSrc).provider === 'file') {
-                  void deleteUpload({ url: nextSrc }).catch(() => undefined);
-                }
-              }}
-              title="Remove video"
-              aria-label="Remove video"
-              className="inline-flex size-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-bad)] hover:bg-[var(--color-bad-tint)] transition-colors"
+              onClick={() => onUpdate({ ...step, timer: undefined })}
+              className="ml-auto flex size-8 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-ink-3)] hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)] transition-colors cursor-pointer"
+              title="Remove timer"
             >
-              <Icon icon="ri-delete-bin-line" className="text-base" />
+              <Icon icon="ri-close-line" className="text-base" />
             </button>
           </div>
-          <input
-            type="text"
-            value={step.videoCaption ?? ''}
-            onChange={(e) => onPatch({ ...step, videoCaption: e.target.value || undefined })}
-            placeholder="Video caption (optional)…"
-            aria-label="Video caption"
-            className="h-8 w-full rounded-[var(--radius-sm)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 text-xs text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] focus:border-[var(--color-brand)] focus:outline-none"
-          />
-          {videoBusy?.state === 'uploading' ? (
-            <div className="flex items-center gap-2 text-xs text-[var(--color-ink-2)]">
-              <span className="spinner" aria-hidden="true" />
-              Uploading video…
-            </div>
-          ) : null}
-          {videoBusy?.state === 'failed' ? (
-            <div className="flex items-center gap-2 text-xs text-[var(--color-bad)]">
-              <Icon icon="ri-error-warning-line" />
-              <span>{videoBusy.error}</span>
-              <button
-                type="button"
-                onClick={() => videoFileRef.current?.click()}
-                className="underline font-semibold hover:no-underline ml-1"
-              >
-                Try again
-              </button>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
+        )}
 
-      {/* Buttons bar */}
-      <div className="flex items-center gap-2 pt-1">
-        <button
-          type="button"
-          onClick={() => triggerImageUpload(null)}
-          className="inline-flex items-center gap-2 rounded-full border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-1 text-xs font-semibold text-[var(--color-ink)] hover:bg-[var(--color-panel)] hover:border-[var(--color-line-3)] transition-colors"
-        >
-          <Icon icon="ri-image-add-line" className="text-[var(--color-brand-600)]" />
-          <span>Add photo</span>
-        </button>
+        {/* Inline Callout Note Editor (generous spacing below pills, clean hairline divider, vibrant tone buttons) */}
+        {step.note && (() => {
+          const currentTone = STEP_TONE_CONFIGS[step.note.severity] ?? STEP_TONE_CONFIGS.warn;
+          return (
+            <div
+              style={{ backgroundColor: currentTone.tintBg }}
+              className="rounded-[var(--radius-md)] p-4 space-y-4 text-xs transition-colors"
+            >
+              <div className="flex items-center justify-between gap-3 pb-3 border-b border-[var(--color-line-2)]/50">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="font-semibold text-[var(--color-ink)] flex items-center gap-1.5 text-xs">
+                    <span style={{ color: currentTone.iconColor }} className="inline-flex">
+                      <Icon icon={currentTone.icon} className="text-base" />
+                    </span>
+                    Callout tone:
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {(['warn', 'tip', 'allergen', 'equip'] as ProcedureNoteKind[]).map((kind) => {
+                      const active = step.note?.severity === kind;
+                      const cfg = STEP_TONE_CONFIGS[kind];
+                      return (
+                        <button
+                          key={kind}
+                          type="button"
+                          onClick={() => onUpdate({ ...step, note: { ...step.note!, severity: kind } })}
+                          style={
+                            active
+                              ? { backgroundColor: cfg.activeBg, color: cfg.activeColor }
+                              : { backgroundColor: 'var(--color-surface)', color: 'var(--color-ink-2)' }
+                          }
+                          className={cn(
+                            'inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-semibold transition-all cursor-pointer shadow-2xs',
+                            active
+                              ? 'ring-1 ring-black/10'
+                              : 'hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)]',
+                          )}
+                        >
+                          {cfg.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onUpdate({ ...step, note: undefined })}
+                  className="flex size-7 items-center justify-center rounded text-[var(--color-ink-3)] hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)] transition-colors cursor-pointer"
+                  title="Remove callout note"
+                >
+                  <Icon icon="ri-close-line" className="text-base" />
+                </button>
+              </div>
 
-        {!hasVideo ? (
-          <button
-            type="button"
-            onClick={() => videoFileRef.current?.click()}
-            className="inline-flex items-center gap-2 rounded-full border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-1 text-xs font-semibold text-[var(--color-ink)] hover:bg-[var(--color-panel)] hover:border-[var(--color-line-3)] transition-colors"
-          >
-            <Icon icon="ri-video-add-line" className="text-[var(--color-brand-600)]" />
-            <span>Add video</span>
-          </button>
-        ) : null}
+              <BilingualInput
+                value={step.note.body}
+                onChange={(body) => onUpdate({ ...step, note: { ...step.note!, body } })}
+                multiline
+                size="compact"
+                placeholder={{
+                  en:
+                    step.note.severity === 'warn'
+                      ? 'e.g. Halibut must be cooked using the third fryer only to prevent oil cross-contamination.'
+                      : step.note.severity === 'tip'
+                      ? 'e.g. The halibut is ready when no fish sticks to the knife upon removal.'
+                      : step.note.severity === 'allergen'
+                      ? 'e.g. Contains shellfish. Use designated allergen utensils.'
+                      : 'e.g. Requires probe thermometer and parchment paper.',
+                  es: 'Instrucciones o advertencia en español…',
+                }}
+              />
+            </div>
+          );
+        })()}
+
+        {/* Attached Media Previews (photos & video) */}
+        {hasAnyMedia && (
+          <div className="space-y-3 rounded-[var(--radius-md)] bg-[var(--color-wash)]/60 p-3 text-xs">
+            {images.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2 font-semibold text-[var(--color-ink)]">
+                    <Icon icon="ri-image-line" className="text-[var(--color-ink-3)]" />
+                    <span>Step Photos</span>
+                    <span className="rounded-full bg-[var(--color-surface)] border border-[var(--color-line-2)] px-2 py-0.5 text-[10px] font-bold text-[var(--color-ink-2)]">
+                      {images.length}
+                    </span>
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  {images.map((img, idx) => {
+                    const isUploading = uploadingIndex === idx;
+                    return (
+                      <div
+                        key={idx}
+                        className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-2.5 shadow-2xs"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <div className="relative size-12 shrink-0 overflow-hidden rounded-[var(--radius-sm)] border border-[var(--color-line-2)] bg-[var(--color-panel)]">
+                          <img
+                            src={img.src}
+                            alt={img.alt.en ?? ''}
+                            className="size-full object-cover"
+                          />
+                          {isUploading && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[1px]">
+                              <span className="spinner text-white" aria-hidden="true" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <BilingualInput
+                            value={img.alt ?? { en: '', es: '' }}
+                            onChange={(val) => updateImageAlt(idx, val)}
+                            size="compact"
+                            placeholder={{
+                              en: 'Alt text (English)…',
+                              es: 'Texto alternativo (Español)…',
+                            }}
+                          />
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => triggerImageUpload(idx)}
+                            title="Replace photo"
+                            aria-label="Replace photo"
+                            className="inline-flex size-8 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-ink-2)] hover:bg-[var(--color-panel)] hover:text-[var(--color-ink)] transition-colors cursor-pointer"
+                          >
+                            <Icon icon="ri-upload-2-line" className="text-base" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeImage(idx)}
+                            title="Remove photo"
+                            aria-label="Remove photo"
+                            className="inline-flex size-8 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-bad)] hover:bg-[var(--color-bad-tint)] transition-colors cursor-pointer"
+                          >
+                            <Icon icon="ri-delete-bin-line" className="text-base" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {failedIndex !== null && (
+                  <div className="flex items-center gap-2 text-xs text-[var(--color-bad)]">
+                    <Icon icon="ri-error-warning-line" />
+                    <span>{imageBusy?.error}</span>
+                    <button
+                      type="button"
+                      onClick={() => triggerImageUpload(failedIndex)}
+                      className="underline font-semibold hover:no-underline ml-1 cursor-pointer"
+                    >
+                      Try again
+                    </button>
+                  </div>
+                )}
+
+                {uploadingIndex === null && imageBusy?.state === 'uploading' && (
+                  <div className="flex items-center gap-2 text-xs text-[var(--color-ink-2)]">
+                    <span className="spinner" aria-hidden="true" />
+                    Uploading photo…
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Video preview / input */}
+            {hasVideo && (
+              <div className="space-y-2 border-t border-[var(--color-line-2)] pt-2.5">
+                <div className="flex items-center gap-2 font-semibold text-[var(--color-ink)]">
+                  <Icon icon="ri-video-line" className="text-[var(--color-ink-3)]" />
+                  <span>Step Video</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type="url"
+                      value={step.videoSrc ?? ''}
+                      onChange={(e) => onUpdate({ ...step, videoSrc: e.target.value })}
+                      placeholder="Paste a YouTube, Vimeo, or video URL…"
+                      aria-label="Video URL"
+                      className="h-8 w-full rounded-[var(--radius-sm)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 text-xs text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] focus:border-[var(--color-brand)] focus:outline-none"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => videoFileRef.current?.click()}
+                    title="Replace video"
+                    aria-label="Replace video"
+                    className="inline-flex size-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:bg-[var(--color-panel)] hover:text-[var(--color-ink)] transition-colors cursor-pointer"
+                  >
+                    <Icon icon="ri-upload-2-line" className="text-base" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextSrc = step.videoSrc;
+                      onUpdate({ ...step, videoSrc: '', videoCaption: undefined });
+                      if (nextSrc && classifyVideoUrl(nextSrc).provider === 'file') {
+                        void deleteUpload({ url: nextSrc }).catch(() => undefined);
+                      }
+                    }}
+                    title="Remove video"
+                    aria-label="Remove video"
+                    className="inline-flex size-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-bad)] hover:bg-[var(--color-bad-tint)] transition-colors cursor-pointer"
+                  >
+                    <Icon icon="ri-delete-bin-line" className="text-base" />
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  value={step.videoCaption ?? ''}
+                  onChange={(e) => onUpdate({ ...step, videoCaption: e.target.value || undefined })}
+                  placeholder="Video caption (optional)…"
+                  aria-label="Video caption"
+                  className="h-8 w-full rounded-[var(--radius-sm)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 text-xs text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] focus:border-[var(--color-brand)] focus:outline-none"
+                />
+                {videoBusy?.state === 'uploading' && (
+                  <div className="flex items-center gap-2 text-xs text-[var(--color-ink-2)]">
+                    <span className="spinner" aria-hidden="true" />
+                    Uploading video…
+                  </div>
+                )}
+                {videoBusy?.state === 'failed' && (
+                  <div className="flex items-center gap-2 text-xs text-[var(--color-bad)]">
+                    <Icon icon="ri-error-warning-line" />
+                    <span>{videoBusy.error}</span>
+                    <button
+                      type="button"
+                      onClick={() => videoFileRef.current?.click()}
+                      className="underline font-semibold hover:no-underline ml-1 cursor-pointer"
+                    >
+                      Try again
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Additional Photo button inside media tray */}
+            {images.length > 0 && (
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => triggerImageUpload(null)}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-1 text-xs font-semibold text-[var(--color-ink)] hover:bg-[var(--color-panel)] transition-colors cursor-pointer"
+                >
+                  <Icon icon="ri-image-add-line" className="text-[var(--color-brand)]" />
+                  <span>Add another photo</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Hidden file inputs — one each, shared by Replace and Add. The pending
-          index ref tells the upload handler whether to append or replace. */}
-      <input
-        ref={imageFileRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp,image/gif"
-        className="hidden"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          e.target.value = '';
-          if (f) void uploadImage(f);
-        }}
+      <StepRowMenu
+        index={index}
+        total={total}
+        onMove={onMove}
+        onRemove={onRemove}
       />
-      <input
-        ref={videoFileRef}
-        type="file"
-        accept="video/mp4,video/webm,video/quicktime"
-        className="hidden"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          e.target.value = '';
-          if (f) void uploadVideo(f);
-        }}
-      />
+    </li>
+  );
+}
+
+function MethodBody({
+  block,
+  onPatch,
+}: BodyProps<Extract<ProcedureBlock, { kind: 'method' }>>): React.ReactElement {
+  const update = (idx: number, next: ProcedureMethodStep): void => {
+    onPatch({ ...block, steps: block.steps.map((s, i) => (i === idx ? next : s)) });
+  };
+  const remove = (idx: number): void => {
+    onPatch({ ...block, steps: block.steps.filter((_, i) => i !== idx) });
+  };
+  const move = (idx: number, dir: 'up' | 'down'): void => {
+    const j = dir === 'up' ? idx - 1 : idx + 1;
+    if (j < 0 || j >= block.steps.length) return;
+    const next = arrayMove(block.steps, idx, j);
+    onPatch({ ...block, steps: next });
+  };
+  const add = (): void => {
+    onPatch({ ...block, steps: [...block.steps, { id: nextStepId(), body: { en: '', es: '' } }] });
+  };
+
+  return (
+    <div className="space-y-3">
+      <ol className="space-y-4">
+        {block.steps.map((step, i) => (
+          <MethodStepRow
+            key={step.id ?? i}
+            step={step}
+            index={i}
+            total={block.steps.length}
+            onUpdate={(next) => update(i, next)}
+            onRemove={() => remove(i)}
+            onMove={(dir) => move(i, dir)}
+          />
+        ))}
+      </ol>
+      <button
+        type="button"
+        onClick={add}
+        className="ml-10 inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-medium text-[var(--color-ink-3)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)] cursor-pointer"
+      >
+        <Icon icon="ri-add-line" />
+        Add step
+      </button>
     </div>
   );
 }
@@ -1024,16 +1226,12 @@ function ImageBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind:
     }
     setUpload({ state: 'uploading' });
     try {
-      const presigned = await requestImageUpload({
-        filename: file.name,
-        contentType: file.type,
-        size: file.size,
-      });
-      await uploadToR2(presigned.uploadUrl, file, file.type);
+      const dataUrl = await readFileAsDataUrl(file);
+      let finalSrc = (await uploadMedia(file, 'image')) || dataUrl;
       const filenameNoExt = file.name.replace(/\.[^.]+$/, '');
       onPatch({
         ...block,
-        src: presigned.publicUrl,
+        src: finalSrc,
         alt: {
           en: block.alt?.en?.trim() || filenameNoExt,
           es: block.alt?.es?.trim() || filenameNoExt,
@@ -1058,7 +1256,7 @@ function ImageBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind:
         <div className="overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-wash)]">
           <div className="flex items-center justify-between border-b border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2">
             <span className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--color-brand-700)]">
-              <Icon icon="ri-image-fill" /> Image
+              <Icon icon="ri-image-fill" /> Photo / Cover Banner
             </span>
             <div className="flex items-center gap-1">
               <Button type="button" variant="ghost" size="sm" icon="ri-upload-2-line" onClick={() => fileRef.current?.click()}>
@@ -1151,13 +1349,8 @@ function VideoBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind:
     }
     setUpload({ state: 'uploading' });
     try {
-      const presigned = await requestVideoUpload({
-        filename: file.name,
-        contentType: file.type,
-        size: file.size,
-      });
-      await uploadToR2(presigned.uploadUrl, file, file.type);
-      onPatch({ ...block, src: presigned.publicUrl });
+      const src = await uploadMedia(file, 'video');
+      onPatch({ ...block, src });
       setUpload({ state: 'idle' });
     } catch (err) {
       setUpload({ state: 'failed', error: err instanceof Error ? err.message : 'Upload failed' });
@@ -1313,19 +1506,163 @@ function WarningBody({
 
 // ---- Attachment ----
 
+function getAttachmentMeta(href: string): { icon: string; color: string } {
+  const target = href.toLowerCase();
+  if (target.endsWith('.pdf')) {
+    return { icon: 'ri-file-pdf-2-line', color: 'text-rose-600 dark:text-rose-400' };
+  }
+  if (target.endsWith('.docx') || target.endsWith('.doc')) {
+    return { icon: 'ri-file-word-line', color: 'text-blue-600 dark:text-blue-400' };
+  }
+  if (target.endsWith('.xlsx') || target.endsWith('.xls') || target.endsWith('.csv')) {
+    return { icon: 'ri-file-excel-line', color: 'text-emerald-600 dark:text-emerald-400' };
+  }
+  if (target.match(/\.(jpg|jpeg|png|webp|gif|svg)$/)) {
+    return { icon: 'ri-image-line', color: 'text-amber-600 dark:text-amber-400' };
+  }
+  return { icon: 'ri-file-text-line', color: 'text-[var(--color-brand)]' };
+}
+
+function formatDocSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 function AttachmentBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind: 'attachment' }>>): React.ReactElement {
+  const [upload, setUpload] = React.useState<{ state: 'idle' | 'uploading' | 'failed'; error?: string }>({ state: 'idle' });
+  const fileRef = React.useRef<HTMLInputElement>(null);
+
+  const metaInfo = React.useMemo(() => getAttachmentMeta(block.href), [block.href]);
+
+  const startUpload = async (file: File): Promise<void> => {
+    if (file.size > MAX_DOCUMENT_BYTES) {
+      setUpload({ state: 'failed', error: 'File too large (max 25 MB)' });
+      return;
+    }
+    setUpload({ state: 'uploading' });
+    try {
+      const uploadedUrl = await uploadMedia(file, 'document');
+      const objectUrl = typeof window !== 'undefined' ? URL.createObjectURL(file) : '';
+      const finalUrl = uploadedUrl || objectUrl;
+
+      const filenameNoExt = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
+      const ext = file.name.split('.').pop()?.toUpperCase() ?? 'FILE';
+      const formattedBadge = `${ext} · ${formatDocSize(file.size)}`;
+
+      onPatch({
+        ...block,
+        href: finalUrl,
+        meta: block.meta?.trim() ? block.meta : formattedBadge,
+        title: {
+          en: block.title?.en?.trim() ? block.title.en : filenameNoExt,
+          es: block.title?.es?.trim() ? block.title.es : filenameNoExt,
+        },
+      });
+      setUpload({ state: 'idle' });
+    } catch (err) {
+      setUpload({ state: 'failed', error: err instanceof Error ? err.message : 'Upload failed' });
+    }
+  };
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    e.target.value = '';
+    void startUpload(f);
+  };
+
   return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-wash)] px-3 py-2">
-        <Icon icon="ri-attachment-line" className="text-lg text-[var(--color-ink-2)]" />
-        <Input
-          type="url"
-          value={block.href}
-          onChange={(e) => onPatch({ ...block, href: e.target.value })}
-          placeholder="https://example.com/file.pdf"
-          className="flex-1 border-none bg-transparent shadow-none focus:border-none"
-        />
+    <div className="space-y-2.5 pt-0.5">
+      {/* URL input row with upload button outside */}
+      <div className="flex items-center gap-2">
+        <div
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            e.preventDefault();
+            const f = e.dataTransfer.files?.[0];
+            if (f) void startUpload(f);
+          }}
+          className="flex flex-1 items-center gap-2.5 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-wash)] px-3 py-2 min-h-9 focus-within:border-[var(--color-ring)] focus-within:bg-[var(--color-surface)] transition-all"
+        >
+          <Icon
+            icon={block.href ? metaInfo.icon : 'ri-attachment-line'}
+            className={cn('text-base shrink-0', block.href ? metaInfo.color : 'text-[var(--color-ink-3)]')}
+          />
+          <input
+            type="url"
+            value={block.href}
+            onChange={(e) => onPatch({ ...block, href: e.target.value })}
+            placeholder="https://example.com/file.pdf"
+            className="flex-1 min-w-0 bg-transparent text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] focus:outline-none"
+          />
+
+          {block.href ? (
+            <div className="flex items-center gap-1 shrink-0">
+              <a
+                href={block.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-1 text-[var(--color-ink-3)] hover:text-[var(--color-brand)] transition-colors"
+                title="Open file"
+              >
+                <Icon icon="ri-external-link-line" className="text-sm" />
+              </a>
+              <button
+                type="button"
+                onClick={() => {
+                  if (block.href && !block.href.startsWith('blob:')) {
+                    void deleteUpload({ url: block.href }).catch(() => undefined);
+                  }
+                  onPatch({ ...block, href: '', meta: undefined });
+                }}
+                className="p-1 text-[var(--color-ink-3)] hover:text-[var(--color-bad)] transition-colors cursor-pointer"
+                title="Clear"
+              >
+                <Icon icon="ri-close-line" className="text-sm" />
+              </button>
+            </div>
+          ) : null}
+        </div>
+
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          disabled={upload.state === 'uploading'}
+          onClick={() => fileRef.current?.click()}
+          className="h-9 shrink-0 gap-2 px-5 text-xs font-semibold whitespace-nowrap"
+        >
+          {upload.state === 'uploading' ? (
+            <>
+              <span className="spinner mr-0.5" aria-hidden="true" />
+              <span>Uploading…</span>
+            </>
+          ) : (
+            <>
+              <Icon icon="ri-upload-2-line" className="text-sm" />
+              <span>{block.href ? 'Replace file' : 'Upload file'}</span>
+            </>
+          )}
+        </Button>
       </div>
+
+      <input
+        ref={fileRef}
+        type="file"
+        accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.md,image/jpeg,image/png,image/webp"
+        onChange={handleFile}
+        className="hidden"
+      />
+
+      {upload.state === 'failed' && (
+        <div className="flex items-center gap-1.5 text-xs text-[var(--color-bad)] px-1">
+          <Icon icon="ri-error-warning-line" />
+          <span>{upload.error}</span>
+        </div>
+      )}
+
+      {/* Bilingual title input */}
       <BilingualInput
         value={block.title}
         onChange={(val) => onPatch({ ...block, title: val })}
@@ -1335,6 +1672,30 @@ function AttachmentBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { 
           es: 'e.g. Lista HACCP (Español)',
         }}
       />
+
+      {/* Badge label input */}
+      <div className="pt-1.5">
+        <div className="flex items-center gap-2.5 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-wash)] px-3 py-2 min-h-9 focus-within:border-[var(--color-ring)] focus-within:bg-[var(--color-surface)] transition-all">
+          <Icon icon="ri-price-tag-3-line" className="text-base text-[var(--color-ink-3)] shrink-0" />
+          <input
+            type="text"
+            value={block.meta ?? ''}
+            onChange={(e) => onPatch({ ...block, meta: e.target.value || undefined })}
+            placeholder="Badge label (optional, e.g. PDF · 2.4 MB, Revision 3)…"
+            className="flex-1 min-w-0 bg-transparent text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] focus:outline-none"
+          />
+          {block.meta ? (
+            <button
+              type="button"
+              onClick={() => onPatch({ ...block, meta: undefined })}
+              className="p-1 text-[var(--color-ink-3)] hover:text-[var(--color-bad)] transition-colors cursor-pointer"
+              title="Clear badge"
+            >
+              <Icon icon="ri-close-line" className="text-sm" />
+            </button>
+          ) : null}
+        </div>
+      </div>
     </div>
   );
 }
@@ -1431,10 +1792,11 @@ function TableBody({
                             className="group relative min-w-[160px] border-r border-[var(--color-line)] p-1 text-left font-semibold text-[var(--color-ink)] last:border-r-0"
                           >
                             <div className="flex items-center gap-1 px-1">
-                              <input
+                              <LocalisedInput
+                                lang={lang}
+                                value={block.headers[j] ?? { en: '', es: '' }}
+                                onText={(nextLang, text) => setHeader(j, nextLang, text)}
                                 type="text"
-                                value={block.headers[j]?.[lang] ?? ''}
-                                onChange={(e) => setHeader(j, lang, e.target.value)}
                                 placeholder={`Header ${j + 1} (${lang.toUpperCase()})`}
                                 className="w-full rounded px-2 py-1 text-sm font-semibold text-[var(--color-ink)] bg-transparent placeholder:text-[var(--color-ink-3)] border border-transparent hover:border-[var(--color-line-2)] focus:border-[var(--color-ring)] focus:bg-[var(--color-surface)] focus:outline-none focus:ring-1 focus:ring-[var(--color-ring)] transition-colors"
                               />
@@ -1474,10 +1836,11 @@ function TableBody({
                               className="min-w-[160px] border-r border-[var(--color-line)] p-1 align-top last:border-r-0"
                             >
                               <div className="flex items-center gap-1 px-1">
-                                <input
+                                <LocalisedInput
+                                  lang={lang}
+                                  value={row[j] ?? { en: '', es: '' }}
+                                  onText={(nextLang, text) => setCell(i, j, nextLang, text)}
                                   type="text"
-                                  value={row[j]?.[lang] ?? ''}
-                                  onChange={(e) => setCell(i, j, lang, e.target.value)}
                                   placeholder={`Cell (${lang.toUpperCase()})`}
                                   className="w-full rounded px-2 py-1 text-sm text-[var(--color-ink)] bg-transparent placeholder:text-[var(--color-ink-3)] border border-transparent hover:border-[var(--color-line-2)] focus:border-[var(--color-ring)] focus:bg-[var(--color-surface)] focus:outline-none focus:ring-1 focus:ring-[var(--color-ring)] transition-colors"
                                 />
@@ -1654,10 +2017,12 @@ function ChecklistBody({
               <div className="p-4 space-y-3">
                 {/* Title */}
                 <div>
-                  <input
+                  <LocalisedInput
+                    lang={lang}
+                    value={{ en: block.title?.en ?? '', es: block.title?.es ?? '' }}
+                    onText={(nextLang, text) => setTitleText(nextLang, text)}
+                    showStatus
                     type="text"
-                    value={block.title?.[lang] ?? ''}
-                    onChange={(e) => setTitleText(lang, e.target.value)}
                     placeholder={
                       lang === 'en'
                         ? 'Checklist title (English)…'
@@ -1711,10 +2076,11 @@ function ChecklistBody({
 
                       {/* Item text input in active language */}
                       <div className="flex-1">
-                        <input
+                        <LocalisedInput
+                          lang={lang}
+                          value={{ en: it.text?.en ?? '', es: it.text?.es ?? '' }}
+                          onText={(nextLang, text) => setItemText(i, nextLang, text)}
                           type="text"
-                          value={it.text?.[lang] ?? ''}
-                          onChange={(e) => setItemText(i, lang, e.target.value)}
                           placeholder={
                             lang === 'en'
                               ? `Item ${i + 1} (English)…`
@@ -1829,7 +2195,7 @@ function EmptyState({ onAdd }: { onAdd: (kind: ProcedureBlockKind) => void }): R
           { kind: 'image', label: 'Image', icon: 'ri-image-line', hint: 'Photo + caption' },
           { kind: 'video', label: 'Video', icon: 'ri-video-line', hint: 'Upload or link' },
           { kind: 'attachment', label: 'Attachment', icon: 'ri-attachment-line', hint: 'Linked file' },
-          { kind: 'recipe', label: 'Recipe', icon: 'ri-restaurant-line', hint: 'Yield + method' },
+          { kind: 'ingredients', label: 'Ingredients', icon: 'ri-restaurant-line', hint: 'Items + amounts' },
         ] as { kind: ProcedureBlockKind; label: string; icon: string; hint: string }[]).map((opt) => (
           <button
             key={opt.kind}

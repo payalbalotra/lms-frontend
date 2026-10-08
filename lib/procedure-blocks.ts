@@ -41,6 +41,13 @@ export function newMethodBlock(): ProcedureBlock {
 
 const DEFAULT_FACTORS = [1, 2, 4];
 
+export const DEFAULT_YIELD_TEMPLATE: ProcedureYieldItem[] = [
+  { label: 'Total Batch Weight', value: '', unit: 'kg', scales: true },
+  { label: 'Portion Count', value: '', unit: 'tacos', scales: true },
+  { label: 'Portion Size', value: '', unit: 'g', scales: false },
+  { label: 'Total Cooking Time', value: '', unit: 'hrs', scales: false },
+];
+
 const emptyYield = (): ProcedureYieldItem => ({ label: '', value: '', unit: '' });
 
 const emptyIngredient = (factorCount: number): ProcedureIngredient => ({
@@ -50,12 +57,23 @@ const emptyIngredient = (factorCount: number): ProcedureIngredient => ({
   amounts: Array.from({ length: factorCount }, () => ''),
 });
 
+export function newIngredientsBlock(): ProcedureBlock {
+  return {
+    id: nextBlockId(),
+    kind: 'ingredients',
+    audience: '',
+    yieldItems: DEFAULT_YIELD_TEMPLATE.map((y) => ({ ...y })),
+    factors: [...DEFAULT_FACTORS],
+    ingredients: [emptyIngredient(DEFAULT_FACTORS.length)],
+  };
+}
+
 export function newRecipeBlock(): ProcedureBlock {
   return {
     id: nextBlockId(),
     kind: 'recipe',
     audience: '',
-    yieldItems: [emptyYield()],
+    yieldItems: DEFAULT_YIELD_TEMPLATE.map((y) => ({ ...y })),
     factors: [...DEFAULT_FACTORS],
     ingredients: [],
     steps: [newStep()],
@@ -118,6 +136,7 @@ export const BLOCK_FACTORIES: Record<ProcedureBlockKind, () => ProcedureBlock> =
   text: newTextBlock,
   heading: newHeadingBlock,
   method: newMethodBlock,
+  ingredients: newIngredientsBlock,
   recipe: newRecipeBlock,
   image: newImageBlock,
   video: newVideoBlock,
@@ -131,6 +150,7 @@ export const BLOCK_KIND_LABELS: ProcedureBlockKind[] = [
   'text',
   'heading',
   'method',
+  'ingredients',
   'recipe',
   'image',
   'video',
@@ -195,6 +215,16 @@ export function duplicateBlock(block: ProcedureBlock): ProcedureBlock {
       return { id, kind: 'heading', level: block.level, text: cloneLocalised(block.text) };
     case 'method':
       return { id, kind: 'method', steps: block.steps.map(cloneStep) };
+    case 'ingredients':
+      return {
+        id,
+        kind: 'ingredients',
+        audience: block.audience,
+        allergen: block.allergen ? { ...block.allergen } : undefined,
+        yieldItems: block.yieldItems?.map((y) => ({ ...y })),
+        factors: block.factors?.slice(),
+        ingredients: block.ingredients?.map((i) => ({ ...i, amounts: i.amounts.slice() })),
+      };
     case 'recipe':
       return {
         id,

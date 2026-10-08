@@ -26,7 +26,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { resetPassword, verifyResetToken } from '@/lib/api';
+import { resetPassword, requestPasswordReset } from '@/lib/api';
 
 interface ResetPasswordFormProps {
   locale: string;
@@ -36,14 +36,10 @@ interface ResetPasswordFormProps {
 export function ResetPasswordForm({ locale, initialToken }: ResetPasswordFormProps): React.ReactElement {
   const t = useTranslations('resetPassword');
   const searchParams = useSearchParams();
-  const token = initialToken || searchParams?.get('token') || '';
-  const emailQuery = searchParams?.get('email');
+  const emailQuery = searchParams?.get('email') || '';
 
-  // Flow states: 'verifying' -> 'verified' (opens reset screen) | 'invalid' | 'success'
-  const [status, setStatus] = useState<'verifying' | 'verified' | 'invalid' | 'success'>('verifying');
-  const [verifiedEmail, setVerifiedEmail] = useState<string>(emailQuery || '');
-  const [verifiedName, setVerifiedName] = useState<string>('');
-
+  const [status, setStatus] = useState<'form' | 'success'>('form');
+  const [email, setEmail] = useState<string>(emailQuery);
   const [code, setCode] = useState('');
   const codeRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [password, setPassword] = useState('');
@@ -51,55 +47,26 @@ export function ResetPasswordForm({ locale, initialToken }: ResetPasswordFormPro
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resendCooldown, setResendCooldown] = useState(60);
+  const [resendSuccess, setResendSuccess] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  // 1. Verify user & link token upon opening
+  // Cooldown countdown timer for resend
   useEffect(() => {
-    let isMounted = true;
-
-    async function checkToken() {
-      if (!token) {
-        if (isMounted) setStatus('invalid');
-        return;
-      }
-
-      try {
-        // Brief artificial micro-delay so the staff user clearly sees token verification
-        await new Promise((r) => setTimeout(r, 600));
-        const res = await verifyResetToken(token);
-
-        if (!isMounted) return;
-
-        if (res.valid) {
-          if (res.email) setVerifiedEmail(res.email);
-          if (res.employeeName) setVerifiedName(res.employeeName);
-          setStatus('verified'); // User is verified -> Opens reset password screen!
-        } else {
-          setStatus('invalid');
-        }
-      } catch {
-        if (isMounted) setStatus('invalid');
-      }
-    }
-
-    checkToken();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [token]);
+    if (resendCooldown <= 0) return;
+    const interval = setInterval(() => {
+      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [resendCooldown]);
 
   const isCodeComplete = /^\d{6}$/.test(code);
   const isMinLength = password.length >= 8;
   const isMatching = password.length > 0 && password === confirmPassword;
 
-  // Strip everything but digits, cap at 6. The keypad shown on a phone is the
-  // numeric one; the form rejects paste of letters without nagging the user.
   function onCodeChange(next: string): void {
     const cleaned = next.replace(/\D/g, '').slice(0, 6);
     setCode(cleaned);
-    // After a paste/auto-fill that lands more than one digit, jump focus to
-    // the box the user is now typing into.
     requestAnimationFrame(() => {
       const nextIndex = Math.min(cleaned.length, 5);
       codeRefs.current[nextIndex]?.focus();
@@ -125,9 +92,28 @@ export function ResetPasswordForm({ locale, initialToken }: ResetPasswordFormPro
     }
   }
 
+  async function handleResendCode(): Promise<void> {
+    if (resendCooldown > 0 || !email.trim()) return;
+    setError(null);
+    try {
+      await requestPasswordReset({ email: email.trim() });
+      setResendCooldown(60);
+      setResendSuccess(true);
+      setTimeout(() => setResendSuccess(false), 4000);
+    } catch (err: any) {
+      setError(err?.message || t('errorGeneric'));
+    }
+  }
+
   function handleSubmit(event: React.FormEvent<HTMLFormElement>): void {
     event.preventDefault();
     setError(null);
+
+    const emailToUse = email.trim();
+    if (!emailToUse || !emailToUse.includes('@')) {
+      setError('Please provide a valid staff email address.');
+      return;
+    }
 
     if (!code) {
       setError(t('errorCodeRequired'));
@@ -151,74 +137,16 @@ export function ResetPasswordForm({ locale, initialToken }: ResetPasswordFormPro
 
     startTransition(async () => {
       try {
-        await resetPassword({ token, code, password });
+        await resetPassword({ email: emailToUse, code, password });
         setStatus('success');
-      } catch {
-        setError(t('errorGeneric'));
+      } catch (err: any) {
+        setError(err?.message || t('errorGeneric'));
       }
     });
   }
 
   // --------------------------------------------------------------------------
-  // STATE 1: VERIFYING TOKEN
-  // --------------------------------------------------------------------------
-  if (status === 'verifying') {
-    return (
-      <Card className="w-full rounded-3xl border border-[var(--color-line-2)] bg-[var(--color-surface)] shadow-xl overflow-hidden backdrop-blur-sm text-center py-12 px-6">
-        <div className="h-1.5 w-full bg-gradient-to-r from-[var(--color-brand)] via-[var(--color-brand-600)] to-[var(--color-brand-700)] absolute top-0 left-0" />
-        <CardContent className="flex flex-col items-center justify-center gap-4 py-8">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-brand-tint)] text-[var(--color-brand-600)] animate-pulse">
-            <LuLoader className="animate-spin text-3xl" />
-          </div>
-          <CardTitle className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight text-[var(--color-ink)]">
-            {t('verifyingTitle')}
-          </CardTitle>
-          <CardDescription className="text-xs sm:text-sm text-[var(--color-ink-2)] max-w-xs">
-            {t('verifyingSubtitle')}
-          </CardDescription>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // --------------------------------------------------------------------------
-  // STATE 2: INVALID OR EXPIRED TOKEN
-  // --------------------------------------------------------------------------
-  if (status === 'invalid') {
-    return (
-      <Card className="w-full rounded-3xl border border-[var(--color-line-2)] bg-[var(--color-surface)] shadow-xl overflow-hidden backdrop-blur-sm text-center">
-        <div className="h-1.5 w-full bg-gradient-to-r from-[var(--color-bad)] via-[var(--color-bad-hover)] to-[var(--color-bad-fill)]" />
-        <CardHeader className="pt-8 pb-3 px-6 sm:px-8">
-          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-bad-tint)] text-[var(--color-bad)]">
-            <LuCircleAlert className="text-3xl" />
-          </div>
-          <CardTitle className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight text-[var(--color-ink)]">
-            {t('invalidTokenTitle')}
-          </CardTitle>
-          <CardDescription className="text-xs sm:text-sm text-[var(--color-ink-2)] mt-1.5 max-w-sm mx-auto leading-relaxed">
-            {t('invalidTokenBody')}
-          </CardDescription>
-        </CardHeader>
-        <CardFooter className="flex flex-col gap-3 px-6 sm:px-8 pb-8 pt-4">
-          <Link href={`/${locale}/forgot-password`} className="w-full">
-            <Button className="w-full h-12 rounded-full font-semibold text-sm bg-[var(--color-brand-600)] hover:bg-[var(--color-brand-700)] text-white">
-              {t('requestNewLink')}
-            </Button>
-          </Link>
-          <Link
-            href={`/${locale}/login`}
-            className="inline-flex items-center justify-center gap-2 text-xs font-semibold text-[var(--color-ink-2)] hover:text-[var(--color-ink)] transition-colors py-1"
-          >
-            <LuArrowLeft className="text-sm" />
-            <span>{t('backToLogin')}</span>
-          </Link>
-        </CardFooter>
-      </Card>
-    );
-  }
-
-  // --------------------------------------------------------------------------
-  // STATE 3: SUCCESS (PASSWORD RESET COMPLETE)
+  // SUCCESS (PASSWORD RESET COMPLETE)
   // --------------------------------------------------------------------------
   if (status === 'success') {
     return (
@@ -288,7 +216,6 @@ export function ResetPasswordForm({ locale, initialToken }: ResetPasswordFormPro
           {t('title')}
         </CardTitle>
         <CardDescription className="text-xs sm:text-sm text-[var(--color-ink-2)] mt-1.5 max-w-sm mx-auto leading-relaxed">
-          {verifiedName ? `${verifiedName} • ` : ''}
           {t('subtitle')}
         </CardDescription>
       </CardHeader>
@@ -305,17 +232,42 @@ export function ResetPasswordForm({ locale, initialToken }: ResetPasswordFormPro
             </div>
           ) : null}
 
-          {/* 6-digit code — Better Auth sends a one-time code in addition to the
-              link; both are required to prove the user controls the inbox. The
-              helper line below the field tells them where the code came from so
-              they don't go looking for it in the link. */}
+          {/* Email notice or input */}
+          {emailQuery ? (
+            <div className="rounded-xl border border-[var(--color-brand)]/20 bg-[var(--color-brand-tint)]/40 p-3 text-xs text-[var(--color-brand-700)] flex items-center justify-between gap-2">
+              <span className="leading-relaxed">
+                We sent a 6-digit code to <strong className="font-semibold">{email}</strong>. Fill it below to reset your password.
+              </span>
+              <Link
+                href={`/${locale}/forgot-password`}
+                className="font-semibold underline shrink-0 text-[var(--color-brand-700)] hover:text-[var(--color-brand-800)] text-[11px]"
+              >
+                Change
+              </Link>
+            </div>
+          ) : (
+            <div className="grid gap-1.5">
+              <Label htmlFor="email" className="text-sm font-medium text-[var(--color-ink)]">
+                Staff Email Address
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="e.g. employee@alimentariamexicana.com"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isPending}
+                className="h-12 w-full rounded-xl sm:rounded-2xl border-[var(--color-line-2)] bg-[var(--color-field)] text-sm focus:border-[var(--color-brand-600)] transition-all px-4"
+              />
+            </div>
+          )}
+
+          {/* 6-digit code */}
           <div className="grid gap-1.5">
             <Label className="text-sm font-medium text-[var(--color-ink)]">
               {t('codeLabel')}
             </Label>
-            {/* Six separate boxes so the digits read at a glance and so a phone's
-                SMS suggestion can drop straight into the first box. `code` is still
-                the single source of truth — each box only owns one slot. */}
             <div
               role="group"
               aria-label={t('codeLabel')}
@@ -348,7 +300,25 @@ export function ResetPasswordForm({ locale, initialToken }: ResetPasswordFormPro
                 />
               ))}
             </div>
-            <p className="text-xs text-[var(--color-ink-3)]">{t('codeHelper')}</p>
+            <div className="flex items-center justify-between text-xs text-[var(--color-ink-3)] mt-0.5">
+              <span>{t('codeHelper')}</span>
+              <button
+                type="button"
+                onClick={handleResendCode}
+                disabled={resendCooldown > 0 || isPending || !email.trim()}
+                className={`font-semibold transition-colors ${
+                  resendCooldown > 0 || !email.trim()
+                    ? 'text-[var(--color-ink-3)] cursor-not-allowed'
+                    : 'text-[var(--color-brand-600)] hover:underline cursor-pointer'
+                }`}
+              >
+                {resendSuccess
+                  ? 'Code sent!'
+                  : resendCooldown > 0
+                    ? `Resend in ${resendCooldown}s`
+                    : 'Resend code'}
+              </button>
+            </div>
           </div>
 
           {/* New Password */}

@@ -3,7 +3,10 @@ import { fold } from '@/lib/utils';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { listEmployees, listRoles, listStations, ApiException } from '@/lib/api';
+import { fetchEmployees } from '@/services/employees/api';
+import { fetchRoles } from '@/services/jobs/api';
+import { fetchStations } from '@/services/stations/api';
+import { ApiException } from '@/lib/errors';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -51,23 +54,23 @@ export default async function AdminEmployeesPage({
     .map((c) => `${c.name}=${c.value}`)
     .join('; ');
 
-  let employees: AdminEmployee[];
-  let roles: Role[];
-  let stations: Station[];
+  let employees: AdminEmployee[] = [];
+  let roles: Role[] = [];
+  let stations: Station[] = [];
   try {
-    // Run the three list calls in parallel — they all hit the in-memory
-    // mock store, so the wall-clock is the slowest one. The roles and
-    // stations are small (a handful of rows) and stable for the page.
-    const [emps, rolesRes, stationsRes] = await Promise.all([
-      listEmployees({ status }, cookieHeader),
-      listRoles(cookieHeader),
-      listStations('loc-main', cookieHeader),
+    const [empsResult, rolesResult, stationsResult] = await Promise.allSettled([
+      fetchEmployees({ status }, cookieHeader),
+      fetchRoles(cookieHeader),
+      fetchStations({}, cookieHeader),
     ]);
+
+    const empsList = empsResult.status === 'fulfilled' ? empsResult.value.employees : [];
+    roles = rolesResult.status === 'fulfilled' ? rolesResult.value.roles : [];
+    stations = stationsResult.status === 'fulfilled' ? stationsResult.value.stations : [];
+
     employees = q
-      ? emps.employees.filter((e) => fold(`${e.name} ${e.employeeCode ?? ''} ${e.email ?? ''}`).includes(fold(q)))
-      : emps.employees;
-    roles = rolesRes.roles;
-    stations = stationsRes.stations;
+      ? empsList.filter((e) => fold(`${e.name} ${e.employeeCode ?? ''} ${e.email ?? ''}`).includes(fold(q)))
+      : empsList;
   } catch (err) {
     if (err instanceof ApiException) {
       return (

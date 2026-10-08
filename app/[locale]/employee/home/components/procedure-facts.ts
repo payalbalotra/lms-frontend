@@ -39,11 +39,11 @@ export function allergenWords(keys: readonly string[], locale: 'en' | 'es'): str
 }
 
 export function factsOf(p: Procedure, readsSpanish: boolean): ProcedureFacts {
-  const body = p.bodyEn.blocks.length ? p.bodyEn : p.bodyEs;
-  const { allergens, critical } = scan(body.blocks);
+  const body = (p.bodyEn?.blocks?.length ?? 0) ? p.bodyEn : p.bodyEs;
+  const { allergens, critical } = scan(body?.blocks ?? []);
   return {
     allergens,
     hasCriticalStep: critical,
-    notInYourLanguage: readsSpanish && (!p.titleEs.trim() || p.bodyEs.blocks.length === 0),
+    notInYourLanguage: readsSpanish && (!p.titleEs?.trim() || (p.bodyEs?.blocks?.length ?? 0) === 0),
   };
 }

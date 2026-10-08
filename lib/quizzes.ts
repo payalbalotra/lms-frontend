@@ -14,6 +14,9 @@ import type { ProcedureQuizQuestion } from './types';
 
 export interface Quiz {
   id: string;
+  nameEn?: string;
+  nameEs?: string;
+  quizType?: string;
   /** Authoring payload — same shape as the legacy inline `ProcedureQuiz`
    *  so the existing `QuizEditor` + `QuizReader` components work
    *  unchanged. */

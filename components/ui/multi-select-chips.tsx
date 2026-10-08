@@ -28,6 +28,7 @@ interface MultiSelectChipsProps {
   labelTrailing?: React.ReactNode;
   tone?: 'brand' | 'neutral';
   shape?: 'pill' | 'badge';
+  className?: string;
 }
 
 export function MultiSelectChips({
@@ -45,6 +46,7 @@ export function MultiSelectChips({
   labelTrailing,
   tone = 'neutral',
   shape = 'badge',
+  className,
 }: MultiSelectChipsProps): React.ReactElement {
   const isNeutral = tone === 'neutral';
   const isPill = shape === 'pill';
@@ -78,8 +80,8 @@ export function MultiSelectChips({
   const triggerDisabled = disabled || isBlocked || pickableOptions.length === 0;
 
   return (
-    <div className="grid gap-2" data-slot="multi-select-chips">
-      <div className="flex flex-col gap-0.5">
+    <div className={cn('flex flex-col gap-2 h-full', className)} data-slot="multi-select-chips">
+      <div className="flex flex-col gap-0.5 min-h-[44px]">
         <span className="text-sm font-semibold text-[var(--color-ink)]">
           {label}
           {labelTrailing}
@@ -91,7 +93,7 @@ export function MultiSelectChips({
 
       <div
         className={cn(
-          'flex min-h-12 flex-wrap items-center gap-x-3 gap-y-2 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-4 py-2 shadow-2xs transition-colors',
+          'flex min-h-12 flex-1 flex-wrap items-center gap-x-3 gap-y-2 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-4 py-2 shadow-2xs transition-colors',
           isBlocked && 'bg-[var(--color-panel)]',
         )}
         id={id}

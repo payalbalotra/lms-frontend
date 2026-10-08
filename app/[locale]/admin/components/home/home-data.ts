@@ -48,7 +48,7 @@ export function categoryName(c: Category | null, locale: string): string | null 
 /** A procedure a Spanish-reading cook cannot read: no Spanish title, or an
  *  English body with nothing on the Spanish side. */
 export function missingSpanish(p: Procedure): boolean {
-  return !p.titleEs.trim() || (p.bodyEn.blocks.length > 0 && p.bodyEs.blocks.length === 0);
+  return !p.titleEs?.trim() || ((p.bodyEn?.blocks?.length ?? 0) > 0 && (p.bodyEs?.blocks?.length ?? 0) === 0);
 }
 
 export function initialsOf(name: string): string {
@@ -106,8 +106,8 @@ export function buildAttention(input: HomeInput): AttentionGroup[] {
       // A dishwasher at the Dishwasher station read "Dishwasher · Dishwasher".
       meta: [
         ...new Set([
-          e.roleIds[0] ? roleById.get(e.roleIds[0]) : undefined,
-          e.stationIds[0] ? stationById.get(e.stationIds[0]) : undefined,
+          (e.roleIds?.[0] ?? (e as any).jobIds?.[0]) ? roleById.get(e.roleIds?.[0] ?? (e as any).jobIds?.[0]) : undefined,
+          e.stationIds?.[0] ? stationById.get(e.stationIds[0]) : undefined,
         ]),
         t.invitedAgo(relativeDays(e.createdAt, locale, now)),
         e.languagePref === 'es' ? t.readsSpanish : undefined,

@@ -15,10 +15,12 @@ export default async function SetPasswordLandingPage({ params, searchParams }: P
   setRequestLocale(locale);
 
   let employeeName = '';
+  let employeeEmail = '';
   if (token) {
     try {
       const info = await lookupInvite(token);
       employeeName = info.employeeName;
+      employeeEmail = (info as { email?: string }).email || '';
     } catch {
       // fallback
     }
@@ -26,7 +28,12 @@ export default async function SetPasswordLandingPage({ params, searchParams }: P
 
   return (
     <AuthShell locale={locale}>
-      <SetPasswordForm locale={locale} token={token ?? ''} employeeName={employeeName} />
+      <SetPasswordForm
+        locale={locale}
+        token={token ?? ''}
+        employeeName={employeeName}
+        employeeEmail={employeeEmail}
+      />
     </AuthShell>
   );
 }

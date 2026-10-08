@@ -56,9 +56,30 @@ export function isBlockEmpty(block: ProcedureBlock): boolean {
     case 'attachment':
       return locEmpty(block.title) && block.href.trim() === '';
     case 'method':
-      return block.steps.every((s) => locEmpty(s.body));
+      return (
+        block.steps.length === 0 ||
+        block.steps.every(
+          (s) =>
+            locEmpty(s.body) &&
+            (!s.images || s.images.length === 0) &&
+            !s.imageSrc &&
+            !s.videoSrc &&
+            !s.timer &&
+            !s.note,
+        )
+      );
     case 'recipe':
-      return block.steps.every((s) => locEmpty(s.body)) && (block.ingredients ?? []).every((i) => i.name.trim() === '');
+      return (
+        block.steps.every(
+          (s) =>
+            locEmpty(s.body) &&
+            (!s.images || s.images.length === 0) &&
+            !s.imageSrc &&
+            !s.videoSrc &&
+            !s.timer &&
+            !s.note,
+        ) && (block.ingredients ?? []).every((i) => i.name.trim() === '')
+      );
     case 'table':
       return block.headers.every((h) => locEmpty(h)) && block.rows.every((r) => r.every((c) => locEmpty(c)));
     case 'checklist':
@@ -103,7 +124,22 @@ function backfillBlock(block: ProcedureBlock): ProcedureBlock {
       return { ...block, title: backfill(block.title) as Localised };
     case 'method':
     case 'recipe':
-      return { ...block, steps: block.steps.map((s) => ({ ...s, body: backfill(s.body) as Localised })) } as ProcedureBlock;
+      return {
+        ...block,
+        steps: block.steps.map((s) => ({
+          ...s,
+          body: backfill(s.body) as Localised,
+          ...(s.note ? { note: { ...s.note, body: backfill(s.note.body) as Localised } } : {}),
+          ...(s.images
+            ? {
+                images: s.images.map((img) => ({
+                  ...img,
+                  alt: backfill(img.alt) as Localised,
+                })),
+              }
+            : {}),
+        })),
+      } as ProcedureBlock;
     case 'table':
       return {
         ...block,
@@ -143,7 +179,21 @@ export function buildBody(args: {
 }): ProcedureBody {
   const rest = args.blocks.filter((b) => !isBlockEmpty(b));
 
-  if (args.recipe) {
+  // The recipe panel only carries real content when this procedure was
+  // opened from a saved recipe (`toEditorContent` unfolds its ingredients
+  // and yield rows into the panel). For a new procedure the panel is empty
+  // — the wizard has no UI to fill it. Folding an empty panel into a block
+  // would invent a recipe out of a checklist or a numbered list purely
+  // because the category is called "Recipes", and the reader would then
+  // render a Yield section (batch pills scaling nothing) for content that
+  // never asked for one. An empty panel leaves the manager's blocks exactly
+  // as they wrote them.
+  const hasRecipeContent =
+    args.recipe !== null &&
+    (args.recipe.ingredients.some((i) => i.name.trim() !== '') ||
+      args.recipe.yieldItems.some((y) => y.label.trim() !== '' && y.value.trim() !== ''));
+
+  if (hasRecipeContent && args.recipe) {
     const methodIndex = rest.findIndex((b) => b.kind === 'method');
     const method = methodIndex >= 0 ? rest[methodIndex] : null;
     const steps =
@@ -206,5 +256,5 @@ export function toEditorContent(p: Procedure): {
 
 /** A procedure a Spanish-reading cook cannot read yet. */
 export function missingSpanish(p: Pick<Procedure, 'titleEs' | 'bodyEn' | 'bodyEs'>): boolean {
-  return !p.titleEs.trim() || (p.bodyEn.blocks.length > 0 && p.bodyEs.blocks.length === 0);
+  return !p.titleEs?.trim() || ((p.bodyEn?.blocks?.length ?? 0) > 0 && (p.bodyEs?.blocks?.length ?? 0) === 0);
 }

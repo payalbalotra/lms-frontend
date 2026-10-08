@@ -1,33 +1,30 @@
 
+export const ROLES = ['super_admin', 'manager', 'employee'] as const;
+export type SystemRole = (typeof ROLES)[number];
+export type EmployeeRole = (typeof ROLES)[number] | 'admin';
 export type ClearanceLevel = 'general' | 'station' | 'confidential' | 'master';
 export type LanguagePref = 'en' | 'es';
 export type EmployeeStatus = 'pending' | 'active' | 'deactivated';
-export type EmployeeRole = 'admin' | 'employee';
 export type AccessLevel = 'employee' | 'manager';
 
 export interface Employee {
   id: string;
   name: string;
+  email?: string | null;
   locationId: string;
-  accessLevel: AccessLevel;
+  accessLevel?: AccessLevel;
   roleIds: string[];
+  jobIds?: string[];
   stationIds: string[];
-  clearanceLevel: ClearanceLevel;
   role: EmployeeRole;
   languagePref: LanguagePref;
-
+  roleClearance?: ClearanceLevel | null;
   createdAt?: string;
 }
 export interface Role {
   id: string;
   name: string;
   clearanceLevel: ClearanceLevel;
-  /**
-   * Stations this role works on. Empty array means "any station at the
-   * employee's location" — most kitchen roles are pinned to a specific set
-   * (Line Cook → grill/gm/expo), but a Manager typically gets every station
-   * which the form expresses as an empty list + accessLevel = 'manager'.
-   */
   stationIds: string[];
   createdAt: string;
 }
@@ -295,6 +292,15 @@ export type ProcedureBlock =
   | { id: string; kind: 'method'; steps: ProcedureMethodStep[] }
   | {
       id: string;
+      kind: 'ingredients';
+      audience?: string;
+      allergen?: ProcedureAllergen;
+      yieldItems?: ProcedureYieldItem[];
+      factors?: number[];
+      ingredients: ProcedureIngredient[];
+    }
+  | {
+      id: string;
       kind: 'recipe';
       audience?: string;
       allergen?: ProcedureAllergen;
@@ -333,6 +339,7 @@ export interface ProcedureBody {
 export interface ProcedureQuizQuestion {
   id: string;
   prompt: Localised;
+  question?: Localised;
   choices: { id: string; label: Localised }[];
   correctChoiceId: string;
 }
@@ -355,6 +362,9 @@ export interface ProcedureQuiz {
  *  stamps its id back onto the procedure. */
 export interface Quiz {
   id: string;
+  nameEn?: string;
+  nameEs?: string;
+  quizType?: string;
   questions: ProcedureQuizQuestion[];
   /** Manual toggle. Visibility on the read side is the OR of this flag
    *  and the parent procedure / course's training-attached flag. */
@@ -496,6 +506,9 @@ export interface CreateProcedureInput {
    *  subcategory belongs to a category that defines subcategories;
    *  optional otherwise. */
   subcategoryId?: string | null;
+  stationId?: string | null;
+  procedureImage?: string | null;
+  assignUsers?: string[];
   /** Per-procedure station scope. The subcategory carries a default
    *  hint; the procedure may narrow or widen it. Omit when the
    *  procedure has no station scope (general / subcategory is general). */

@@ -18,8 +18,8 @@ export default async function LocaleRootPage({
 
   try {
     const me = await fetchMe(cookieHeader);
-    if (me.employee.role === 'admin') {
-      redirect(`/${locale}/admin/library`);
+    if (me.employee.role === 'admin' || me.employee.role === 'super_admin') {
+      redirect(`/${locale}/admin`);
     } else {
       // An employee's interface is in their own language (PROJECT_OVERVIEW §02:
       // "the interface, training, quizzes and AI answers all follow it").

@@ -35,7 +35,7 @@ function splitCover(blocks: ProcedureBlock[]): {
   cover?: { src: string; alt: string };
   rest: ProcedureBlock[];
 } {
-  const i = blocks.findIndex((b) => b.kind === 'image' && b.src);
+  const i = blocks.findIndex((b, idx) => b.kind === 'image' && Boolean(b.src) && idx === 0);
   if (i === -1) return { rest: blocks };
   const b = blocks[i] as Extract<ProcedureBlock, { kind: 'image' }>;
   return {
@@ -96,13 +96,20 @@ export function ProcedureArticleBody({
   const allergen = hoisted?.allergen;
 
   const cat = proc.category;
+  const rawSub = (proc as any).subcategory;
   const categoryLabel = cat
     ? isEs
       ? cat.nameEs || cat.nameEn
       : cat.nameEn || cat.nameEs
-    : labels.uncategorised;
+    : rawSub
+      ? isEs
+        ? rawSub.nameEs || rawSub.nameEn
+        : rawSub.nameEn || rawSub.nameEs
+      : labels.uncategorised;
   const procSub =
-    cat?.subcategories?.find((s) => s.id && proc.subcategoryId && s.id === proc.subcategoryId) ?? null;
+    cat?.subcategories?.find((s) => s.id && proc.subcategoryId && s.id === proc.subcategoryId) ??
+    rawSub ??
+    null;
   const iconName = proc.iconImageUrl
     ? 'file-text'
     : procSub?.slug
@@ -128,36 +135,23 @@ export function ProcedureArticleBody({
     .join(' · ');
   const englishOnly = isEs && bodyEsBlocks.length === 0;
 
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Quiz attach banner: shown to admins when the procedure has a quiz but
   // neither `quiz.attached` nor `attachedToTraining` is on. The read side
   // resolves `procedure.quizId` to its quiz row via `getQuizById` on every
-  // render.
-  const quiz = proc.quizId ? getQuizById(proc.quizId) : null;
+  // render. We gate this on `mounted` so SSR and initial client hydration
+  // match identically, preventing hydration mismatch when quiz is stored in
+  // client-only localStorage.
+  const quiz = mounted && proc.quizId ? getQuizById(proc.quizId) : null;
   const quizExists = Boolean(quiz && quiz.questions.length > 0);
   const quizVisible = Boolean(quiz && (quiz.attached || proc.attachedToTraining));
   const showAttachBanner = isAdmin && quizExists && !quizVisible;
-
-  const factsItems = [
-      { icon: 'folder', label: labels.factCategory, value: categoryLabel },
-      {
-        icon: proc.status === 'published' ? 'check' : 'draft',
-        label: labels.factStatus,
-        value: proc.status === 'published' ? labels.published : labels.draft,
-        kind: (proc.status === 'published' ? 'ok' : 'default') as 'ok' | 'default',
-      },
-      { icon: 'clock', label: labels.factUpdated, value: updated },
-      { icon: 'languages', label: labels.factLanguages, value: languages || 'EN' },
-    ];
-
-  const docControlEntries = [
-      { label: labels.ctlReference, value: proc.slug },
-      { label: labels.ctlUpdated, value: updated },
-      { label: labels.ctlStatus, value: proc.status === 'published' ? labels.published : labels.draft },
-      { label: labels.ctlLanguages, value: languages || 'EN' },
-    ];
-
   return (
-    <article className="doc">
+    <article className="doc" suppressHydrationWarning>
       <DocBehaviour />
       {docBar}
       {proc.protection === 'confidential' || proc.protection === 'master' ? (
@@ -201,8 +195,6 @@ export function ProcedureArticleBody({
 
       {purpose ? <DocPurpose>{purpose}</DocPurpose> : null}
 
-      {isAdmin ? <Facts items={factsItems} /> : null}
-
       {englishOnly ? (
         <p className="doc-sec">
           <span className="pill pill-due">{labels.englishOnly}</span>
@@ -218,16 +210,48 @@ export function ProcedureArticleBody({
         const recipeBlocks = (rest ?? []).filter(
           (b): b is Extract<ProcedureBlock, { kind: 'recipe' }> => b.kind === 'recipe',
         );
-        return recipeBlocks.map((b) => (
-          <CookModeLauncher
-            key={b.id ?? 'recipe'}
-            block={b}
-            procedureId={proc.id}
-            procedureTitle={title || 'Recipe'}
-            locale={isEs ? 'es' : 'en'}
-            skipAllergen={Boolean(allergen && (hoisted?.id === b.id || !hoisted?.id))}
-          />
-        ));
+        if (recipeBlocks.length > 0) {
+          return recipeBlocks.map((b) => (
+            <CookModeLauncher
+              key={b.id ?? 'recipe'}
+              block={b}
+              procedureId={proc.id}
+              procedureTitle={title || 'Recipe'}
+              locale={isEs ? 'es' : 'en'}
+              skipAllergen={Boolean(allergen && (hoisted?.id === b.id || !hoisted?.id))}
+            />
+          ));
+        }
+
+        // Discrete blocks: ingredients + numbered steps (method)
+        const methodBlocks = (rest ?? []).filter(
+          (b): b is Extract<ProcedureBlock, { kind: 'method' }> => b.kind === 'method',
+        );
+        if (methodBlocks.length > 0) {
+          const ingBlock = (rest ?? []).find(
+            (b): b is Extract<ProcedureBlock, { kind: 'ingredients' }> => b.kind === 'ingredients',
+          );
+          const allSteps = methodBlocks.flatMap((b) => b.steps);
+          return (
+            <CookModeLauncher
+              key={`cook-steps-${proc.id}`}
+              block={{
+                id: `steps-${proc.id}`,
+                factors: ingBlock?.factors ?? [1],
+                yieldItems: ingBlock?.yieldItems ?? [],
+                ingredients: ingBlock?.ingredients ?? [],
+                steps: allSteps,
+                allergen: ingBlock?.allergen,
+              }}
+              procedureId={proc.id}
+              procedureTitle={title || 'Procedure'}
+              locale={isEs ? 'es' : 'en'}
+              modalOnly
+            />
+          );
+        }
+
+        return null;
       })()}
 
       <BlockRenderer
@@ -248,8 +272,6 @@ export function ProcedureArticleBody({
       {quiz && (quiz.attached || proc.attachedToTraining) ? (
         <QuizReader quiz={quiz} locale={isEs ? 'es' : 'en'} />
       ) : null}
-
-      {isAdmin ? <DocControl entries={docControlEntries} /> : null}
     </article>
   );
 }
