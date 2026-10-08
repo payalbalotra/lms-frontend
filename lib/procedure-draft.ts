@@ -162,7 +162,17 @@ function backfillBlock(block: ProcedureBlock): ProcedureBlock {
 function toIngredient(item: RecipeIngredientItem): ProcedureIngredient | null {
   const name = item.name.trim();
   if (!name) return null;
-  return { name, allergen: false, unit: item.unit || undefined, amounts: item.quantity.trim() ? [item.quantity.trim()] : [] };
+  const raw = item.quantity.trim() || '1';
+  const num = parseFloat(raw);
+  const amounts = !isNaN(num) && num > 0
+    ? [String(num), String(num * 2), String(num * 4)]
+    : [raw, raw, raw];
+  return {
+    name,
+    allergen: false,
+    unit: item.unit?.trim() || undefined,
+    amounts,
+  };
 }
 
 /**
@@ -203,12 +213,12 @@ export function buildBody(args: {
     const yieldItems = args.recipe.yieldItems
       .filter((y) => y.label.trim() && y.value.trim())
       .map((y) => ({ label: y.label.trim(), value: y.value.trim(), ...(y.unit?.trim() ? { unit: y.unit.trim() } : {}) }));
+    const validIngredients = args.recipe.ingredients.map(toIngredient).filter((i): i is ProcedureIngredient => i !== null);
     const recipe: ProcedureBlock = {
       id: newId('r'),
       kind: 'recipe',
       audience: '',
-      factors: [...RECIPE_BATCH_FACTORS],
-      ingredients: args.recipe.ingredients.map(toIngredient).filter((i): i is ProcedureIngredient => i !== null),
+      ...(validIngredients.length > 0 ? { factors: [...RECIPE_BATCH_FACTORS], ingredients: validIngredients } : {}),
       ...(yieldItems.length ? { yieldItems } : {}),
       steps,
     };

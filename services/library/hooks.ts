@@ -6,6 +6,7 @@ import {
   updateProcedure,
   archiveProcedure,
 } from './api';
+import { listProcedures } from '@/lib/api';
 import type { CreateProcedureInput, ProcedureFilterOptions } from './types';
 
 export const PROCEDURES_QUERY_KEY = ['procedures'] as const;
@@ -56,5 +57,16 @@ export function useArchiveProcedure() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PROCEDURES_QUERY_KEY });
     },
+  });
+}
+
+/** Employee-facing browse list. Routes through lib/api's
+ *  listProcedures so the admin-only endpoint rejecting a regular
+ *  employee (403) transparently falls back to the on-device store
+ *  instead of erroring the screen. */
+export function useBrowseProcedures() {
+  return useQuery({
+    queryKey: [...PROCEDURES_QUERY_KEY, 'browse'],
+    queryFn: () => listProcedures({}).then((r) => r.procedures),
   });
 }

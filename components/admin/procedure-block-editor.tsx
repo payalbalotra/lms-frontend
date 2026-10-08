@@ -155,6 +155,7 @@ function TextEditor({ block, onChange }: EditorProps<Extract<ProcedureBlock, { k
         value={asLocalised(block.body, lang)}
         onChange={(e) => onChange({ ...block, body: setLocalised(block.body, lang, e.target.value) })}
         rows={4}
+        maxLength={1000}
         className={textareaCls}
       />
     </div>
@@ -186,6 +187,7 @@ function HeadingEditor({
       <Input
         value={asLocalised(block.text, lang)}
         onChange={(e) => onChange({ ...block, text: setLocalised(block.text, lang, e.target.value) })}
+        maxLength={50}
       />
     </div>
   );
@@ -389,6 +391,7 @@ function StepRow({
             value={asLocalised(step.body, lang)}
             onChange={(e) => onChange({ ...step, body: setLocalised(step.body, lang, e.target.value) })}
             rows={3}
+            maxLength={500}
             placeholder={t('instructionsPlaceholder')}
             className={textareaCls}
           />
@@ -1027,6 +1030,7 @@ function RecipeEditor({
                 },
               })
             }
+            maxLength={50}
             placeholder={tForm('allergenSummaryPlaceholder')}
           />
         </Field>
@@ -1088,6 +1092,7 @@ function RecipeEditor({
                   yieldItems: yields.map((x, j) => (j === i ? { ...x, value: e.target.value } : x)),
                 })
               }
+              maxLength={50}
               placeholder={tForm('yieldValue')}
             />
             <Input
@@ -1208,6 +1213,7 @@ function RecipeEditor({
                     })
                   }
                   placeholder={tForm('ingredientNamePlaceholder')}
+                  maxLength={50}
                 />
               </Field>
               <Field label={tForm('ingredientForm')}>
@@ -1557,6 +1563,7 @@ function ImageEditor({
               caption: setOpt(block.caption, lang, e.target.value),
             })
           }
+          maxLength={50}
           placeholder="e.g. Ensure internal temperature reaches 165°F before serving"
         />
       </Field>
@@ -1778,6 +1785,7 @@ function VideoEditor({
               caption: setOpt(block.caption, lang, e.target.value),
             })
           }
+          maxLength={50}
           placeholder="e.g. Demonstration of sanitizing prep table step-by-step"
         />
       </Field>
@@ -1811,6 +1819,7 @@ function WarningEditor({
         value={asLocalised(block.body, lang)}
         onChange={(e) => onChange({ ...block, body: setLocalised(block.body, lang, e.target.value) })}
         rows={3}
+        maxLength={50}
         className={textareaCls}
       />
     </div>
@@ -1965,6 +1974,7 @@ function TableEditor({
               key={j}
               value={asLocalised(h, lang)}
               onChange={(e) => setHeader(j, e.target.value)}
+              maxLength={100}
             />
           ))}
           {headerCount > 1 && (
@@ -1993,6 +2003,7 @@ function TableEditor({
                   key={j}
                   value={asLocalised(cell, lang)}
                   onChange={(e) => setCell(i, j, e.target.value)}
+                  maxLength={20}
                   placeholder={t('table.emptyCell')}
                 />
               ))}
@@ -2069,6 +2080,7 @@ function ChecklistEditor({
             })
           }
           placeholder={t('checklist.title')}
+          maxLength={50}
         />
       </Field>
 
@@ -2089,6 +2101,7 @@ function ChecklistEditor({
                 value={asLocalised(it.text, lang)}
                 onChange={(e) => patchItem(i, { text: setLocalised(it.text, lang, e.target.value) })}
                 placeholder={t('checklist.itemPlaceholder', { n: i + 1 })}
+                maxLength={100}
                 className="flex-1 bg-transparent px-1 py-0.5 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] border-none outline-none focus:outline-none focus:ring-0 shadow-none"
               />
               <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover/item:opacity-100 focus-within:opacity-100">

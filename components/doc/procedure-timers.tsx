@@ -95,12 +95,23 @@ export function useNow(active: boolean): number {
 
 export function fmtLeft(ms: number): string {
   const s = Math.max(0, Math.ceil(ms / 1000));
-  const m = Math.floor(s / 60);
-  return `${m}:${String(s % 60).padStart(2, '0')}`;
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const remS = s % 60;
+  if (h > 0) {
+    return `${h}:${String(m).padStart(2, '0')}:${String(remS).padStart(2, '0')}`;
+  }
+  return `${m}:${String(remS).padStart(2, '0')}`;
 }
 
 export function fmtLength(seconds: number): string {
-  return seconds < 60 ? `${seconds} s` : `${Math.round(seconds / 60)} min`;
+  if (seconds < 60) return `${seconds} s`;
+  if (seconds >= 3600) {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.round((seconds % 3600) / 60);
+    return m > 0 ? `${h} hr ${m} min` : `${h} hr`;
+  }
+  return `${Math.round(seconds / 60)} min`;
 }
 
 /**

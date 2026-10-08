@@ -194,8 +194,25 @@ export function AdminShell({
     signOutAction,
   };
 
+  const isProcedureDetailPage = React.useMemo(() => {
+    // When viewing an individual procedure in the admin library (e.g. /admin/library/[id]),
+    // make the background pure white to match the procedure document sheet.
+    const parts = pathname.split('/').filter(Boolean);
+    const adminIdx = parts.indexOf('admin');
+    if (adminIdx !== -1 && parts[adminIdx + 1] === 'library' && parts[adminIdx + 2]) {
+      const segment = parts[adminIdx + 2];
+      return segment !== 'new' && segment !== 'categories';
+    }
+    return false;
+  }, [pathname]);
+
   return (
-    <div className="flex min-h-screen bg-[var(--color-bg-admin)]">
+    <div
+      className={cn(
+        'flex min-h-screen',
+        isProcedureDetailPage ? 'bg-[var(--color-bg)]' : 'bg-[var(--color-bg-admin)]',
+      )}
+    >
       {/* Desktop sidebar — visible at >= 900 px (DESIGN.md §5). */}
       <Sidebar {...sidebarProps} className="hidden lg:flex" />
 
@@ -301,7 +318,12 @@ export function AdminShell({
           </div>
         </header>
 
-        <main className="min-w-0 flex-1 px-4 pb-12 pt-6 sm:px-6 lg:px-10 lg:pb-12 lg:pt-8">
+        <main
+          className={cn(
+            'min-w-0 flex-1 px-4 pb-12 pt-6 sm:px-6 lg:px-10 lg:pb-12 lg:pt-8',
+            isProcedureDetailPage && 'bg-[var(--color-bg)]',
+          )}
+        >
           {/* Keyed by locale, so the fade runs when the language changes rather
               than on every render. */}
           <div key={locale} className="content-in pt-10 lg:pt-0">

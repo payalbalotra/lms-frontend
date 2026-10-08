@@ -458,8 +458,13 @@ export function MethodSteps({
                 <div className="step-line">{s.body}</div>
               )}
               {!showSideThumb && s.watchAt && (
-                <button className="step-time">
-                  <LuPlay aria-hidden="true" className="i i-sm" /> Watch · {s.watchAt}
+                <button
+                  type="button"
+                  className="step-time"
+                  onClick={s.onThumbOpen}
+                >
+                  <LuPlay aria-hidden="true" className="i i-sm" />
+                  <span>{s.watchAt}</span>
                 </button>
               )}
               {!showSideThumb && s.clip && (
@@ -468,20 +473,30 @@ export function MethodSteps({
                   href={s.clip.src}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={s.onThumbOpen ? (e) => { e.preventDefault(); s.onThumbOpen?.(); } : undefined}
                 >
-                  <LuPlay aria-hidden="true" className="i i-sm" /> Watch · {fmtClock(s.clip.startSec)}–{fmtClock(s.clip.endSec)}
+                  <LuPlay aria-hidden="true" className="i i-sm" />
+                  <span>{fmtClock(s.clip.startSec)}–{fmtClock(s.clip.endSec)}</span>
                 </a>
               )}
-              {/* Photographs: when multiple photos are attached, render as responsive grid; when 1, render full detail */}
+              {/* Photographs: when multiple photos are attached, render as responsive grid with uniform 4:3 aspect ratio */}
               {s.shots && s.shots.length > 1 ? (
                 <div
                   className={cn(
-                    'grid gap-3 mt-3',
+                    'grid gap-3 mt-3 items-stretch',
                     s.shots.length === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3',
                   )}
                 >
                   {s.shots.map((sh, j) => (
-                    <Shot key={`shot-${j}`} src={sh.src} alt={sh.alt} caption={sh.caption} compare={sh.compare} />
+                    <Shot
+                      key={`shot-${j}`}
+                      src={sh.src}
+                      alt={sh.alt}
+                      caption={sh.caption}
+                      compare={sh.compare}
+                      aspectRatio="aspect-[4/3]"
+                      className="h-full"
+                    />
                   ))}
                 </div>
               ) : s.shots && s.shots.length === 1 ? (
@@ -686,6 +701,8 @@ export function Shot({
   width = 1200,
   height = 900,
   compare,
+  aspectRatio,
+  className,
 }: {
   src: string;
   alt: string;
@@ -695,11 +712,22 @@ export function Shot({
   /** When set, paints a green (ok) or red (no) bottom border so the pair reads
    *  as a "right vs wrong" comparison. Mirrors demo3's cook-mode compare panel. */
   compare?: 'ok' | 'no';
+  aspectRatio?: string;
+  className?: string;
 }) {
   return (
-    <figure className="shot" data-compare={compare}>
+    <figure className={cn('shot', className)} data-compare={compare}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt={alt} width={width} height={height} loading="lazy" />
+      <img
+        src={src}
+        alt={alt}
+        width={width}
+        height={height}
+        loading="lazy"
+        className={cn(
+          aspectRatio ? `${aspectRatio} w-full object-cover` : 'max-h-[var(--media-max-h)] w-full object-cover',
+        )}
+      />
       {caption && <figcaption>{caption}</figcaption>}
     </figure>
   );
@@ -744,14 +772,14 @@ export function Compare({
     <div className="compare">
       <figure className="ok">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={correct.src} alt={correct.alt} width={1200} height={900} loading="lazy" />
+        <img src={correct.src} alt={correct.alt} width={1200} height={900} loading="lazy" className="aspect-[4/3] w-full object-cover" />
         <figcaption>
           <LuCheck aria-hidden="true" className="i i-sm" /> Correct
         </figcaption>
       </figure>
       <figure className="no">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={incorrect.src} alt={incorrect.alt} width={1200} height={900} loading="lazy" />
+        <img src={incorrect.src} alt={incorrect.alt} width={1200} height={900} loading="lazy" className="aspect-[4/3] w-full object-cover" />
         <figcaption>
           <LuX aria-hidden="true" className="i i-sm" /> Over-mashed
         </figcaption>
@@ -834,6 +862,44 @@ export type Ingredient = {
   amounts: string[];
 };
 
+export function scaleAmount(baseAmount: string | undefined, factorMultiplier: number): string {
+  if (!baseAmount || baseAmount.trim() === '') return '';
+  const trimmed = baseAmount.trim();
+
+  // If factor multiplier is 1, return base as-is
+  if (factorMultiplier === 1) return trimmed;
+
+  // Check for fraction like "1/2" or "1 1/2" with optional unit (e.g. "1/2 cup")
+  const fractionMatch = trimmed.match(/^(\d+)?\s*(\d+)\/(\d+)\s*(.*)$/);
+  if (fractionMatch) {
+    const whole = fractionMatch[1] ? parseFloat(fractionMatch[1]) : 0;
+    const num = parseFloat(fractionMatch[2]);
+    const den = parseFloat(fractionMatch[3]);
+    const unit = fractionMatch[4] ? ` ${fractionMatch[4].trim()}` : '';
+    if (den !== 0) {
+      const val = (whole + num / den) * factorMultiplier;
+      const rounded = Number.isInteger(val) ? String(val) : String(parseFloat(val.toFixed(2)));
+      return `${rounded}${unit}`;
+    }
+  }
+
+  // Check for leading number with optional unit, e.g. "78", "2.5", "100 g", "2.5 kg"
+  const numMatch = trimmed.match(/^([0-9]+(?:[.,][0-9]+)?)\s*(.*)$/);
+  if (numMatch) {
+    const num = parseFloat(numMatch[1].replace(',', '.'));
+    if (!Number.isNaN(num)) {
+      const scaledVal = num * factorMultiplier;
+      const formattedNum = Number.isInteger(scaledVal)
+        ? String(scaledVal)
+        : String(parseFloat(scaledVal.toFixed(2)));
+      const unit = numMatch[2] ? ` ${numMatch[2].trim()}` : '';
+      return `${formattedNum}${unit}`;
+    }
+  }
+
+  return trimmed;
+}
+
 export function IngredientsTable({
   ingredients,
   factors,
@@ -875,11 +941,24 @@ export function IngredientsTable({
                 </span>
               )}
             </th>
-            {columns.map((j) => (
-              <td key={factors[j]} className={cn('num', j === selectedIndex && !isBase && 'adj')}>
-                {ing.amounts[j] ?? ''}
-              </td>
-            ))}
+            {columns.map((j) => {
+              const explicit = ing.amounts[j];
+              const baseVal = ing.amounts[baseIndex] ?? '';
+              const baseFactor = factors[baseIndex] || 1;
+              const colFactor = factors[j] || 1;
+              const multiplier = colFactor / baseFactor;
+
+              const displayAmount =
+                explicit && explicit.trim() !== ''
+                  ? explicit
+                  : scaleAmount(baseVal, multiplier);
+
+              return (
+                <td key={factors[j]} className={cn('num', j === selectedIndex && !isBase && 'adj')}>
+                  {displayAmount}
+                </td>
+              );
+            })}
           </tr>
         ))}
       </tbody>

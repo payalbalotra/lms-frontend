@@ -557,8 +557,8 @@ function ChecklistBlock({
                 aria-checked={checked}
                 onClick={() => toggle(it.id)}
                 className={cn(
-                  'checklist-row group flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-left transition-colors',
-                  checked ? 'checklist-row--done bg-[var(--color-ok-tint)]/40' : 'hover:bg-[var(--color-wash)]',
+                  'checklist-row group flex w-full items-center gap-3 rounded-none text-left transition-colors',
+                  checked && 'checklist-row--done',
                 )}
               >
                 <span

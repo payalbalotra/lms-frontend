@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
+import { useQuery } from '@tanstack/react-query';
 import type { ProcedureQuiz, ProcedureQuizQuestion, Quiz } from '@/lib/types';
 import { listQuizzes } from '@/lib/api';
 import { LocalisedInput } from '@/components/ui/localised-input';
@@ -41,12 +42,20 @@ export function QuizEditor({ value, onChange, isSaving, hideHeader }: QuizEditor
   const t = useTranslations('admin.library.new.quiz');
   const [questionLangs, setQuestionLangs] = React.useState<Record<string, 'en' | 'es'>>({});
 
-  const [existingQuizzes, setExistingQuizzes] = React.useState<Quiz[]>([]);
-  React.useEffect(() => {
-    listQuizzes().then(({ quizzes }) => {
-      if (quizzes?.length) setExistingQuizzes(quizzes);
-    });
-  }, []);
+  // The "load questions from an existing quiz" picker used to fetch the
+  // whole quizzes table on mount — every wizard visit paid an API call
+  // almost nobody needs. Now it loads lazily, only when the manager asks
+  // for the list, and caches through TanStack Query (5 min), so a second
+  // wizard session is free. Empties hide the picker as before.
+  const [pickerOpened, setPickerOpened] = React.useState(false);
+  const quizzesQuery = useQuery({
+    queryKey: ['quizzes', 'list'],
+    queryFn: () => listQuizzes().then((r) => r.quizzes),
+    enabled: pickerOpened,
+  });
+  const existingQuizzes = quizzesQuery.data ?? [];
+  const pickerIsLoading = pickerOpened && quizzesQuery.isLoading;
+  const hidePicker = pickerOpened && !quizzesQuery.isLoading && existingQuizzes.length === 0;
 
   const [working, setWorking] = React.useState<ProcedureQuiz>(() => {
     if (!value) return makeBlankQuiz();
@@ -162,40 +171,56 @@ export function QuizEditor({ value, onChange, isSaving, hideHeader }: QuizEditor
         </label>
       </div>
 
-      {/* Copy / load from existing quiz */}
-      {existingQuizzes.length > 0 && (
+      {/* Copy / load from existing quiz — hidden until the manager asks,
+          and gone again when the API answers with none. */}
+      {!hidePicker && (
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-wash)] p-3">
           <span className="text-xs font-semibold text-[var(--color-ink-2)]">
             Load questions from existing quiz:
           </span>
-          <select
-            id="select-existing-quiz"
-            defaultValue=""
-            onChange={(e) => {
-              const picked = existingQuizzes.find((q) => q.id === e.target.value);
-              if (picked && picked.questions.length > 0) {
-                update({
-                  ...working,
-                  questions: picked.questions.map((q: ProcedureQuizQuestion) => ({
-                    id: q.id || makeId(),
-                    prompt: q.prompt || q.question || { en: '', es: '' },
-                    choices: q.choices,
-                    correctChoiceId: q.correctChoiceId,
-                  })),
-                });
-              }
-            }}
-            className="rounded-[var(--radius-md)] border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-1.5 text-xs text-[var(--color-ink)] focus:outline-none focus:ring-1 focus:ring-[var(--color-brand-600)]"
-          >
-            <option value="" disabled>
-              Select an existing quiz...
-            </option>
-            {existingQuizzes.map((q) => (
-              <option key={q.id} value={q.id}>
-                {q.nameEn || q.nameEs || q.id} ({q.questions.length} questions)
+          {!pickerOpened ? (
+            <button
+              type="button"
+              onClick={() => setPickerOpened(true)}
+              className="self-start rounded-[var(--radius-md)] border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--color-ink)] hover:bg-[var(--color-panel)] focus:outline-none focus:ring-1 focus:ring-[var(--color-brand-600)]"
+            >
+              Show existing quizzes
+            </button>
+          ) : pickerIsLoading ? (
+            <span className="inline-flex items-center gap-2 px-1 py-1.5 text-xs text-[var(--color-ink-2)]">
+              <span className="spinner" aria-hidden="true" />
+              Loading quizzes…
+            </span>
+          ) : (
+            <select
+              id="select-existing-quiz"
+              defaultValue=""
+              onChange={(e) => {
+                const picked = existingQuizzes.find((q) => q.id === e.target.value);
+                if (picked && picked.questions.length > 0) {
+                  update({
+                    ...working,
+                    questions: picked.questions.map((q: ProcedureQuizQuestion) => ({
+                      id: q.id || makeId(),
+                      prompt: q.prompt || q.question || { en: '', es: '' },
+                      choices: q.choices,
+                      correctChoiceId: q.correctChoiceId,
+                    })),
+                  });
+                }
+              }}
+              className="rounded-[var(--radius-md)] border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-1.5 text-xs text-[var(--color-ink)] focus:outline-none focus:ring-1 focus:ring-[var(--color-brand-600)]"
+            >
+              <option value="" disabled>
+                Select an existing quiz...
               </option>
-            ))}
-          </select>
+              {existingQuizzes.map((q) => (
+                <option key={q.id} value={q.id}>
+                  {q.nameEn || q.nameEs || q.id} ({q.questions.length} questions)
+                </option>
+              ))}
+            </select>
+          )}
         </div>
       )}
 
@@ -223,7 +248,7 @@ export function QuizEditor({ value, onChange, isSaving, hideHeader }: QuizEditor
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span translate="no" className="rounded bg-[var(--color-brand-tint)] px-2 py-0.5 font-mono text-xs font-bold text-[var(--color-brand-700)] uppercase notranslate">
+                          <span translate="no" className="font-mono text-xs font-bold text-[var(--color-ink-2)] uppercase tracking-wider notranslate">
                             {lang.toUpperCase()}
                           </span>
                           <button
@@ -371,7 +396,7 @@ export function QuizEditor({ value, onChange, isSaving, hideHeader }: QuizEditor
                                 : 'Type the question...')}
                         </span>
                       </div>
-                      <span translate="no" className="rounded bg-[var(--color-surface)] px-1.5 py-0.5 font-mono text-[10px] font-bold text-[var(--color-ink-3)] border border-[var(--color-line)] uppercase shrink-0 notranslate">
+                      <span translate="no" className="shrink-0 font-mono text-xs font-bold text-[var(--color-ink-3)] uppercase tracking-wider notranslate">
                         {lang.toUpperCase()}
                       </span>
                     </div>

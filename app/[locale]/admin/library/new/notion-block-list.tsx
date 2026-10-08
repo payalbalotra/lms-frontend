@@ -40,6 +40,14 @@ import { CustomSelect } from '@/components/ui/custom-select';
 import { RowActions } from '@/components/ui/row-actions';
 import { Popover } from '@/components/ui/popover';
 import {
+  LuTriangleAlert,
+  LuClock,
+  LuImage,
+  LuLightbulb,
+  LuVideo,
+  LuX,
+} from 'react-icons/lu';
+import {
   BLOCK_FACTORIES,
   duplicateBlock,
   nextStepId,
@@ -129,8 +137,116 @@ interface BlockMenuProps {
   onMove: (direction: 'up' | 'down') => void;
 }
 
-function BlockMenu({ index, total, onDuplicate, onRemove, onMove }: BlockMenuProps): React.ReactElement {
+function getBlockDeleteInfo(block: ProcedureBlock): {
+  title: string;
+  name: string;
+  label: string;
+  description: string;
+} {
+  switch (block.kind) {
+    case 'method': {
+      const stepCount = block.steps?.length ?? 0;
+      const stepText = stepCount === 1 ? '1 step' : `${stepCount} steps`;
+      return {
+        title: 'Delete this section?',
+        name: 'Numbered steps',
+        label: 'Delete section',
+        description: `"Numbered steps" and its ${stepText}, photos, and timers will be permanently removed. This can't be undone.`,
+      };
+    }
+    case 'recipe': {
+      const stepCount = block.steps?.length ?? 0;
+      const stepText = stepCount === 1 ? '1 step' : `${stepCount} steps`;
+      return {
+        title: 'Delete this section?',
+        name: 'Recipe',
+        label: 'Delete section',
+        description: `"Recipe" and its ingredients, ${stepText}, and metrics will be permanently removed. This can't be undone.`,
+      };
+    }
+    case 'ingredients': {
+      const ingCount = block.ingredients?.length ?? 0;
+      return {
+        title: 'Delete this section?',
+        name: 'Ingredients',
+        label: 'Delete section',
+        description: `"Ingredients" and its ${ingCount} items will be permanently removed. This can't be undone.`,
+      };
+    }
+    case 'table': {
+      const rowCount = block.rows?.length ?? 0;
+      const colCount = block.headers?.length ?? 0;
+      return {
+        title: 'Delete this section?',
+        name: 'Table',
+        label: 'Delete section',
+        description: `"Table" and its ${colCount} columns and ${rowCount} rows will be permanently removed. This can't be undone.`,
+      };
+    }
+    case 'checklist': {
+      const itemCount = block.items?.length ?? 0;
+      return {
+        title: 'Delete this section?',
+        name: 'Checklist',
+        label: 'Delete section',
+        description: `"Checklist" and its ${itemCount} items will be permanently removed. This can't be undone.`,
+      };
+    }
+    case 'warning':
+      return {
+        title: 'Delete this section?',
+        name: 'Callout',
+        label: 'Delete section',
+        description: `"Callout" and its notice text will be permanently removed. This can't be undone.`,
+      };
+    case 'image':
+      return {
+        title: 'Delete this section?',
+        name: 'Image',
+        label: 'Delete section',
+        description: `"Image" and its media content will be permanently removed. This can't be undone.`,
+      };
+    case 'video':
+      return {
+        title: 'Delete this section?',
+        name: 'Video',
+        label: 'Delete section',
+        description: `"Video" and its media content will be permanently removed. This can't be undone.`,
+      };
+    case 'attachment':
+      return {
+        title: 'Delete this section?',
+        name: 'Attachment',
+        label: 'Delete section',
+        description: `"Attachment" and its file link will be permanently removed. This can't be undone.`,
+      };
+    case 'heading':
+      return {
+        title: 'Delete this section?',
+        name: `Heading H${block.level}`,
+        label: 'Delete section',
+        description: `"Heading H${block.level}" will be permanently removed. This can't be undone.`,
+      };
+    case 'text':
+      return {
+        title: 'Delete this section?',
+        name: 'Text',
+        label: 'Delete section',
+        description: `"Text" and its paragraph content will be permanently removed. This can't be undone.`,
+      };
+    default:
+      return {
+        title: 'Delete this section?',
+        name: 'Block',
+        label: 'Delete section',
+        description: `This block and its contents will be permanently removed. This can't be undone.`,
+      };
+  }
+}
+
+function BlockMenu({ block, index, total, onDuplicate, onRemove, onMove }: BlockMenuProps): React.ReactElement {
   const t = useTranslations('admin.library.new.form');
+  const deleteInfo = React.useMemo(() => getBlockDeleteInfo(block), [block]);
   // Items that don't apply at the current boundary are filtered out entirely
   // (move-up at the first row, move-down at the last row). Hiding them is
   // honest about what the user can do and avoids a `disabled` prop on the
@@ -147,7 +263,9 @@ function BlockMenu({ index, total, onDuplicate, onRemove, onMove }: BlockMenuPro
       label: t('blockActions.delete'),
       icon: 'ri-close-line',
       destructive: true,
-      confirmLabel: 'Delete block',
+      confirmTitle: deleteInfo.title,
+      confirmLabel: deleteInfo.label,
+      confirmDescription: deleteInfo.description,
       onSelect: onRemove,
     },
   ];
@@ -232,24 +350,24 @@ function BlockRow({
           {block.kind === 'text'
             ? 'Text'
             : block.kind === 'heading'
-            ? `Heading H${block.level}`
-            : block.kind === 'method'
-            ? 'Numbered steps'
-            : block.kind === 'checklist'
-            ? 'Checklist'
-            : block.kind === 'warning'
-            ? 'Callout'
-            : block.kind === 'ingredients'
-            ? 'Ingredients'
-            : block.kind === 'recipe'
-            ? 'Recipe'
-            : block.kind === 'image'
-            ? 'Image'
-            : block.kind === 'video'
-            ? 'Video'
-            : block.kind === 'attachment'
-            ? 'Attachment'
-            : 'Table'}
+              ? `Heading H${block.level}`
+              : block.kind === 'method'
+                ? 'Numbered steps'
+                : block.kind === 'checklist'
+                  ? 'Checklist'
+                  : block.kind === 'warning'
+                    ? 'Callout'
+                    : block.kind === 'ingredients'
+                      ? 'Ingredients'
+                      : block.kind === 'recipe'
+                        ? 'Recipe'
+                        : block.kind === 'image'
+                          ? 'Image'
+                          : block.kind === 'video'
+                            ? 'Video'
+                            : block.kind === 'attachment'
+                              ? 'Attachment'
+                              : 'Table'}
         </span>
 
         {/* Spacer pushes menu to the right */}
@@ -580,6 +698,18 @@ const STEP_TONE_CONFIGS: Record<
   },
 };
 
+const STEP_TIMER_PRESETS = [
+  { label: '30s', sec: 30, unit: 'sec' as const },
+  { label: '1m', sec: 60, unit: 'min' as const },
+  { label: '2m', sec: 120, unit: 'min' as const },
+  { label: '5m', sec: 300, unit: 'min' as const },
+  { label: '10m', sec: 600, unit: 'min' as const },
+  { label: '15m', sec: 900, unit: 'min' as const },
+  { label: '30m', sec: 1800, unit: 'min' as const },
+  { label: '1h', sec: 3600, unit: 'hrs' as const },
+  { label: '2h', sec: 7200, unit: 'hrs' as const },
+];
+
 function MethodStepRow({
   step,
   index,
@@ -610,6 +740,40 @@ function MethodStepRow({
   const [videoBusy, setVideoBusy] = React.useState<
     { state: 'uploading' | 'failed'; error?: string } | null
   >(null);
+
+  const initialTimerUnit = React.useMemo<'sec' | 'min' | 'hrs'>(() => {
+    const s = step.timer?.seconds ?? 60;
+    if (s >= 3600 && s % 3600 === 0) return 'hrs';
+    if (s >= 60) return 'min';
+    return 'sec';
+  }, [step.timer?.seconds]);
+
+  const [timerUnit, setTimerUnit] = React.useState<'sec' | 'min' | 'hrs'>(initialTimerUnit);
+
+  const displayTimerValue = React.useMemo(() => {
+    const s = step.timer?.seconds ?? 60;
+    if (timerUnit === 'hrs') {
+      return String(Math.max(1, Math.round(s / 3600)));
+    }
+    if (timerUnit === 'min') {
+      return String(Math.max(1, Math.round(s / 60)));
+    }
+    return String(Math.max(1, Math.round(s)));
+  }, [step.timer?.seconds, timerUnit]);
+
+  const handleTimerValueChange = (valStr: string) => {
+    if (valStr === '') {
+      onUpdate({ ...step, timer: { ...step.timer!, seconds: 1 } });
+      return;
+    }
+    const raw = parseInt(valStr, 10);
+    if (Number.isNaN(raw) || raw < 1) return;
+    let sec = raw;
+    if (timerUnit === 'hrs') sec = raw * 3600;
+    else if (timerUnit === 'min') sec = raw * 60;
+    else sec = raw;
+    onUpdate({ ...step, timer: { ...step.timer!, seconds: sec } });
+  };
 
   const hasVideo = Boolean(step.videoSrc);
   const hasAnyMedia = images.length > 0 || hasVideo || imageBusy || videoBusy;
@@ -714,72 +878,105 @@ function MethodStepRow({
           }}
         />
 
-        {/* Step action chips toolbar — ALL in ONE row */}
+        {/* Step action chips toolbar — consistent 32-36px height, 8px gap, 6px icon-to-label gap */}
         <div className="flex flex-wrap items-center gap-2 pt-0.5">
           {/* Critical Step toggle */}
           <button
             type="button"
+            aria-pressed={step.critical}
             onClick={() => onUpdate({ ...step, critical: !step.critical })}
             className={cn(
-              'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-all shadow-2xs cursor-pointer',
+              'inline-flex h-8 sm:h-9 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-all shadow-2xs cursor-pointer border',
               step.critical
-                ? 'bg-[var(--color-bad-tint)] text-[var(--color-bad)] border border-[var(--color-bad)]/40'
-                : 'bg-[var(--color-surface)] text-[var(--color-ink-2)] border border-[var(--color-line-2)] hover:border-[var(--color-line-3)] hover:bg-[var(--color-wash)]',
+                ? 'border-[var(--color-bad)]/40 bg-[var(--color-bad-tint)] text-[var(--color-bad)] font-semibold'
+                : 'border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:border-[var(--color-line-3)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)]',
             )}
             title="Critical steps are highlighted with an alert badge to ensure compliance"
           >
-            <Icon
-              icon="ri-alert-line"
-              className={cn('text-sm', step.critical ? 'text-[var(--color-bad)]' : 'text-[var(--color-ink-3)]')}
+            <LuTriangleAlert
+              className={cn('size-4 shrink-0 text-current', step.critical ? 'text-[var(--color-bad)]' : 'text-[var(--color-ink-3)]')}
+              strokeWidth={1.75}
             />
-            {step.critical ? 'Critical Step' : 'Mark as Critical'}
+            <span>Critical</span>
           </button>
 
-          {/* Add Timer affordance */}
-          {!step.timer && (
-            <button
-              type="button"
-              onClick={() => onUpdate({ ...step, timer: { label: 'Timer', seconds: 60 } })}
-              className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-1 text-xs font-medium text-[var(--color-ink-2)] hover:border-[var(--color-line-3)] hover:bg-[var(--color-wash)] transition-colors cursor-pointer"
-            >
-              <Icon icon="ri-time-line" className="text-sm text-[var(--color-ink-3)]" />
-              + Timer
-            </button>
-          )}
-
-          {/* Add Callout Note affordance */}
-          {!step.note && (
-            <button
-              type="button"
-              onClick={() => onUpdate({ ...step, note: { severity: 'warn', body: { en: '', es: '' } } })}
-              className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-1 text-xs font-medium text-[var(--color-ink-2)] hover:border-[var(--color-line-3)] hover:bg-[var(--color-wash)] transition-colors cursor-pointer"
-            >
-              <Icon icon="ri-lightbulb-line" className="text-sm text-[var(--color-ink-3)]" />
-              + Tip / Callout
-            </button>
-          )}
-
-          {/* Add Photo affordance */}
+          {/* Tip / Callout toggle */}
           <button
             type="button"
-            onClick={() => triggerImageUpload(null)}
-            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-1 text-xs font-medium text-[var(--color-ink-2)] hover:border-[var(--color-line-3)] hover:bg-[var(--color-wash)] transition-colors cursor-pointer"
+            aria-pressed={Boolean(step.note)}
+            onClick={() => {
+              if (step.note) {
+                onUpdate({ ...step, note: undefined });
+              } else {
+                onUpdate({ ...step, note: { severity: 'warn', body: { en: '', es: '' } } });
+              }
+            }}
+            className={cn(
+              'inline-flex h-8 sm:h-9 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-all shadow-2xs cursor-pointer border',
+              step.note
+                ? 'border-[var(--color-line-3)] bg-[var(--color-wash)] text-[var(--color-ink)] font-semibold ring-1 ring-[var(--color-line-3)]'
+                : 'border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:border-[var(--color-line-3)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)]',
+            )}
+            title={step.note ? 'Hide callout note' : 'Add tip or warning callout'}
           >
-            <Icon icon="ri-image-add-line" className="text-sm text-[var(--color-brand)]" />
-            <span>Add photo</span>
+            <LuLightbulb className="size-4 shrink-0 text-[var(--color-ink-3)]" strokeWidth={1.75} />
+            <span>Tip / Callout</span>
           </button>
 
-          {/* Add Video affordance */}
-          {!hasVideo && (
-            <button
-              type="button"
-              onClick={() => videoFileRef.current?.click()}
-              className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-1 text-xs font-medium text-[var(--color-ink-2)] hover:border-[var(--color-line-3)] hover:bg-[var(--color-wash)] transition-colors cursor-pointer"
-            >
-              <Icon icon="ri-video-add-line" className="text-sm text-[var(--color-brand)]" />
-              <span>Add video</span>
-            </button>
-          )}
+          {/* Photo affordance */}
+          <button
+            type="button"
+            aria-pressed={images.length > 0}
+            onClick={() => triggerImageUpload(null)}
+            className={cn(
+              'inline-flex h-8 sm:h-9 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-all shadow-2xs cursor-pointer border',
+              images.length > 0
+                ? 'border-[var(--color-line-3)] bg-[var(--color-wash)] text-[var(--color-ink)] font-semibold'
+                : 'border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:border-[var(--color-line-3)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)]',
+            )}
+            title="Attach a photo to this step"
+          >
+            <LuImage className="size-4 shrink-0 text-[var(--color-ink-3)]" strokeWidth={1.75} />
+            <span>Photo</span>
+          </button>
+
+          {/* Video affordance */}
+          <button
+            type="button"
+            aria-pressed={hasVideo}
+            onClick={() => videoFileRef.current?.click()}
+            className={cn(
+              'inline-flex h-8 sm:h-9 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-all shadow-2xs cursor-pointer border',
+              hasVideo
+                ? 'border-[var(--color-line-3)] bg-[var(--color-wash)] text-[var(--color-ink)] font-semibold'
+                : 'border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:border-[var(--color-line-3)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)]',
+            )}
+            title="Attach a video to this step"
+          >
+            <LuVideo className="size-4 shrink-0 text-[var(--color-ink-3)]" strokeWidth={1.75} />
+            <span>Video</span>
+          </button>
+
+          {/* Timer affordance: disabled once timer exists */}
+          <button
+            type="button"
+            disabled={Boolean(step.timer)}
+            aria-pressed={Boolean(step.timer)}
+            onClick={() => {
+              setTimerUnit('min');
+              onUpdate({ ...step, timer: { label: '', seconds: 60 } });
+            }}
+            className={cn(
+              'inline-flex h-8 sm:h-9 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-all shadow-2xs border',
+              step.timer
+                ? 'border-[var(--color-line-2)] bg-[var(--color-wash)] text-[var(--color-ink-3)] opacity-60 cursor-not-allowed'
+                : 'border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:border-[var(--color-line-3)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)] cursor-pointer',
+            )}
+            title={step.timer ? 'Timer already added to this step' : 'Add timer'}
+          >
+            <LuClock className="size-4 shrink-0 text-[var(--color-ink-3)]" strokeWidth={1.75} />
+            <span>Timer</span>
+          </button>
 
           {/* Hidden file inputs */}
           <input
@@ -806,67 +1003,104 @@ function MethodStepRow({
           />
         </div>
 
-        {/* Inline Timer Editor (clean segmented control and aligned inputs) */}
+        {/* Inline Timer Editor (clean clock icon, optional label placeholder, 64px input, equal segmented control, 4h warning, pill presets) */}
         {step.timer && (
-          <div className="flex flex-wrap items-center gap-3 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-wash)]/70 p-3 text-xs">
-            <span className="flex items-center gap-1.5 font-semibold text-[var(--color-ink)] shrink-0">
-              <Icon icon="ri-time-line" className="text-sm text-[var(--color-brand)]" />
-              Timer:
-            </span>
-            <input
-              type="text"
-              value={step.timer.label}
-              onChange={(e) => onUpdate({ ...step, timer: { ...step.timer!, label: e.target.value } })}
-              placeholder="Timer label"
-              className="h-8 w-[160px] rounded-[var(--radius-sm)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 text-xs font-medium text-[var(--color-ink)] focus:border-[var(--color-brand)] focus:outline-none"
-            />
-            <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-col gap-2.5 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-wash)]/70 p-3 text-xs">
+            <div className="flex flex-wrap items-center gap-2">
+              <LuClock className="size-4 shrink-0 text-[var(--color-ink-3)]" strokeWidth={1.75} />
               <input
-                type="number"
-                min="1"
-                value={step.timer.seconds}
-                onChange={(e) => {
-                  const sec = parseInt(e.target.value, 10);
-                  onUpdate({ ...step, timer: { ...step.timer!, seconds: Number.isNaN(sec) ? 0 : sec } });
-                }}
-                className="h-8 w-[72px] rounded-[var(--radius-sm)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-2 text-center text-xs font-mono font-medium text-[var(--color-ink)] focus:border-[var(--color-brand)] focus:outline-none"
+                type="text"
+                value={step.timer.label ?? ''}
+                onChange={(e) => onUpdate({ ...step, timer: { ...step.timer!, label: e.target.value } })}
+                placeholder="Label (optional), e.g. Simmer sauce"
+                className="h-8 sm:h-9 min-w-0 flex-1 sm:max-w-[220px] rounded-[var(--radius-sm)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 text-xs font-medium text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)]/60 focus:border-[var(--color-ink)] focus:outline-none"
               />
-              <span className="text-[var(--color-ink-3)] font-medium">sec</span>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <input
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={displayTimerValue}
+                  onChange={(e) => handleTimerValueChange(e.target.value)}
+                  className="h-8 sm:h-9 w-[64px] min-w-[64px] rounded-[var(--radius-sm)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-2 text-center text-xs font-mono font-bold text-[var(--color-ink)] focus:border-[var(--color-ink)] focus:outline-none"
+                />
+                <div className="inline-flex h-8 sm:h-9 items-stretch rounded-[var(--radius-sm)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-0.5 shadow-2xs">
+                  {(['sec', 'min', 'hrs'] as const).map((u) => {
+                    const isSelected = timerUnit === u;
+                    return (
+                      <button
+                        key={u}
+                        type="button"
+                        onClick={() => {
+                          setTimerUnit(u);
+                          const curVal = parseInt(displayTimerValue, 10) || 1;
+                          let sec = curVal;
+                          if (u === 'hrs') sec = curVal * 3600;
+                          else if (u === 'min') sec = curVal * 60;
+                          onUpdate({ ...step, timer: { ...step.timer!, seconds: sec } });
+                        }}
+                        className={cn(
+                          'w-11 sm:w-12 flex items-center justify-center rounded-[var(--radius-xs)] text-xs font-semibold transition-all cursor-pointer',
+                          isSelected
+                            ? 'bg-[var(--color-ink)] text-[var(--color-surface)] shadow-2xs'
+                            : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)] hover:bg-[var(--color-wash)]',
+                        )}
+                      >
+                        {u}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => onUpdate({ ...step, timer: undefined })}
+                aria-label="Remove timer"
+                title="Remove timer"
+                className="ml-auto flex size-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-ink-3)] hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)] transition-colors cursor-pointer"
+              >
+                <LuX className="size-4 shrink-0 text-current" strokeWidth={1.75} />
+              </button>
             </div>
-            <div className="inline-flex items-center gap-1 rounded-[var(--radius-sm)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-1 shadow-2xs shrink-0">
-              {[
-                { label: '12s', sec: 12 },
-                { label: '30s', sec: 30 },
-                { label: '1m', sec: 60 },
-                { label: '2.5m', sec: 150 },
-                { label: '5m', sec: 300 },
-              ].map((p) => {
-                const active = step.timer?.seconds === p.sec;
-                return (
-                  <button
-                    key={p.sec}
-                    type="button"
-                    onClick={() => onUpdate({ ...step, timer: { ...step.timer!, seconds: p.sec } })}
-                    className={cn(
-                      'rounded-[var(--radius-xs)] px-3 py-1 text-xs font-mono font-semibold transition-all cursor-pointer',
-                      active
-                        ? 'bg-[var(--color-ink)] text-[var(--color-surface)] shadow-2xs'
-                        : 'text-[var(--color-ink-2)] hover:text-[var(--color-ink)] hover:bg-[var(--color-wash)]',
-                    )}
-                  >
-                    {p.label}
-                  </button>
-                );
-              })}
+
+            {/* Inline warning if total duration exceeds 4 hours (14,400s) */}
+            {step.timer.seconds > 14400 && (
+              <div className="flex items-center gap-1.5 text-xs font-medium text-[var(--color-bad)]">
+                <LuTriangleAlert className="size-4 shrink-0 text-current" strokeWidth={1.75} />
+                <span>Timer duration exceeds 4 hours</span>
+              </div>
+            )}
+
+            {/* Presets row: pill buttons with wrap, subtle active tint and border, sets number & unit */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-[var(--color-line-2)]/60">
+              <span className="text-xs font-semibold text-[var(--color-ink-3)] mr-1 shrink-0">
+                Presets:
+              </span>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {STEP_TIMER_PRESETS.map((p) => {
+                  const isMatch = timerUnit === p.unit && step.timer?.seconds === p.sec;
+                  return (
+                    <button
+                      key={p.label}
+                      type="button"
+                      aria-pressed={isMatch}
+                      onClick={() => {
+                        setTimerUnit(p.unit);
+                        onUpdate({ ...step, timer: { ...step.timer!, seconds: p.sec } });
+                      }}
+                      className={cn(
+                        'inline-flex min-h-[32px] items-center justify-center rounded-full px-3 text-xs font-medium transition-all cursor-pointer border',
+                        isMatch
+                          ? 'border-[var(--color-ink)] bg-[var(--color-wash)] text-[var(--color-ink)] font-semibold shadow-2xs ring-1 ring-[var(--color-ink)]/20'
+                          : 'border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:border-[var(--color-line-3)] hover:text-[var(--color-ink)] hover:bg-[var(--color-wash)]',
+                      )}
+                    >
+                      {p.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={() => onUpdate({ ...step, timer: undefined })}
-              className="ml-auto flex size-8 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-ink-3)] hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)] transition-colors cursor-pointer"
-              title="Remove timer"
-            >
-              <Icon icon="ri-close-line" className="text-base" />
-            </button>
           </div>
         )}
 
@@ -916,10 +1150,11 @@ function MethodStepRow({
                 <button
                   type="button"
                   onClick={() => onUpdate({ ...step, note: undefined })}
-                  className="flex size-7 items-center justify-center rounded text-[var(--color-ink-3)] hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)] transition-colors cursor-pointer"
+                  aria-label="Remove callout note"
                   title="Remove callout note"
+                  className="flex size-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-ink-3)] hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)] transition-colors cursor-pointer"
                 >
-                  <Icon icon="ri-close-line" className="text-base" />
+                  <LuX className="size-4 shrink-0 text-current" strokeWidth={1.75} />
                 </button>
               </div>
 
@@ -933,16 +1168,56 @@ function MethodStepRow({
                     step.note.severity === 'warn'
                       ? 'e.g. Halibut must be cooked using the third fryer only to prevent oil cross-contamination.'
                       : step.note.severity === 'tip'
-                      ? 'e.g. The halibut is ready when no fish sticks to the knife upon removal.'
-                      : step.note.severity === 'allergen'
-                      ? 'e.g. Contains shellfish. Use designated allergen utensils.'
-                      : 'e.g. Requires probe thermometer and parchment paper.',
+                        ? 'e.g. The halibut is ready when no fish sticks to the knife upon removal.'
+                        : step.note.severity === 'allergen'
+                          ? 'e.g. Contains shellfish. Use designated allergen utensils.'
+                          : 'e.g. Requires probe thermometer and parchment paper.',
                   es: 'Instrucciones o advertencia en español…',
                 }}
               />
             </div>
           );
         })()}
+
+        {/* Upload progress — rendered before any media exists so the
+            very first upload (no photos, no video yet) still shows a
+            visible progress row. Previously each indicator sat inside a
+            section gated on content that only appears after the upload
+            finished, so the initial upload looked frozen. */}
+        {(imageBusy?.state === 'uploading' || videoBusy?.state === 'uploading') && (
+          <div className="flex items-center gap-2 text-xs text-[var(--color-ink-2)]">
+            <span className="spinner" aria-hidden="true" />
+            {imageBusy?.state === 'uploading' && videoBusy?.state === 'uploading'
+              ? 'Uploading photo and video…'
+              : imageBusy?.state === 'uploading'
+                ? 'Uploading photo…'
+                : 'Uploading video…'}
+          </div>
+        )}
+        {(imageBusy?.state === 'failed' || videoBusy?.state === 'failed') && (
+          <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--color-bad)]">
+            <Icon icon="ri-error-warning-line" />
+            {imageBusy?.state === 'failed' ? imageBusy.error : videoBusy?.error}
+            {imageBusy?.state === 'failed' && imageBusy.target !== null && (
+              <button
+                type="button"
+                onClick={() => triggerImageUpload(imageBusy.target)}
+                className="underline font-semibold hover:no-underline ml-1 cursor-pointer"
+              >
+                Try again
+              </button>
+            )}
+            {videoBusy?.state === 'failed' && (
+              <button
+                type="button"
+                onClick={() => videoFileRef.current?.click()}
+                className="underline font-semibold hover:no-underline ml-1 cursor-pointer"
+              >
+                Try again
+              </button>
+              )}
+          </div>
+        )}
 
         {/* Attached Media Previews (photos & video) */}
         {hasAnyMedia && (
@@ -1029,23 +1304,18 @@ function MethodStepRow({
                     </button>
                   </div>
                 )}
-
-                {uploadingIndex === null && imageBusy?.state === 'uploading' && (
-                  <div className="flex items-center gap-2 text-xs text-[var(--color-ink-2)]">
-                    <span className="spinner" aria-hidden="true" />
-                    Uploading photo…
-                  </div>
-                )}
               </div>
             )}
 
-            {/* Video preview / input */}
-            {hasVideo && (
+            {/* Video preview / input — also open while the first upload
+                is in flight (videoSrc only exists once it completes). */}
+            {(hasVideo || videoBusy?.state === 'uploading' || videoBusy?.state === 'failed') && (
               <div className="space-y-2 border-t border-[var(--color-line-2)] pt-2.5">
                 <div className="flex items-center gap-2 font-semibold text-[var(--color-ink)]">
                   <Icon icon="ri-video-line" className="text-[var(--color-ink-3)]" />
                   <span>Step Video</span>
                 </div>
+                {hasVideo && (
                 <div className="flex items-center gap-2">
                   <div className="relative flex-1">
                     <input
@@ -1082,6 +1352,8 @@ function MethodStepRow({
                     <Icon icon="ri-delete-bin-line" className="text-base" />
                   </button>
                 </div>
+                )}
+                {hasVideo && (
                 <input
                   type="text"
                   value={step.videoCaption ?? ''}
@@ -1090,6 +1362,7 @@ function MethodStepRow({
                   aria-label="Video caption"
                   className="h-8 w-full rounded-[var(--radius-sm)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 text-xs text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] focus:border-[var(--color-brand)] focus:outline-none"
                 />
+                )}
                 {videoBusy?.state === 'uploading' && (
                   <div className="flex items-center gap-2 text-xs text-[var(--color-ink-2)]">
                     <span className="spinner" aria-hidden="true" />
@@ -1206,7 +1479,7 @@ function StepRowMenu({
       : []),
     { label: 'Delete step', icon: 'ri-close-line', destructive: true, onSelect: onRemove },
   ];
-  return <RowActions triggerLabel="Step actions" items={items} />;
+  return <RowActions triggerLabel="Step options" items={items} />;
 }
 
 // ---- Image ----
@@ -1965,13 +2238,13 @@ function ChecklistBody({
       items: items.map((it, j) =>
         j === i
           ? {
-              ...it,
-              text: {
-                en: it.text?.en ?? '',
-                es: it.text?.es ?? '',
-                [lang]: val,
-              },
-            }
+            ...it,
+            text: {
+              en: it.text?.en ?? '',
+              es: it.text?.es ?? '',
+              [lang]: val,
+            },
+          }
           : it,
       ),
     });
@@ -2009,7 +2282,7 @@ function ChecklistBody({
                 <span className="text-xs font-semibold text-[var(--color-ink)]">
                   {lang === 'en' ? 'Checklist (English)' : 'Lista de verificación (Español)'}
                 </span>
-                <span translate="no" className="rounded bg-[var(--color-brand-tint)] px-2 py-0.5 font-mono text-[11px] font-bold text-[var(--color-brand-700)] uppercase notranslate">
+                <span translate="no" className="font-mono text-xs font-bold text-[var(--color-ink-2)] uppercase tracking-wider notranslate">
                   {lang.toUpperCase()}
                 </span>
               </header>
@@ -2149,7 +2422,7 @@ function ChecklistBody({
                   · {filled}/{items.length} {lang === 'es' ? 'completados' : 'items'}
                 </span>
               </div>
-              <span translate="no" className="rounded bg-[var(--color-surface)] px-1.5 py-0.5 font-mono text-[10px] font-bold text-[var(--color-ink-3)] border border-[var(--color-line)] uppercase shrink-0 notranslate">
+              <span translate="no" className="shrink-0 font-mono text-xs font-bold text-[var(--color-ink-3)] uppercase tracking-wider notranslate">
                 {lang.toUpperCase()}
               </span>
             </div>

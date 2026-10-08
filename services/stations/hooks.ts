@@ -1,30 +1,23 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+/**
+ * Stations data layer (TanStack Query). Same pattern as categories and
+ * library: exported query key for invalidation, provider defaults apply
+ * (5 min staleTime). Consumers read `data` (a plain Station[]).
+ */
+
+import { useQuery } from '@tanstack/react-query';
 import { fetchStations } from './api';
-import type { Station, StationFilterOptions } from './types';
+import type { StationFilterOptions } from './types';
+
+export const STATIONS_QUERY_KEY = ['stations'] as const;
 
 export function useStations(options: StationFilterOptions = {}) {
-  const [stations, setStations] = useState<Station[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  const load = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const res = await fetchStations(options);
-      setStations(res.stations);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch stations'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [options.locationId, options.includeArchived]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  return { stations, isLoading, error, refetch: load };
+  return useQuery({
+    queryKey: [
+      ...STATIONS_QUERY_KEY,
+      { locationId: options.locationId, includeArchived: options.includeArchived ?? false },
+    ],
+    queryFn: () => fetchStations(options).then((r) => r.stations),
+  });
 }

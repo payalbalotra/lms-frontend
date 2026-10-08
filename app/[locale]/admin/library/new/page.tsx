@@ -1,9 +1,6 @@
 import * as React from 'react';
-import { cookies } from 'next/headers';
 import { setRequestLocale } from 'next-intl/server';
-import { listCategories, listLocations, ApiException } from '@/lib/api';
-import type { Category } from '@/lib/types';
-import { ProcedureEditor } from '@/components/admin/procedure-editor';
+import { NewProcedureLoader } from './new-procedure-loader';
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -15,19 +12,8 @@ export default async function AdminLibraryNewPage({ params }: PageProps): Promis
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const cookieStore = await cookies();
-  const cookieHeader = cookieStore
-    .getAll()
-    .map((c) => `${c.name}=${c.value}`)
-    .join('; ');
-
-  let categories: Category[] = [];
-  try {
-    const { locations } = await listLocations(cookieHeader);
-    if (locations[0]) categories = (await listCategories(locations[0].id, {}, cookieHeader)).categories;
-  } catch (err) {
-    if (!(err instanceof ApiException)) throw err;
-  }
-
-  return <ProcedureEditor locale={locale} categories={categories} />;
+  // No server-side data fetching: the shell renders immediately and
+  // the client loader resolves categories/locations through TanStack
+  // Query (cached, so revisiting the wizard is instant).
+  return <NewProcedureLoader locale={locale} />;
 }

@@ -4,7 +4,9 @@ import * as React from 'react';
 import { queryWords, scoreProcedure } from '@/lib/procedure-search';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { listCategories, listProcedures } from '@/lib/api';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCategories } from '@/services/categories/hooks';
+import { useBrowseProcedures } from '@/services/library/hooks';
 import { getCategoryIcon } from '@/lib/category-icons';
 import { Icon } from '@/components/ui/icon';
 import type { Category, Procedure } from '@/lib/types';
@@ -14,8 +16,6 @@ import { ProcedureRow } from '@/components/employee/procedure-row';
 import { allergenWords, factsOf } from '@/app/[locale]/employee/home/components/procedure-facts';
 
 interface ProceduresClientListProps {
-  initialCategories: Category[];
-  initialProcedures: Procedure[];
   initialQuery: string;
   initialCategory: string;
   locationId: string;
@@ -35,8 +35,6 @@ interface ProceduresClientListProps {
 }
 
 export function ProceduresClientList({
-  initialCategories,
-  initialProcedures,
   initialQuery,
   initialCategory,
   locationId,
@@ -70,55 +68,32 @@ export function ProceduresClientList({
     english: tHome('flagEnglishOnly'),
   };
 
-  const [categories, setCategories] = React.useState<Category[]>(initialCategories);
-  const [procedures, setProcedures] = React.useState<Procedure[]>(initialProcedures);
   const [query, setQuery] = React.useState<string>(initialQuery);
   const [activeCategory, setActiveCategory] = React.useState<string>(initialCategory);
 
-  React.useEffect(() => {
-    if (initialCategories) setCategories(initialCategories);
-  }, [initialCategories]);
+  // Both lists resolve through TanStack Query (5-minute cache, so
+  // tab-back navigation is instant). `useCategories` reads the mock
+  // store; `useBrowseProcedures` routes through lib/api's
+  // listProcedures, which falls back to the on-device store when the
+  // admin-only endpoint rejects a regular employee.
+  const queryClient = useQueryClient();
+  const { data: categories = [] } = useCategories(locationId);
+  const { data: procedures = [], isLoading: proceduresLoading } = useBrowseProcedures();
 
-  // [DEBUG] browser console — the exact data the server page handed to this component.
+  // Keep the list fresh when another tab (or the admin library)
+  // mutates the on-device stores.
   React.useEffect(() => {
-    console.log('[DEBUG client-list] initialCategories:', initialCategories);
-    console.log('[DEBUG client-list] initialProcedures:', initialProcedures);
-  }, [initialCategories, initialProcedures]);
-
-  React.useEffect(() => {
-    if (initialProcedures) setProcedures(initialProcedures);
-  }, [initialProcedures]);
-
-  React.useEffect(() => {
-    let isMounted = true;
-    async function syncData() {
-      try {
-        const catRes = await listCategories(locationId, {});
-        const procRes = await listProcedures({});
-        // [DEBUG] client refetch (this one DOES appear in the Network tab).
-        console.log('[DEBUG client-list] syncData categories:', catRes.categories);
-        console.log('[DEBUG client-list] syncData procedures:', procRes.procedures);
-        if (isMounted) {
-          if (catRes.categories && catRes.categories.length > 0) {
-            setCategories(catRes.categories);
-          }
-          if (procRes.procedures && procRes.procedures.length > 0) {
-            setProcedures(procRes.procedures);
-          }
-        }
-      } catch {
-        // Fallback
-      }
-    }
-
+    const syncData = () => {
+      void queryClient.invalidateQueries({ queryKey: ['categories'] });
+      void queryClient.invalidateQueries({ queryKey: ['procedures', 'browse'] });
+    };
     window.addEventListener('storage', syncData);
     window.addEventListener('lms_categories_updated', syncData);
     return () => {
-      isMounted = false;
       window.removeEventListener('storage', syncData);
       window.removeEventListener('lms_categories_updated', syncData);
     };
-  }, [locationId]);
+  }, [queryClient]);
 
   const isEs = locale === 'es';
   const titleOf = (p: Procedure): string => (isEs ? p.titleEs || p.titleEn : p.titleEn || p.titleEs);
@@ -194,74 +169,112 @@ export function ProceduresClientList({
         </div>
       </div>
 
-      {/* Category filter chips — always wrap, all visible without scrolling */}
-      <div style={{ marginTop: '10px' }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-          <button
-            type="button"
-            onClick={() => setActiveCategory('')}
-            className={`${chipBase} ${activeCategory === '' ? 'bg-[var(--color-ink)] text-[var(--color-surface)]' : 'bg-[var(--color-panel)] text-[var(--color-ink)] hover:bg-[var(--color-panel-2)]'}`}
-            style={chipStyle}
-          >
-            {labels.all}
-          </button>
-          {categories
-            .filter((c) => !c.isArchived && usedCategories.has(c.slug))
-            .map((c) => {
-              const on = activeCategory === c.slug;
-              return (
-                <button
-                  type="button"
-                  key={c.id}
-                  onClick={() => setActiveCategory(on ? '' : c.slug)}
-                  className={`${chipBase} ${on ? 'bg-[var(--color-ink)] text-[var(--color-surface)]' : 'bg-[var(--color-panel)] text-[var(--color-ink)] hover:bg-[var(--color-panel-2)]'}`}
-                  style={chipStyle}
-                >
-                  <Icon icon={getCategoryIcon(c)} />
-                  {nameOf(c)}
-                </button>
-              );
-            })}
-        </div>
-      </div>
-
-      <p className="mt-4 text-sm text-[var(--color-ink-2)]" aria-live="polite">
-        {labels.count(results.length)}
-      </p>
-
-      {results.length === 0 ? (
-        <p className="mt-4 text-md text-[var(--color-ink)]">{query ? labels.noneFor(query.trim()) : labels.none}</p>
+      {proceduresLoading && procedures.length === 0 ? (
+        <ProceduresListSkeleton />
       ) : (
-        <ul className="mt-4 space-y-3">
-          {results.map((p) => {
-            const cover = coverOf(p);
-            const sub = p.subcategoryId
-              ? p.category?.subcategories?.find((s) => s.id === p.subcategoryId) ?? null
-              : null;
-            return (
-              <li key={p.id}>
-                <ProcedureRow
-                  href={withAs(`/${locale}/procedures/${p.slug}`, viewAs)}
-                  cover={cover}
-                  iconImageUrl={p.iconImageUrl ?? null}
-                  category={p.category}
-                  subcategory={sub}
-                  title={titleOf(p)}
-                  meta={p.category ? nameOf(p.category) : labels.uncategorised}
-                  flags={{
-                    ...factsOf(p, readsSpanish),
-                    allergens: allergenWords(factsOf(p, readsSpanish).allergens, isEs ? 'es' : 'en'),
-                  }}
-                  flagLabels={flagLabels}
-                  locked={locked}
-                  lockedHref={lockedHref}
-                  lockedReason={lockedReason}
-                />
-              </li>
-            );
-          })}
-        </ul>
+        <>
+          {/* Category filter chips — always wrap, all visible without scrolling */}
+          <div style={{ marginTop: '10px' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+              <button
+                type="button"
+                onClick={() => setActiveCategory('')}
+                className={`${chipBase} ${activeCategory === '' ? 'bg-[var(--color-ink)] text-[var(--color-surface)]' : 'bg-[var(--color-panel)] text-[var(--color-ink)] hover:bg-[var(--color-panel-2)]'}`}
+                style={chipStyle}
+              >
+                {labels.all}
+              </button>
+              {categories
+                .filter((c) => !c.isArchived && usedCategories.has(c.slug))
+                .map((c) => {
+                  const on = activeCategory === c.slug;
+                  return (
+                    <button
+                      type="button"
+                      key={c.id}
+                      onClick={() => setActiveCategory(on ? '' : c.slug)}
+                      className={`${chipBase} ${on ? 'bg-[var(--color-ink)] text-[var(--color-surface)]' : 'bg-[var(--color-panel)] text-[var(--color-ink)] hover:bg-[var(--color-panel-2)]'}`}
+                      style={chipStyle}
+                    >
+                      <Icon icon={getCategoryIcon(c)} />
+                      {nameOf(c)}
+                    </button>
+                  );
+                })}
+            </div>
+          </div>
+
+          <p className="mt-4 text-sm text-[var(--color-ink-2)]" aria-live="polite">
+            {labels.count(results.length)}
+          </p>
+
+          {results.length === 0 ? (
+            <p className="mt-4 text-md text-[var(--color-ink)]">{query ? labels.noneFor(query.trim()) : labels.none}</p>
+          ) : (
+            <ul className="mt-4 space-y-3">
+              {results.map((p) => {
+                const cover = coverOf(p);
+                const sub = p.subcategoryId
+                  ? p.category?.subcategories?.find((s) => s.id === p.subcategoryId) ?? null
+                  : null;
+                return (
+                  <li key={p.id}>
+                    <ProcedureRow
+                      href={withAs(`/${locale}/procedures/${p.slug}`, viewAs)}
+                      cover={cover}
+                      iconImageUrl={p.iconImageUrl ?? null}
+                      category={p.category}
+                      subcategory={sub}
+                      title={titleOf(p)}
+                      meta={p.category ? nameOf(p.category) : labels.uncategorised}
+                      flags={{
+                        ...factsOf(p, readsSpanish),
+                        allergens: allergenWords(factsOf(p, readsSpanish).allergens, isEs ? 'es' : 'en'),
+                      }}
+                      flagLabels={flagLabels}
+                      locked={locked}
+                      lockedHref={lockedHref}
+                      lockedReason={lockedReason}
+                    />
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </>
       )}
+    </div>
+  );
+}
+
+/** First-paint placeholder while the procedures query resolves —
+ *  chip row + five blank rows, pulsing. */
+function ProceduresListSkeleton(): React.ReactElement {
+  return (
+    <div aria-hidden="true" className="mt-3 space-y-4">
+      <div className="flex flex-wrap gap-2">
+        {[80, 110, 95, 120].map((w, i) => (
+          <span
+            key={i}
+            className="animate-pulse h-8 rounded-full border border-[var(--color-line-2)] bg-[var(--color-surface)] shadow-2xs"
+            style={{ width: `${w}px` }}
+          />
+        ))}
+      </div>
+      <ul className="space-y-3">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <li
+            key={i}
+            className="animate-pulse flex items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)] p-3 sm:p-3.5 shadow-xs"
+          >
+            <div className="size-12 shrink-0 rounded-lg bg-[var(--color-panel-2)]" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <div className="h-4 w-48 sm:w-64 rounded bg-[var(--color-panel-2)]" />
+              <div className="h-3 w-32 sm:w-40 rounded bg-[var(--color-line-2)]" />
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

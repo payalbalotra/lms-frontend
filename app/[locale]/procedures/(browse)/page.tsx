@@ -3,8 +3,7 @@ import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { ApiException, fetchMe, listCategories, listProcedures } from '@/lib/api';
-import type { Category, Procedure } from '@/lib/types';
+import { ApiException, fetchMe } from '@/lib/api';
 import { readViewAs } from '@/lib/view-as-server';
 import { withAs } from '@/lib/view-as';
 import { LuArrowLeft } from 'react-icons/lu';
@@ -76,30 +75,10 @@ export default async function ProceduresPage({ params, searchParams }: PageProps
     // fallback
   }
 
-  let categories: Category[] = [];
-  let procedures: Procedure[] = [];
-  await Promise.all([
-    listCategories(employee.locationId, {}, cookieHeader)
-      .then((r) => {
-        categories = r.categories;
-      })
-      .catch(() => {}),
-    listProcedures({}, cookieHeader)
-      .then((r) => {
-        const isGuac = (p: Procedure) => p.id === 'proc-guacamole-fresco' || p.slug === 'guacamole-fresco';
-        procedures = r.procedures.slice().sort((a, b) => {
-          const gA = isGuac(a) ? 1 : 0;
-          const gB = isGuac(b) ? 1 : 0;
-          return gB - gA;
-        });
-      })
-      .catch(() => {}),
-  ]);
-
-  // [DEBUG] server-render data: shows in the Next.js dev server terminal,
-  // NOT the browser (this fetch happens in Node during SSR).
-  console.log('[DEBUG page] categories:', categories.length, categories);
-  console.log('[DEBUG page] procedures:', procedures.length, procedures);
+  // The list itself (categories + procedures) is fetched by
+  // ProceduresClientList through TanStack Query — the shell above
+  // (heading, search, tab bar) paints immediately and the list
+  // streams in behind a skeleton. See procedures-client-list.tsx.
 
   const readsSpanish = employee.languagePref === 'es';
   const backHref = withAs(
@@ -141,8 +120,6 @@ export default async function ProceduresPage({ params, searchParams }: PageProps
         </div>
 
         <ProceduresClientList
-          initialCategories={categories}
-          initialProcedures={procedures}
           initialQuery={q}
           initialCategory={category}
           locationId={employee.locationId}

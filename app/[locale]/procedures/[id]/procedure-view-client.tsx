@@ -13,7 +13,9 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { deleteProcedure, fetchQuizById, getProcedureBySlug, getQuizById, logRestrictedView, logout, updateQuiz } from '@/lib/api';
+import { useQueryClient } from '@tanstack/react-query';
+import { canRead, deleteProcedure, fetchQuizById, getCachedProcedure, getProcedureBySlug, getQuizById, logRestrictedView, logout, updateQuiz } from '@/lib/api';
+import { PROCEDURES_QUERY_KEY } from '@/services/library/hooks';
 import type { Employee, Procedure, ProcedureBlock } from '@/lib/types';
 import { withAs, type ViewAs } from '@/lib/view-as';
 import { ProcedureArticleBody } from '@/components/doc/procedure-article-body';
@@ -53,13 +55,36 @@ export function ProcedureViewClient({
   locale,
   labels,
 }: ProcedureViewClientProps): React.ReactElement {
-  const [proc, setProc] = React.useState<Procedure | null>(initialProcedure);
-  const [isLoading, setIsLoading] = React.useState(!initialProcedure);
+  // First paint comes from whatever list the reader came from: the
+  // TanStack browse cache holds every procedure the library or browse
+  // pages already fetched, so opening one is instant. The localStorage
+  // store is the fallback (seeds/mock-created procedures live there).
+  // `canRead` gates it exactly like the API would: a procedure the
+  // viewer may not open must not appear from the cache either.
+  const queryClient = useQueryClient();
+  const cached = React.useMemo(
+    () => {
+      if (initialProcedure) return initialProcedure;
+      const browse = queryClient.getQueryData<Procedure[]>([...PROCEDURES_QUERY_KEY, 'browse']);
+      const hit = browse?.find((p) => p.id === slugOrId || p.slug === slugOrId);
+      return hit ?? getCachedProcedure(slugOrId);
+    },
+    // Only the first paint matters — the mount refetch below takes over.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [initialProcedure, slugOrId],
+  );
+  const [proc, setProc] = React.useState<Procedure | null>(
+    () => (cached && canRead(cached, employee) ? cached : null),
+  );
+  const [isLoading, setIsLoading] = React.useState(!proc);
   const [notFoundState, setNotFoundState] = React.useState(false);
 
   const [bannerDismissed, setBannerDismissed] = React.useState(false);
   const [isAttaching, setIsAttaching] = React.useState(false);
 
+  // Always refresh from the API once on mount — the cached copy is a
+  // first paint, not the source of truth. A failed refresh only reads
+  // as not-found when there was no cached copy to fall back to.
   React.useEffect(() => {
     let isMounted = true;
     async function loadProcedure() {
@@ -78,12 +103,9 @@ export function ProcedureViewClient({
       }
     }
 
-    if (!proc) {
-      loadProcedure();
-    } else {
-      setIsLoading(false);
-    }
-  }, [slugOrId, proc]);
+    void loadProcedure();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slugOrId]);
 
   const [, setQuizTick] = React.useState(0);
   React.useEffect(() => {
@@ -248,21 +270,62 @@ export function ProcedureViewClient({
   }, [menuOpen]);
 
   const wrapperClass = isAdmin
-    ? 'min-h-screen bg-[var(--color-bg-admin)]'
+    ? 'min-h-screen bg-[var(--color-bg)]'
     : 'min-h-screen bg-[var(--color-bg)] pb-20';
   // Loading / 404 use the same canvas as the loaded page so they don't flash
   // white while the procedure resolves.
-  const stageClass = isAdmin
-    ? 'flex min-h-screen items-center justify-center bg-[var(--color-bg-admin)]'
-    : 'flex min-h-screen items-center justify-center bg-[var(--color-bg)]';
-  const notFoundClass = isAdmin
-    ? 'flex min-h-screen flex-col items-center justify-center bg-[var(--color-bg-admin)] p-6 text-center'
-    : 'flex min-h-screen flex-col items-center justify-center bg-[var(--color-bg)] p-6 text-center';
+  const stageClass = 'flex min-h-screen items-center justify-center bg-[var(--color-bg)]';
+  const notFoundClass = 'flex min-h-screen flex-col items-center justify-center bg-[var(--color-bg)] p-6 text-center';
 
   if (isLoading) {
     return (
-      <div className={stageClass}>
-        <p className="text-sm font-medium text-[var(--color-ink-2)] animate-pulse">Loading procedure...</p>
+      <div className={wrapperClass} aria-hidden="true">
+        {/* Doc skeleton — mirrors the real page frame (bar, head, cover,
+            purpose, body blocks) so the swap to content is a fade, not a
+            jump. Only on a cold open; cached opens skip this entirely. */}
+        <div className="mx-auto w-full max-w-doc px-4 pt-4 sm:px-6">
+          {/* Back bar */}
+          <div className="flex items-center justify-between pb-4">
+            <div className="animate-pulse h-5 w-24 rounded-[var(--radius-md)] bg-[var(--color-panel-2)]" />
+            <div className="animate-pulse size-8 rounded-full bg-[var(--color-panel-2)]" />
+          </div>
+
+          <article className="space-y-6">
+            {/* Head: title + meta + purpose */}
+            <div className="space-y-3 pt-2">
+              <div className="animate-pulse h-9 w-3/5 rounded-[var(--radius-md)] bg-[var(--color-panel-2)]" />
+              <div className="flex items-center gap-2">
+                <div className="animate-pulse h-4 w-28 rounded-[var(--radius-sm)] bg-[var(--color-panel-2)]" />
+                <div className="animate-pulse h-4 w-16 rounded-[var(--radius-sm)] bg-[var(--color-panel-2)]" />
+                <div className="animate-pulse h-4 w-36 rounded-[var(--radius-sm)] bg-[var(--color-panel-2)]" />
+              </div>
+              <div className="animate-pulse h-4 w-4/5 rounded-[var(--radius-sm)] bg-[var(--color-panel)]" />
+              <div className="animate-pulse h-4 w-2/3 rounded-[var(--radius-sm)] bg-[var(--color-panel)]" />
+            </div>
+
+            {/* Cover */}
+            <div className="animate-pulse aspect-[16/9] w-full rounded-[var(--radius-lg)] bg-[var(--color-panel-2)]" />
+
+            {/* Body blocks */}
+            <div className="space-y-4">
+              <div className="animate-pulse h-6 w-40 rounded-[var(--radius-md)] bg-[var(--color-panel-2)]" />
+              <div className="animate-pulse h-4 w-full rounded-[var(--radius-sm)] bg-[var(--color-panel)]" />
+              <div className="animate-pulse h-4 w-11/12 rounded-[var(--radius-sm)] bg-[var(--color-panel)]" />
+              <div className="animate-pulse h-4 w-4/5 rounded-[var(--radius-sm)] bg-[var(--color-panel)]" />
+            </div>
+            <div className="space-y-3">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <div className="animate-pulse size-6 shrink-0 rounded-full bg-[var(--color-panel-2)]" />
+                  <div className="flex-1 space-y-2 pt-1">
+                    <div className="animate-pulse h-4 w-full rounded-[var(--radius-sm)] bg-[var(--color-panel)]" />
+                    <div className="animate-pulse h-4 w-2/3 rounded-[var(--radius-sm)] bg-[var(--color-panel)]" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </article>
+        </div>
       </div>
     );
   }
