@@ -70,37 +70,46 @@ export function EmployeesClientTable({
   // In-place edit modal. The kebab's Edit item calls `openEdit(employee)`
   // instead of navigating to the detail page — so the user can edit
   // without losing the list (and without paying a full route change).
-  // The catalog (roles, locations, stations for the working location) is
-  // fetched lazily on first open.
+  // Roles/stations seed from the server page props (already fetched for the
+  // table cells), so opening the modal usually costs ONE request —
+  // locations + this employee's stations resolve together.
   const [editing, setEditing] = useState<AdminEmployee | null>(null);
-  const [editRoles, setEditRoles] = useState<Role[]>([]);
+  const [editRoles, setEditRoles] = useState<Role[]>(roles);
   const [editLocations, setEditLocations] = useState<Array<{ id: string; name: string }>>([]);
-  const [editStations, setEditStations] = useState<Station[]>([]);
+  const [editStations, setEditStations] = useState<Station[]>(stations);
+
+  React.useEffect(() => {
+    setEditRoles((prev) => (prev.length === 0 ? roles : prev));
+  }, [roles]);
+  React.useEffect(() => {
+    setEditStations((prev) => (prev.length === 0 ? stations : prev));
+  }, [stations]);
 
   async function openEdit(employee: AdminEmployee): Promise<void> {
     setEditing(employee);
-    if (editRoles.length === 0) {
-      try {
-        const { roles: r } = await fetchRoles();
-        setEditRoles(r);
-      } catch {
-        setEditRoles([]);
-      }
-    }
-    if (editLocations.length === 0) {
-      try {
-        const { locations: l } = await fetchLocations();
-        setEditLocations(l);
-      } catch {
-        setEditLocations([]);
-      }
-    }
-    try {
-      const { stations: s } = await fetchStations({ locationId: employee.locationId });
-      setEditStations(s);
-    } catch {
-      setEditStations([]);
-    }
+    const needRoles = editRoles.length === 0;
+    const needLocations = editLocations.length === 0;
+    const [rolesRes, locationsRes, stationsRes] = await Promise.all([
+      needRoles
+        ? fetchRoles().then(
+            (r) => ({ ok: true as const, roles: r.roles }),
+            () => ({ ok: false as const, roles: [] as Role[] }),
+          )
+        : Promise.resolve({ ok: true as const, roles: editRoles }),
+      needLocations
+        ? fetchLocations().then(
+            (l) => ({ ok: true as const, locations: l.locations }),
+            () => ({ ok: false as const, locations: [] as Array<{ id: string; name: string }> }),
+          )
+        : Promise.resolve({ ok: true as const, locations: editLocations }),
+      fetchStations({ locationId: employee.locationId }).then(
+        (s) => ({ ok: true as const, stations: s.stations }),
+        () => ({ ok: false as const, stations: [] as Station[] }),
+      ),
+    ]);
+    if (needRoles) setEditRoles(rolesRes.roles);
+    if (needLocations) setEditLocations(locationsRes.locations);
+    setEditStations(stationsRes.stations);
   }
 
   async function onModalLocationChange(locationId: string): Promise<void> {

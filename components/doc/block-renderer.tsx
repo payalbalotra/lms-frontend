@@ -155,6 +155,10 @@ function toMethodStep(step: ProcedureMethodStep, locale: 'en' | 'es', noteLabels
       alt: pickText(step.images[0].alt ?? { en: '', es: '' }, locale) || '',
       compare: 'ok',
       pairSrc: step.images[1].src,
+      images: step.images.slice(0, 4).map((img) => ({
+        src: img.src,
+        alt: pickText(img.alt ?? { en: '', es: '' }, locale) || '',
+      })),
     };
   } else if (step.videoSegment) {
     const dur = Math.max(0, step.videoSegment.endSec - step.videoSegment.startSec);
@@ -168,6 +172,15 @@ function toMethodStep(step: ProcedureMethodStep, locale: 'en' | 'es', noteLabels
       alt: pickText(step.images?.[0]?.alt ?? { en: '', es: '' }, locale) || '',
       badge,
     };
+  } else if (step.images && step.images.length > 1) {
+    out.mediaThumb = {
+      src: step.images[0].src,
+      alt: pickText(step.images[0].alt ?? { en: '', es: '' }, locale) || '',
+      images: step.images.slice(0, 4).map((img) => ({
+        src: img.src,
+        alt: pickText(img.alt ?? { en: '', es: '' }, locale) || '',
+      })),
+    };
   } else if (step.images?.[0]?.src) {
     out.mediaThumb = {
       src: step.images[0].src,
@@ -178,6 +191,11 @@ function toMethodStep(step: ProcedureMethodStep, locale: 'en' | 'es', noteLabels
       src: step.imageSrc,
       alt: pickText(step.imageAlt ?? { en: '', es: '' }, locale) || '',
     };
+  }
+
+  // If mediaThumb was populated, clear inline shots so we render as right-side thumbnail (matching demo3)
+  if (out.mediaThumb) {
+    out.shots = undefined;
   }
 
   return out;
@@ -265,6 +283,12 @@ export function BlockRenderer({
   const t = LABELS[locale];
   const attachmentRows: ChapterRow[] = [];
   const out: React.ReactNode[] = [];
+  const [doneMap, setDoneMap] = React.useState<Record<number, boolean>>({});
+
+  // Pre-count total method blocks so we can render "Part X of Y" when there are multiple parts
+  const methodBlockCount = blocks.filter((b) => b.kind === 'method').length;
+  let currentMethodIndex = 0;
+  let runningStepOffset = 0;
 
   // The section being filled. A heading opens one; a method or a recipe closes it,
   // because those bring their own heading with them.
@@ -352,26 +376,30 @@ export function BlockRenderer({
         // same table, but these cells are sentences rather than quantities.
         add(
           key,
-          <table className="dtable">
-            <thead>
-              <tr>
-                {block.headers.map((h, j) => (
-                  <th key={j} scope="col">
-                    {pickText(h, locale)}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {block.rows.map((row, ri) => (
-                <tr key={ri}>
-                  {row.map((cell, j) => (
-                    <td key={j}>{pickText(cell, locale)}</td>
+          <div className="overflow-x-auto rounded-[var(--radius-lg)] my-2 border border-[var(--color-line)]">
+            <table className="dtable min-w-full !border-0 !rounded-none">
+              <thead>
+                <tr>
+                  {block.headers.map((h, j) => (
+                    <th key={j} scope="col" className="min-w-[140px]">
+                      {pickText(h, locale)}
+                    </th>
                   ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>,
+              </thead>
+              <tbody>
+                {block.rows.map((row, ri) => (
+                  <tr key={ri}>
+                    {row.map((cell, j) => (
+                      <td key={j} className="align-top min-w-[140px]">
+                        {pickText(cell, locale)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>,
         );
         return;
       }
@@ -390,11 +418,59 @@ export function BlockRenderer({
         const sectionKey = open?.key ?? key;
         const extraNodes = open?.nodes ?? [];
         open = null;
-        const steps = block.steps.map((s) => toMethodStep(s, locale, t.notes));
+        currentMethodIndex++;
+        const startIndex = runningStepOffset + 1;
+        runningStepOffset += block.steps.length;
+        const partLabel =
+          methodBlockCount > 1
+            ? locale === 'es'
+              ? `Parte ${currentMethodIndex} de ${methodBlockCount}`
+              : `Part ${currentMethodIndex} of ${methodBlockCount}`
+            : undefined;
+
+        const steps = block.steps.map((s, idx) => {
+          const stepNum = startIndex + idx;
+          const ms = toMethodStep(s, locale, t.notes);
+          return {
+            ...ms,
+            thumbLabel:
+              ms.thumbLabel ??
+              (locale === 'es'
+                ? `Paso ${stepNum}: abrir en modo cocina`
+                : `Step ${stepNum}: open in cook mode`),
+            onThumbOpen: () => {
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(
+                  new CustomEvent('cook-mode:open', {
+                    detail: { at: stepNum },
+                  }),
+                );
+              }
+            },
+          };
+        });
+
+        const doneForBlock = block.steps.map((_, si) => Boolean(doneMap[startIndex + si]));
+        const doneInPart = doneForBlock.filter(Boolean).length;
+        const allDoneInPart = doneInPart === block.steps.length && block.steps.length > 0;
+        const partCount = allDoneInPart
+          ? (locale === 'es' ? 'todos listos' : 'all done')
+          : doneInPart > 0
+            ? (locale === 'es' ? `${doneInPart} de ${block.steps.length} listos` : `${doneInPart} of ${block.steps.length} done`)
+            : t.steps(steps.length);
+
         out.push(
-          <Section key={sectionKey} title={sectionTitle} count={t.steps(steps.length)}>
+          <Section key={sectionKey} title={sectionTitle} part={partLabel} count={partCount}>
             {extraNodes}
-            <MethodSteps steps={steps} />
+            <MethodSteps
+              steps={steps}
+              startIndex={startIndex}
+              done={doneForBlock}
+              onToggleStep={(si) => {
+                const stepNo = startIndex + si;
+                setDoneMap((prev) => ({ ...prev, [stepNo]: !prev[stepNo] }));
+              }}
+            />
           </Section>,
         );
         return;
@@ -557,9 +633,13 @@ function ChecklistBlock({
                 aria-checked={checked}
                 onClick={() => toggle(it.id)}
                 className={cn(
-                  'checklist-row group flex w-full items-center gap-3 rounded-none text-left transition-colors',
-                  checked && 'checklist-row--done',
+                  'checklist-row group flex w-full items-center gap-3 text-left transition-colors',
+                  checked ? 'checklist-row--done bg-[var(--color-ok-tint)]' : 'hover:bg-[var(--color-wash)]',
                 )}
+                style={{
+                  padding: '12px 16px',
+                  borderRadius: 0,
+                }}
               >
                 <span
                   className={cn(

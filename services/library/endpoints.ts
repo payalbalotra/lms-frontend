@@ -5,6 +5,8 @@ export const LIBRARY_ENDPOINTS = {
   GET: (slug: string) => `/api/v1/procedures/${slug}`,
   CREATE: '/api/v1/procedures',
   UPDATE: (id: string) => `/api/v1/procedures/${id}`,
+  FILTER: '/api/v1/procedures/filter',
   ARCHIVE: (id: string) => `/api/v1/procedures/${id}/archive`,
+  UNARCHIVE: (id: string) => `/api/v1/procedures/${id}/unarchive`,
   IMPORT: '/api/v1/procedures/import',
 } as const;

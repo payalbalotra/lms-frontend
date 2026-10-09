@@ -3,8 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { cn } from '@/lib/utils';
-import { deleteProcedure, listCategories, listProcedures, listStations, setProcedureState } from '@/lib/api';
+import { deleteProcedure, listCategories, listProcedures, clearLibraryListCache, canPublishProcedure, setProcedureState } from '@/lib/api';
 import type { Procedure, Category, ProcedureStatus, Station, Subcategory, ProcedureBlock } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,15 +36,18 @@ import {
   PiSquaresFour,
   PiToolbox,
 } from 'react-icons/pi';
-import { Icon } from '@/components/ui/icon';
 import type { IconType } from 'react-icons';
 import { StatusPill } from '@/components/ui/status-pill';
 import { FilterChips } from '@/components/ui/filter-chips';
+import { Skeleton } from '@/components/ui/skeleton';
 import { IconTile } from '@/components/ui/icon-tile';
 import { HoverImagePreview } from '@/components/ui/hover-image-preview';
 import { EmptyState } from '@/components/ui/empty-state';
 import { RowActions, type RowActionItem } from '@/components/ui/row-actions';
+import { useQueryClient } from '@tanstack/react-query';
+import { PROCEDURES_QUERY_KEY } from '@/services/library/hooks';
 import { getProcedureIcon } from '@/lib/category-icons';
+import { backendSlug } from '@/services/categories/api';
 import { LibraryExplorerSkeleton } from '@/components/admin/library-explorer-skeleton';
 
 interface LibraryProcedureExplorerProps {
@@ -57,6 +59,10 @@ interface LibraryProcedureExplorerProps {
   stations?: Station[];
   locale: string;
   isLoading?: boolean;
+  /** Procedures query still resolving — the filter bar renders immediately
+   *  with whatever catalog arrived, and only the list area shows a skeleton.
+   *  The page no longer waits for every query before painting anything. */
+  proceduresLoading?: boolean;
 }
 
 /**
@@ -165,12 +171,17 @@ export function getCategoryTheme(slug: string): {
   }
 }
 
+/** Rows revealed per "Show more" press. The list grows in place instead of
+ *  paging, so filters, counts and search always see the whole dataset. */
+const PAGE_SIZE = 25;
+
 export function LibraryProcedureExplorer({
   procedures,
   categories,
   stations,
   locale,
   isLoading = false,
+  proceduresLoading = false,
 }: LibraryProcedureExplorerProps): React.ReactElement {
   if (isLoading) {
     return <LibraryExplorerSkeleton />;
@@ -197,10 +208,14 @@ export function LibraryProcedureExplorer({
     let isMounted = true;
     async function syncData() {
       try {
-        const catRes = await listCategories('loc-main', {
-          includeArchived: true,
-        });
-        const procRes = await listProcedures({});
+        // Independent reads — awaiting one after the other doubles the
+        // wait on every cross-tab refresh.
+        const [catRes, procRes] = await Promise.all([
+          listCategories('loc-main', {
+            includeArchived: true,
+          }),
+          listProcedures({}),
+        ]);
         if (isMounted) {
           if (catRes.categories && catRes.categories.length > 0) {
             setLiveCategories(catRes.categories);
@@ -215,10 +230,12 @@ export function LibraryProcedureExplorer({
     }
 
     window.addEventListener('lms_categories_updated', syncData);
+    window.addEventListener('lms_procedures_updated', syncData);
     window.addEventListener('storage', syncData);
     return () => {
       isMounted = false;
       window.removeEventListener('lms_categories_updated', syncData);
+      window.removeEventListener('lms_procedures_updated', syncData);
       window.removeEventListener('storage', syncData);
     };
   }, []);
@@ -227,6 +244,40 @@ export function LibraryProcedureExplorer({
     const updated = await setProcedureState(id, change);
     setLiveProcedures((list) => list.map((p) => (p.id === id ? updated : p)));
   }, []);
+
+  const queryClient = useQueryClient();
+
+  /** Archive through the real backend API (POST /procedures/:id/archive).
+   *  Optimistic: the row leaves the list instantly (archived rows are
+   *  filtered out of the default view) and rolls back from the server list
+   *  if the call fails. Freshness caches are cleared so the next read —
+   *  server or React Query — sees the archived state. */
+  const onArchive = React.useCallback(
+    async (id: string): Promise<void> => {
+      setLiveProcedures((list) =>
+        list.map((p) => (p.id === id || p.slug === id ? { ...p, isArchived: true } : p)),
+      );
+      try {
+        const { archiveProcedure } = await import('@/services/library/api');
+        await archiveProcedure(id);
+        clearLibraryListCache();
+        await queryClient.invalidateQueries({ queryKey: PROCEDURES_QUERY_KEY });
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('lms_procedures_updated'));
+        }
+      } catch {
+        // Roll back from the server list; keep the optimistic state only if
+        // even the re-sync fails (offline).
+        try {
+          const { procedures } = await listProcedures({});
+          if (procedures.length > 0) setLiveProcedures(procedures);
+        } catch {
+          // keep optimistic state
+        }
+      }
+    },
+    [queryClient],
+  );
 
   // Filters State
   const searchParams = useSearchParams();
@@ -251,7 +302,7 @@ export function LibraryProcedureExplorer({
     if (lastCategoryRef.current !== selectedCategorySlug) {
       lastCategoryRef.current = selectedCategorySlug;
       setSelectedSubcategoryId('all');
-      setCurrentPage(1);
+      setVisibleCount(PAGE_SIZE);
     }
   }, [selectedCategorySlug]);
 
@@ -267,9 +318,7 @@ export function LibraryProcedureExplorer({
   const [sortBy, setSortBy] = React.useState<'updated_desc' | 'updated_asc' | 'title_asc' | 'title_desc'>(
     'updated_desc',
   );
-  const [currentPage, setCurrentPage] = React.useState<number>(1);
-  // Six a page turned a restaurant's 50-100 documents into a dozen pages.
-  const pageSize = 25;
+  const [visibleCount, setVisibleCount] = React.useState<number>(PAGE_SIZE);
 
   // A restaurant with nothing written yet sees that, and the way to start. A
   // stand-in set of documents here looked like someone else's library on day one.
@@ -338,13 +387,41 @@ export function LibraryProcedureExplorer({
     }
 
     const uniqueCategories = Array.from(canonicalByName.values());
+    // Backend rows carry their subcategory embedded (`subcategory: { id,
+    // categoryId, … }`) but the backend category list ships no subcategories.
+    // Fold the in-use subcategories into their categories (on clones — the
+    // source objects may live in the React Query cache) so the subcategory
+    // dropdown and name lookups see backend rows too.
+    const enrichedCategories = uniqueCategories.map((c) => ({
+      ...c,
+      subcategories: [...(c.subcategories ?? [])],
+    }));
+    const enrichedById = new Map(enrichedCategories.map((c) => [c.id, c]));
+    for (const p of allProcedures) {
+      const sub = (
+        p as unknown as {
+          subcategory?: { id: string; categoryId: string; nameEn: string; nameEs: string } | null;
+        }
+      ).subcategory;
+      if (!sub?.id) continue;
+      const cat = enrichedById.get(sub.categoryId);
+      if (!cat || cat.subcategories.some((s) => s.id === sub.id)) continue;
+      cat.subcategories.push({
+        id: sub.id,
+        slug: backendSlug(sub.nameEn),
+        nameEn: sub.nameEn,
+        nameEs: sub.nameEs,
+        categoryId: sub.categoryId,
+      });
+    }
+
     // What the list shows by default: archived documents are out of it, so
     // they are out of the counts too, or "Food Safety 2" opened a list of one.
     const current = allProcedures.filter((p) => !p.isArchived);
     const counts: Record<string, number> = { all: current.length };
 
     for (const p of current) {
-      const procCat = p.category ?? (p.subcategoryId ? uniqueCategories.find((c) => c.subcategories?.some((s) => s.id === p.subcategoryId)) : null);
+      const procCat = p.category ?? (p.subcategoryId ? enrichedCategories.find((c) => c.subcategories?.some((s) => s.id === p.subcategoryId)) : null);
       if (!procCat) {
         counts['general'] = (counts['general'] || 0) + 1;
         continue;
@@ -355,7 +432,7 @@ export function LibraryProcedureExplorer({
     }
 
     return {
-      categoryList: uniqueCategories,
+      categoryList: enrichedCategories,
       categoryCounts: counts,
       categorySlugMap: slugToCanonicalSlug,
     };
@@ -372,29 +449,41 @@ export function LibraryProcedureExplorer({
     return map;
   }, [categoryList]);
 
-  const categoryOptions = React.useMemo(() => {
+  // Category dropdown options: All, General (only when uncategorized rows
+  // exist), then each category. Counts ride in the label so the "is there
+  // anything in there?" answer survives the move from pills to dropdown.
+  const categorySelectOptions = React.useMemo(() => {
     return [
       {
         value: 'all',
-        label: `${isEs ? 'Todas las categorías' : 'All Categories'} (${categoryCounts.all || 0})`,
+        label: `${isEs ? 'Todas las categorías' : 'All categories'} (${categoryCounts.all || 0})`,
         icon: PiSquaresFour,
       },
+      ...((categoryCounts.general || 0) > 0
+        ? [
+            {
+              value: 'general',
+              label: `General (${categoryCounts.general || 0})`,
+              icon: PiFileText,
+            },
+          ]
+        : []),
       ...categoryList.map((cat) => {
         const theme = getCategoryTheme(cat.slug);
         const name = isEs ? cat.nameEs : cat.nameEn;
         return {
           value: cat.slug,
-          label: name,
+          label: `${name} (${categoryCounts[cat.slug] || 0})`,
           icon: theme.icon,
         };
       }),
     ];
-  }, [categoryList, isEs]);
+  }, [categoryList, categoryCounts, isEs]);
 
   // Subcategories the manager can pick. Scoped to the currently selected
   // category when one is chosen, so the dropdown is short and the picked
   // subcategory is guaranteed to live under the chosen category. "all" (no
-  // category chip) shows every subcategory across every category.
+  // category picked) shows every subcategory across every category.
   const subcategoryOptions = React.useMemo(() => {
     const pool: Subcategory[] =
       selectedCategorySlug === 'all'
@@ -586,15 +675,14 @@ export function LibraryProcedureExplorer({
     setStatusFilter('all');
     setStationFilter('all');
     setSearchQuery('');
-    setCurrentPage(1);
+    setVisibleCount(PAGE_SIZE);
   };
 
-  // Pagination bounds
+  // Incremental reveal, not pages: the list grows in place so filters,
+  // counts and search always operate on the whole dataset. The DOM stays
+  // bounded (PAGE_SIZE rows at a time) no matter how large the library gets.
   const totalItems = filteredProcedures.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-  const validCurrentPage = Math.min(currentPage, totalPages);
-  const startIndex = (validCurrentPage - 1) * pageSize;
-  const paginatedProcedures = filteredProcedures.slice(startIndex, startIndex + pageSize);
+  const visibleProcedures = filteredProcedures.slice(0, visibleCount);
 
   /** Remove the procedure from state immediately (optimistic) then persist. */
   const handleDelete = React.useCallback(
@@ -619,45 +707,75 @@ export function LibraryProcedureExplorer({
 
   return (
     <div className="space-y-6">
-      {/* The categories, as filters, on their own row. The count in each pill
-          answers "is there anything in there?" before the click. */}
-      <div className="space-y-2">
-        <span className="block text-sm font-semibold text-[var(--color-ink-3)]">
-          {isEs ? 'Categorías' : 'Categories'}
-        </span>
-
-        {/* On a phone the eight pills took half the screen in four rows; there
-            they scroll sideways in one, as on the cook's procedures list. */}
-        <div className="chip-rail -mx-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0">
+      {/* One row for everything: the All / General pills, the four dropdowns,
+          then the search stretching to fill what's left. Wraps on narrow
+          screens, single line on desktop. */}
+      <div className="flex flex-wrap items-center gap-3">
         <FilterChips
-          className="flex-nowrap sm:flex-wrap"
           label={isEs ? 'Categoría' : 'Category'}
           value={selectedCategorySlug}
           onChange={(slug) => {
             setSelectedCategorySlug(slug);
-            setCurrentPage(1);
+            setVisibleCount(PAGE_SIZE);
           }}
           chips={[
             { value: 'all', label: isEs ? 'Todas' : 'All', count: categoryCounts.all || 0 },
-            ...categoryList.map((cat) => ({
-              value: cat.slug,
-              label: isEs ? cat.nameEs : cat.nameEn,
-              count: categoryCounts[cat.slug] || 0,
-            })),
+            { value: 'general', label: 'General', count: categoryCounts.general || 0 },
           ]}
         />
-        </div>
-      </div>
 
-      {/* One control per question. The search field was a hand-built copy of the
-          one in the admin bar — same job, same shape, two implementations. The
-          view switch is the segmented control the language switch and the batch
-          scaler use. */}
-      {/* A row of controls, not a card: the search, the two filters and the view
-          switch each carry their own edge, and wrapping them in a second
-          surface put the page's chrome on the same plane as its content. */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="find" role="search">
+        <div className="w-field-md shrink-0">
+          <CustomSelect
+            value={selectedCategorySlug}
+            onChange={(val) => {
+              setSelectedCategorySlug(val);
+              setVisibleCount(PAGE_SIZE);
+            }}
+            options={categorySelectOptions}
+            size="sm"
+            className="h-tap-admin text-sm"
+          />
+        </div>
+        <div className="w-field-md shrink-0">
+          <CustomSelect
+            value={selectedSubcategoryId}
+            onChange={(val) => {
+              setSelectedSubcategoryId(val);
+              setVisibleCount(PAGE_SIZE);
+            }}
+            options={subcategoryOptions}
+            size="sm"
+            className="h-tap-admin text-sm"
+          />
+        </div>
+        {stationOptions.length > 1 ? (
+          <div className="w-field-sm shrink-0">
+            <CustomSelect
+              value={stationFilter}
+              onChange={(val) => {
+                setStationFilter(val);
+                setVisibleCount(PAGE_SIZE);
+              }}
+              options={stationOptions}
+              size="sm"
+              className="h-tap-admin text-sm"
+            />
+          </div>
+        ) : null}
+        <div className="w-field-sm shrink-0">
+          <CustomSelect
+            value={statusFilter}
+            onChange={(val) => {
+              setStatusFilter(val as ProcedureStatus | 'all' | 'archived');
+              setVisibleCount(PAGE_SIZE);
+            }}
+            options={statusOptions}
+            size="sm"
+            className="h-tap-admin text-sm"
+          />
+        </div>
+
+        <div className="find min-w-52 flex-1" role="search">
           <LuSearch aria-hidden="true" className="i" />
           <label className="sr-only" htmlFor="library-search">
             {isEs ? 'Buscar en la biblioteca' : 'Search the library'}
@@ -669,7 +787,7 @@ export function LibraryProcedureExplorer({
             placeholder={isEs ? 'Buscar procedimientos…' : 'Search procedures…'}
             onChange={(e) => {
               setSearchQuery(e.target.value);
-              setCurrentPage(1);
+              setVisibleCount(PAGE_SIZE);
             }}
           />
           {searchQuery ? (
@@ -682,48 +800,6 @@ export function LibraryProcedureExplorer({
               <LuX aria-hidden="true" />
             </button>
           ) : null}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="w-field-sm shrink-0">
-            <CustomSelect
-              value={statusFilter}
-              onChange={(val) => {
-                setStatusFilter(val as ProcedureStatus | 'all' | 'archived');
-                setCurrentPage(1);
-              }}
-              options={statusOptions}
-              size="sm"
-              className="h-tap-admin text-sm"
-            />
-          </div>
-          {stationOptions.length > 1 ? (
-            <div className="w-field-sm shrink-0">
-              <CustomSelect
-                value={stationFilter}
-                onChange={(val) => {
-                  setStationFilter(val);
-                  setCurrentPage(1);
-                }}
-                options={stationOptions}
-                size="sm"
-                className="h-tap-admin text-sm"
-              />
-            </div>
-          ) : null}
-          <div className="w-field-md shrink-0">
-            <CustomSelect
-              value={selectedSubcategoryId}
-              onChange={(val) => {
-                setSelectedSubcategoryId(val);
-                setCurrentPage(1);
-              }}
-              options={subcategoryOptions}
-              size="sm"
-              className="h-tap-admin text-sm"
-            />
-          </div>
-
         </div>
       </div>
 
@@ -750,8 +826,31 @@ export function LibraryProcedureExplorer({
         </div>
       )}
 
-      {/* Empty State */}
-      {allProcedures.length === 0 ? (
+      {/* List area. While the procedures query resolves, the filter bar above
+          is already interactive (its catalog is local) and only the rows
+          skeletonize — the page never waits for every query to paint. */}
+      {proceduresLoading ? (
+        <ul
+          aria-busy="true"
+          aria-label={isEs ? 'Cargando procedimientos' : 'Loading procedures'}
+          className="divide-y divide-[var(--color-line)] rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)]"
+        >
+          {[0, 1, 2, 3, 4].map((i) => (
+            <li key={i} className="flex items-center gap-4 py-5 pl-4 pr-3">
+              <Skeleton className="size-12 shrink-0 rounded-[var(--radius-md)] bg-[var(--color-panel)]" />
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-5 w-52" />
+                  <Skeleton className="h-5 w-16 rounded-full bg-[var(--color-panel)]" />
+                </div>
+                <Skeleton className="h-3.5 w-2/3 bg-[var(--color-panel)]" />
+                <Skeleton className="h-3 w-1/2 bg-[var(--color-panel)]" />
+              </div>
+              <Skeleton className="size-8 shrink-0 rounded-full bg-[var(--color-panel)]" />
+            </li>
+          ))}
+        </ul>
+      ) : allProcedures.length === 0 ? (
         <EmptyState
           icon={PiFileText}
           title={isEs ? 'Aún no hay procedimientos' : 'No procedures yet'}
@@ -785,7 +884,7 @@ export function LibraryProcedureExplorer({
         />
       ) : (
         <ul className="divide-y divide-[var(--color-line)] rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)]">
-          {paginatedProcedures.map((p) => {
+          {visibleProcedures.map((p) => {
             const procCategory = p.category ?? (p.subcategoryId ? categoryList.find((c) => c.subcategories?.some((s) => s.id === p.subcategoryId)) : null);
             const catName = procCategory ? (isEs ? procCategory.nameEs : procCategory.nameEn) : 'General';
             const title = (isEs ? p.titleEs || p.titleEn : p.titleEn || p.titleEs) || p.slug;
@@ -828,10 +927,26 @@ export function LibraryProcedureExplorer({
                     // then the manager's iconImageUrl override; then the
                     // category's default SVG via getProcedureIcon.
                     const findCover = (blocks: ProcedureBlock[] | undefined): string | null => {
-                      const block = blocks?.find(
+                      if (!blocks) return null;
+                      const imageBlock = blocks.find(
                         (b): b is Extract<ProcedureBlock, { kind: 'image' }> => b.kind === 'image',
                       );
-                      return block?.src ?? null;
+                      if (imageBlock?.src) return imageBlock.src;
+                      for (const b of blocks) {
+                        if (b.kind === 'recipe' && b.steps) {
+                          for (const s of b.steps) {
+                            if (s.imageSrc) return s.imageSrc;
+                            if (s.images && s.images.length > 0 && s.images[0].src) return s.images[0].src;
+                          }
+                        }
+                        if (b.kind === 'method' && b.steps) {
+                          for (const s of b.steps) {
+                            if (s.imageSrc) return s.imageSrc;
+                            if (s.images && s.images.length > 0 && s.images[0].src) return s.images[0].src;
+                          }
+                        }
+                      }
+                      return null;
                     };
                     const bodyCover = findCover(p.bodyEn?.blocks) ?? findCover(p.bodyEs?.blocks);
                     const iconSrc = bodyCover ?? p.iconImageUrl ?? null;
@@ -928,11 +1043,13 @@ export function LibraryProcedureExplorer({
                       p.isArchived
                         ? { label: isEs ? 'Restaurar' : 'Restore', icon: LuArchiveRestore, onSelect: () => void act(p.id, { isArchived: false }) }
                         : p.status === 'draft'
-                          ? { label: isEs ? 'Publicar' : 'Publish', icon: LuCircleCheck, onSelect: () => void act(p.id, { status: 'published' }) }
+                          ? canPublishProcedure(p)
+                            ? { label: isEs ? 'Publicar' : 'Publish', icon: LuCircleCheck, onSelect: () => void act(p.id, { status: 'published' }) }
+                            : null
                           : { label: isEs ? 'Pasar a borrador' : 'Move to drafts', icon: LuCircleDashed, onSelect: () => void act(p.id, { status: 'draft' }) },
                       p.isArchived
                         ? null
-                        : { label: isEs ? 'Archivar' : 'Archive', icon: LuArchive, onSelect: () => void act(p.id, { isArchived: true }) },
+                        : { label: isEs ? 'Archivar' : 'Archive', icon: LuArchive, onSelect: () => void onArchive(p.id) },
                     ].filter(Boolean) as RowActionItem[]
                   }
                 />
@@ -943,52 +1060,25 @@ export function LibraryProcedureExplorer({
       )}
 
       {/* Pagination Footer */}
+      {/* Show-more footer. The count always reflects the whole filtered set;
+          revealing is incremental so the DOM stays bounded at PAGE_SIZE rows
+          per press no matter how large the library grows. */}
       {totalItems > 0 && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-[var(--color-line)] text-sm text-[var(--color-ink-3)]">
           <div>
-            {isEs ? 'Mostrando' : 'Showing'} {startIndex + 1}–{Math.min(startIndex + pageSize, totalItems)}{' '}
-            {isEs ? 'de' : 'of'} {totalItems} {isEs ? 'procedimientos' : 'procedures'}
+            {isEs ? 'Mostrando' : 'Showing'} {Math.min(visibleCount, totalItems)} {isEs ? 'de' : 'of'}{' '}
+            {totalItems} {isEs ? 'procedimientos' : 'procedures'}
           </div>
 
-          {totalPages > 1 ? (
-          <div className="flex items-center gap-2">
-            <button
+          {visibleCount < totalItems ? (
+            <Button
               type="button"
-              disabled={validCurrentPage === 1}
-              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-              className="flex size-8 items-center justify-center text-[var(--color-ink-3)] hover:text-[var(--color-ink-2)] disabled:opacity-40 disabled:cursor-not-allowed text-sm transition-colors"
+              variant="secondary"
+              size="sm"
+              onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
             >
-              <Icon icon="ri-arrow-left-s-line" className="text-base" />
-            </button>
-
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-              <button
-                key={pageNum}
-                type="button"
-                onClick={() => setCurrentPage(pageNum)}
-                className={cn(
-                  'flex size-8 items-center justify-center rounded-full text-sm font-bold transition-all',
-                  validCurrentPage === pageNum
-                    // Where you are, said the way the filter pills say it.
-                    // A solid brand disc here was a second brand-filled
-                    // control on a page that already has its one action.
-                    ? 'bg-[var(--color-brand-tint)] text-[var(--color-brand-700)] ring-1 ring-[var(--color-ring)]'
-                    : 'text-[var(--color-ink-3)] hover:text-[var(--color-ink)]',
-                )}
-              >
-                {pageNum}
-              </button>
-            ))}
-
-            <button
-              type="button"
-              disabled={validCurrentPage === totalPages}
-              onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-              className="flex size-8 items-center justify-center text-[var(--color-ink-3)] hover:text-[var(--color-ink-2)] disabled:opacity-40 disabled:cursor-not-allowed text-sm transition-colors"
-            >
-              <Icon icon="ri-arrow-right-s-line" className="text-base" />
-            </button>
-          </div>
+              {isEs ? 'Mostrar más' : 'Show more'}
+            </Button>
           ) : null}
         </div>
       )}

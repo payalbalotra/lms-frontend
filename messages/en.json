@@ -139,6 +139,7 @@
       "trainingDoneLine": "{done} of {total} done",
       "trainingOverdueLine": "{count} overdue",
       "stationHeading": "For the {station} station",
+      "stationsHeading": "For your stations",
       "forYouHeading": "For you",
       "noStation": "No station set",
       "categoriesHeading": "Browse by category",
@@ -208,6 +209,8 @@
       "searchLabel": "Search the library",
       "searchPlaceholder": "Search a recipe, a step or a question…",
       "all": "All",
+      "myStation": "My station",
+      "assignedToMe": "Assigned to me",
       "count": "{count, plural, =0 {No procedures} one {# procedure} other {# procedures}}",
       "none": "Nothing here yet.",
       "noneFor": "None of our procedures answers “{query}”. Ask your manager rather than guess, above all for anything about food safety.",
@@ -338,6 +341,12 @@
     "navStations": "Stations",
     "navRoles": "Roles",
     "navLocations": "Locations",
+    "notFound": {
+      "eyebrow": "Admin",
+      "title": "We couldn't find that page",
+      "body": "It may have been deleted, or the link is from an older version.",
+      "back": "Back to dashboard"
+    },
     "library": {
       "editor": {
         "addPurpose": "Add a one-line purpose",
@@ -955,13 +964,13 @@
               "uploadMode": "Upload file",
               "urlMode": "Image URL",
               "uploadClick": "Click to upload or drag & drop image",
-              "uploadHint": "Supports PNG, JPG, WEBP, GIF up to 10 MB",
+              "uploadHint": "Supports PNG, JPG, WEBP, GIF, AVIF up to 10 MB",
               "uploading": "Uploading…",
               "uploadChange": "Change image",
               "uploadRemove": "Remove",
               "uploadDone": "Uploaded",
               "uploadTooBig": "Image must be 10 MB or smaller.",
-              "uploadUnsupported": "Use PNG, JPG, WEBP, or GIF.",
+              "uploadUnsupported": "Use PNG, JPG, WEBP, GIF, or AVIF.",
               "uploadFailed": "Upload failed. Try again.",
               "previewAlt": "Procedure image preview"
             },
@@ -1047,7 +1056,8 @@
         "errorLoad": "This procedure isn't available.",
         "statusDraft": "Draft",
         "statusPublished": "Published",
-        "statusArchived": "Archived"
+        "statusArchived": "Archived",
+        "publishBlocked": "Publishing needs stations — assign at least one station, or keep the procedure General."
       }
     },
     "shell": {

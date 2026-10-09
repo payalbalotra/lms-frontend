@@ -3,11 +3,9 @@
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
-import { useQuery } from '@tanstack/react-query';
-import type { ProcedureQuiz, ProcedureQuizQuestion, Quiz } from '@/lib/types';
-import { listQuizzes } from '@/lib/api';
+import type { ProcedureQuiz, ProcedureQuizQuestion } from '@/lib/types';
 import { LocalisedInput } from '@/components/ui/localised-input';
-import { LuCheck, LuCircle, LuPlus, LuTrash2 } from 'react-icons/lu';
+import { LuCheck, LuPlus, LuTrash2 } from 'react-icons/lu';
 
 const MIN_CHOICES = 2;
 const MAX_CHOICES = 6;
@@ -41,21 +39,6 @@ interface QuizEditorProps {
 export function QuizEditor({ value, onChange, isSaving, hideHeader }: QuizEditorProps): React.ReactElement {
   const t = useTranslations('admin.library.new.quiz');
   const [questionLangs, setQuestionLangs] = React.useState<Record<string, 'en' | 'es'>>({});
-
-  // The "load questions from an existing quiz" picker used to fetch the
-  // whole quizzes table on mount — every wizard visit paid an API call
-  // almost nobody needs. Now it loads lazily, only when the manager asks
-  // for the list, and caches through TanStack Query (5 min), so a second
-  // wizard session is free. Empties hide the picker as before.
-  const [pickerOpened, setPickerOpened] = React.useState(false);
-  const quizzesQuery = useQuery({
-    queryKey: ['quizzes', 'list'],
-    queryFn: () => listQuizzes().then((r) => r.quizzes),
-    enabled: pickerOpened,
-  });
-  const existingQuizzes = quizzesQuery.data ?? [];
-  const pickerIsLoading = pickerOpened && quizzesQuery.isLoading;
-  const hidePicker = pickerOpened && !quizzesQuery.isLoading && existingQuizzes.length === 0;
 
   const [working, setWorking] = React.useState<ProcedureQuiz>(() => {
     if (!value) return makeBlankQuiz();
@@ -171,59 +154,6 @@ export function QuizEditor({ value, onChange, isSaving, hideHeader }: QuizEditor
         </label>
       </div>
 
-      {/* Copy / load from existing quiz — hidden until the manager asks,
-          and gone again when the API answers with none. */}
-      {!hidePicker && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-wash)] p-3">
-          <span className="text-xs font-semibold text-[var(--color-ink-2)]">
-            Load questions from existing quiz:
-          </span>
-          {!pickerOpened ? (
-            <button
-              type="button"
-              onClick={() => setPickerOpened(true)}
-              className="self-start rounded-[var(--radius-md)] border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--color-ink)] hover:bg-[var(--color-panel)] focus:outline-none focus:ring-1 focus:ring-[var(--color-brand-600)]"
-            >
-              Show existing quizzes
-            </button>
-          ) : pickerIsLoading ? (
-            <span className="inline-flex items-center gap-2 px-1 py-1.5 text-xs text-[var(--color-ink-2)]">
-              <span className="spinner" aria-hidden="true" />
-              Loading quizzes…
-            </span>
-          ) : (
-            <select
-              id="select-existing-quiz"
-              defaultValue=""
-              onChange={(e) => {
-                const picked = existingQuizzes.find((q) => q.id === e.target.value);
-                if (picked && picked.questions.length > 0) {
-                  update({
-                    ...working,
-                    questions: picked.questions.map((q: ProcedureQuizQuestion) => ({
-                      id: q.id || makeId(),
-                      prompt: q.prompt || q.question || { en: '', es: '' },
-                      choices: q.choices,
-                      correctChoiceId: q.correctChoiceId,
-                    })),
-                  });
-                }
-              }}
-              className="rounded-[var(--radius-md)] border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-1.5 text-xs text-[var(--color-ink)] focus:outline-none focus:ring-1 focus:ring-[var(--color-brand-600)]"
-            >
-              <option value="" disabled>
-                Select an existing quiz...
-              </option>
-              {existingQuizzes.map((q) => (
-                <option key={q.id} value={q.id}>
-                  {q.nameEn || q.nameEs || q.id} ({q.questions.length} questions)
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
-      )}
-
       {/* Question list — each question has the exact bilingual component effect (one gets bigger, one becomes shorter) */}
       <ol className="space-y-6">
         {working.questions.map((q, qi) => {
@@ -238,16 +168,24 @@ export function QuizEditor({ value, onChange, isSaving, hideHeader }: QuizEditor
                   // Active card: BIGGER (100% width, height auto, full question prompt + all options)
                   return (
                     <div key={lang} className="bli-card is-active">
-                      <header className="flex items-center justify-between border-b border-[var(--color-line)] bg-[var(--color-wash)] px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <span className="flex size-7 shrink-0 items-center justify-center rounded-full border-2 border-[var(--color-line-2)] bg-[var(--color-surface)] text-xs font-bold text-[var(--color-ink)]">
-                            {qi + 1}
-                          </span>
-                          <span className="text-sm font-semibold text-[var(--color-ink)]">
-                            {lang === 'en' ? `Question ${qi + 1}` : `Pregunta ${qi + 1}`}
-                          </span>
+                      <header className="flex items-center gap-3 border-b border-[var(--color-line)] bg-[var(--color-wash)] px-4 py-3">
+                        <span className="text-sm font-bold text-[var(--color-ink)] shrink-0 select-none pl-1">
+                          {qi + 1}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <LocalisedInput
+                            id={`q-${q.id}-prompt-${lang}`}
+                            lang={lang}
+                            value={q.prompt}
+                            onText={(nextLang, text) => updatePrompt(qi, nextLang, text)}
+                            showStatus
+                            type="text"
+                            placeholder={lang === 'en' ? t('promptPlaceholder') : 'Escribe la pregunta en español...'}
+                            disabled={isSaving}
+                            className="w-full rounded-[var(--radius-sm)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2 text-sm font-medium text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] focus:border-[var(--color-ring)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-tint)]"
+                          />
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 shrink-0">
                           <span translate="no" className="font-mono text-xs font-bold text-[var(--color-ink-2)] uppercase tracking-wider notranslate">
                             {lang.toUpperCase()}
                           </span>
@@ -265,31 +203,11 @@ export function QuizEditor({ value, onChange, isSaving, hideHeader }: QuizEditor
                       </header>
 
                       <div className="p-4 space-y-4">
-                        {/* Question prompt input in active language */}
-                        <div className="space-y-1.5">
-                          <label
-                            htmlFor={`q-${q.id}-prompt-${lang}`}
-                            className="block text-xs font-semibold uppercase text-[var(--color-ink-3)] tracking-wider"
-                          >
-                            {lang === 'en' ? 'Question' : 'Pregunta'}
-                          </label>
-                          <LocalisedInput
-                            id={`q-${q.id}-prompt-${lang}`}
-                            lang={lang}
-                            value={q.prompt}
-                            onText={(nextLang, text) => updatePrompt(qi, nextLang, text)}
-                            showStatus
-                            type="text"
-                            placeholder={lang === 'en' ? t('promptPlaceholder') : 'Escribe la pregunta en español...'}
-                            disabled={isSaving}
-                            className="w-full rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold text-[var(--color-ink)] placeholder:font-normal placeholder:text-[var(--color-ink-3)] focus:border-[var(--color-ring)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-tint)]"
-                          />
-                          {q.choices.every((c) => !(c.label[lang] ?? '').trim()) ? null : !q.correctChoiceId ? (
-                            <p className="pt-1 text-sm font-medium text-[var(--color-warn-ink)]">
-                              {t('noCorrect')}
-                            </p>
-                          ) : null}
-                        </div>
+                        {q.choices.every((c) => !(c.label[lang] ?? '').trim()) ? null : !q.correctChoiceId ? (
+                          <p className="text-sm font-medium text-[var(--color-warn-ink)]">
+                            {t('noCorrect')}
+                          </p>
+                        ) : null}
 
                         {/* Options in active language */}
                         <div className="space-y-2">
@@ -309,32 +227,36 @@ export function QuizEditor({ value, onChange, isSaving, hideHeader }: QuizEditor
                                     aria-label={t('markCorrect')}
                                     title={isCorrect ? 'Correct option' : 'Click to mark as correct'}
                                     className={cn(
-                                      'flex size-8 shrink-0 items-center justify-center rounded-full border transition-colors',
+                                      'flex size-8 shrink-0 items-center justify-center rounded-full border-2 transition-all focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-tint)]',
                                       isCorrect
-                                        ? 'border-[var(--color-ok)] bg-[var(--color-ok-tint)] text-[var(--color-ok)]'
-                                        : 'border-[var(--color-line-2)] bg-[var(--color-surface)] text-transparent hover:border-[var(--color-ink-3)]',
+                                        ? 'border-[var(--color-ok)] bg-[var(--color-ok)] text-white shadow-xs'
+                                        : 'border-[var(--color-line-2)] bg-[var(--color-surface)] hover:border-[var(--color-line-3)]',
                                     )}
                                   >
-                                    {isCorrect ? <LuCheck className="size-4" aria-hidden="true" /> : <LuCircle className="size-4" aria-hidden="true" />}
+                                    {isCorrect ? (
+                                      <LuCheck className="size-4 stroke-[3] text-white" aria-hidden="true" />
+                                    ) : null}
                                   </button>
-                                  <LocalisedInput
-                                    lang={lang}
-                                    value={c.label}
-                                    onText={(nextLang, text) => updateChoice(qi, ci, nextLang, text)}
-                                    type="text"
-                                    placeholder={
-                                      lang === 'en'
-                                        ? t('choicePlaceholder', { n: ci + 1 })
-                                        : `Opción ${ci + 1}`
-                                    }
-                                    disabled={isSaving}
-                                    className={cn(
-                                      'flex-1 rounded-[var(--radius-md)] border bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] focus:outline-none focus:ring-2',
-                                      isCorrect
-                                        ? 'border-[var(--color-ok)] focus:border-[var(--color-ok)] focus:ring-[var(--color-ok-tint)]'
-                                        : 'border-[var(--color-line-2)] focus:border-[var(--color-ring)] focus:ring-[var(--color-brand-tint)]',
-                                    )}
-                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <LocalisedInput
+                                      lang={lang}
+                                      value={c.label}
+                                      onText={(nextLang, text) => updateChoice(qi, ci, nextLang, text)}
+                                      type="text"
+                                      placeholder={
+                                        lang === 'en'
+                                          ? t('choicePlaceholder', { n: ci + 1 })
+                                          : `Opción ${ci + 1}`
+                                      }
+                                      disabled={isSaving}
+                                      className={cn(
+                                        'w-full rounded-[var(--radius-sm)] border bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] focus:outline-none focus:ring-2',
+                                        isCorrect
+                                          ? 'border-[var(--color-ok)] focus:border-[var(--color-ok)] focus:ring-[var(--color-ok-tint)]'
+                                          : 'border-[var(--color-line-2)] focus:border-[var(--color-ring)] focus:ring-[var(--color-brand-tint)]',
+                                      )}
+                                    />
+                                  </div>
                                   {q.choices.length > MIN_CHOICES ? (
                                     <button
                                       type="button"
@@ -346,12 +268,14 @@ export function QuizEditor({ value, onChange, isSaving, hideHeader }: QuizEditor
                                     >
                                       <LuTrash2 className="size-4" aria-hidden="true" />
                                     </button>
-                                  ) : null}
+                                  ) : (
+                                    <div className="size-8 shrink-0" aria-hidden="true" />
+                                  )}
                                 </li>
                               );
                             })}
                             {q.choices.length < MAX_CHOICES ? (
-                              <li className="pt-1">
+                              <li className="pt-1.5">
                                 <button
                                   type="button"
                                   onClick={() => addChoice(qi)}

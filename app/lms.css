@@ -1157,15 +1157,15 @@ code {
 }
 
 .n-warn {
-   background: var(--bad-tint);
+   background: var(--warn-tint);
 }
 
 .n-warn .ico {
-   color: var(--bad);
+   color: var(--warn);
 }
 
 .n-warn .label {
-   color: var(--bad);
+   color: var(--warn-ink);
 }
 
 .n-tip {
@@ -1205,15 +1205,15 @@ code {
 }
 
 .n-allergen {
-   background: var(--warn-tint);
+   background: var(--bad-tint);
 }
 
 .n-allergen .ico {
-   color: var(--warn-ink);
+   color: var(--bad);
 }
 
 .n-allergen .label {
-   color: var(--warn-ink);
+   color: var(--bad);
 }
 
 /* ============================================================
@@ -3277,6 +3277,10 @@ dl.yield[data-count="3"]>div:last-child {
    font-size: var(--t-base);
    border-bottom: 1px solid var(--line);
    vertical-align: top;
+   white-space: pre-wrap;
+   word-break: break-word;
+   overflow-wrap: break-word;
+   line-height: 1.5;
 }
 
 .dtable tr:last-child td {
@@ -5054,6 +5058,7 @@ textarea.bli__control {
    line-height: var(--lh-meta);
    color: var(--bli-muted);
    white-space: nowrap;
+   margin-top: 4px;
 }
 
 .bli__status::before {
@@ -5071,7 +5076,7 @@ textarea.bli__control {
 }
 
 .bli__status.is-error::before {
-   animation: none;
+   display: none;
 }
 
 @keyframes bli-status-pulse {
@@ -5107,9 +5112,10 @@ textarea.bli__control {
    top: 50%;
    transform: translateY(-50%);
    font-family: var(--bli-font);
-   font-size: 12px;
+   font-size: 11px;
    color: var(--bli-muted);
    pointer-events: none;
+   white-space: nowrap;
    transition: opacity 0.22s ease;
 }
 
@@ -5136,15 +5142,20 @@ textarea.bli__control {
 
 .bli--compact .bli__control {
    font-size: var(--t-sm);
-   padding: 0 46px 0 var(--s-2);
+   padding: 0 108px 0 var(--s-2);
 }
 
 .bli--compact textarea.bli__control {
-   padding: 4px 46px 4px var(--s-2);
+   padding: 4px 108px 4px var(--s-2);
 }
 
 .bli--compact .bli__field.is-multiline.is-active .bli__control {
-   padding: var(--s-2) 46px var(--s-2) var(--s-2);
+   padding: var(--s-2) 108px var(--s-2) var(--s-2);
+}
+
+.bli--compact .bli__count {
+   font-size: 10px;
+   right: 32px;
 }
 
 .bli--compact .bli__tag {
@@ -5532,6 +5543,40 @@ button.step-check:focus-visible {
    border-bottom: 4px solid var(--bad);
 }
 
+/* Multi-photo grid thumb (2 to 4 photos) */
+.step-thumb.is-grid {
+   display: grid;
+   gap: 2px;
+   background: var(--surface);
+   overflow: hidden;
+}
+
+.step-thumb.is-grid-2 {
+   grid-template-columns: 1fr 1fr;
+}
+
+.step-thumb.is-grid-3 {
+   grid-template-columns: 1fr 1fr;
+   grid-template-rows: 1fr 1fr;
+}
+
+.step-thumb.is-grid-3 img:first-child {
+   grid-row: span 2;
+}
+
+.step-thumb.is-grid-4 {
+   grid-template-columns: 1fr 1fr;
+   grid-template-rows: 1fr 1fr;
+}
+
+.step-thumb.is-grid img {
+   display: block;
+   width: 100%;
+   height: 100%;
+   object-fit: cover;
+   border-radius: 0;
+}
+
 .step-thumb .badge {
    position: absolute;
    left: 4px;
@@ -5609,15 +5654,15 @@ button.step-check:focus-visible {
 .step-extras .step-time[data-kind] {
    display: inline-flex;
    align-items: center;
-   gap: var(--s-1);
-   height: 24px;
-   min-height: 24px;
-   padding: 0 var(--s-2);
+   gap: 6px;
+   min-height: 26px;
+   height: auto;
+   padding: 3px 10px;
    border-radius: var(--r-pill);
    font-size: var(--t-xs);
-   font-weight: 600;
+   font-weight: 500;
    font-variant-numeric: tabular-nums;
-   line-height: 1;
+   line-height: 1.25;
    border: 1px solid transparent;
 }
 
@@ -5969,6 +6014,65 @@ dialog.cook::backdrop {
    color: var(--bad);
 }
 
+/* Multi-photo gallery in cook mode (up to 4 photos) */
+.cook-gallery {
+   display: grid;
+   gap: 4px;
+   margin: 0;
+}
+
+.cook-gallery-2 {
+   grid-template-columns: 1fr 1fr;
+}
+
+.cook-gallery-3 {
+   grid-template-columns: 1fr 1fr;
+   grid-template-rows: 1fr 1fr;
+}
+
+.cook-gallery-3 .cook-gallery-item:first-child {
+   grid-row: span 2;
+}
+
+.cook-gallery-4 {
+   grid-template-columns: 1fr 1fr;
+   grid-template-rows: 1fr 1fr;
+}
+
+.cook-gallery-item {
+   margin: 0;
+   display: flex;
+   flex-direction: column;
+   position: relative;
+   overflow: hidden;
+   border-radius: var(--r-md);
+   background: var(--panel);
+}
+
+.cook-gallery-frame {
+   position: relative;
+   width: 100%;
+   height: 100%;
+   flex: 1;
+   min-height: 0;
+}
+
+.cook-gallery-frame img {
+   display: block;
+   width: 100%;
+   height: 100%;
+   object-fit: cover;
+   aspect-ratio: 4 / 3;
+   max-height: 46dvh;
+}
+
+.cook-gallery-item figcaption {
+   padding: var(--s-1) var(--s-2);
+   font-size: var(--t-xs);
+   color: var(--ink-2);
+   background: var(--surface);
+}
+
 .cook-pad {
    display: grid;
    align-content: start;
@@ -6273,18 +6377,18 @@ dialog.cook::backdrop {
       height: 100%;
    }
 
-   .cook-step.has-media>.cook-media:not(.cook-pair) {
+   .cook-step.has-media>.cook-media:not(.cook-pair):not(.cook-gallery) {
       display: flex;
       flex-direction: column;
       min-height: 0;
    }
 
-   .cook-step.has-media .frame {
+   .cook-step.has-media>.cook-media:not(.cook-pair):not(.cook-gallery) .frame {
       flex: 1;
       min-height: 0;
    }
 
-   .cook-step.has-media .frame img {
+   .cook-step.has-media>.cook-media:not(.cook-pair):not(.cook-gallery) .frame img {
       height: 100%;
       max-height: none;
       aspect-ratio: auto;
@@ -6296,6 +6400,30 @@ dialog.cook::backdrop {
 
    .cook-step.has-media>.cook-pair {
       align-self: center;
+   }
+
+   .cook-step.has-media>.cook-gallery {
+      display: grid;
+      gap: var(--s-2);
+      padding: var(--s-4);
+      height: 100%;
+      max-height: 100%;
+      min-height: 0;
+      align-self: stretch;
+      box-sizing: border-box;
+   }
+
+   .cook-step.has-media>.cook-gallery .cook-gallery-frame {
+      height: 100%;
+   }
+
+   .cook-step.has-media>.cook-gallery .cook-gallery-frame img {
+      width: 100%;
+      height: 100%;
+      max-height: none;
+      aspect-ratio: auto;
+      object-fit: cover;
+      border-radius: var(--r-md);
    }
 
    .cook-step.has-media>.cook-pad {

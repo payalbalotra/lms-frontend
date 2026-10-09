@@ -20,7 +20,8 @@ export async function fetchJobs(
     data: { jobs: Job[] };
   }>(JOBS_ENDPOINTS.LIST, {
     headers: Object.keys(headers).length ? headers : undefined,
-    params: { _t: Date.now() },
+    // Backend paginates (default 10) — the roles catalog is small, take all.
+    params: { limit: 200 },
   });
 
   return { jobs: data.data?.jobs ?? [] };
@@ -89,7 +90,7 @@ export async function fetchJobStations(
         success: boolean;
         data: { stations: Array<{ id: string; name: string }> };
       }>(JOBS_ENDPOINTS.STATIONS, {
-        params: { jobIds: jobIds.join(','), _t: Date.now() },
+        params: { jobIds: jobIds.join(',') },
         headers: Object.keys(headers).length ? headers : undefined,
       });
 

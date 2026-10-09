@@ -89,6 +89,7 @@ export function RecipeBody({
       if (s.mediaThumb) {
         return {
           ...s,
+          shots: undefined,
           thumbLabel: s.thumbLabel ?? `Step ${i + 1}: open in cook mode`,
           onThumbOpen: () => cookMode.onOpen(i + 1),
         };
@@ -99,11 +100,13 @@ export function RecipeBody({
       const isCompare = first.compare === 'ok' && second?.compare === 'no';
       return {
         ...s,
+        shots: undefined,
         mediaThumb: {
           src: first.src,
           alt: first.alt,
           compare: isCompare ? 'ok' : undefined,
           pairSrc: isCompare ? second.src : undefined,
+          images: s.shots?.map((sh) => ({ src: sh.src, alt: sh.alt })),
         },
         thumbLabel: `Step ${i + 1}: open in cook mode`,
         onThumbOpen: () => cookMode.onOpen(i + 1),

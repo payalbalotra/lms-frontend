@@ -19,6 +19,7 @@ import type { ProcedureMethodStep } from '@/lib/types';
 import { TimerChip, fmtLeft, fmtLength, useNow, type Timer } from './procedure-timers';
 import { formatDiscardAt } from './discard-time';
 import { scaleAmount } from './index';
+import { cn } from '@/lib/utils';
 
 /**
  * Cook mode: the method one step at a time, full screen, for the cook with a
@@ -150,6 +151,7 @@ function amountFor(ing: CookModeIngredient, factorIdx: number, factors?: number[
 type StepMedia =
   | { kind: 'photo'; src: string; alt: string; caption?: string }
   | { kind: 'compare'; ok: { src: string; alt: string }; no: { src: string; alt: string } }
+  | { kind: 'gallery'; photos: Array<{ src: string; alt: string; caption?: string }> }
   | { kind: 'clip'; src: string; startSec: number; endSec: number; poster?: string; alt?: string };
 
 function mediaFor(step: ProcedureMethodStep, locale: 'en' | 'es'): StepMedia | null {
@@ -178,11 +180,18 @@ function mediaFor(step: ProcedureMethodStep, locale: 'en' | 'es'): StepMedia | n
       alt: altOf(step.images?.[0]?.alt) || altOf(step.imageAlt) || '',
     };
   }
-  // Multiple images with no compare flag → first image as the lead photo.
-  // Its optional caption travels with it so the cook-mode screen shows
-  // "This is right." / "Don't over-mash." under the photo, the same shape
-  // the document view's `<Shot>` carries.
-  if (step.images && step.images.length > 0) {
+  // Multiple images with no compare flag -> gallery grid (up to 4 images)
+  if (step.images && step.images.length > 1) {
+    return {
+      kind: 'gallery',
+      photos: step.images.slice(0, 4).map((img) => ({
+        src: img.src,
+        alt: altOf(img.alt),
+        caption: captionOf(img.caption),
+      })),
+    };
+  }
+  if (step.images && step.images.length === 1) {
     const first = step.images[0]!;
     return {
       kind: 'photo',
@@ -217,6 +226,22 @@ function BigMedia({ media }: { media: StepMedia }): React.ReactElement {
               {k === 'ok' ? <RiCheckLine className="i i-sm" aria-hidden="true" /> : <RiCloseLine className="i i-sm" aria-hidden="true" />}
               {k === 'ok' ? 'Correct' : 'Wrong'}
             </figcaption>
+          </figure>
+        ))}
+      </div>
+    );
+  }
+  if (media.kind === 'gallery') {
+    const count = Math.min(4, media.photos.length);
+    return (
+      <div className={cn('cook-media cook-gallery', `cook-gallery-${count}`)}>
+        {media.photos.slice(0, 4).map((p, idx) => (
+          <figure key={idx} className="cook-gallery-item">
+            <div className="cook-gallery-frame">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={p.src} alt={p.alt} width={800} height={600} />
+            </div>
+            {p.caption ? <figcaption>{p.caption}</figcaption> : null}
           </figure>
         ))}
       </div>
@@ -392,7 +417,12 @@ export function CookMode({
     mainRef.current?.scrollTo(0, 0);
     const m = mediaFor(STEPS[i] ?? ({} as ProcedureMethodStep), locale);
     if (!m) return;
-    const srcs = m.kind === 'compare' ? [m.ok.src, m.no.src] : [m.src];
+    const srcs =
+      m.kind === 'compare'
+        ? [m.ok.src, m.no.src]
+        : m.kind === 'gallery'
+          ? m.photos.map((p) => p.src)
+          : [m.src];
     srcs.forEach((s) => {
       if (!s) return;
       const img = new Image();

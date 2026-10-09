@@ -51,7 +51,9 @@ export async function fetchEmployees(
     headers: Object.keys(headers).length ? headers : undefined,
     params: {
       status: status !== 'all' ? status : undefined,
-      _t: Date.now(),
+      // Backend paginates (default 10) — ask for the whole roster: the
+      // dashboard counts and People filters need every row to be correct.
+      limit: 200,
     },
   });
 
@@ -129,6 +131,35 @@ export async function reactivateEmployee(
       employee: AdminEmployee;
     };
   }>(EMPLOYEES_ENDPOINTS.REACTIVATE(employeeId));
+
+  return { employee: normalizeEmployee<AdminEmployee>(data.data.employee) };
+}
+
+/** Full-body update (backend validates against the create schema minus
+ *  employeeCode — every field required). The caller must send the current
+ *  `status`/`languagePref` explicitly: the backend defaults an omitted
+ *  status to `pending`, which would silently deactivate people. */
+export interface UpdateEmployeeRequest {
+  name: string;
+  email: string;
+  locationId: string;
+  role: 'super_admin' | 'manager' | 'employee';
+  jobIds: string[];
+  stationIds: string[];
+  languagePref: 'en' | 'es';
+  status: 'pending' | 'active' | 'deactivated';
+}
+
+export async function updateEmployee(
+  employeeId: string,
+  input: UpdateEmployeeRequest,
+): Promise<{ employee: AdminEmployee }> {
+  const { data } = await http.put<{
+    success: boolean;
+    data: {
+      employee: AdminEmployee;
+    };
+  }>(EMPLOYEES_ENDPOINTS.UPDATE(employeeId), input);
 
   return { employee: normalizeEmployee<AdminEmployee>(data.data.employee) };
 }

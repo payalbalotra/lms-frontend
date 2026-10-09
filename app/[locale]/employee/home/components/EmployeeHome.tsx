@@ -74,6 +74,7 @@ export function EmployeeHome({
   stationName,
   training,
   promo,
+  assigned,
   station,
   flagLabels,
   locale = 'en',
@@ -86,6 +87,9 @@ export function EmployeeHome({
   stationName?: string | null;
   training: TrainingSummary | null;
   promo: { heading: string; rows: HomeRow[] };
+  /** Procedures directly assigned to this person (assignUsers). Rendered
+   *  above the station section; null when none. */
+  assigned?: { heading: string; rows: HomeRow[] } | null;
   station: {
     heading: string;
     rows: HomeRow[];
@@ -127,6 +131,14 @@ export function EmployeeHome({
             rows={promo.rows.map((r) => ({ ...r, locked: false, lockedHref: undefined, lockedReason: undefined }))}
             flagLabels={flagLabels}
           />
+          {assigned && assigned.rows.length > 0 ? (
+            <StationSection
+              id="assigned-h"
+              heading={assigned.heading}
+              rows={assigned.rows.map((r) => ({ ...r, locked: false, lockedHref: undefined, lockedReason: undefined }))}
+              flagLabels={flagLabels}
+            />
+          ) : null}
           <StationSection
             id="station-h"
             heading={station.heading}

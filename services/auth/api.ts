@@ -87,10 +87,10 @@ export async function fetchMe(
 
   const promise = (async () => {
     try {
-      const headers: Record<string, string> = {
-        'Cache-Control': 'no-cache, no-store',
-        Pragma: 'no-cache',
-      };
+      // Freshness is owned by the 10s TTL + dedup above — no no-cache
+      // headers or `_t` buster, which would force a backend round-trip
+      // on every session check.
+      const headers: Record<string, string> = {};
 
       if (cookieHeader) {
         headers['Cookie'] = cookieHeader;
@@ -108,8 +108,7 @@ export async function fetchMe(
           role?: string;
         };
       }>(AUTH_ENDPOINTS.ME, {
-        headers,
-        params: { _t: Date.now() },
+        headers: Object.keys(headers).length ? headers : undefined,
         signal: _signal,
       });
 

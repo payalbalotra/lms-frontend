@@ -3,6 +3,7 @@
 import * as React from 'react';
 
 import { cn } from '@/lib/utils';
+import { Icon } from '@/components/ui/icon';
 import { useBilingualTranslation } from '@/lib/use-bilingual-translation';
 import type { Localised } from '@/lib/types';
 
@@ -20,6 +21,16 @@ export interface LocalisedInputProps
    * extra sibling would change the layout.
    */
   showStatus?: boolean;
+  /** Maximum number of characters allowed. */
+  maxLength?: number;
+  /** When true, renders a textarea rather than a single-line input. */
+  multiline?: boolean;
+  /** Number of visible text lines when multiline is true. */
+  rows?: number;
+  /** Whether to render character counter if maxLength is set. Default true when maxLength is provided. */
+  showCount?: boolean;
+  /** Optional class name for the outer container div */
+  wrapperClassName?: string;
 }
 
 // Same self-contained strings as BilingualInput — the label follows the target
@@ -41,8 +52,14 @@ export function LocalisedInput({
   value,
   onText,
   showStatus = false,
+  maxLength,
+  multiline = false,
+  rows = 2,
+  showCount = true,
   className,
+  wrapperClassName,
   onChange,
+  type: _type,
   ...inputProps
 }: LocalisedInputProps): React.ReactElement {
   const { markUserEdit, status, activeTarget } = useBilingualTranslation({
@@ -55,29 +72,66 @@ export function LocalisedInput({
   const show =
     showStatus && activeTarget !== null && (status === 'translating' || status === 'error');
 
+  const currentLength = (value?.[lang] ?? '').length;
+  const isNearLimit = maxLength !== undefined && currentLength >= maxLength;
+
   return (
-    <>
-      <input
-        {...inputProps}
-        lang={lang}
-        className={className}
-        value={value?.[lang] ?? ''}
-        onChange={(e) => {
-          onChange?.(e);
-          onText(lang, e.target.value);
-          // Real DOM edits only — programmatic writes never reach this.
-          markUserEdit(lang, e.target.value);
-        }}
-      />
+    <div className={cn('relative w-full', multiline && 'flex flex-col', wrapperClassName)}>
+      {multiline ? (
+        <textarea
+          {...(inputProps as unknown as React.TextareaHTMLAttributes<HTMLTextAreaElement>)}
+          lang={lang}
+          rows={rows}
+          maxLength={maxLength}
+          className={cn('w-full', className)}
+          value={value?.[lang] ?? ''}
+          onChange={(e) => {
+            onChange?.(e as unknown as React.ChangeEvent<HTMLInputElement>);
+            onText(lang, e.target.value);
+            markUserEdit(lang, e.target.value);
+          }}
+        />
+      ) : (
+        <input
+          {...inputProps}
+          type={_type ?? 'text'}
+          lang={lang}
+          maxLength={maxLength}
+          className={cn('w-full', className)}
+          value={value?.[lang] ?? ''}
+          onChange={(e) => {
+            onChange?.(e);
+            onText(lang, e.target.value);
+            // Real DOM edits only — programmatic writes never reach this.
+            markUserEdit(lang, e.target.value);
+          }}
+        />
+      )}
+      {maxLength !== undefined && showCount && (
+        <div className="flex items-center justify-end px-1 pt-0.5 select-none pointer-events-none">
+          <span
+            className={cn(
+              'font-mono text-[10px] tabular-nums transition-colors',
+              isNearLimit ? 'text-[var(--color-bad)] font-semibold' : 'text-[var(--color-ink-3)]',
+            )}
+            aria-hidden="true"
+          >
+            {currentLength} / {maxLength}
+          </span>
+        </div>
+      )}
       {activeTarget !== null && show && (
         <span
           className={cn('bli__status', status === 'error' && 'is-error')}
           role="status"
           aria-live="polite"
         >
-          {STATUS_TEXT[activeTarget][status === 'error' ? 'error' : 'translating']}
+          {status === 'error' && (
+            <Icon icon="ri-error-warning-line" className="text-xs shrink-0" />
+          )}
+          <span>{STATUS_TEXT[activeTarget][status === 'error' ? 'error' : 'translating']}</span>
         </span>
       )}
-    </>
+    </div>
   );
 }

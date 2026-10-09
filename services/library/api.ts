@@ -401,8 +401,17 @@ function normalizeBlocks(blocks: any[]): any[] {
 }
 
 export function normalizeBackendProcedure(raw: any): Procedure {
+  // The backend marks archived rows with `status: "archived"` (plus
+  // `previousStatus`) and sends no `isArchived` boolean. Map that onto the
+  // frontend's separate `isArchived` flag — otherwise archived procedures
+  // fail the `statusFilter === 'archived'` branch (which checks isArchived)
+  // and keep showing in the default list. Without this, archiving works API-
+  // side but the Archived filter reads "0 of N".
+  const archived = raw.isArchived ?? raw.status === 'archived';
+  const status = raw.status === 'archived' ? (raw.previousStatus ?? 'draft') : raw.status;
   return {
     ...raw,
+    status,
     subcategoryId: raw.subcategory?.id ?? raw.subcategoryId ?? null,
     category: raw.category ?? null,
     stationScope:
@@ -410,7 +419,7 @@ export function normalizeBackendProcedure(raw: any): Procedure {
       (raw.stationId ? { mode: 'specific', stationIds: [raw.stationId] } : null),
     iconImageUrl: raw.iconImageUrl ?? raw.procedureImage ?? null,
     version: raw.version ?? 1,
-    isArchived: raw.isArchived ?? false,
+    isArchived: archived,
     audience: raw.audience ?? null,
     protection: raw.protection ?? 'standard',
     quizId: raw.quizId ?? null,
@@ -419,26 +428,92 @@ export function normalizeBackendProcedure(raw: any): Procedure {
   };
 }
 
+/** Default page size for full-list reads (counts, client filters). The backend
+ *  defaults to `limit=10` when omitted — restaurant scale (50–100 docs) fits
+ *  comfortably in one page, so one bounded request replaces paging logic. */
+export const PROCEDURES_LIST_LIMIT = 200;
+
 export async function fetchProcedures(
   options: ProcedureFilterOptions = {},
   _isAdmin = false,
   cookieHeader?: string,
 ): Promise<{ procedures: Procedure[]; total?: number }> {
   const headers = makeHeaders(cookieHeader);
-  const params: Record<string, any> = {};
+  const limit = options.limit ?? PROCEDURES_LIST_LIMIT;
+  const page = options.page ?? 1;
+  const search = options.search ?? options.q ?? undefined;
+
+  // ID-list filters live on GET /procedures/filter; plain status/search/page
+  // stay on GET /procedures. Both return { procedures, meta }.
+  const useFilter =
+    (options.categoryIds?.length ?? 0) > 0 ||
+    (options.subcategoryIds?.length ?? 0) > 0 ||
+    (options.stationIds?.length ?? 0) > 0;
+  const params: Record<string, any> = { page, limit };
   if (options.status) params.status = options.status;
+  if (search) params.search = search;
+  if (useFilter) {
+    if (options.categoryIds?.length) params.categoryIds = options.categoryIds.join(',');
+    if (options.subcategoryIds?.length) params.subcategoryIds = options.subcategoryIds.join(',');
+    if (options.stationIds?.length) params.stationIds = options.stationIds.join(',');
+  }
 
   const { data } = await http.get<{
     success: boolean;
-    data: { procedures: Procedure[] };
-  }>(LIBRARY_ENDPOINTS.LIST, {
+    data: { procedures: Procedure[]; meta?: { total: number; totalPages: number } };
+  }>(useFilter ? LIBRARY_ENDPOINTS.FILTER : LIBRARY_ENDPOINTS.LIST, {
     headers: Object.keys(headers).length ? headers : undefined,
     params,
   });
 
   const rawList = Array.isArray(data.data?.procedures) ? data.data.procedures : [];
   const procedures = rawList.map(normalizeBackendProcedure);
-  return { procedures, total: procedures.length };
+  await resolveBackendCategories(procedures, cookieHeader);
+  const total = data.data?.meta?.total ?? procedures.length;
+  return { procedures, total };
+}
+
+/** Backend procedures carry `subcategory: { id, categoryId, … }` but no
+ *  category object, so every backend row reads as "General" and no category
+ *  filter can match it. This resolves each row's category from the backend
+ *  category list (one batched call, in parallel-safe position) and folds the
+ *  in-use subcategories into their categories for the dropdowns. Failures
+ *  keep the old behavior (null category) — the list still renders. */
+async function resolveBackendCategories(procedures: Procedure[], cookieHeader?: string): Promise<void> {
+  const needsResolution = procedures.some((p) => !p.category && p.subcategoryId);
+  if (!needsResolution) return;
+  try {
+    const { fetchBackendCategories, backendSlug } = await import('@/services/categories/api');
+    const cats = await fetchBackendCategories({}, cookieHeader);
+    const byId = new Map(cats.map((c) => [c.id, c]));
+    const subSeen = new Set<string>();
+    for (const p of procedures) {
+      const sub = (
+        p as unknown as {
+          subcategory?: { id: string; categoryId: string; nameEn: string; nameEs: string } | null;
+        }
+      ).subcategory;
+      if (!sub) continue;
+      const cat = byId.get(sub.categoryId);
+      if (!cat) continue;
+      if (!p.category) p.category = cat;
+      if (!subSeen.has(sub.id)) {
+        subSeen.add(sub.id);
+        cat.subcategories = [
+          ...(cat.subcategories ?? []),
+          {
+            id: sub.id,
+            slug: backendSlug(sub.nameEn),
+            nameEn: sub.nameEn,
+            nameEs: sub.nameEs,
+            categoryId: sub.categoryId,
+          },
+        ];
+      }
+    }
+  } catch {
+    // Backend categories unavailable — rows keep category: null (General).
+  }
 }
 
 export async function fetchProcedureById(
@@ -521,9 +596,9 @@ function buildProcedurePayload(input: Partial<CreateProcedureInput>): Record<str
         : null;
   const quizId = isUuid(input.quizId) ? input.quizId : null;
   const procedureImage =
-    typeof input.procedureImage === 'string' && input.procedureImage.startsWith('http')
+    typeof input.procedureImage === 'string' && input.procedureImage.length > 0
       ? input.procedureImage
-      : typeof input.iconImageUrl === 'string' && input.iconImageUrl.startsWith('http')
+      : typeof input.iconImageUrl === 'string' && input.iconImageUrl.length > 0
         ? input.iconImageUrl
         : null;
 
@@ -548,7 +623,11 @@ function buildProcedurePayload(input: Partial<CreateProcedureInput>): Record<str
   if (subcategoryId) payload.subcategoryId = subcategoryId;
   if (stationId) payload.stationId = stationId;
   if (quizId) payload.quizId = quizId;
-  if (procedureImage) payload.procedureImage = procedureImage;
+  if (procedureImage) {
+    payload.procedureImage = procedureImage;
+  } else if (input.procedureImage === null || input.iconImageUrl === null) {
+    payload.procedureImage = null;
+  }
   if (validUsers.length > 0) payload.assignUsers = validUsers;
 
   return payload;
@@ -564,6 +643,7 @@ function normalizeWrittenProcedure(
     ...apiProcedure,
     subcategoryId: 'subcategoryId' in input ? (input.subcategoryId ?? null) : apiProcedure.subcategoryId,
     stationScope: input.stationScope ?? null,
+    iconImageUrl: input.iconImageUrl ?? apiProcedure.iconImageUrl ?? (apiProcedure as { procedureImage?: string | null }).procedureImage ?? null,
     version: apiProcedure.version ?? input.version ?? 1,
     isArchived: apiProcedure.isArchived ?? false,
     audience: input.audience ?? null,
@@ -631,8 +711,59 @@ export async function archiveProcedure(id: string): Promise<Procedure> {
   }>(LIBRARY_ENDPOINTS.ARCHIVE(id));
 
   if (data.data?.procedure) {
-    return data.data.procedure;
+    return normalizeBackendProcedure(data.data.procedure);
   }
 
   throw new Error('Backend did not return archived procedure');
+}
+
+/** POST /api/v1/procedures/:id/unarchive — restores an archived procedure. */
+export async function unarchiveProcedure(id: string): Promise<Procedure> {
+  const { data } = await http.post<{
+    success: boolean;
+    message: string;
+    data: { procedure: Procedure };
+  }>(LIBRARY_ENDPOINTS.UNARCHIVE(id));
+
+  if (data.data?.procedure) {
+    return normalizeBackendProcedure(data.data.procedure);
+  }
+
+  throw new Error('Backend did not return unarchived procedure');
+}
+
+/** Fields a partial update may carry. The backend PATCH (when it lands)
+ *  validates only present fields — same rules as the full schema, applied
+ *  per field. `isArchived` is NOT sent here: archiving stays on the
+ *  dedicated archive/unarchive routes (zod strips unknown keys, so sending
+ *  it via PATCH would silently no-op). */
+export interface ProcedurePatchInput {
+  titleEn?: string;
+  titleEs?: string;
+  purposeEn?: string;
+  purposeEs?: string;
+  subcategoryId?: string | null;
+  stationId?: string | null;
+  quizId?: string | null;
+  procedureImage?: string | null;
+  assignUsers?: string[];
+  status?: Procedure['status'];
+}
+
+/** PATCH /api/v1/procedures/:id — partial update: only changed fields.
+ *  Throws the backend's ApiException on real failures (400 validation,
+ *  401/403 auth). A 404 with an empty/HTML body (`code 'UNKNOWN'`) or 405
+ *  means the route doesn't exist yet — callers fall back while waiting. */
+export async function patchProcedure(id: string, patch: ProcedurePatchInput): Promise<Procedure> {
+  const { data } = await http.patch<{
+    success: boolean;
+    message: string;
+    data: { procedure: Procedure };
+  }>(LIBRARY_ENDPOINTS.UPDATE(id), patch);
+
+  if (data.data?.procedure) {
+    return normalizeBackendProcedure(data.data.procedure);
+  }
+
+  throw new Error('Backend did not return patched procedure');
 }

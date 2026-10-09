@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchCategories, createCategory, updateCategory, archiveCategory } from './api';
+import { fetchCategories, fetchBackendCategories, createCategory, updateCategory, archiveCategory } from './api';
 import type { CreateCategoryInput, UpdateCategoryInput } from './types';
 
 export const CATEGORIES_QUERY_KEY = ['categories'] as const;
@@ -8,6 +8,18 @@ export function useCategories(locationId?: string, includeArchived = false) {
   return useQuery({
     queryKey: [...CATEGORIES_QUERY_KEY, { locationId, includeArchived }],
     queryFn: () => fetchCategories(locationId, includeArchived),
+  });
+}
+
+/**
+ * Real categories from the backend (GET /api/v1/categories, limit 100).
+ * Joins the 5-minute query cache; the explorer merges these with the mock
+ * store rows so backend-created categories filter and count correctly.
+ */
+export function useBackendCategories() {
+  return useQuery({
+    queryKey: [...CATEGORIES_QUERY_KEY, 'backend'],
+    queryFn: () => fetchBackendCategories(),
   });
 }
 

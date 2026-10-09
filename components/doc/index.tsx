@@ -251,6 +251,8 @@ export function Section({
   title,
   count,
   id,
+  part,
+  className,
   children,
 }: {
   /** Omitted for a run of blocks that arrived before the document's first
@@ -260,10 +262,14 @@ export function Section({
   count?: React.ReactNode;
   /** Optional DOM id (used for in-page anchors like #related). */
   id?: string;
+  /** Optional part label, e.g. "PART 1 OF 4". Renders with demo3's .phase-part styling. */
+  part?: string;
+  className?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="doc-sec" id={id}>
+    <section className={cn('doc-sec', part && 'phase', className)} id={id}>
+      {part ? <p className="phase-part">{part}</p> : null}
       {title ? (
         <h2>
           {title}
@@ -389,6 +395,8 @@ export type MethodStep = {
     /** A second photo for the compare pair. Only used when `compare` is
      *  "ok" (the "no" half is the second photo). */
     pairSrc?: string;
+    /** Multiple photos rendered as a mini grid inside the thumb (up to 4). */
+    images?: Array<{ src: string; alt: string }>;
     /** Optional duration badge, e.g. "0:08" for video clips. */
     badge?: string;
   };
@@ -413,18 +421,25 @@ export function MethodSteps({
   nowIndex,
   done = [],
   onToggleStep,
+  startIndex = 1,
 }: {
   steps: MethodStep[];
   nowIndex?: number;
   done?: boolean[];
   onToggleStep?: (index: number) => void;
+  startIndex?: number;
 }) {
   return (
-    <ol className="steps compact">
+    <ol
+      className="steps compact"
+      start={startIndex}
+      style={startIndex > 1 ? { counterReset: `step ${startIndex - 1}` } : undefined}
+    >
       {steps.map((s, i) => {
+        const actualNum = startIndex + i;
         const isDone = Boolean(done[i]);
-        // Only use the 3-column has-media layout when a side thumbnail is actually rendered
-        const showSideThumb = Boolean(s.mediaThumb && (!s.shots || s.shots.length === 0));
+        // When a side thumbnail (single, compare pair, or grid) is provided, render as side media layout
+        const showSideThumb = Boolean(s.mediaThumb);
         const classes = cn(
           'step',
           s.critical && 'is-crit',
@@ -433,13 +448,13 @@ export function MethodSteps({
           showSideThumb && 'has-media',
         );
         return (
-          <li key={i} id={`step-${i + 1}`} className={classes || undefined}>
+          <li key={i} id={`step-${actualNum}`} className={classes || undefined}>
             {onToggleStep ? (
               <button
                 type="button"
                 className="step-num step-check"
                 aria-pressed={isDone}
-                aria-label={`Step ${i + 1}${s.critical ? ', critical' : ''}: ${isDone ? 'done, tap to undo' : 'mark done'}`}
+                aria-label={`Step ${actualNum}${s.critical ? ', critical' : ''}: ${isDone ? 'done, tap to undo' : 'mark done'}`}
                 onClick={() => onToggleStep(i)}
               />
             ) : (
@@ -479,15 +494,19 @@ export function MethodSteps({
                   <span>{fmtClock(s.clip.startSec)}–{fmtClock(s.clip.endSec)}</span>
                 </a>
               )}
-              {/* Photographs: when multiple photos are attached, render as responsive grid with uniform 4:3 aspect ratio */}
-              {s.shots && s.shots.length > 1 ? (
+              {/* Photographs: when multiple photos are attached and not rendered as side thumb */}
+              {!showSideThumb && s.shots && s.shots.length > 1 ? (
                 <div
                   className={cn(
                     'grid gap-3 mt-3 items-stretch',
-                    s.shots.length === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3',
+                    s.shots.length === 2
+                      ? 'grid-cols-2 max-w-2xl'
+                      : s.shots.length === 3
+                        ? 'grid-cols-2 sm:grid-cols-3 max-w-3xl'
+                        : 'grid-cols-2 sm:grid-cols-4 max-w-4xl',
                   )}
                 >
-                  {s.shots.map((sh, j) => (
+                  {s.shots.slice(0, 4).map((sh, j) => (
                     <Shot
                       key={`shot-${j}`}
                       src={sh.src}
@@ -499,7 +518,7 @@ export function MethodSteps({
                     />
                   ))}
                 </div>
-              ) : s.shots && s.shots.length === 1 ? (
+              ) : !showSideThumb && s.shots && s.shots.length === 1 ? (
                 <div className="mt-3 max-w-xl">
                   <Shot src={s.shots[0].src} alt={s.shots[0].alt} caption={s.shots[0].caption} compare={s.shots[0].compare} />
                 </div>
@@ -525,6 +544,29 @@ export function MethodSteps({
                   <img src={s.mediaThumb.src} alt="" className="ok" />
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={s.mediaThumb.pairSrc} alt="" className="no" />
+                </button>
+              ) : s.mediaThumb.images && s.mediaThumb.images.length > 1 ? (
+                <button
+                  type="button"
+                  className={cn(
+                    'step-thumb is-grid',
+                    s.mediaThumb.images.length === 2 && 'is-grid-2',
+                    s.mediaThumb.images.length === 3 && 'is-grid-3',
+                    s.mediaThumb.images.length >= 4 && 'is-grid-4',
+                  )}
+                  aria-label={s.thumbLabel ?? 'Open this step in cook mode'}
+                  onClick={s.onThumbOpen}
+                >
+                  {s.mediaThumb.images.slice(0, 4).map((img, idx) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={idx} src={img.src} alt={img.alt || ''} />
+                  ))}
+                  {s.mediaThumb.badge ? (
+                    <span className="badge">
+                      <LuPlay aria-hidden="true" className="i i-sm" />
+                      {s.mediaThumb.badge}
+                    </span>
+                  ) : null}
                 </button>
               ) : (
                 <button

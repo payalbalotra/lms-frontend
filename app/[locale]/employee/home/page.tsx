@@ -59,23 +59,32 @@ export default async function EmployeeHomePage({ params, searchParams }: PagePro
   // `titleEn`), which is its only correct job.
 
   const viewAs = await readViewAs();
-  const stationId = (employee.stationIds && employee.stationIds[0]) ?? null;
+  const stationIds = employee.stationIds ?? [];
   const roleId = (employee.jobIds && employee.jobIds[0]) ?? (employee.roleIds && employee.roleIds[0]) ?? null;
 
   // Only what this person may read: the API applies audience and clearance.
-  const [procedures, roleName, stationName] = await Promise.all([
+  const [procedures, roleName, stationNames] = await Promise.all([
     listProcedures({}, cookieHeader)
       .then((r) => r.procedures.filter((p) => p.status === 'published' && !p.isArchived))
       .catch(() => [] as Procedure[]),
     roleId
       ? listRoles(cookieHeader).then((r) => r.roles.find((x) => x.id === roleId)?.name ?? null).catch(() => null)
       : Promise.resolve(null),
-    stationId
+    stationIds.length
       ? listStations(employee.locationId, cookieHeader)
-          .then((r) => r.stations.find((s) => s.id === stationId)?.name ?? null)
-          .catch(() => null)
-      : Promise.resolve(null),
+          .then((r) =>
+            stationIds
+              .map((id) => r.stations.find((s) => s.id === id)?.name)
+              .filter((n): n is string => Boolean(n)),
+          )
+          .catch(() => [] as string[])
+      : Promise.resolve([] as string[]),
   ]);
+
+  // Job-role name first; fall back to the access-level role so the subtitle
+  // never silently drops the role half ("Employee · Grill" beats "Grill").
+  const displayRole = roleName ?? (employee.role ? employee.role.charAt(0).toUpperCase() + employee.role.slice(1) : null);
+  const stationName = stationNames.length ? stationNames.join(', ') : null;
 
   const now = Date.now();
   // Bilingual content follows the URL locale, not the seeded `languagePref`.
@@ -189,9 +198,9 @@ export default async function EmployeeHomePage({ params, searchParams }: PagePro
 
   const forMyStation = (p: Procedure): boolean =>
     Boolean(
-      stationId &&
-        ((p.stationScope?.mode === 'specific' && p.stationScope.stationIds.includes(stationId)) ||
-          (p.audience?.mode === 'some' && p.audience.stationIds.includes(stationId))),
+      stationIds.length &&
+        ((p.stationScope?.mode === 'specific' && p.stationScope.stationIds.some((id) => stationIds.includes(id))) ||
+          (p.audience?.mode === 'some' && p.audience.stationIds.some((id) => stationIds.includes(id)))),
     );
   const toRow = (p: Procedure, meta: string): HomeRow => {
     const facts = factsOf(p, isEs);
@@ -227,8 +236,21 @@ export default async function EmployeeHomePage({ params, searchParams }: PagePro
   // The station's own procedures first, with Guacamole Fresco prioritized at the top,
   // then kitchen-wide procedures. Promos are surfaced in their own section above and never re-listed here.
   const isGuac = (p: Procedure) => p.id === 'proc-guacamole-fresco' || p.slug === 'guacamole-fresco';
+  // Directly assigned to this person — its own section above the station's.
+  // Assigned rows leave the station list so nothing appears twice.
+  const assignedIds = new Set(
+    procedures.filter((p) => p.assignUsers?.includes(employee.id)).map((p) => p.id),
+  );
+  const assignedRows = procedures
+    .filter((p) => !promoIds.has(p.id) && assignedIds.has(p.id))
+    .sort((a, b) => {
+      const gA = isGuac(a) ? 1 : 0;
+      const gB = isGuac(b) ? 1 : 0;
+      if (gA !== gB) return gB - gA;
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    });
   const stationRows = procedures
-    .filter((p) => !promoIds.has(p.id))
+    .filter((p) => !promoIds.has(p.id) && !assignedIds.has(p.id))
     .sort((a, b) => {
       const gA = isGuac(a) ? 1 : 0;
       const gB = isGuac(b) ? 1 : 0;
@@ -262,20 +284,33 @@ export default async function EmployeeHomePage({ params, searchParams }: PagePro
           locale={locale}
           greeting={greeting}
           name={employee.name}
-          roleName={roleName}
+          roleName={displayRole}
           stationName={stationName}
           training={training}
           promo={{
             heading: t('promoHeading'),
             rows: promoRows,
           }}
+          assigned={
+            !showOnboardingView && assignedRows.length > 0
+              ? {
+                  heading: t('assignedHeading'),
+                  rows: assignedRows.map((p) => toRow(p, categoryOf(p))),
+                }
+              : null
+          }
           station={{
             // Named for the station only when something here is the station's own.
             heading:
               stationName && stationRows.some(forMyStation)
-                ? t('stationHeading', { station: stationName })
+                ? stationNames.length > 1
+                  ? t('stationsHeading')
+                  : t('stationHeading', { station: stationName })
                 : t('forYouHeading'),
-            rows: stationRows.map((p) => toRow(p, categoryOf(p))),
+            rows: (showOnboardingView
+              ? [...assignedRows, ...stationRows]
+              : stationRows
+            ).map((p) => toRow(p, categoryOf(p))),
             all: { href: `/${locale}/procedures`, label: t('browseAll') },
             empty: t('noProceduresBody'),
           }}

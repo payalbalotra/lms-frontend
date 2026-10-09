@@ -5,7 +5,7 @@ import { queryWords, scoreProcedure } from '@/lib/procedure-search';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCategories } from '@/services/categories/hooks';
+import { useCategories, useBackendCategories } from '@/services/categories/hooks';
 import { useBrowseProcedures } from '@/services/library/hooks';
 import { getCategoryIcon } from '@/lib/category-icons';
 import { Icon } from '@/components/ui/icon';
@@ -25,6 +25,10 @@ interface ProceduresClientListProps {
   viewAs: ViewAs | null;
   /** The reader's station: its own procedures lead the list. */
   stationId?: string | null;
+  /** All of the reader's stations (preferred over stationId when present). */
+  stationIds?: string[];
+  /** The reader's id: drives the "Assigned to me" filter (assignUsers). */
+  employeeId?: string;
   /** When true, every row is rendered as locked (dimmed + dashed + tap →
    *  /employee/training). Default false — onboarding has been cleared. */
   locked?: boolean;
@@ -42,6 +46,8 @@ export function ProceduresClientList({
   readsSpanish,
   viewAs,
   stationId,
+  stationIds,
+  employeeId,
   locked,
   lockedHref,
   lockedReason,
@@ -54,6 +60,8 @@ export function ProceduresClientList({
 
   const labels = {
     all: tBrowse('all'),
+    myStation: tBrowse('myStation'),
+    assignedToMe: tBrowse('assignedToMe'),
     count: (c: number) => tBrowse('count', { count: c }),
     none: tBrowse('none'),
     noneFor: (q: string) => tBrowse('noneFor', { query: q }),
@@ -70,14 +78,19 @@ export function ProceduresClientList({
 
   const [query, setQuery] = React.useState<string>(initialQuery);
   const [activeCategory, setActiveCategory] = React.useState<string>(initialCategory);
+  const [scope, setScope] = React.useState<'' | 'station' | 'assigned'>('');
 
   // Both lists resolve through TanStack Query (5-minute cache, so
-  // tab-back navigation is instant). `useCategories` reads the mock
-  // store; `useBrowseProcedures` routes through lib/api's
-  // listProcedures, which falls back to the on-device store when the
-  // admin-only endpoint rejects a regular employee.
+  // tab-back navigation is instant). Categories merge the mock store with
+  // the backend list so backend-created categories appear as chips;
+  // `useBrowseProcedures` routes through lib/api's listProcedures.
   const queryClient = useQueryClient();
-  const { data: categories = [] } = useCategories(locationId);
+  const { data: mockCategories = [] } = useCategories(locationId);
+  const { data: backendCategories = [] } = useBackendCategories();
+  const categories = React.useMemo(
+    () => [...backendCategories, ...mockCategories],
+    [backendCategories, mockCategories],
+  );
   const { data: procedures = [], isLoading: proceduresLoading } = useBrowseProcedures();
 
   // Keep the list fresh when another tab (or the admin library)
@@ -110,15 +123,19 @@ export function ProceduresClientList({
   // procedure says, best answers first (see lib/procedure-search).
   // With no question, the reader's own station leads, then A to Z.
   const words = queryWords(query);
+  const myStationIds = stationIds && stationIds.length > 0 ? stationIds : stationId ? [stationId] : [];
   const mine = (p: Procedure): number =>
-    stationId &&
-    ((p.stationScope?.mode === 'specific' && p.stationScope.stationIds.includes(stationId)) ||
-      (p.audience?.mode === 'some' && p.audience.stationIds.includes(stationId)))
+    myStationIds.length > 0 &&
+    ((p.stationScope?.mode === 'specific' && p.stationScope.stationIds.some((id) => myStationIds.includes(id))) ||
+      (p.audience?.mode === 'some' && p.audience.stationIds.some((id) => myStationIds.includes(id))))
       ? 1
       : 0;
+  const assignedToMe = (p: Procedure): boolean =>
+    Boolean(employeeId && p.assignUsers?.includes(employeeId));
   const published = procedures.filter((p) => p.status === 'published' && !p.isArchived);
   const results = published
     .filter((p) => (activeCategory ? p.category?.slug === activeCategory : true))
+    .filter((p) => (scope === 'station' ? mine(p) === 1 : scope === 'assigned' ? assignedToMe(p) : true))
     .map((p) => ({ p, score: scoreProcedure(p, words) }))
     .filter((r) => r.score > 0)
     .sort((a, b) => {
@@ -184,6 +201,26 @@ export function ProceduresClientList({
               >
                 {labels.all}
               </button>
+              {myStationIds.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setScope(scope === 'station' ? '' : 'station')}
+                  className={`${chipBase} ${scope === 'station' ? 'bg-[var(--color-ink)] text-[var(--color-surface)]' : 'bg-[var(--color-panel)] text-[var(--color-ink)] hover:bg-[var(--color-panel-2)]'}`}
+                  style={chipStyle}
+                >
+                  {labels.myStation}
+                </button>
+              ) : null}
+              {employeeId ? (
+                <button
+                  type="button"
+                  onClick={() => setScope(scope === 'assigned' ? '' : 'assigned')}
+                  className={`${chipBase} ${scope === 'assigned' ? 'bg-[var(--color-ink)] text-[var(--color-surface)]' : 'bg-[var(--color-panel)] text-[var(--color-ink)] hover:bg-[var(--color-panel-2)]'}`}
+                  style={chipStyle}
+                >
+                  {labels.assignedToMe}
+                </button>
+              ) : null}
               {categories
                 .filter((c) => !c.isArchived && usedCategories.has(c.slug))
                 .map((c) => {

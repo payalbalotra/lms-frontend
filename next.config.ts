@@ -13,6 +13,12 @@ const BACKEND_ORIGIN =
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   typedRoutes: false,
+  experimental: {
+    // react-icons is a large CJS barrel imported in ~40 files; scoping the
+    // import transform to it shrinks the server + client bundles for every
+    // admin/employee page that renders icons.
+    optimizePackageImports: ['react-icons'],
+  },
   async rewrites() {
     return [
       {
