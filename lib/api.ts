@@ -3026,7 +3026,7 @@ export async function uploadMedia(
     console.warn('Presign upload failed:', err);
   }
 
-  if (file.type.startsWith('image/')) {
+  if (file.type.startsWith('image/') || /\.(jpe?g|png|webp|gif|svg|avif|bmp|jfif)$/i.test(file.name)) {
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = () => resolve((reader.result as string) || '');

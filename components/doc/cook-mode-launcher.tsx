@@ -185,6 +185,10 @@ function toMethodStep(step: ProcedureMethodStep, locale: 'en' | 'es', noteLabels
       alt: step.images[0].alt?.[locale] || step.images[0].alt?.en || '',
       compare: 'ok',
       pairSrc: step.images[1].src,
+      images: step.images.slice(0, 4).map((img) => ({
+        src: img.src,
+        alt: img.alt?.[locale] || img.alt?.en || '',
+      })),
     };
   } else if (step.videoSegment) {
     const dur = Math.max(0, step.videoSegment.endSec - step.videoSegment.startSec);
@@ -194,6 +198,15 @@ function toMethodStep(step: ProcedureMethodStep, locale: 'en' | 'es', noteLabels
       src: thumbSrc,
       alt: step.images?.[0]?.alt?.[locale] || step.images?.[0]?.alt?.en || '',
       badge,
+    };
+  } else if (step.images && step.images.length > 1) {
+    out.mediaThumb = {
+      src: step.images[0].src,
+      alt: step.images[0].alt?.[locale] || step.images[0].alt?.en || '',
+      images: step.images.slice(0, 4).map((img) => ({
+        src: img.src,
+        alt: img.alt?.[locale] || img.alt?.en || '',
+      })),
     };
   } else if (step.images?.[0]?.src) {
     out.mediaThumb = {

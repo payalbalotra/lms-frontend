@@ -19,7 +19,9 @@ import {
   LuUpload,
   LuUsers,
   LuX,
+  LuTriangleAlert,
 } from "react-icons/lu";
+import { toast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { MultiSelectChips } from "@/components/ui/multi-select-chips";
@@ -56,11 +58,13 @@ import {
   listStations,
   updateProcedure,
   updateQuiz,
+  uploadMedia,
 } from "@/lib/api";
 import {
   buildBody,
   emptyIngredient,
   emptyYieldItems,
+  isBlockEmpty,
   toEditorContent,
 } from "@/lib/procedure-draft";
 import type {
@@ -77,22 +81,7 @@ import type {
   Station,
 } from "@/lib/types";
 
-/**
- * One page for writing a procedure, new or existing.
- *
- * It replaced a five-step wizard (Details, Content, Quiz, Access, Review) that
- * asked the same questions for a two-line cleaning note as for a master
- * recipe. The page holds only the writing: a title, where it lives, and what
- * it says. Who may see it, how closely it is guarded and whether it has a quiz
- * are asked when it is published, in one short panel, so a manager never faces
- * a form longer than the thing they came to write -- the way Notion and Medium
- * ask for settings at Publish. Everyone is the default audience
- * (PROJECT_OVERVIEW §02: restriction is a deliberate choice), so for most
- * procedures that panel is one glance and "Publish now".
- *
- * The same page opens an existing procedure with everything filled in, which
- * is how a draft gets finished and a published recipe gets corrected.
- */
+
 
 const EVERYONE: ProcedureAudience = {
   mode: "everyone",
@@ -221,6 +210,8 @@ export function ProcedureEditor({
   const [previewOpen, setPreviewOpen] = React.useState(false);
   const [dirty, setDirty] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [titleError, setTitleError] = React.useState<string | null>(null);
+  const [blockErrors, setBlockErrors] = React.useState<Record<string, string>>({});
   const [stationsError, setStationsError] = React.useState<boolean>(false);
   const [pending, startTransition] = React.useTransition();
   // A translation scheduled or in flight blocks Save — `save()` reads state
@@ -424,110 +415,278 @@ export function ProcedureEditor({
 
   /* ----------------------------------------------------------------- save -- */
 
-  function validateProcedureForm(status: "draft" | "published"): string | null {
-    // 1. Title validation
-    const titleEn = title.en.trim();
-    const titleEs = title.es.trim();
-    if (!titleEn && !titleEs) {
-      setStep("details");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return t("titleRequired") || "Please enter a procedure title.";
+  function scrollToTarget(target: string | HTMLElement | null): void {
+    if (!target) return;
+    const tryScroll = (attemptsLeft = 6) => {
+      let el: HTMLElement | null = null;
+      if (typeof target === 'string') {
+        el = document.getElementById(target);
+      } else {
+        el = target;
+      }
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const input = el.querySelector(
+          'input:not([type=hidden]):not([type=file]):not([disabled]), textarea:not([disabled])',
+        ) as HTMLInputElement | HTMLTextAreaElement | null;
+        if (input) {
+          setTimeout(() => input.focus(), 350);
+        }
+        el.classList.add('ring-2', 'ring-[var(--color-warn)]/60', 'ring-offset-2', 'transition-all');
+        setTimeout(() => {
+          el?.classList.remove('ring-2', 'ring-[var(--color-warn)]/60', 'ring-offset-2');
+        }, 3000);
+      } else if (attemptsLeft > 0) {
+        setTimeout(() => tryScroll(attemptsLeft - 1), 50);
+      }
+    };
+    requestAnimationFrame(() => tryScroll());
+  }
+
+  interface ValidationErrorResult {
+    message: string;
+    target: string | HTMLElement | null;
+    step: WizardStepId;
+    field?: 'title' | 'purpose' | 'stations';
+    blockId?: string;
+  }
+
+  function validateProcedureForm(
+    scope: 'details' | 'access' | 'all',
+    status: 'draft' | 'published',
+  ): ValidationErrorResult | null {
+    // 1. Details validation (Title, Purpose, Content Blocks)
+    if (scope === 'details' || scope === 'all') {
+      const titleEn = title.en.trim();
+      const titleEs = title.es.trim();
+      if (!titleEn && !titleEs) {
+        return {
+          message: t('titleRequired') || 'Please enter a procedure title.',
+          target: 'field-title',
+          step: 'details',
+          field: 'title',
+        };
+      }
+      if (titleEn.length > 200 || titleEs.length > 200) {
+        return {
+          message: 'Procedure title must not exceed 200 characters.',
+          target: 'field-title',
+          step: 'details',
+          field: 'title',
+        };
+      }
+
+      // Empty text blocks and empty drafts do NOT error.
+      // Only when publishing, verify that there is at least one block with actual content.
+      if (status === 'published') {
+        const hasAnyContent = blocks.some((b) => !isBlockEmpty(b));
+        if (!hasAnyContent) {
+          return {
+            message: 'Please add content to at least one block before publishing.',
+            target: blocks.length > 0 ? `block-${blocks[0].id}` : 'proc-content',
+            step: 'details',
+            blockId: blocks[0]?.id,
+          };
+        }
+      }
+
+      // Check blocks
+      for (let i = 0; i < blocks.length; i++) {
+        const b = blocks[i];
+
+        // An empty text block NEVER gives an error
+        if (b.kind === 'text') {
+          continue;
+        }
+
+        // An empty heading block is dropped on save, no error
+        if (b.kind === 'heading') {
+          continue;
+        }
+
+        if (b.kind === 'table') {
+          if (!b.headers || b.headers.length === 0) {
+            return {
+              message: 'Table must contain at least one column header.',
+              target: `block-${b.id}`,
+              step: 'details',
+              blockId: b.id,
+            };
+          }
+          const emptyHeaderIdx = b.headers.findIndex(
+            (h) => !h?.en?.trim() && !h?.es?.trim()
+          );
+          if (emptyHeaderIdx !== -1) {
+            return {
+              message: `Please enter a name for Table column ${emptyHeaderIdx + 1}.`,
+              target: `block-${b.id}`,
+              step: 'details',
+              blockId: b.id,
+            };
+          }
+        }
+
+        if (b.kind === 'recipe') {
+          const hasIngredients = b.ingredients?.some((ing) => ing.name?.trim());
+          const hasStepText = b.steps?.some(
+            (s) => s.body?.en?.trim() || s.body?.es?.trim()
+          );
+          if (hasIngredients && !hasStepText) {
+            return {
+              message: 'Recipe must include at least one instruction step.',
+              target: `block-${b.id}`,
+              step: 'details',
+              blockId: b.id,
+            };
+          }
+          const namelessIng = b.ingredients?.some(
+            (ing) => !ing.name?.trim() && (ing.amounts?.some((a) => a?.trim()) || ing.unit?.trim())
+          );
+          if (namelessIng) {
+            return {
+              message: 'Please enter a name for all recipe ingredients.',
+              target: `block-${b.id}`,
+              step: 'details',
+              blockId: b.id,
+            };
+          }
+        }
+
+        if (b.kind === 'method') {
+          if (b.steps?.length > 1) {
+            const emptyStepIdx = b.steps.findIndex(
+              (s) => !s.body?.en?.trim() && !s.body?.es?.trim() && !s.imageSrc && !s.videoSrc
+            );
+            if (emptyStepIdx !== -1) {
+              return {
+                message: `Please enter instructions for step ${emptyStepIdx + 1}.`,
+                target: `block-${b.id}`,
+                step: 'details',
+                blockId: b.id,
+              };
+            }
+          }
+        }
+
+        if (b.kind === 'warning') {
+          if (status === 'published' && !b.body?.en?.trim() && !b.body?.es?.trim()) {
+            return {
+              message: 'Warning/Callout block text cannot be empty.',
+              target: `block-${b.id}`,
+              step: 'details',
+              blockId: b.id,
+            };
+          }
+        }
+
+        if (b.kind === 'attachment') {
+          const hasTitle = b.title?.en?.trim() || b.title?.es?.trim();
+          if (hasTitle && !b.href?.trim()) {
+            return {
+              message: 'Attachment block requires a file link or URL.',
+              target: `block-${b.id}`,
+              step: 'details',
+              blockId: b.id,
+            };
+          }
+        }
+
+        if (b.kind === 'video') {
+          if (!b.src?.trim() && (b.caption?.en?.trim() || b.caption?.es?.trim())) {
+            return {
+              message: 'Video block requires a video URL.',
+              target: `block-${b.id}`,
+              step: 'details',
+              blockId: b.id,
+            };
+          }
+        }
+      }
     }
-    if (titleEn.length > 200 || titleEs.length > 200) {
-      setStep("details");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return "Procedure title must not exceed 200 characters.";
-    }
 
-    // 2. Station validation on publish
-    if (status === "published" && audience.stationIds.length === 0) {
-      setStep("access");
-      setStationsError(true);
-      requestAnimationFrame(() => {
-        stationsSectionRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
-      });
-      return "Please select at least one station before publishing.";
-    }
-
-    // 3. Blocks validation
-    for (let i = 0; i < blocks.length; i++) {
-      const b = blocks[i];
-      if (b.kind === "table") {
-        if (!b.headers || b.headers.length === 0) {
-          setStep("details");
-          return "Table must contain at least one column header.";
-        }
-        const emptyHeaderIdx = b.headers.findIndex(
-          (h) => !h?.en?.trim() && !h?.es?.trim()
-        );
-        if (emptyHeaderIdx !== -1) {
-          setStep("details");
-          return `Please enter a name for Table column ${emptyHeaderIdx + 1}.`;
-        }
-      }
-
-      if (b.kind === "recipe") {
-        const hasStepText = b.steps?.some(
-          (s) => s.body?.en?.trim() || s.body?.es?.trim()
-        );
-        if (!hasStepText) {
-          setStep("details");
-          return "Recipe must include at least one instruction step.";
-        }
-        const namelessIng = b.ingredients?.some(
-          (ing) => !ing.name?.trim() && (ing.amounts?.some((a) => a?.trim()) || ing.unit?.trim())
-        );
-        if (namelessIng) {
-          setStep("details");
-          return "Please enter a name for all recipe ingredients.";
-        }
-      }
-
-      if (b.kind === "method") {
-        const hasStepText = b.steps?.some(
-          (s) => s.body?.en?.trim() || s.body?.es?.trim()
-        );
-        if (!hasStepText) {
-          setStep("details");
-          return "Method must include at least one instruction step.";
-        }
-      }
-
-      if (b.kind === "warning") {
-        if (!b.body?.en?.trim() && !b.body?.es?.trim()) {
-          setStep("details");
-          return "Warning/Callout block text cannot be empty.";
-        }
-      }
-
-      if (b.kind === "attachment") {
-        if (!b.href?.trim()) {
-          setStep("details");
-          return "Attachment block requires a file link or URL.";
-        }
-      }
-
-      if (b.kind === "video") {
-        if (!b.src?.trim()) {
-          setStep("details");
-          return "Video block requires a video URL.";
-        }
+    // 2. Access validation on publish
+    if ((scope === 'access' || scope === 'all') && status === 'published') {
+      if (audience.stationIds.length === 0) {
+        return {
+          message: 'Please select at least one station before publishing.',
+          target: stationsSectionRef.current || 'proc-stations',
+          step: 'access',
+          field: 'stations',
+        };
       }
     }
 
     return null;
   }
 
-  function save(status: "draft" | "published"): void {
-    setError(null);
-    const validationError = validateProcedureForm(status);
-    if (validationError) {
-      setError(validationError);
+  function applyValidationError(valErr: ValidationErrorResult): void {
+    if (valErr.field === 'title') {
+      setTitleError(valErr.message);
+    } else if (valErr.blockId) {
+      setBlockErrors({ [valErr.blockId]: valErr.message });
+    }
+    if (valErr.step !== step) {
+      setStep(valErr.step);
+    }
+    if (valErr.step === 'access' || valErr.field === 'stations') {
+      setStationsError(true);
+    }
+    scrollToTarget(valErr.target);
+  }
+
+  function handleNext(): void {
+    let valErr: ValidationErrorResult | null = null;
+    if (step === 'details') {
+      valErr = validateProcedureForm('details', published ? 'published' : 'draft');
+    } else if (step === 'access' && published) {
+      valErr = validateProcedureForm('access', 'published');
+    }
+
+    if (valErr) {
+      applyValidationError(valErr);
       return;
     }
+
+    setTitleError(null);
+    setBlockErrors({});
+    setStationsError(false);
+    if (stepIdx < STEPS.length - 1) {
+      setStep(STEPS[stepIdx + 1].id);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  function handleSelectStep(newStepId: WizardStepId): void {
+    const newIdx = STEPS.findIndex((s) => s.id === newStepId);
+    if (newIdx > stepIdx) {
+      let valErr: ValidationErrorResult | null = null;
+      if (step === 'details') {
+        valErr = validateProcedureForm('details', published ? 'published' : 'draft');
+      } else if (step === 'access' && published) {
+        valErr = validateProcedureForm('access', 'published');
+      }
+      if (valErr) {
+        applyValidationError(valErr);
+        return;
+      }
+    }
+    setTitleError(null);
+    setBlockErrors({});
+    setStationsError(false);
+    setStep(newStepId);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function save(status: 'draft' | 'published'): void {
+    const valErr = validateProcedureForm('all', status);
+    if (valErr) {
+      applyValidationError(valErr);
+      return;
+    }
+
+    setTitleError(null);
+    setBlockErrors({});
+    setStationsError(false);
 
     setStationsError(false);
     startTransition(async () => {
@@ -602,9 +761,13 @@ export function ProcedureEditor({
           const detailMsg = err.details?.length
             ? `: ${err.details.map((d) => `${d.path ? `${d.path}: ` : ''}${d.message}`).join(', ')}`
             : '';
-          setError(`${err.message}${detailMsg}`);
+          const msg = `${err.message}${detailMsg}`;
+          setError(msg);
+          toast.error(msg);
         } else {
-          setError(err instanceof Error ? err.message : tErr("generic"));
+          const msg = err instanceof Error ? err.message : tErr("generic");
+          setError(msg);
+          toast.error(msg);
         }
       }
     });
@@ -635,7 +798,7 @@ export function ProcedureEditor({
               label: s.label,
               progress: stepProgress[s.id],
             }))}
-            onSelect={(id) => setStep(id as WizardStepId)}
+            onSelect={(id) => handleSelectStep(id as WizardStepId)}
           />
         </div>
       </div>
@@ -654,15 +817,6 @@ export function ProcedureEditor({
       </div>
 
       <div className="mx-auto max-w-page mt-4 space-y-4 pb-20">
-        {error ? (
-          <p
-            role="alert"
-            className="rounded-[var(--radius-lg)] bg-[var(--color-bad-tint)] px-4 py-3 font-semibold text-[var(--color-bad)]"
-          >
-            {error}
-          </p>
-        ) : null}
-
         {/* ── Step 1 — what it is and what it says ────────────────────── */}
         {step === "details" ? (
           <>
@@ -672,34 +826,49 @@ export function ProcedureEditor({
               title={t("detailsTitle")}
             >
               <div className="space-y-5">
-                <BilingualInput
-                  label={t("fieldTitle")}
-                  required
-                  maxLength={100}
-                  value={title}
-                  onChange={(next) => edit(setTitle)(next)}
-                  placeholder={{
-                    en: "Enter the procedure title...",
-                    es: "Ingresa el título del procedimiento...",
-                  }}
-                />
+                <div id="field-title" className="rounded-[var(--radius-md)]">
+                  <BilingualInput
+                    label={t("fieldTitle")}
+                    required
+                    maxLength={100}
+                    value={title}
+                    onChange={(next) => {
+                      setTitleError(null);
+                      edit(setTitle)(next);
+                    }}
+                    placeholder={{
+                      en: "Enter the procedure title...",
+                      es: "Ingresa el título del procedimiento...",
+                    }}
+                  />
+                  {titleError ? (
+                    <p
+                      role="alert"
+                      className="mt-1.5 flex items-center gap-2 text-xs font-normal text-[var(--color-warn-ink)] animate-in fade-in"
+                    >
+                      <LuTriangleAlert className="size-[13px] shrink-0 text-[var(--color-warn)]" />
+                      <span>{titleError}</span>
+                    </p>
+                  ) : null}
+                </div>
 
-                <BilingualInput
-                  label={t("fieldPurpose")}
-                  required
-                  multiline
-                  maxLength={500}
-                  value={purpose}
-                  onChange={(next) => edit(setPurpose)(next)}
-                  placeholder={{
-                    en: "Enter the purpose of this procedure...",
-                    es: "Ingresa el propósito de este procedimiento...",
-                  }}
-                />
+                <div id="field-purpose" className="rounded-[var(--radius-md)]">
+                  <BilingualInput
+                    label={t("fieldPurpose")}
+                    required
+                    multiline
+                    maxLength={500}
+                    value={purpose}
+                    onChange={(next) => edit(setPurpose)(next)}
+                    placeholder={{
+                      en: "Enter the purpose of this procedure...",
+                      es: "Ingresa el propósito de este procedimiento...",
+                    }}
+                  />
+                </div>
               </div>
             </FormSection>
 
-            {/* ── What it says ─────────────────────────────────────────── */}
             {/* ── What it says ─────────────────────────────────────────── */}
             <FormSection
               id="proc-content"
@@ -714,7 +883,14 @@ export function ProcedureEditor({
                 </span>
               }
             >
-              <NotionBlockList blocks={blocks} onChange={edit(setBlocks)} />
+              <NotionBlockList
+                blocks={blocks}
+                errors={blockErrors}
+                onChange={(next) => {
+                  setBlockErrors({});
+                  edit(setBlocks)(next);
+                }}
+              />
             </FormSection>
           </>
         ) : null}
@@ -1215,7 +1391,7 @@ export function ProcedureEditor({
           ) : (
             <Button
               type="button"
-              onClick={() => setStep(STEPS[stepIdx + 1].id)}
+              onClick={handleNext}
             >
               {step === "quiz" && !hasQuizContent
                 ? t("wizardSkip")
@@ -1711,10 +1887,8 @@ function initialsOf(name: string): string {
 /**
  * The icon override picker. The default glyph the tile shows comes from
  * PROCEDURE_ICON_MAP via the parent's chosen subcategory slug (or PiFileText
- * when none is picked). When the manager uploads an image, the tile swaps to
- * the image and the bold label below it switches to the file's name, with
- * Replace/Remove buttons to its right. Persistence to R2 is wired in a later
- * change; until then the upload is a session-scoped blob URL.
+ * when none is picked). When the manager uploads an image, it is uploaded to
+ * /api/v1/uploads and the resulting persistent public URL is saved to the procedure.
  */
 function ProcedureIconPicker({
   subcategorySlug,
@@ -1728,37 +1902,62 @@ function ProcedureIconPicker({
   const t = useTranslations("admin.library.editor");
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [error, setError] = React.useState<string | null>(null);
-  // File name is tracked locally: blob: URLs don't carry one, and the
-  // manager-readable label below the tile has to come from somewhere.
+  const [uploading, setUploading] = React.useState<boolean>(false);
   const [fileName, setFileName] = React.useState<string | null>(null);
 
-  // Look up the glyph for the chosen subcategory, or fall back to the neutral
-  // doc icon. The "uploading is on top" caveat in the comment above is what
-  // makes this safe to call from JSX without a useMemo — the lookup is a
-  // constant-time map hit.
   const DefaultGlyph = getProcedureGlyphForSubcategory(subcategorySlug);
 
+  const displayFileName = React.useMemo(() => {
+    if (fileName) return fileName;
+    if (imageUrl) {
+      const clean = imageUrl.split("/").pop()?.split("?")[0];
+      return clean && clean.length > 0 ? clean : t("iconLabelDefault");
+    }
+    return t("iconLabelDefault");
+  }, [fileName, imageUrl, t]);
+
   function pick(): void {
+    if (uploading) return;
     setError(null);
     inputRef.current?.click();
   }
 
-  function onFile(event: React.ChangeEvent<HTMLInputElement>): void {
+  async function onFile(event: React.ChangeEvent<HTMLInputElement>): Promise<void> {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
+    const isImage = (file.type && file.type.startsWith("image/")) || /\.(jpe?g|png|webp|gif|svg|avif|bmp|jfif|pjpeg)$/i.test(file.name);
+    if (!isImage) {
       setError(t("iconFileTypeError"));
       return;
     }
-    if (imageUrl && imageUrl.startsWith("blob:")) {
-      URL.revokeObjectURL(imageUrl);
+    if (file.size > 10 * 1024 * 1024) {
+      setError("Image too large (max 10 MB)");
+      return;
     }
-    setFileName(file.name);
-    onChange(URL.createObjectURL(file), file.name);
+
+    setUploading(true);
+    setError(null);
+
+    try {
+      const uploadedUrl = await uploadMedia(file, "image");
+      if (!uploadedUrl) {
+        throw new Error("No URL returned from upload");
+      }
+      setFileName(file.name);
+      onChange(uploadedUrl, file.name);
+      toast.success("Icon uploaded successfully");
+    } catch (err) {
+      console.error("Failed to upload procedure icon:", err);
+      setError(err instanceof Error ? err.message : "Upload failed. Please try again.");
+      toast.error("Failed to upload icon");
+    } finally {
+      setUploading(false);
+    }
   }
 
   function clear(): void {
+    if (uploading) return;
     if (imageUrl && imageUrl.startsWith("blob:")) {
       URL.revokeObjectURL(imageUrl);
     }
@@ -1770,17 +1969,36 @@ function ProcedureIconPicker({
   return (
     <div className="flex flex-wrap items-center gap-4">
       {imageUrl ? (
-        <IconTile size="lg" image={{ src: imageUrl, alt: fileName ?? t("iconLabelDefault") }} />
+        <div className="relative">
+          <IconTile size="lg" image={{ src: imageUrl, alt: displayFileName }} />
+          {uploading && (
+            <div className="absolute inset-0 flex items-center justify-center rounded-[var(--radius-md)] bg-black/40 backdrop-blur-[1px]">
+              <span className="spinner text-white" aria-hidden="true" />
+            </div>
+          )}
+        </div>
       ) : (
-        <IconTile size="lg" icon={DefaultGlyph} />
+        <div className="relative">
+          <IconTile size="lg" icon={DefaultGlyph} />
+          {uploading && (
+            <div className="absolute inset-0 flex items-center justify-center rounded-[var(--radius-md)] bg-black/40 backdrop-blur-[1px]">
+              <span className="spinner text-white" aria-hidden="true" />
+            </div>
+          )}
+        </div>
       )}
 
       <div className="min-w-0 flex-1 space-y-1">
         <p className="text-sm font-bold leading-tight text-[var(--color-ink)]">
-          {imageUrl ? (fileName ?? t("iconLabelDefault")) : t("iconLabelDefault")}
+          {imageUrl ? displayFileName : t("iconLabelDefault")}
         </p>
         <p className="text-xs text-[var(--color-ink-3)]">{t("iconPickerHint")}</p>
-        {error ? (
+        {uploading ? (
+          <p className="text-xs font-medium text-[var(--color-brand-600)] flex items-center gap-1.5">
+            <span className="spinner size-3" aria-hidden="true" />
+            Uploading icon…
+          </p>
+        ) : error ? (
           <p className="text-xs font-semibold text-[var(--color-bad)]">{error}</p>
         ) : null}
       </div>
@@ -1791,11 +2009,12 @@ function ProcedureIconPicker({
           variant="secondary"
           size="sm"
           icon={LuUpload}
+          disabled={uploading}
           onClick={pick}
         >
-          {imageUrl ? t("iconReplace") : t("iconUpload")}
+          {uploading ? "Uploading…" : imageUrl ? t("iconReplace") : t("iconUpload")}
         </Button>
-        {imageUrl ? (
+        {imageUrl && !uploading ? (
           <Button
             type="button"
             variant="ghost"
@@ -1811,9 +2030,9 @@ function ProcedureIconPicker({
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept="image/*,.jpg,.jpeg,.png,.webp,.gif,.avif"
         className="hidden"
-        onChange={onFile}
+        onChange={(e) => void onFile(e)}
       />
     </div>
   );

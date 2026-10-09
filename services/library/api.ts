@@ -596,9 +596,9 @@ function buildProcedurePayload(input: Partial<CreateProcedureInput>): Record<str
         : null;
   const quizId = isUuid(input.quizId) ? input.quizId : null;
   const procedureImage =
-    typeof input.procedureImage === 'string' && input.procedureImage.startsWith('http')
+    typeof input.procedureImage === 'string' && input.procedureImage.length > 0
       ? input.procedureImage
-      : typeof input.iconImageUrl === 'string' && input.iconImageUrl.startsWith('http')
+      : typeof input.iconImageUrl === 'string' && input.iconImageUrl.length > 0
         ? input.iconImageUrl
         : null;
 
@@ -623,7 +623,11 @@ function buildProcedurePayload(input: Partial<CreateProcedureInput>): Record<str
   if (subcategoryId) payload.subcategoryId = subcategoryId;
   if (stationId) payload.stationId = stationId;
   if (quizId) payload.quizId = quizId;
-  if (procedureImage) payload.procedureImage = procedureImage;
+  if (procedureImage) {
+    payload.procedureImage = procedureImage;
+  } else if (input.procedureImage === null || input.iconImageUrl === null) {
+    payload.procedureImage = null;
+  }
   if (validUsers.length > 0) payload.assignUsers = validUsers;
 
   return payload;

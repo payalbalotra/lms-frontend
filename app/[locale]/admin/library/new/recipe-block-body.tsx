@@ -347,15 +347,7 @@ function RecipeIngredients({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <Label className="text-sm">{labels.title}</Label>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => onChange([...ingredients, emptyIngredient()])}
-        >
-          + {labels.add}
-        </Button>
+        <Label className="text-sm font-semibold">{labels.title}</Label>
       </div>
       {ingredients.length === 0 ? (
         <p className="text-sm text-[var(--color-ink-3)]">{labels.none}</p>
@@ -398,6 +390,16 @@ function RecipeIngredients({
             </li>
           ))}
         </ul>
+      )}
+      {ingredients.length > 0 && (
+        <button
+          type="button"
+          onClick={() => onChange([...ingredients, emptyIngredient()])}
+          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-medium text-[var(--color-ink-3)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)] cursor-pointer transition-colors"
+        >
+          <Icon icon="ri-add-line" />
+          {labels.add}
+        </button>
       )}
     </div>
   );

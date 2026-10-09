@@ -155,9 +155,6 @@ export function IngredientsBlockBody({
           <Label className="text-sm font-semibold text-[var(--color-ink)]">
             Ingredients ({ingredients.length})
           </Label>
-          <Button type="button" variant="ghost" size="sm" onClick={addIngredient}>
-            <Icon icon="ri-add-line" className="mr-1" /> Add ingredient
-          </Button>
         </div>
 
         {ingredients.length === 0 ? (
@@ -194,6 +191,7 @@ export function IngredientsBlockBody({
                       <td className="p-1.5">
                         <Input
                           value={row.name}
+                          maxLength={100}
                           onChange={(e) => updateIngredient(i, { name: e.target.value })}
                           placeholder="e.g. Halibut, Beer batter, Taco tortillas..."
                           className="h-8 text-xs font-medium"
@@ -202,6 +200,7 @@ export function IngredientsBlockBody({
                       <td className="p-1.5">
                         <Input
                           value={displayAmount}
+                          maxLength={50}
                           onChange={(e) => {
                             const val = e.target.value;
                             updateIngredient(i, { amounts: [val] });
@@ -235,6 +234,17 @@ export function IngredientsBlockBody({
               </tbody>
             </table>
           </div>
+        )}
+
+        {ingredients.length > 0 && (
+          <button
+            type="button"
+            onClick={addIngredient}
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-medium text-[var(--color-ink-3)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)] cursor-pointer transition-colors"
+          >
+            <Icon icon="ri-add-line" />
+            Add ingredient
+          </button>
         )}
       </div>
 

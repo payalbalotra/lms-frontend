@@ -14,6 +14,7 @@
  */
 
 import * as React from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslations } from 'next-intl';
 import {
   DndContext,
@@ -42,8 +43,10 @@ import { Popover } from '@/components/ui/popover';
 import {
   LuTriangleAlert,
   LuClock,
+  LuFocus,
   LuImage,
   LuLightbulb,
+  LuPlus,
   LuVideo,
   LuX,
 } from 'react-icons/lu';
@@ -103,10 +106,27 @@ function readFileAsDataUrl(file: File): Promise<string> {
 
 const ALLOWED_IMAGE_TYPES = new Set([
   'image/jpeg',
+  'image/jpg',
+  'image/pjpeg',
+  'image/jfif',
   'image/png',
   'image/webp',
   'image/gif',
+  'image/avif',
+  'image/svg+xml',
+  'image/bmp',
 ]);
+
+const ALLOWED_IMAGE_EXTENSIONS = /\.(jpe?g|png|webp|gif|avif|svg|bmp|jfif|pjpeg)$/i;
+
+function isAllowedImageFile(file: File): boolean {
+  if (!file) return false;
+  if (file.type && (file.type.startsWith('image/') || ALLOWED_IMAGE_TYPES.has(file.type.toLowerCase()))) {
+    return true;
+  }
+  return ALLOWED_IMAGE_EXTENSIONS.test(file.name);
+}
+
 const ALLOWED_VIDEO_TYPES = new Set([
   'video/mp4',
   'video/webm',
@@ -121,6 +141,7 @@ const NOTE_KINDS: ProcedureNoteKind[] = ['warn', 'tip', 'alt', 'equip', 'allerge
 interface NotionBlockListProps {
   blocks: ProcedureBlock[];
   onChange: (next: ProcedureBlock[]) => void;
+  errors?: Record<string, string>;
 }
 
 // ---------------------------------------------------------------------------
@@ -133,7 +154,7 @@ interface BlockMenuProps {
   total: number;
   onChange: (next: ProcedureBlock[]) => void;
   onDuplicate: () => void;
-  onRemove: () => void;
+  onRemove?: () => void;
   onMove: (direction: 'up' | 'down') => void;
 }
 
@@ -244,9 +265,167 @@ function getBlockDeleteInfo(block: ProcedureBlock): {
   }
 }
 
-function BlockMenu({ block, index, total, onDuplicate, onRemove, onMove }: BlockMenuProps): React.ReactElement {
-  const t = useTranslations('admin.library.new.form');
+interface BlockDeleteButtonProps {
+  block: ProcedureBlock;
+  onRemove: () => void;
+}
+
+function BlockDeleteButton({ block, onRemove }: BlockDeleteButtonProps): React.ReactElement {
+  const tAdmin = useTranslations('admin');
   const deleteInfo = React.useMemo(() => getBlockDeleteInfo(block), [block]);
+  const [open, setOpen] = React.useState(false);
+  const [mounted, setMounted] = React.useState(false);
+  const triggerRef = React.useRef<HTMLButtonElement>(null);
+  const popoverRef = React.useRef<HTMLDivElement>(null);
+  const [pos, setPos] = React.useState<{ top: number; right: number; origin: string } | null>(null);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const anchor = React.useCallback((): void => {
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+    const r = trigger.getBoundingClientRect();
+    const height = popoverRef.current?.offsetHeight ?? 180;
+    const width = 340;
+    const below = window.innerHeight - r.bottom;
+    const flipped = below < height + 16 && r.top > height + 16;
+    const top = flipped ? r.top - height - 6 : r.bottom + 6;
+    let right = window.innerWidth - r.right;
+    if (r.right - width < 16) {
+      right = Math.max(16, window.innerWidth - (r.left + width));
+    }
+    setPos({
+      top: Math.max(12, Math.min(window.innerHeight - height - 12, top)),
+      right: Math.max(12, right),
+      origin: flipped ? 'bottom right' : 'top right',
+    });
+  }, []);
+
+  React.useLayoutEffect(() => {
+    if (!open) return;
+    anchor();
+    window.addEventListener('scroll', anchor, true);
+    window.addEventListener('resize', anchor);
+    return () => {
+      window.removeEventListener('scroll', anchor, true);
+      window.removeEventListener('resize', anchor);
+    };
+  }, [open, anchor]);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent): void => {
+      const target = e.target as Node;
+      if (
+        popoverRef.current &&
+        !popoverRef.current.contains(target) &&
+        !triggerRef.current?.contains(target)
+      ) {
+        setOpen(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  return (
+    <div
+      className={cn(
+        'relative inline-flex rounded-full bg-[var(--color-surface)] border border-[var(--color-line-2)] shadow-e1 transition-colors',
+        'hover:border-[var(--color-bad)]/40 hover:bg-[var(--color-bad-tint)]',
+        open && 'border-[var(--color-bad)]/40 bg-[var(--color-bad-tint)]',
+      )}
+    >
+      <Button
+        ref={triggerRef}
+        type="button"
+        size="icon"
+        variant="ghost"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-label={deleteInfo.label}
+        title={deleteInfo.label}
+        onClick={() => setOpen((prev) => !prev)}
+        className={cn(
+          'text-[var(--color-ink-3)] hover:text-[var(--color-bad)] hover:bg-transparent',
+          open && 'text-[var(--color-bad)]',
+        )}
+      >
+        <Icon icon="ri-delete-bin-line" className="text-base" />
+      </Button>
+
+      {open && mounted
+        ? createPortal(
+            <div
+              ref={popoverRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label={deleteInfo.title}
+              style={{
+                top: pos?.top ?? -9999,
+                right: pos?.right ?? 0,
+                ['--pop-origin' as string]: pos?.origin ?? 'top right',
+              }}
+              className="pop-in fixed z-dropdown w-[340px] max-w-[calc(100vw-32px)] rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-5 shadow-[var(--e-3)] text-left"
+            >
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[var(--color-bad-tint)] text-[var(--color-bad)]">
+                    <LuTriangleAlert aria-hidden="true" className="size-4.5" />
+                  </div>
+                  <div className="min-w-0 flex-1 pt-0.5">
+                    <h3 className="text-base font-semibold text-[var(--color-ink)] tracking-tight">
+                      {deleteInfo.title}
+                    </h3>
+                    <p className="mt-1.5 text-xs sm:text-sm leading-relaxed text-[var(--color-ink-2)]">
+                      {deleteInfo.description}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-end gap-2.5 pt-1">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="neutral"
+                    onClick={() => setOpen(false)}
+                  >
+                    {tAdmin('confirmNo')}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => {
+                      setOpen(false);
+                      onRemove();
+                    }}
+                    className="bg-[var(--color-bad)] hover:bg-[var(--color-bad-hover)] text-white! shadow-xs"
+                  >
+                    {deleteInfo.label}
+                  </Button>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
+    </div>
+  );
+}
+
+function BlockMenu({ index, total, onDuplicate, onMove }: BlockMenuProps): React.ReactElement {
+  const t = useTranslations('admin.library.new.form');
   // Items that don't apply at the current boundary are filtered out entirely
   // (move-up at the first row, move-down at the last row). Hiding them is
   // honest about what the user can do and avoids a `disabled` prop on the
@@ -259,15 +438,6 @@ function BlockMenu({ block, index, total, onDuplicate, onRemove, onMove }: Block
       ? [{ label: t('blockActions.moveDown'), icon: 'ri-arrow-down-line', onSelect: () => onMove('down') }]
       : []),
     { label: t('blockActions.duplicate'), icon: 'ri-file-copy-line', onSelect: onDuplicate },
-    {
-      label: t('blockActions.delete'),
-      icon: 'ri-close-line',
-      destructive: true,
-      confirmTitle: deleteInfo.title,
-      confirmLabel: deleteInfo.label,
-      confirmDescription: deleteInfo.description,
-      onSelect: onRemove,
-    },
   ];
   return (
     <RowActions
@@ -287,6 +457,7 @@ interface BlockRowProps {
   block: ProcedureBlock;
   index: number;
   total: number;
+  error?: string;
   onPatch: (next: ProcedureBlock) => void;
   onRemove: () => void;
   onMove: (direction: 'up' | 'down') => void;
@@ -298,6 +469,7 @@ function BlockRow({
   block,
   index,
   total,
+  error,
   onPatch,
   onRemove,
   onMove,
@@ -318,19 +490,31 @@ function BlockRow({
 
   return (
     <div
+      id={`block-${block.id}`}
       ref={setNodeRef}
       style={style}
       tabIndex={-1}
       onMouseEnter={() => setIsHover(true)}
       onMouseLeave={() => setIsHover(false)}
       className={cn(
-        'group rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] p-4 transition-all duration-200 outline-none',
-        'hover:border-[var(--color-line-3)] hover:bg-[var(--color-wash)]/50',
-        'focus-within:border-[var(--color-line-3)] focus-within:bg-[var(--color-wash)] focus-within:shadow-sm',
-        isHover && 'border-[var(--color-line-3)]',
+        'group rounded-[var(--radius-lg)] border bg-[var(--color-surface)] p-4 transition-all duration-200 outline-none',
+        error
+          ? 'border-[var(--color-warn)]/60'
+          : 'border-[var(--color-line-2)] hover:border-[var(--color-line-3)] hover:bg-[var(--color-wash)]/50 focus-within:border-[var(--color-line-3)] focus-within:bg-[var(--color-wash)] focus-within:shadow-sm',
+        isHover && !error && 'border-[var(--color-line-3)]',
         isDragging && 'opacity-60 z-dropdown bg-[var(--color-wash)] border-[var(--color-line-3)] shadow-e2',
       )}
     >
+      {/* Inline block error text when validation fails */}
+      {error ? (
+        <p
+          role="alert"
+          className="mb-2.5 flex items-center gap-1.5 text-xs font-normal text-[var(--color-warn-ink)] animate-in fade-in"
+        >
+          <LuTriangleAlert className="size-[13px] shrink-0 text-[var(--color-warn)]" />
+          <span>{error}</span>
+        </p>
+      ) : null}
       {/* Header bar: drag handle, block type badge, and options menu */}
       <div className="mb-3 flex items-center gap-2">
         {/* Drag handle */}
@@ -370,19 +554,21 @@ function BlockRow({
                               : 'Table'}
         </span>
 
-        {/* Spacer pushes menu to the right */}
+        {/* Spacer pushes actions to the right */}
         <span className="flex-1" />
 
-        {/* Block options menu */}
-        <BlockMenu
-          block={block}
-          index={index}
-          total={total}
-          onChange={() => { /* actions route through their own callbacks */ }}
-          onRemove={onRemove}
-          onMove={onMove}
-          onDuplicate={onDuplicate}
-        />
+        {/* Block options: delete icon at front, then 3-dots kebab menu */}
+        <div className="flex items-center gap-2">
+          <BlockDeleteButton block={block} onRemove={onRemove} />
+          <BlockMenu
+            block={block}
+            index={index}
+            total={total}
+            onChange={() => { /* actions route through their own callbacks */ }}
+            onDuplicate={onDuplicate}
+            onMove={onMove}
+          />
+        </div>
       </div>
 
       {/* Block body */}
@@ -548,6 +734,7 @@ function TextBody({
     <div className="relative">
       <BilingualInput
         value={block.body}
+        maxLength={1000}
         onChange={(val) => {
           if (val.en === '/' && !block.body?.en) {
             setSlashOpen(true);
@@ -623,6 +810,7 @@ function HeadingBody({
       <div className="flex-1">
         <BilingualInput
           value={block.text}
+          maxLength={100}
           onChange={(val) => onPatch({ ...block, text: val })}
           placeholder={{
             en: 'Section title (English)…',
@@ -778,6 +966,11 @@ function MethodStepRow({
   const hasVideo = Boolean(step.videoSrc);
   const hasAnyMedia = images.length > 0 || hasVideo || imageBusy || videoBusy;
 
+  const latestStep = React.useRef(step);
+  latestStep.current = step;
+  const latestImages = React.useRef(images);
+  latestImages.current = images;
+
   const triggerImageUpload = (target: number | null): void => {
     pendingImageIndex.current = target;
     imageFileRef.current?.click();
@@ -785,7 +978,7 @@ function MethodStepRow({
 
   const writeImages = (next: Array<{ src: string; alt: Localised }>): void => {
     onUpdate({
-      ...step,
+      ...latestStep.current,
       images: next,
       imageSrc: undefined,
       imageAlt: undefined,
@@ -793,48 +986,94 @@ function MethodStepRow({
   };
 
   const removeImage = (i: number): void => {
-    const removed = images[i];
-    writeImages(images.filter((_, j) => j !== i));
+    const removed = latestImages.current[i];
+    writeImages(latestImages.current.filter((_, j) => j !== i));
     if (removed?.src) void deleteUpload({ url: removed.src }).catch(() => undefined);
   };
 
   const updateImageAlt = (i: number, alt: Localised): void => {
-    writeImages(images.map((img, j) => (j === i ? { ...img, alt } : img)));
+    writeImages(latestImages.current.map((img, j) => (j === i ? { ...img, alt } : img)));
   };
 
-  async function uploadImage(file: File): Promise<void> {
-    if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
-      setImageBusy({ state: 'failed', target: pendingImageIndex.current, error: 'Unsupported image type' });
-      return;
-    }
-    if (file.size > MAX_IMAGE_BYTES) {
-      setImageBusy({ state: 'failed', target: pendingImageIndex.current, error: 'Image too large (max 10 MB)' });
-      return;
-    }
+  const MAX_STEP_IMAGES = 4;
+
+  async function uploadImages(files: FileList | File[]): Promise<void> {
+    const fileArray = Array.from(files);
+    if (fileArray.length === 0) return;
+
     const target = pendingImageIndex.current;
-    setImageBusy({ state: 'uploading', target });
-    try {
-      const finalSrc = (await uploadMedia(file, 'image')) || (await readFileAsDataUrl(file));
-      const filenameNoExt = file.name.replace(/\.[^.]+$/, '');
-      const defaultAlt: Localised = { en: filenameNoExt, es: filenameNoExt };
-      if (target === null) {
-        writeImages([...images, { src: finalSrc, alt: defaultAlt }]);
-      } else {
+    if (target !== null) {
+      // Single replacement
+      const file = fileArray[0];
+      if (!isAllowedImageFile(file)) {
+        setImageBusy({ state: 'failed', target, error: 'Unsupported image type — use JPG, PNG, WebP, GIF or AVIF' });
+        return;
+      }
+      if (file.size > MAX_IMAGE_BYTES) {
+        setImageBusy({ state: 'failed', target, error: 'Image too large (max 10 MB)' });
+        return;
+      }
+      setImageBusy({ state: 'uploading', target });
+      try {
+        const finalSrc = (await uploadMedia(file, 'image')) || (await readFileAsDataUrl(file));
+        const filenameNoExt = file.name.replace(/\.[^.]+$/, '');
+        const defaultAlt: Localised = { en: filenameNoExt, es: filenameNoExt };
         writeImages(
-          images.map((img, j) =>
+          latestImages.current.map((img, j) =>
             j === target
               ? { src: finalSrc, alt: img.alt.en || img.alt.es ? img.alt : defaultAlt }
               : img,
           ),
         );
+        setImageBusy(null);
+      } catch (err) {
+        setImageBusy({
+          state: 'failed',
+          target,
+          error: err instanceof Error ? err.message : 'Upload failed',
+        });
       }
+      return;
+    }
+
+    // Adding new images (capped at MAX_STEP_IMAGES = 4)
+    const available = Math.max(0, MAX_STEP_IMAGES - latestImages.current.length);
+    const toUpload = fileArray.slice(0, available);
+    if (toUpload.length === 0) return;
+
+    setImageBusy({ state: 'uploading', target: null });
+    const newItems: Array<{ src: string; alt: Localised }> = [];
+    let lastError: string | undefined;
+
+    for (const file of toUpload) {
+      if (!isAllowedImageFile(file)) {
+        lastError = 'Unsupported image type — use JPG, PNG, WebP, GIF or AVIF';
+        continue;
+      }
+      if (file.size > MAX_IMAGE_BYTES) {
+        lastError = 'Image too large (max 10 MB)';
+        continue;
+      }
+      try {
+        const finalSrc = (await uploadMedia(file, 'image')) || (await readFileAsDataUrl(file));
+        const filenameNoExt = file.name.replace(/\.[^.]+$/, '');
+        newItems.push({
+          src: finalSrc,
+          alt: { en: filenameNoExt, es: filenameNoExt },
+        });
+      } catch (err) {
+        lastError = err instanceof Error ? err.message : 'Upload failed';
+      }
+    }
+
+    if (newItems.length > 0) {
+      writeImages([...latestImages.current, ...newItems].slice(0, MAX_STEP_IMAGES));
+    }
+
+    if (lastError && newItems.length === 0) {
+      setImageBusy({ state: 'failed', target: null, error: lastError });
+    } else {
       setImageBusy(null);
-    } catch (err) {
-      setImageBusy({
-        state: 'failed',
-        target,
-        error: err instanceof Error ? err.message : 'Upload failed',
-      });
     }
   }
 
@@ -870,6 +1109,7 @@ function MethodStepRow({
         {/* Step description input */}
         <BilingualInput
           value={step.body}
+          maxLength={500}
           onChange={(val) => onUpdate({ ...step, body: val })}
           multiline
           placeholder={{
@@ -878,7 +1118,7 @@ function MethodStepRow({
           }}
         />
 
-        {/* Step action chips toolbar — consistent 32-36px height, 8px gap, 6px icon-to-label gap */}
+        {/* Step action chips toolbar — consistent 32-36px height, 8px gap between chips, px-4 padding and gap-2 icon spacing */}
         <div className="flex flex-wrap items-center gap-2 pt-0.5">
           {/* Critical Step toggle */}
           <button
@@ -886,14 +1126,14 @@ function MethodStepRow({
             aria-pressed={step.critical}
             onClick={() => onUpdate({ ...step, critical: !step.critical })}
             className={cn(
-              'inline-flex h-8 sm:h-9 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-all shadow-2xs cursor-pointer border',
+              'inline-flex h-8 sm:h-9 items-center gap-2 rounded-full px-4 text-xs font-medium transition-all shadow-2xs cursor-pointer border',
               step.critical
                 ? 'border-[var(--color-bad)]/40 bg-[var(--color-bad-tint)] text-[var(--color-bad)] font-semibold'
                 : 'border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:border-[var(--color-line-3)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)]',
             )}
             title="Critical steps are highlighted with an alert badge to ensure compliance"
           >
-            <LuTriangleAlert
+            <LuFocus
               className={cn('size-4 shrink-0 text-current', step.critical ? 'text-[var(--color-bad)]' : 'text-[var(--color-ink-3)]')}
               strokeWidth={1.75}
             />
@@ -912,7 +1152,7 @@ function MethodStepRow({
               }
             }}
             className={cn(
-              'inline-flex h-8 sm:h-9 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-all shadow-2xs cursor-pointer border',
+              'inline-flex h-8 sm:h-9 items-center gap-2 rounded-full px-4 text-xs font-medium transition-all shadow-2xs cursor-pointer border',
               step.note
                 ? 'border-[var(--color-line-3)] bg-[var(--color-wash)] text-[var(--color-ink)] font-semibold ring-1 ring-[var(--color-line-3)]'
                 : 'border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:border-[var(--color-line-3)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)]',
@@ -926,18 +1166,25 @@ function MethodStepRow({
           {/* Photo affordance */}
           <button
             type="button"
+            disabled={images.length >= MAX_STEP_IMAGES}
             aria-pressed={images.length > 0}
             onClick={() => triggerImageUpload(null)}
             className={cn(
-              'inline-flex h-8 sm:h-9 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-all shadow-2xs cursor-pointer border',
-              images.length > 0
-                ? 'border-[var(--color-line-3)] bg-[var(--color-wash)] text-[var(--color-ink)] font-semibold'
-                : 'border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:border-[var(--color-line-3)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)]',
+              'inline-flex h-8 sm:h-9 items-center gap-2 rounded-full px-4 text-xs font-medium transition-all shadow-2xs border',
+              images.length >= MAX_STEP_IMAGES
+                ? 'border-[var(--color-line-2)] bg-[var(--color-wash)] text-[var(--color-ink-3)] opacity-60 cursor-not-allowed'
+                : images.length > 0
+                  ? 'border-[var(--color-line-3)] bg-[var(--color-wash)] text-[var(--color-ink)] font-semibold cursor-pointer'
+                  : 'border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:border-[var(--color-line-3)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)] cursor-pointer',
             )}
-            title="Attach a photo to this step"
+            title={
+              images.length >= MAX_STEP_IMAGES
+                ? `Maximum ${MAX_STEP_IMAGES} photos reached`
+                : 'Attach photos to this step (up to 4)'
+            }
           >
             <LuImage className="size-4 shrink-0 text-[var(--color-ink-3)]" strokeWidth={1.75} />
-            <span>Photo</span>
+            <span>Photo {images.length > 0 ? `(${images.length}/${MAX_STEP_IMAGES})` : ''}</span>
           </button>
 
           {/* Video affordance */}
@@ -946,7 +1193,7 @@ function MethodStepRow({
             aria-pressed={hasVideo}
             onClick={() => videoFileRef.current?.click()}
             className={cn(
-              'inline-flex h-8 sm:h-9 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-all shadow-2xs cursor-pointer border',
+              'inline-flex h-8 sm:h-9 items-center gap-2 rounded-full px-4 text-xs font-medium transition-all shadow-2xs cursor-pointer border',
               hasVideo
                 ? 'border-[var(--color-line-3)] bg-[var(--color-wash)] text-[var(--color-ink)] font-semibold'
                 : 'border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:border-[var(--color-line-3)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)]',
@@ -967,7 +1214,7 @@ function MethodStepRow({
               onUpdate({ ...step, timer: { label: '', seconds: 60 } });
             }}
             className={cn(
-              'inline-flex h-8 sm:h-9 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-all shadow-2xs border',
+              'inline-flex h-8 sm:h-9 items-center gap-2 rounded-full px-4 text-xs font-medium transition-all shadow-2xs border',
               step.timer
                 ? 'border-[var(--color-line-2)] bg-[var(--color-wash)] text-[var(--color-ink-3)] opacity-60 cursor-not-allowed'
                 : 'border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink-2)] hover:border-[var(--color-line-3)] hover:bg-[var(--color-wash)] hover:text-[var(--color-ink)] cursor-pointer',
@@ -982,12 +1229,13 @@ function MethodStepRow({
           <input
             ref={imageFileRef}
             type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif"
+            multiple
+            accept="image/*,.jpg,.jpeg,.png,.webp,.gif,.avif"
             className="hidden"
             onChange={(e) => {
-              const f = e.target.files?.[0];
+              const files = Array.from(e.target.files || []);
               e.target.value = '';
-              if (f) void uploadImage(f);
+              if (files.length > 0) void uploadImages(files);
             }}
           />
           <input
@@ -1008,13 +1256,19 @@ function MethodStepRow({
           <div className="flex flex-col gap-2.5 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-wash)]/70 p-3 text-xs">
             <div className="flex flex-wrap items-center gap-2">
               <LuClock className="size-4 shrink-0 text-[var(--color-ink-3)]" strokeWidth={1.75} />
-              <input
-                type="text"
-                value={step.timer.label ?? ''}
-                onChange={(e) => onUpdate({ ...step, timer: { ...step.timer!, label: e.target.value } })}
-                placeholder="Label (optional), e.g. Simmer sauce"
-                className="h-8 sm:h-9 min-w-0 flex-1 sm:max-w-[220px] rounded-[var(--radius-sm)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 text-xs font-medium text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)]/60 focus:border-[var(--color-ink)] focus:outline-none"
-              />
+              <div className="relative flex-1 sm:max-w-[220px]">
+                <input
+                  type="text"
+                  maxLength={50}
+                  value={step.timer.label ?? ''}
+                  onChange={(e) => onUpdate({ ...step, timer: { ...step.timer!, label: e.target.value } })}
+                  placeholder="Label (optional), e.g. Simmer sauce"
+                  className="h-8 sm:h-9 w-full rounded-[var(--radius-sm)] border border-[var(--color-line-2)] bg-[var(--color-surface)] pl-3 pr-14 text-xs font-medium text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)]/60 focus:border-[var(--color-ink)] focus:outline-none"
+                />
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 font-mono text-[10px] text-[var(--color-ink-3)] pointer-events-none select-none">
+                  {(step.timer.label ?? '').length} / 50
+                </span>
+              </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 <input
                   type="number"
@@ -1160,6 +1414,7 @@ function MethodStepRow({
 
               <BilingualInput
                 value={step.note.body}
+                maxLength={300}
                 onChange={(body) => onUpdate({ ...step, note: { ...step.note!, body } })}
                 multiline
                 size="compact"
@@ -1179,60 +1434,44 @@ function MethodStepRow({
           );
         })()}
 
-        {/* Upload progress — rendered before any media exists so the
-            very first upload (no photos, no video yet) still shows a
-            visible progress row. Previously each indicator sat inside a
-            section gated on content that only appears after the upload
-            finished, so the initial upload looked frozen. */}
-        {(imageBusy?.state === 'uploading' || videoBusy?.state === 'uploading') && (
-          <div className="flex items-center gap-2 text-xs text-[var(--color-ink-2)]">
-            <span className="spinner" aria-hidden="true" />
-            {imageBusy?.state === 'uploading' && videoBusy?.state === 'uploading'
-              ? 'Uploading photo and video…'
-              : imageBusy?.state === 'uploading'
-                ? 'Uploading photo…'
-                : 'Uploading video…'}
-          </div>
-        )}
-        {(imageBusy?.state === 'failed' || videoBusy?.state === 'failed') && (
-          <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--color-bad)]">
-            <Icon icon="ri-error-warning-line" />
-            {imageBusy?.state === 'failed' ? imageBusy.error : videoBusy?.error}
-            {imageBusy?.state === 'failed' && imageBusy.target !== null && (
-              <button
-                type="button"
-                onClick={() => triggerImageUpload(imageBusy.target)}
-                className="underline font-semibold hover:no-underline ml-1 cursor-pointer"
-              >
-                Try again
-              </button>
-            )}
-            {videoBusy?.state === 'failed' && (
-              <button
-                type="button"
-                onClick={() => videoFileRef.current?.click()}
-                className="underline font-semibold hover:no-underline ml-1 cursor-pointer"
-              >
-                Try again
-              </button>
-              )}
-          </div>
-        )}
-
         {/* Attached Media Previews (photos & video) */}
         {hasAnyMedia && (
           <div className="space-y-3 rounded-[var(--radius-md)] bg-[var(--color-wash)]/60 p-3 text-xs">
-            {images.length > 0 && (
+            {(images.length > 0 || (imageBusy && uploadingIndex === null)) && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-2 font-semibold text-[var(--color-ink)]">
                     <Icon icon="ri-image-line" className="text-[var(--color-ink-3)]" />
                     <span>Step Photos</span>
                     <span className="rounded-full bg-[var(--color-surface)] border border-[var(--color-line-2)] px-2 py-0.5 text-[10px] font-bold text-[var(--color-ink-2)]">
-                      {images.length}
+                      {images.length}/{MAX_STEP_IMAGES}
                     </span>
                   </span>
+                  {images.length < MAX_STEP_IMAGES && (
+                    <button
+                      type="button"
+                      onClick={() => triggerImageUpload(null)}
+                      className="inline-flex items-center gap-1 font-semibold text-[var(--color-ink-2)] hover:text-[var(--color-ink)] cursor-pointer text-xs"
+                    >
+                      <LuPlus className="size-3.5" />
+                      <span>Add photo</span>
+                    </button>
+                  )}
                 </div>
+
+                {images.length === 2 && (
+                  <label className="flex items-center gap-2 text-[11px] text-[var(--color-ink-2)] cursor-pointer bg-[var(--color-surface)] p-2 rounded-[var(--radius-sm)] border border-[var(--color-line-2)]">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(step.compareImages)}
+                      onChange={(e) => onUpdate({ ...step, compareImages: e.target.checked })}
+                      className="rounded border-[var(--color-line-3)]"
+                    />
+                    <span className="font-medium text-[var(--color-ink)]">
+                      Compare mode (Photo 1 = Correct, Photo 2 = Wrong)
+                    </span>
+                  </label>
+                )}
 
                 <div className="space-y-2">
                   {images.map((img, idx) => {
@@ -1249,6 +1488,16 @@ function MethodStepRow({
                             alt={img.alt.en ?? ''}
                             className="size-full object-cover"
                           />
+                          {step.compareImages && images.length === 2 && (
+                            <span
+                              className={cn(
+                                'absolute bottom-0 inset-x-0 text-center text-[9px] font-bold text-white py-0.5',
+                                idx === 0 ? 'bg-[var(--color-ok-fill)]' : 'bg-[var(--color-bad-fill)]',
+                              )}
+                            >
+                              {idx === 0 ? 'OK' : 'NO'}
+                            </span>
+                          )}
                           {isUploading && (
                             <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[1px]">
                               <span className="spinner text-white" aria-hidden="true" />
@@ -1258,11 +1507,16 @@ function MethodStepRow({
                         <div className="min-w-0 flex-1">
                           <BilingualInput
                             value={img.alt ?? { en: '', es: '' }}
+                            maxLength={150}
                             onChange={(val) => updateImageAlt(idx, val)}
                             size="compact"
                             placeholder={{
-                              en: 'Alt text (English)…',
-                              es: 'Texto alternativo (Español)…',
+                              en: step.compareImages && images.length === 2
+                                ? (idx === 0 ? 'Alt text (Correct/OK)…' : 'Alt text (Wrong/NO)…')
+                                : `Alt text for photo ${idx + 1} (English)…`,
+                              es: step.compareImages && images.length === 2
+                                ? (idx === 0 ? 'Texto alternativo (Correcto)…' : 'Texto alternativo (Incorrecto)…')
+                                : `Texto alternativo para foto ${idx + 1} (Español)…`,
                             }}
                           />
                         </div>
@@ -1291,10 +1545,17 @@ function MethodStepRow({
                   })}
                 </div>
 
-                {failedIndex !== null && (
+                {uploadingIndex === null && imageBusy?.state === 'uploading' && (
+                  <div className="flex items-center gap-2 text-xs text-[var(--color-ink-2)]">
+                    <span className="spinner" aria-hidden="true" />
+                    Uploading photo…
+                  </div>
+                )}
+
+                {imageBusy?.state === 'failed' && (
                   <div className="flex items-center gap-2 text-xs text-[var(--color-bad)]">
                     <Icon icon="ri-error-warning-line" />
-                    <span>{imageBusy?.error}</span>
+                    <span>{imageBusy.error}</span>
                     <button
                       type="button"
                       onClick={() => triggerImageUpload(failedIndex)}
@@ -1391,7 +1652,7 @@ function MethodStepRow({
                 <button
                   type="button"
                   onClick={() => triggerImageUpload(null)}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-line-2)] bg-[var(--color-surface)] px-3 py-1 text-xs font-semibold text-[var(--color-ink)] hover:bg-[var(--color-panel)] transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-2 rounded-full border border-[var(--color-line-2)] bg-[var(--color-surface)] px-4 py-1 text-xs font-semibold text-[var(--color-ink)] hover:bg-[var(--color-panel)] transition-colors cursor-pointer"
                 >
                   <Icon icon="ri-image-add-line" className="text-[var(--color-brand)]" />
                   <span>Add another photo</span>
@@ -1489,7 +1750,7 @@ function ImageBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind:
   const fileRef = React.useRef<HTMLInputElement>(null);
 
   const startUpload = async (file: File): Promise<void> => {
-    if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+    if (!isAllowedImageFile(file)) {
       setUpload({ state: 'failed', error: 'Unsupported image type' });
       return;
     }
@@ -1518,8 +1779,8 @@ function ImageBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind:
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const f = e.target.files?.[0];
-    if (!f) return;
     e.target.value = '';
+    if (!f) return;
     void startUpload(f);
   };
 
@@ -1588,10 +1849,11 @@ function ImageBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind:
           <span className="text-sm text-[var(--color-ink-3)]">JPG · PNG · WebP · GIF · max 10 MB</span>
         </button>
       )}
-      <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleFile} className="hidden" />
+      <input ref={fileRef} type="file" accept="image/*,.jpg,.jpeg,.png,.webp,.gif,.avif" onChange={handleFile} className="hidden" />
       {/* Caption — bilingual */}
       <BilingualInput
         value={{ en: block.caption?.en ?? '', es: block.caption?.es ?? '' }}
+        maxLength={200}
         onChange={(val) => onPatch({ ...block, caption: val })}
         multiline
         size="compact"
@@ -1723,6 +1985,7 @@ function VideoBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { kind:
       <input ref={fileRef} type="file" accept="video/mp4,video/webm,video/quicktime" onChange={handleFile} className="hidden" />
       <BilingualInput
         value={{ en: block.caption?.en ?? '', es: block.caption?.es ?? '' }}
+        maxLength={200}
         onChange={(val) => onPatch({ ...block, caption: val })}
         multiline
         size="compact"
@@ -1742,11 +2005,11 @@ function WarningBody({
   onPatch,
 }: BodyProps<Extract<ProcedureBlock, { kind: 'warning' }>>): React.ReactElement {
   const sevTone: Record<ProcedureNoteKind, { bg: string; text: string; icon: string }> = {
-    warn: { bg: 'border-[var(--color-bad-tint)] bg-[var(--color-bad-tint)]', text: 'text-[var(--color-bad)]', icon: 'ri-error-warning-line' },
+    warn: { bg: 'border-[var(--color-warn)]/40 bg-[var(--color-warn-tint)]', text: 'text-[var(--color-warn-ink)]', icon: 'ri-alert-line' },
     tip: { bg: 'border-[var(--color-ok-tint-2)] bg-[var(--color-ok-tint)]', text: 'text-[var(--color-ok)]', icon: 'ri-lightbulb-line' },
     alt: { bg: 'border-[var(--color-line-2)] bg-[var(--color-wash)]', text: 'text-[var(--color-ink-2)]', icon: 'ri-loop-left-line' },
     equip: { bg: 'border-[var(--color-line-2)] bg-[var(--color-wash)]', text: 'text-[var(--color-ink-2)]', icon: 'ri-tools-line' },
-    allergen: { bg: 'border-[var(--color-warn)] bg-[var(--color-warn-tint)]', text: 'text-[var(--color-warn-ink)]', icon: 'ri-shield-cross-line' },
+    allergen: { bg: 'border-[var(--color-bad-tint)] bg-[var(--color-bad-tint)]', text: 'text-[var(--color-bad)]', icon: 'ri-error-warning-line' },
   };
   const tone = sevTone[block.severity];
 
@@ -1766,6 +2029,7 @@ function WarningBody({
       </div>
       <BilingualInput
         value={block.body}
+        maxLength={500}
         onChange={(val) => onPatch({ ...block, body: val })}
         multiline
         placeholder={{
@@ -1923,7 +2187,7 @@ function AttachmentBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { 
       <input
         ref={fileRef}
         type="file"
-        accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.md,image/jpeg,image/png,image/webp"
+        accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.md,image/jpeg,image/png,image/webp,image/avif"
         onChange={handleFile}
         className="hidden"
       />
@@ -1938,6 +2202,7 @@ function AttachmentBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { 
       {/* Bilingual title input */}
       <BilingualInput
         value={block.title}
+        maxLength={120}
         onChange={(val) => onPatch({ ...block, title: val })}
         size="compact"
         placeholder={{
@@ -1952,11 +2217,15 @@ function AttachmentBody({ block, onPatch }: BodyProps<Extract<ProcedureBlock, { 
           <Icon icon="ri-price-tag-3-line" className="text-base text-[var(--color-ink-3)] shrink-0" />
           <input
             type="text"
+            maxLength={60}
             value={block.meta ?? ''}
             onChange={(e) => onPatch({ ...block, meta: e.target.value || undefined })}
             placeholder="Badge label (optional, e.g. PDF · 2.4 MB, Revision 3)…"
             className="flex-1 min-w-0 bg-transparent text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] focus:outline-none"
           />
+          <span className="font-mono text-[10px] text-[var(--color-ink-3)] pointer-events-none select-none shrink-0">
+            {(block.meta ?? '').length} / 60
+          </span>
           {block.meta ? (
             <button
               type="button"
@@ -2062,11 +2331,13 @@ function TableBody({
                         {block.headers.map((_, j) => (
                           <th
                             key={j}
-                            className="group relative min-w-[160px] border-r border-[var(--color-line)] p-1 text-left font-semibold text-[var(--color-ink)] last:border-r-0"
+                            className="group relative min-w-[180px] border-r border-[var(--color-line)] p-2 text-left font-semibold text-[var(--color-ink)] last:border-r-0 align-top"
                           >
-                            <div className="flex items-center gap-1 px-1">
+                            <div className="flex items-start gap-1">
                               <LocalisedInput
                                 lang={lang}
+                                maxLength={100}
+                                showCount
                                 value={block.headers[j] ?? { en: '', es: '' }}
                                 onText={(nextLang, text) => setHeader(j, nextLang, text)}
                                 type="text"
@@ -2079,7 +2350,7 @@ function TableBody({
                                   aria-label="Remove column"
                                   title="Remove column"
                                   onClick={() => removeColumn(j)}
-                                  className="flex size-5 shrink-0 items-center justify-center rounded text-[var(--color-ink-3)] opacity-0 group-hover:opacity-100 hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)] transition-all"
+                                  className="flex size-5 shrink-0 items-center justify-center rounded text-[var(--color-ink-3)] opacity-0 group-hover:opacity-100 hover:bg-[var(--color-bad-tint)] hover:text-[var(--color-bad)] transition-all mt-1"
                                 >
                                   <Icon icon="ri-close-line" className="text-sm" />
                                 </button>
@@ -2106,16 +2377,19 @@ function TableBody({
                           {row.map((_, j) => (
                             <td
                               key={j}
-                              className="min-w-[160px] border-r border-[var(--color-line)] p-1 align-top last:border-r-0"
+                              className="min-w-[180px] border-r border-[var(--color-line)] p-2 align-top last:border-r-0"
                             >
-                              <div className="flex items-center gap-1 px-1">
+                              <div className="flex items-start gap-1">
                                 <LocalisedInput
                                   lang={lang}
+                                  multiline
+                                  rows={2}
+                                  maxLength={500}
+                                  showCount
                                   value={row[j] ?? { en: '', es: '' }}
                                   onText={(nextLang, text) => setCell(i, j, nextLang, text)}
-                                  type="text"
                                   placeholder={`Cell (${lang.toUpperCase()})`}
-                                  className="w-full rounded px-2 py-1 text-sm text-[var(--color-ink)] bg-transparent placeholder:text-[var(--color-ink-3)] border border-transparent hover:border-[var(--color-line-2)] focus:border-[var(--color-ring)] focus:bg-[var(--color-surface)] focus:outline-none focus:ring-1 focus:ring-[var(--color-ring)] transition-colors"
+                                  className="w-full resize-y rounded px-2 py-1 text-sm text-[var(--color-ink)] bg-transparent placeholder:text-[var(--color-ink-3)] border border-transparent hover:border-[var(--color-line-2)] focus:border-[var(--color-ring)] focus:bg-[var(--color-surface)] focus:outline-none focus:ring-1 focus:ring-[var(--color-ring)] transition-colors min-h-[44px]"
                                 />
                               </div>
                             </td>
@@ -2292,6 +2566,8 @@ function ChecklistBody({
                 <div>
                   <LocalisedInput
                     lang={lang}
+                    maxLength={100}
+                    showCount
                     value={{ en: block.title?.en ?? '', es: block.title?.es ?? '' }}
                     onText={(nextLang, text) => setTitleText(nextLang, text)}
                     showStatus
@@ -2351,6 +2627,8 @@ function ChecklistBody({
                       <div className="flex-1">
                         <LocalisedInput
                           lang={lang}
+                          maxLength={150}
+                          showCount
                           value={{ en: it.text?.en ?? '', es: it.text?.es ?? '' }}
                           onText={(nextLang, text) => setItemText(i, nextLang, text)}
                           type="text"
@@ -2493,7 +2771,7 @@ function EmptyState({ onAdd }: { onAdd: (kind: ProcedureBlockKind) => void }): R
 // final "+ Add block" affordance.
 // ---------------------------------------------------------------------------
 
-export function NotionBlockList({ blocks, onChange }: NotionBlockListProps): React.ReactElement {
+export function NotionBlockList({ blocks, onChange, errors }: NotionBlockListProps): React.ReactElement {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -2556,6 +2834,7 @@ export function NotionBlockList({ blocks, onChange }: NotionBlockListProps): Rea
               block={block}
               index={i}
               total={blocks.length}
+              error={errors?.[block.id]}
               onPatch={(next) => patch(block.id, next)}
               onRemove={() => remove(block.id)}
               onMove={(dir) => move(block.id, dir)}

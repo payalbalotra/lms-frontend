@@ -155,6 +155,10 @@ function toMethodStep(step: ProcedureMethodStep, locale: 'en' | 'es', noteLabels
       alt: pickText(step.images[0].alt ?? { en: '', es: '' }, locale) || '',
       compare: 'ok',
       pairSrc: step.images[1].src,
+      images: step.images.slice(0, 4).map((img) => ({
+        src: img.src,
+        alt: pickText(img.alt ?? { en: '', es: '' }, locale) || '',
+      })),
     };
   } else if (step.videoSegment) {
     const dur = Math.max(0, step.videoSegment.endSec - step.videoSegment.startSec);
@@ -167,6 +171,15 @@ function toMethodStep(step: ProcedureMethodStep, locale: 'en' | 'es', noteLabels
       src: thumbSrc,
       alt: pickText(step.images?.[0]?.alt ?? { en: '', es: '' }, locale) || '',
       badge,
+    };
+  } else if (step.images && step.images.length > 1) {
+    out.mediaThumb = {
+      src: step.images[0].src,
+      alt: pickText(step.images[0].alt ?? { en: '', es: '' }, locale) || '',
+      images: step.images.slice(0, 4).map((img) => ({
+        src: img.src,
+        alt: pickText(img.alt ?? { en: '', es: '' }, locale) || '',
+      })),
     };
   } else if (step.images?.[0]?.src) {
     out.mediaThumb = {
@@ -352,26 +365,30 @@ export function BlockRenderer({
         // same table, but these cells are sentences rather than quantities.
         add(
           key,
-          <table className="dtable">
-            <thead>
-              <tr>
-                {block.headers.map((h, j) => (
-                  <th key={j} scope="col">
-                    {pickText(h, locale)}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {block.rows.map((row, ri) => (
-                <tr key={ri}>
-                  {row.map((cell, j) => (
-                    <td key={j}>{pickText(cell, locale)}</td>
+          <div className="overflow-x-auto rounded-[var(--radius-lg)] my-2 border border-[var(--color-line)]">
+            <table className="dtable min-w-full !border-0 !rounded-none">
+              <thead>
+                <tr>
+                  {block.headers.map((h, j) => (
+                    <th key={j} scope="col" className="min-w-[140px]">
+                      {pickText(h, locale)}
+                    </th>
                   ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>,
+              </thead>
+              <tbody>
+                {block.rows.map((row, ri) => (
+                  <tr key={ri}>
+                    {row.map((cell, j) => (
+                      <td key={j} className="align-top min-w-[140px]">
+                        {pickText(cell, locale)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>,
         );
         return;
       }
@@ -557,9 +574,13 @@ function ChecklistBlock({
                 aria-checked={checked}
                 onClick={() => toggle(it.id)}
                 className={cn(
-                  'checklist-row group flex w-full items-center gap-3 rounded-none text-left transition-colors',
-                  checked && 'checklist-row--done',
+                  'checklist-row group flex w-full items-center gap-3 text-left transition-colors',
+                  checked ? 'checklist-row--done bg-[var(--color-ok-tint)]' : 'hover:bg-[var(--color-wash)]',
                 )}
+                style={{
+                  padding: '12px 16px',
+                  borderRadius: 0,
+                }}
               >
                 <span
                   className={cn(

@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { useId, useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
+import { Icon } from '@/components/ui/icon';
 import { useBilingualTranslation } from '@/lib/use-bilingual-translation';
 
 export interface BilingualValue {
@@ -173,7 +174,13 @@ export function BilingualInput({
                 <input {...shared} type="text" ref={setRef} />
               )}
               {maxLength !== undefined && (
-                <span className="bli__count" aria-hidden="true">
+                <span
+                  className={cn(
+                    'bli__count',
+                    (value?.[lang] ?? '').length >= maxLength && 'text-[var(--color-bad)] font-semibold',
+                  )}
+                  aria-hidden="true"
+                >
                   {(value?.[lang] ?? '').length} / {maxLength}
                 </span>
               )}
@@ -191,7 +198,10 @@ export function BilingualInput({
           role="status"
           aria-live="polite"
         >
-          {STATUS_TEXT[activeTarget][status === 'error' ? 'error' : 'translating']}
+          {status === 'error' && (
+            <Icon icon="ri-error-warning-line" className="text-xs shrink-0 mr-1" />
+          )}
+          <span>{STATUS_TEXT[activeTarget][status === 'error' ? 'error' : 'translating']}</span>
         </span>
       )}
     </div>

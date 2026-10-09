@@ -60,6 +60,7 @@ const ALLOWED_IMAGE_TYPES = new Set([
   'image/png',
   'image/webp',
   'image/gif',
+  'image/avif',
 ]);
 const ALLOWED_VIDEO_TYPES = new Set([
   'video/mp4',
@@ -158,6 +159,7 @@ function TextEditor({ block, onChange }: EditorProps<Extract<ProcedureBlock, { k
         maxLength={1000}
         className={textareaCls}
       />
+      <span className="text-xs text-[var(--color-ink-2)] ml-1">max {1000} chars</span>
     </div>
   );
 }
@@ -189,6 +191,7 @@ function HeadingEditor({
         onChange={(e) => onChange({ ...block, text: setLocalised(block.text, lang, e.target.value) })}
         maxLength={50}
       />
+      <span className="text-xs text-[var(--color-ink-2)] ml-1">max {50} chars</span>
     </div>
   );
 }
@@ -1530,7 +1533,7 @@ function ImageEditor({
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp,image/gif"
+        accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
         onChange={handleFileChange}
         className="hidden"
       />
@@ -1822,6 +1825,7 @@ function WarningEditor({
         maxLength={50}
         className={textareaCls}
       />
+      <span className="text-xs text-[var(--color-ink-2)] ml-1">max {50} chars</span>
     </div>
   );
 }
@@ -1892,7 +1896,7 @@ function AttachmentEditor({
         <input
           ref={fileRef}
           type="file"
-          accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.md,image/jpeg,image/png,image/webp"
+          accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.md,image/jpeg,image/png,image/webp,image/avif"
           onChange={(e) => void handleUpload(e)}
           className="hidden"
         />
@@ -2003,7 +2007,7 @@ function TableEditor({
                   key={j}
                   value={asLocalised(cell, lang)}
                   onChange={(e) => setCell(i, j, e.target.value)}
-                  maxLength={20}
+                  maxLength={500}
                   placeholder={t('table.emptyCell')}
                 />
               ))}

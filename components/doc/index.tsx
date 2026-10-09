@@ -389,6 +389,8 @@ export type MethodStep = {
     /** A second photo for the compare pair. Only used when `compare` is
      *  "ok" (the "no" half is the second photo). */
     pairSrc?: string;
+    /** Multiple photos rendered as a mini grid inside the thumb (up to 4). */
+    images?: Array<{ src: string; alt: string }>;
     /** Optional duration badge, e.g. "0:08" for video clips. */
     badge?: string;
   };
@@ -484,10 +486,14 @@ export function MethodSteps({
                 <div
                   className={cn(
                     'grid gap-3 mt-3 items-stretch',
-                    s.shots.length === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3',
+                    s.shots.length === 2
+                      ? 'grid-cols-2 max-w-2xl'
+                      : s.shots.length === 3
+                        ? 'grid-cols-2 sm:grid-cols-3 max-w-3xl'
+                        : 'grid-cols-2 sm:grid-cols-4 max-w-4xl',
                   )}
                 >
-                  {s.shots.map((sh, j) => (
+                  {s.shots.slice(0, 4).map((sh, j) => (
                     <Shot
                       key={`shot-${j}`}
                       src={sh.src}
@@ -525,6 +531,29 @@ export function MethodSteps({
                   <img src={s.mediaThumb.src} alt="" className="ok" />
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={s.mediaThumb.pairSrc} alt="" className="no" />
+                </button>
+              ) : s.mediaThumb.images && s.mediaThumb.images.length > 1 ? (
+                <button
+                  type="button"
+                  className={cn(
+                    'step-thumb is-grid',
+                    s.mediaThumb.images.length === 2 && 'is-grid-2',
+                    s.mediaThumb.images.length === 3 && 'is-grid-3',
+                    s.mediaThumb.images.length >= 4 && 'is-grid-4',
+                  )}
+                  aria-label={s.thumbLabel ?? 'Open this step in cook mode'}
+                  onClick={s.onThumbOpen}
+                >
+                  {s.mediaThumb.images.slice(0, 4).map((img, idx) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={idx} src={img.src} alt={img.alt || ''} />
+                  ))}
+                  {s.mediaThumb.badge ? (
+                    <span className="badge">
+                      <LuPlay aria-hidden="true" className="i i-sm" />
+                      {s.mediaThumb.badge}
+                    </span>
+                  ) : null}
                 </button>
               ) : (
                 <button
