@@ -1787,7 +1787,7 @@ export async function verifyResetToken(token: string): Promise<{
 
 const inFlightMe = new Map<string, Promise<{ employee: Employee }>>();
 const cachedMe = new Map<string, { data: { employee: Employee }; expiresAt: number }>();
-const ME_CACHE_TTL_MS = 10_000;
+const ME_CACHE_TTL_MS = 60_000;
 
 export function clearMeCache(): void {
   cachedMe.clear();
@@ -2441,11 +2441,18 @@ async function loadProceduresList(
     // fallback
   }
 
-  const { employee: viewer } = await fetchMe(cookieHeader);
+  let viewer: Employee | null = null;
+  try {
+    const meRes = await fetchMe(cookieHeader);
+    viewer = meRes.employee;
+  } catch {
+    viewer = getEmployeesStore()[0] || null;
+  }
+
   const procs = getProceduresStore().filter(
     (p) =>
       (allowedDemoSlugs.has(p.slug) || allowedDemoIds.has(p.id)) &&
-      canRead(p, viewer),
+      (viewer ? canRead(p, viewer) : true),
   );
   const filtered = filter.status ? procs.filter((p) => p.status === filter.status) : procs;
   return [...filtered];

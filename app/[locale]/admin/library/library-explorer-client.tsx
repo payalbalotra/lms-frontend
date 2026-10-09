@@ -16,6 +16,9 @@ import { LibraryProcedureExplorer } from '@/components/admin/library-procedure-e
  * query before painting; each dataset lands when it lands (React Query
  * cache makes repeat visits fully instant with no skeleton at all).
  */
+const EMPTY_PROCEDURES: any[] = [];
+const EMPTY_STATIONS: any[] = [];
+
 export function LibraryExplorerClient({ locale }: { locale: string }): React.ReactElement {
   const locationsQuery = useLocations();
   const locationId = locationsQuery.data?.locations?.[0]?.id;
@@ -33,9 +36,9 @@ export function LibraryExplorerClient({ locale }: { locale: string }): React.Rea
 
   return (
     <LibraryProcedureExplorer
-      procedures={proceduresQuery.data ?? []}
+      procedures={proceduresQuery.data ?? EMPTY_PROCEDURES}
       categories={categories}
-      stations={stationsQuery.data ?? []}
+      stations={stationsQuery.data ?? EMPTY_STATIONS}
       locale={locale}
       proceduresLoading={proceduresQuery.isLoading}
     />

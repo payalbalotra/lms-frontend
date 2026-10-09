@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCategories, useBackendCategories } from '@/services/categories/hooks';
+import { backendSlug, categorySlugsMatch } from '@/services/categories/api';
 import { useBrowseProcedures } from '@/services/library/hooks';
 import { getCategoryIcon } from '@/lib/category-icons';
 import { Icon } from '@/components/ui/icon';
@@ -78,19 +79,28 @@ export function ProceduresClientList({
 
   const [query, setQuery] = React.useState<string>(initialQuery);
   const [activeCategory, setActiveCategory] = React.useState<string>(initialCategory);
-  const [scope, setScope] = React.useState<'' | 'station' | 'assigned'>('');
+  const [scope, setScope] = React.useState<'' | 'assigned'>('');
 
-  // Both lists resolve through TanStack Query (5-minute cache, so
-  // tab-back navigation is instant). Categories merge the mock store with
-  // the backend list so backend-created categories appear as chips;
-  // `useBrowseProcedures` routes through lib/api's listProcedures.
+  // Both lists resolve through TanStack Query (1-hour cache for categories so
+  // tab-back navigation is instant and no redundant API calls are made).
   const queryClient = useQueryClient();
   const { data: mockCategories = [] } = useCategories(locationId);
   const { data: backendCategories = [] } = useBackendCategories();
-  const categories = React.useMemo(
-    () => [...backendCategories, ...mockCategories],
-    [backendCategories, mockCategories],
-  );
+  const categories = React.useMemo(() => {
+    // Backend first (real data wins), mock after for demo content. Sources
+    // spell one shelf differently (`recipe`/`recipes`), so collapse on a
+    // tolerant slug match instead of exact equality — otherwise the same
+    // category renders two chips.
+    const merged: Category[] = [];
+    for (const c of [...backendCategories, ...mockCategories]) {
+      const slug = c.slug || backendSlug(c.nameEn);
+      const dup = merged.find(
+        (m) => categorySlugsMatch(m.slug, slug) || (Boolean(m.id) && Boolean(c.id) && m.id === c.id),
+      );
+      if (!dup) merged.push({ ...c, slug });
+    }
+    return merged;
+  }, [backendCategories, mockCategories]);
   const { data: procedures = [], isLoading: proceduresLoading } = useBrowseProcedures();
 
   // Keep the list fresh when another tab (or the admin library)
@@ -110,6 +120,7 @@ export function ProceduresClientList({
 
   const isEs = locale === 'es';
   const titleOf = (p: Procedure): string => (isEs ? p.titleEs || p.titleEn : p.titleEn || p.titleEs);
+  const purposeOf = (p: Procedure): string => (isEs ? p.purposeEs || p.purposeEn : p.purposeEn || p.purposeEs) || '';
   const nameOf = (c: Category): string => (isEs ? c.nameEs || c.nameEn : c.nameEn || c.nameEs);
 
   const coverOf = (p: Procedure): string | undefined => {
@@ -134,8 +145,14 @@ export function ProceduresClientList({
     Boolean(employeeId && p.assignUsers?.includes(employeeId));
   const published = procedures.filter((p) => p.status === 'published' && !p.isArchived);
   const results = published
-    .filter((p) => (activeCategory ? p.category?.slug === activeCategory : true))
-    .filter((p) => (scope === 'station' ? mine(p) === 1 : scope === 'assigned' ? assignedToMe(p) : true))
+    .filter((p) =>
+      activeCategory
+        ? p.category?.slug === activeCategory ||
+          p.category?.id === activeCategory ||
+          categorySlugsMatch(p.category?.slug, activeCategory)
+        : true,
+    )
+    .filter((p) => (scope === 'assigned' ? assignedToMe(p) : true))
     .map((p) => ({ p, score: scoreProcedure(p, words) }))
     .filter((r) => r.score > 0)
     .sort((a, b) => {
@@ -153,9 +170,6 @@ export function ProceduresClientList({
       );
     })
     .map((r) => r.p);
-  // Only the categories that hold something this person can read: an empty
-  // chip was a tap that led to an empty list.
-  const usedCategories = new Set(published.map((p) => p.category?.slug).filter(Boolean));
 
   /* All chip sizing uses inline styles — Tailwind v4 resets --spacing-* so gap-x, px-x classes produce no CSS */
   const chipBase = 'inline-flex items-center rounded-full font-semibold whitespace-nowrap cursor-pointer transition-colors duration-150 text-xs';
@@ -195,26 +209,22 @@ export function ProceduresClientList({
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
               <button
                 type="button"
-                onClick={() => setActiveCategory('')}
-                className={`${chipBase} ${activeCategory === '' ? 'bg-[var(--color-ink)] text-[var(--color-surface)]' : 'bg-[var(--color-panel)] text-[var(--color-ink)] hover:bg-[var(--color-panel-2)]'}`}
+                onClick={() => {
+                  setActiveCategory('');
+                  setScope('');
+                }}
+                className={`${chipBase} ${activeCategory === '' && scope === '' ? 'bg-[var(--color-ink)] text-[var(--color-surface)]' : 'bg-[var(--color-panel)] text-[var(--color-ink)] hover:bg-[var(--color-panel-2)]'}`}
                 style={chipStyle}
               >
                 {labels.all}
               </button>
-              {myStationIds.length > 0 ? (
-                <button
-                  type="button"
-                  onClick={() => setScope(scope === 'station' ? '' : 'station')}
-                  className={`${chipBase} ${scope === 'station' ? 'bg-[var(--color-ink)] text-[var(--color-surface)]' : 'bg-[var(--color-panel)] text-[var(--color-ink)] hover:bg-[var(--color-panel-2)]'}`}
-                  style={chipStyle}
-                >
-                  {labels.myStation}
-                </button>
-              ) : null}
               {employeeId ? (
                 <button
                   type="button"
-                  onClick={() => setScope(scope === 'assigned' ? '' : 'assigned')}
+                  onClick={() => {
+                    setActiveCategory('');
+                    setScope(scope === 'assigned' ? '' : 'assigned');
+                  }}
                   className={`${chipBase} ${scope === 'assigned' ? 'bg-[var(--color-ink)] text-[var(--color-surface)]' : 'bg-[var(--color-panel)] text-[var(--color-ink)] hover:bg-[var(--color-panel-2)]'}`}
                   style={chipStyle}
                 >
@@ -222,14 +232,21 @@ export function ProceduresClientList({
                 </button>
               ) : null}
               {categories
-                .filter((c) => !c.isArchived && usedCategories.has(c.slug))
+                .filter((c) => !c.isArchived)
                 .map((c) => {
-                  const on = activeCategory === c.slug;
+                  const on =
+                    (activeCategory === c.slug ||
+                      (c.id && activeCategory === c.id) ||
+                      categorySlugsMatch(activeCategory, c.slug)) &&
+                    scope === '';
                   return (
                     <button
                       type="button"
-                      key={c.id}
-                      onClick={() => setActiveCategory(on ? '' : c.slug)}
+                      key={c.id || c.slug}
+                      onClick={() => {
+                        setScope('');
+                        setActiveCategory(on ? '' : c.slug || c.id);
+                      }}
                       className={`${chipBase} ${on ? 'bg-[var(--color-ink)] text-[var(--color-surface)]' : 'bg-[var(--color-panel)] text-[var(--color-ink)] hover:bg-[var(--color-panel-2)]'}`}
                       style={chipStyle}
                     >
@@ -263,6 +280,7 @@ export function ProceduresClientList({
                       category={p.category}
                       subcategory={sub}
                       title={titleOf(p)}
+                      purpose={purposeOf(p)}
                       meta={p.category ? nameOf(p.category) : labels.uncategorised}
                       flags={{
                         ...factsOf(p, readsSpanish),

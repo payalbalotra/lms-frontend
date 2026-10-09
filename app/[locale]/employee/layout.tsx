@@ -2,42 +2,29 @@ import type { ReactNode } from 'react';
 import * as React from 'react';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
-import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { fetchMe, logout, ApiException } from '@/lib/api';
-import type { Employee } from '@/lib/types';
-import { EmployeeTopBar } from '@/components/employee/employee-top-bar';
+import { setRequestLocale } from 'next-intl/server';
+import { logout } from '@/lib/api';
+import { EmployeeTopBarClient } from '@/components/employee/employee-top-bar-client';
 
-// Force per-request SSR — without this Next.js prerenders the layout at build
-// time when no dynamic API is observed at module-init, and the build-time
-// `redirect('/login')` (because there are no cookies during build) gets
-// cached and served to every request regardless of the incoming session.
-export const dynamic = 'force-dynamic';
-
-interface EmployeeLayoutProps {
-  children: ReactNode;
-  params: Promise<{ locale: string }>;
-}
-
+/**
+ * Employee shell — paints instantly, never waits on the backend.
+ *
+ * Previously this layout awaited `/auth/me` before rendering anything, so
+ * every /employee/* navigation paid a full backend round-trip (~2s) before
+ * first paint — and then each page paid it AGAIN for its own data. Now the
+ * server only checks cookie *presence* (instant, no backend): cookieless
+ * visitors bounce to /login immediately. Everyone else gets the shell at
+ * once; `EmployeeTopBarClient` resolves the session through the shared
+ * `useMe` cache (skeleton → top bar, login bounce on 401) and each page
+ * streams its own sections the same way.
+ */
 export default async function EmployeeLayout({ children, params }: EmployeeLayoutProps): Promise<React.ReactElement> {
   const { locale } = await params;
   setRequestLocale(locale);
 
   const cookieStore = await cookies();
-  const cookieHeader = cookieStore
-    .getAll()
-    .map((c) => `${c.name}=${c.value}`)
-    .join('; ');
-
-  let employee: Employee;
-  try {
-    const me = await fetchMe(cookieHeader);
-    employee = me.employee;
-  } catch (err) {
-    if (err instanceof ApiException) {
-      redirect(`/${locale}/login`);
-    }
-    redirect(`/${locale}/login`);
-  }
+  const hasSession = cookieStore.get('lms_token') ?? cookieStore.get('better-auth.session_token');
+  if (!hasSession) redirect(`/${locale}/login`);
 
   async function signOut(): Promise<void> {
     'use server';
@@ -45,28 +32,9 @@ export default async function EmployeeLayout({ children, params }: EmployeeLayou
     redirect(`/${locale}/login`);
   }
 
-  const t = await getTranslations('employee');
-  const tCommon = await getTranslations('app');
-
   return (
     <div className="flex min-h-screen flex-col bg-[var(--color-bg)]">
-      <EmployeeTopBar
-        locale={locale}
-        name={employee.name}
-        // Admins are seeded (Raúl) and managers are the heads of station —
-        // both can enter the admin chrome. Plain employees don't get the
-        // link; they only have Sign out.
-        canEnterAdmin={employee.role === 'admin' || employee.role === 'super_admin' || employee.accessLevel === 'manager'}
-        signOutAction={signOut}
-        labels={{
-          signedInAs: t('signedInAs', { name: employee.name }),
-          signOut: t('signOut'),
-          admin: tCommon('admin'),
-          toDark: tCommon('themeToDark'),
-          toLight: tCommon('themeToLight'),
-          back: t('back'),
-        }}
-      />
+      <EmployeeTopBarClient locale={locale} signOutAction={signOut} loginHref={`/${locale}/login`} />
 
       {/* A div, not a second <main>: the page inside brings its own, and a document
           has one main. The page also brings its own padding and its own reading
@@ -74,4 +42,9 @@ export default async function EmployeeLayout({ children, params }: EmployeeLayou
       <div className="flex-1">{children}</div>
     </div>
   );
+}
+
+interface EmployeeLayoutProps {
+  children: ReactNode;
+  params: Promise<{ locale: string }>;
 }

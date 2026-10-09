@@ -1,10 +1,9 @@
 import * as React from 'react';
 import Link from 'next/link';
-import { LuChevronRight, LuCircleAlert, LuFocus, LuLanguages, LuLock } from 'react-icons/lu';
+import { LuChevronRight, LuLock } from 'react-icons/lu';
 import { Icon } from '@/components/ui/icon';
 import { HoverImagePreview } from '@/components/ui/hover-image-preview';
 import { getCategoryIcon, getProcedureIcon, getSubcategoryIcon } from '@/lib/category-icons';
-import { StatusPill } from '@/components/ui/status-pill';
 import { LockedRowShell } from '@/components/employee/locked-row-shell';
 import type { Category, Subcategory } from '@/lib/types';
 
@@ -29,6 +28,7 @@ export function ProcedureRow({
   category,
   subcategory,
   title,
+  purpose,
   meta,
   flags,
   flagLabels,
@@ -43,6 +43,7 @@ export function ProcedureRow({
   /** Slim subcategory — id and slug are all the icon resolver needs. */
   subcategory?: Pick<Subcategory, 'id' | 'slug'> | null;
   title: string;
+  purpose?: string | null;
   meta: string;
   flags?: ProcedureFlags;
   flagLabels?: FlagLabels;
@@ -54,8 +55,6 @@ export function ProcedureRow({
   lockedReason?: string;
   lockedHref?: string;
 }): React.ReactElement {
-  const marks =
-    flags && flagLabels && (flags.allergens.length > 0 || flags.hasCriticalStep || flags.notInYourLanguage);
 
   const isRenderable = (u?: string | null): u is string =>
     typeof u === 'string' && u.length > 0 && !u.startsWith('blob:');
@@ -116,7 +115,7 @@ export function ProcedureRow({
   // The row's body is identical between locked and unlocked — only the
   // wrapper (Link vs LockedRowShell) and the title/meta colours change.
   const titleColor = locked ? 'text-[var(--color-ink-3)]' : 'text-[var(--color-ink)]';
-  const metaColor = locked ? 'text-[var(--color-ink-3)]' : 'text-[var(--color-ink-2)]';
+  const metaColor = locked ? 'text-[var(--color-ink-3)]' : 'text-[var(--color-ink)]';
   const thumbWrapStyle: React.CSSProperties = locked ? { opacity: 0.5 } : {};
   const body = (
     <>
@@ -141,48 +140,20 @@ export function ProcedureRow({
       {/* Text content */}
       <span className="min-w-0 flex-1" style={{ paddingTop: '10px', paddingBottom: '10px' }}>
         <span className={`block text-sm font-semibold leading-snug ${titleColor}`}>{title}</span>
+        {purpose ? (
+          <span
+            className={`block text-xs font-normal leading-normal line-clamp-1 ${locked ? 'text-[var(--color-ink-3)]' : 'text-[var(--color-ink-2)]'}`}
+            style={{ marginTop: '2px' }}
+          >
+            {purpose}
+          </span>
+        ) : null}
         <span
-          className={`block text-xs leading-normal ${metaColor}`}
+          className={`block text-xs font-semibold leading-normal ${metaColor}`}
           style={{ marginTop: '2px' }}
         >
           {meta}
         </span>
-        {marks ? (
-          <span
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '4px',
-              marginTop: '5px',
-            }}
-          >
-            {flags.allergens.length > 0 ? (
-              <StatusPill
-                tone="warn"
-                icon={LuCircleAlert}
-                className="text-[11px] font-semibold"
-              >
-                <span
-                  className="block overflow-hidden text-ellipsis whitespace-nowrap"
-                  style={{ maxWidth: '130px' }}
-                  title={flagLabels.allergen(flags.allergens.join(', '))}
-                >
-                  {flagLabels.allergen(flags.allergens.join(', '))}
-                </span>
-              </StatusPill>
-            ) : null}
-            {flags.hasCriticalStep ? (
-              <StatusPill tone="bad" icon={LuFocus} className="whitespace-nowrap text-[11px] font-semibold">
-                {flagLabels.critical}
-              </StatusPill>
-            ) : null}
-            {flags.notInYourLanguage ? (
-              <StatusPill tone="info" icon={LuLanguages} className="whitespace-nowrap text-[11px] font-semibold">
-                {flagLabels.english}
-              </StatusPill>
-            ) : null}
-          </span>
-        ) : null}
       </span>
 
       {/* Chevron */}
@@ -220,48 +191,20 @@ export function ProcedureRow({
             {/* Text content */}
             <span className="min-w-0 flex-1" style={{ paddingTop: '10px', paddingBottom: '10px' }}>
               <span className={`block text-sm font-semibold leading-snug ${titleColor}`}>{title}</span>
+              {purpose ? (
+                <span
+                  className={`block text-xs font-normal leading-normal line-clamp-1 ${locked ? 'text-[var(--color-ink-3)]' : 'text-[var(--color-ink-2)]'}`}
+                  style={{ marginTop: '2px' }}
+                >
+                  {purpose}
+                </span>
+              ) : null}
               <span
-                className={`block text-xs leading-normal ${metaColor}`}
+                className={`block text-xs font-semibold leading-normal ${metaColor}`}
                 style={{ marginTop: '2px' }}
               >
                 {meta}
               </span>
-              {marks ? (
-                <span
-                  style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: '4px',
-                    marginTop: '5px',
-                  }}
-                >
-                  {flags.allergens.length > 0 ? (
-                    <StatusPill
-                      tone="warn"
-                      icon={LuCircleAlert}
-                      className="text-[11px] font-semibold"
-                    >
-                      <span
-                        className="block overflow-hidden text-ellipsis whitespace-nowrap"
-                        style={{ maxWidth: '130px' }}
-                        title={flagLabels.allergen(flags.allergens.join(', '))}
-                      >
-                        {flagLabels.allergen(flags.allergens.join(', '))}
-                      </span>
-                    </StatusPill>
-                  ) : null}
-                  {flags.hasCriticalStep ? (
-                    <StatusPill tone="bad" icon={LuFocus} className="whitespace-nowrap text-[11px] font-semibold">
-                      {flagLabels.critical}
-                    </StatusPill>
-                  ) : null}
-                  {flags.notInYourLanguage ? (
-                    <StatusPill tone="info" icon={LuLanguages} className="whitespace-nowrap text-[11px] font-semibold">
-                      {flagLabels.english}
-                    </StatusPill>
-                  ) : null}
-                </span>
-              ) : null}
             </span>
           </div>
 

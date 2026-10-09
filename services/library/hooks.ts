@@ -71,7 +71,5 @@ export function useBrowseProcedures() {
   return useQuery({
     queryKey: [...PROCEDURES_QUERY_KEY, 'browse'],
     queryFn: () => listProcedures({}).then((r) => r.procedures),
-    staleTime: 0,
-    refetchOnMount: 'always',
   });
 }

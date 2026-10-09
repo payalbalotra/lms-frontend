@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { ProcedureRow, type FlagLabels } from '@/components/employee/procedure-row';
 import { SectionHead } from './SectionHead';
+import { HomeRowsSkeleton } from './home-rows-skeleton';
 import type { HomeRow } from './EmployeeHome';
 
 /**
@@ -18,6 +19,7 @@ export function StationSection({
   flagLabels,
   all,
   empty,
+  loading = false,
 }: {
   id: string;
   heading: string;
@@ -25,8 +27,10 @@ export function StationSection({
   flagLabels: FlagLabels;
   all?: { href: string; label: string };
   empty?: string;
+  /** Procedures query still resolving — card + heading paint, rows skeletonize. */
+  loading?: boolean;
 }): React.ReactElement | null {
-  if (rows.length === 0 && !empty) return null;
+  if (rows.length === 0 && !empty && !loading) return null;
   return (
     <section aria-labelledby={id} style={{ marginTop: '16px' }}>
       {/* Bordered card wrapping heading + rows */}
@@ -34,8 +38,10 @@ export function StationSection({
         className="rounded-[var(--radius-lg)] border border-[var(--color-line)] bg-[var(--color-surface)]"
         style={{ padding: '14px 14px' }}
       >
-        <SectionHead id={id} title={heading} all={all} />
-        {rows.length === 0 ? (
+        <SectionHead id={id} title={heading} all={loading ? undefined : all} />
+        {loading ? (
+          <HomeRowsSkeleton />
+        ) : rows.length === 0 ? (
           <p className="text-sm text-[var(--color-ink-2)]" style={{ marginTop: '10px' }}>{empty}</p>
         ) : (
           <ul style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -48,6 +54,7 @@ export function StationSection({
                   category={r.category}
                   subcategory={r.subcategory}
                   title={r.title}
+                  purpose={r.purpose}
                   meta={r.meta}
                   flags={r.flags}
                   flagLabels={flagLabels}

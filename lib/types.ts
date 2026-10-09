@@ -471,10 +471,16 @@ export interface Procedure {
    *  creates a `Quiz` row via `createQuiz()` and stamps its id here. The
    *  backend persists this as `quiz_id text` (nullable). */
   quizId?: string | null;
+  /** Station id this procedure is scoped to */
+  stationId?: string | null;
   /** Employee ids this procedure is directly assigned to (backend
    *  `assign_users`). Drives the "Assigned to you" section on the
    *  employee home and the matching browse filter. */
   assignUsers?: string[] | null;
+  /** Server-computed flag: true when viewer is in assignUsers */
+  isDirectlyAssigned?: boolean;
+  /** Server-computed flag: true when viewer station matches stationId */
+  isStationProcedure?: boolean;
   /** Whether this procedure is part of a training plan. Legacy field —
    *  kept until the training-course UI is reworked (employee phase). */
   attachedToTraining?: boolean;

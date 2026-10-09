@@ -61,7 +61,7 @@ export async function login(input: LoginCredentials): Promise<{ employee: Employ
 
 const inFlightAuthMe = new Map<string, Promise<{ employee: Employee }>>();
 const cachedAuthMe = new Map<string, { data: { employee: Employee }; expiresAt: number }>();
-const AUTH_ME_CACHE_TTL_MS = 10_000;
+const AUTH_ME_CACHE_TTL_MS = 60_000;
 
 export function clearAuthMeCache(): void {
   cachedAuthMe.clear();

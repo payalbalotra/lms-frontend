@@ -38,6 +38,7 @@ export interface HomeRow {
   category: Category | null;
   subcategory?: Pick<Subcategory, 'id' | 'slug'> | null;
   title: string;
+  purpose?: string | null;
   meta: string;
   flags: ProcedureFlags;
   /** When true, the row renders dimmed + dashed + a lock glyph, and tapping
@@ -76,6 +77,7 @@ export function EmployeeHome({
   promo,
   assigned,
   station,
+  loading = false,
   flagLabels,
   locale = 'en',
   isOnboarding = false,
@@ -96,6 +98,9 @@ export function EmployeeHome({
     all: { href: string; label: string };
     empty: string;
   };
+  /** Procedures query still resolving — greeting/training paint, procedure
+   *  rows skeletonize per section. */
+  loading?: boolean;
   flagLabels: FlagLabels;
   locale?: string;
   /** When true, renders Scenario A (onboarding pending, locked procedures) */
@@ -120,6 +125,7 @@ export function EmployeeHome({
         <LockedProceduresPreview
           promo={promo}
           station={station}
+          loading={loading}
           lockedHref={`/${locale}/employee/training`}
           lockedReason="Locked until orientation is done"
           flagLabels={flagLabels}
@@ -130,13 +136,15 @@ export function EmployeeHome({
             heading={promo.heading}
             rows={promo.rows.map((r) => ({ ...r, locked: false, lockedHref: undefined, lockedReason: undefined }))}
             flagLabels={flagLabels}
+            loading={loading}
           />
-          {assigned && assigned.rows.length > 0 ? (
+          {assigned && (assigned.rows.length > 0 || loading) ? (
             <StationSection
               id="assigned-h"
               heading={assigned.heading}
               rows={assigned.rows.map((r) => ({ ...r, locked: false, lockedHref: undefined, lockedReason: undefined }))}
               flagLabels={flagLabels}
+              loading={loading}
             />
           ) : null}
           <StationSection
@@ -146,6 +154,7 @@ export function EmployeeHome({
             flagLabels={flagLabels}
             all={station.all}
             empty={station.empty}
+            loading={loading}
           />
         </>
       )}

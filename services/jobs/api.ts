@@ -70,27 +70,31 @@ export async function fetchJobStations(
     }
   }
 
+  // GET first: comma-separated query string, no body semantics, so it
+  // survives every proxy (Next rewrites have mangled the QUERY verb in
+  // practice, costing a wasted round-trip on every call). QUERY second,
+  // POST last — both documented by the backend for this route.
   try {
-    // 1. Send HTTP QUERY with body { jobIds } as per backend specification
-    const { data } = await http.request<{
+    // 1. GET with comma-separated query string ?jobIds=id1,id2
+    const { data } = await http.get<{
       success: boolean;
       data: { stations: Array<{ id: string; name: string }> };
-    }>({
-      method: 'QUERY',
-      url: JOBS_ENDPOINTS.STATIONS,
-      data: { jobIds },
+    }>(JOBS_ENDPOINTS.STATIONS, {
+      params: { jobIds: jobIds.join(',') },
       headers: Object.keys(headers).length ? headers : undefined,
     });
 
     return { stations: data.data?.stations ?? [] };
   } catch {
     try {
-      // 2. Fallback: GET with comma-separated query string ?jobIds=id1,id2
-      const { data } = await http.get<{
+      // 2. HTTP QUERY with body { jobIds } as per backend specification
+      const { data } = await http.request<{
         success: boolean;
         data: { stations: Array<{ id: string; name: string }> };
-      }>(JOBS_ENDPOINTS.STATIONS, {
-        params: { jobIds: jobIds.join(',') },
+      }>({
+        method: 'QUERY',
+        url: JOBS_ENDPOINTS.STATIONS,
+        data: { jobIds },
         headers: Object.keys(headers).length ? headers : undefined,
       });
 

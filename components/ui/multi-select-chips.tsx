@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { LuPlus, LuX } from 'react-icons/lu';
+import { LuPlus, LuX, LuLoader } from 'react-icons/lu';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverItem } from '@/components/ui/popover';
@@ -20,6 +20,8 @@ interface MultiSelectChipsProps {
   onChange: (next: string[]) => void;
   options: MultiSelectOption[];
   disabled?: boolean;
+  isLoading?: boolean;
+  loadingText?: string;
   addLabel: string;
   emptyText: string;
   blockedReason?: string;
@@ -38,6 +40,8 @@ export function MultiSelectChips({
   onChange,
   options,
   disabled,
+  isLoading = false,
+  loadingText,
   addLabel,
   emptyText,
   blockedReason,
@@ -77,7 +81,7 @@ export function MultiSelectChips({
   const overflow = Math.max(0, selectedOptions.length - visibleChipLimit);
   const visibleChips = selectedOptions.slice(0, visibleChipLimit);
   const isBlocked = Boolean(blockedReason);
-  const triggerDisabled = disabled || isBlocked || pickableOptions.length === 0;
+  const triggerDisabled = disabled || isLoading || isBlocked || pickableOptions.length === 0;
 
   return (
     <div className={cn('flex flex-col gap-2 h-full', className)} data-slot="multi-select-chips">
@@ -95,6 +99,7 @@ export function MultiSelectChips({
         className={cn(
           'flex min-h-12 flex-1 flex-wrap items-center gap-x-3 gap-y-2 rounded-[var(--radius-md)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-4 py-2 shadow-2xs transition-colors',
           isBlocked && 'bg-[var(--color-panel)]',
+          isLoading && 'bg-[var(--color-wash)]/40',
         )}
         id={id}
         role="group"
@@ -116,7 +121,7 @@ export function MultiSelectChips({
               type="button"
               aria-label={`Remove ${opt.label}`}
               onClick={() => handleRemove(opt.value)}
-              disabled={disabled}
+              disabled={disabled || isLoading}
               className={cn(
                 'inline-flex size-4 shrink-0 items-center justify-center rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] disabled:opacity-50',
                 isNeutral
@@ -140,7 +145,12 @@ export function MultiSelectChips({
           </span>
         ) : null}
 
-        {isBlocked ? (
+        {isLoading ? (
+          <span className="inline-flex items-center gap-2 text-xs font-medium text-[var(--color-ink-3)]">
+            <LuLoader className="size-3.5 animate-spin text-[var(--color-brand-600)]" aria-hidden="true" />
+            <span>{loadingText || 'Loading options...'}</span>
+          </span>
+        ) : isBlocked ? (
           <span className="text-xs italic text-[var(--color-ink-3)]">
             {blockedReason}
           </span>
