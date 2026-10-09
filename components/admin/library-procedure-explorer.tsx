@@ -230,10 +230,12 @@ export function LibraryProcedureExplorer({
     }
 
     window.addEventListener('lms_categories_updated', syncData);
+    window.addEventListener('lms_procedures_updated', syncData);
     window.addEventListener('storage', syncData);
     return () => {
       isMounted = false;
       window.removeEventListener('lms_categories_updated', syncData);
+      window.removeEventListener('lms_procedures_updated', syncData);
       window.removeEventListener('storage', syncData);
     };
   }, []);
@@ -925,10 +927,26 @@ export function LibraryProcedureExplorer({
                     // then the manager's iconImageUrl override; then the
                     // category's default SVG via getProcedureIcon.
                     const findCover = (blocks: ProcedureBlock[] | undefined): string | null => {
-                      const block = blocks?.find(
+                      if (!blocks) return null;
+                      const imageBlock = blocks.find(
                         (b): b is Extract<ProcedureBlock, { kind: 'image' }> => b.kind === 'image',
                       );
-                      return block?.src ?? null;
+                      if (imageBlock?.src) return imageBlock.src;
+                      for (const b of blocks) {
+                        if (b.kind === 'recipe' && b.steps) {
+                          for (const s of b.steps) {
+                            if (s.imageSrc) return s.imageSrc;
+                            if (s.images && s.images.length > 0 && s.images[0].src) return s.images[0].src;
+                          }
+                        }
+                        if (b.kind === 'method' && b.steps) {
+                          for (const s of b.steps) {
+                            if (s.imageSrc) return s.imageSrc;
+                            if (s.images && s.images.length > 0 && s.images[0].src) return s.images[0].src;
+                          }
+                        }
+                      }
+                      return null;
                     };
                     const bodyCover = findCover(p.bodyEn?.blocks) ?? findCover(p.bodyEs?.blocks);
                     const iconSrc = bodyCover ?? p.iconImageUrl ?? null;

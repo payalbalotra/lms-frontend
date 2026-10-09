@@ -8,6 +8,7 @@ import { useCategories } from '@/services/categories/hooks';
 import { getCachedProcedure, getProcedureBySlug, SEED_CATEGORIES } from '@/lib/api';
 import { PROCEDURES_QUERY_KEY } from '@/services/library/hooks';
 import { ProcedureEditor } from '@/components/admin/procedure-editor';
+import { EditProcedureSkeleton } from '@/components/admin/edit-procedure-skeleton';
 import type { Procedure } from '@/lib/types';
 
 /**
@@ -86,15 +87,3 @@ export function EditProcedureLoader({
   return <ProcedureEditor locale={locale} categories={effectiveCategories} initial={procedure} />;
 }
 
-/** Editor-shaped skeleton while the procedure resolves client-side —
- *  title row + big form canvas + a couple of field lines. */
-function EditProcedureSkeleton(): React.ReactElement {
-  return (
-    <div aria-hidden="true" className="mx-auto w-full max-w-doc space-y-6 px-4 pt-6 sm:px-6">
-      <div className="animate-pulse h-8 w-1/2 rounded-[var(--radius-md)] bg-[var(--color-panel-2)]" />
-      <div className="animate-pulse h-64 w-full rounded-[var(--radius-lg)] bg-[var(--color-panel)]" />
-      <div className="animate-pulse h-4 w-full rounded-[var(--radius-md)] bg-[var(--color-panel-2)]" />
-      <div className="animate-pulse h-4 w-2/3 rounded-[var(--radius-md)] bg-[var(--color-panel-2)]" />
-    </div>
-  );
-}

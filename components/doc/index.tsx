@@ -251,6 +251,8 @@ export function Section({
   title,
   count,
   id,
+  part,
+  className,
   children,
 }: {
   /** Omitted for a run of blocks that arrived before the document's first
@@ -260,10 +262,14 @@ export function Section({
   count?: React.ReactNode;
   /** Optional DOM id (used for in-page anchors like #related). */
   id?: string;
+  /** Optional part label, e.g. "PART 1 OF 4". Renders with demo3's .phase-part styling. */
+  part?: string;
+  className?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="doc-sec" id={id}>
+    <section className={cn('doc-sec', part && 'phase', className)} id={id}>
+      {part ? <p className="phase-part">{part}</p> : null}
       {title ? (
         <h2>
           {title}
@@ -415,18 +421,25 @@ export function MethodSteps({
   nowIndex,
   done = [],
   onToggleStep,
+  startIndex = 1,
 }: {
   steps: MethodStep[];
   nowIndex?: number;
   done?: boolean[];
   onToggleStep?: (index: number) => void;
+  startIndex?: number;
 }) {
   return (
-    <ol className="steps compact">
+    <ol
+      className="steps compact"
+      start={startIndex}
+      style={startIndex > 1 ? { counterReset: `step ${startIndex - 1}` } : undefined}
+    >
       {steps.map((s, i) => {
+        const actualNum = startIndex + i;
         const isDone = Boolean(done[i]);
-        // Only use the 3-column has-media layout when a side thumbnail is actually rendered
-        const showSideThumb = Boolean(s.mediaThumb && (!s.shots || s.shots.length === 0));
+        // When a side thumbnail (single, compare pair, or grid) is provided, render as side media layout
+        const showSideThumb = Boolean(s.mediaThumb);
         const classes = cn(
           'step',
           s.critical && 'is-crit',
@@ -435,13 +448,13 @@ export function MethodSteps({
           showSideThumb && 'has-media',
         );
         return (
-          <li key={i} id={`step-${i + 1}`} className={classes || undefined}>
+          <li key={i} id={`step-${actualNum}`} className={classes || undefined}>
             {onToggleStep ? (
               <button
                 type="button"
                 className="step-num step-check"
                 aria-pressed={isDone}
-                aria-label={`Step ${i + 1}${s.critical ? ', critical' : ''}: ${isDone ? 'done, tap to undo' : 'mark done'}`}
+                aria-label={`Step ${actualNum}${s.critical ? ', critical' : ''}: ${isDone ? 'done, tap to undo' : 'mark done'}`}
                 onClick={() => onToggleStep(i)}
               />
             ) : (
@@ -481,8 +494,8 @@ export function MethodSteps({
                   <span>{fmtClock(s.clip.startSec)}–{fmtClock(s.clip.endSec)}</span>
                 </a>
               )}
-              {/* Photographs: when multiple photos are attached, render as responsive grid with uniform 4:3 aspect ratio */}
-              {s.shots && s.shots.length > 1 ? (
+              {/* Photographs: when multiple photos are attached and not rendered as side thumb */}
+              {!showSideThumb && s.shots && s.shots.length > 1 ? (
                 <div
                   className={cn(
                     'grid gap-3 mt-3 items-stretch',
@@ -505,7 +518,7 @@ export function MethodSteps({
                     />
                   ))}
                 </div>
-              ) : s.shots && s.shots.length === 1 ? (
+              ) : !showSideThumb && s.shots && s.shots.length === 1 ? (
                 <div className="mt-3 max-w-xl">
                   <Shot src={s.shots[0].src} alt={s.shots[0].alt} caption={s.shots[0].caption} compare={s.shots[0].compare} />
                 </div>

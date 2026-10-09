@@ -32,7 +32,8 @@ export function useCreateProcedure() {
   return useMutation({
     mutationFn: (input: CreateProcedureInput) => createProcedure(input),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: PROCEDURES_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: PROCEDURES_QUERY_KEY, refetchType: 'all' });
+      queryClient.removeQueries({ queryKey: PROCEDURES_QUERY_KEY });
     },
   });
 }
@@ -44,7 +45,8 @@ export function useUpdateProcedure() {
     mutationFn: ({ id, input }: { id: string; input: Partial<CreateProcedureInput> }) =>
       updateProcedure(id, input),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: PROCEDURES_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: PROCEDURES_QUERY_KEY, refetchType: 'all' });
+      queryClient.removeQueries({ queryKey: PROCEDURES_QUERY_KEY });
     },
   });
 }
@@ -55,7 +57,8 @@ export function useArchiveProcedure() {
   return useMutation({
     mutationFn: (id: string) => archiveProcedure(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: PROCEDURES_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: PROCEDURES_QUERY_KEY, refetchType: 'all' });
+      queryClient.removeQueries({ queryKey: PROCEDURES_QUERY_KEY });
     },
   });
 }
@@ -68,5 +71,7 @@ export function useBrowseProcedures() {
   return useQuery({
     queryKey: [...PROCEDURES_QUERY_KEY, 'browse'],
     queryFn: () => listProcedures({}).then((r) => r.procedures),
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 }

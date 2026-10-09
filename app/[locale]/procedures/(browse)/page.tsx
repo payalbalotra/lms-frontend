@@ -127,6 +127,8 @@ export default async function ProceduresPage({ params, searchParams }: PageProps
           readsSpanish={readsSpanish}
           viewAs={viewAs}
           stationId={employee.stationIds[0] ?? null}
+          stationIds={employee.stationIds ?? []}
+          employeeId={employee.id}
           locked={!onboardingDone}
           lockedHref={lockedHref}
           lockedReason={lockedReason}

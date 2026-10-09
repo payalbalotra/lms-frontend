@@ -643,6 +643,7 @@ function normalizeWrittenProcedure(
     ...apiProcedure,
     subcategoryId: 'subcategoryId' in input ? (input.subcategoryId ?? null) : apiProcedure.subcategoryId,
     stationScope: input.stationScope ?? null,
+    iconImageUrl: input.iconImageUrl ?? apiProcedure.iconImageUrl ?? (apiProcedure as { procedureImage?: string | null }).procedureImage ?? null,
     version: apiProcedure.version ?? input.version ?? 1,
     isArchived: apiProcedure.isArchived ?? false,
     audience: input.audience ?? null,

@@ -193,6 +193,11 @@ function toMethodStep(step: ProcedureMethodStep, locale: 'en' | 'es', noteLabels
     };
   }
 
+  // If mediaThumb was populated, clear inline shots so we render as right-side thumbnail (matching demo3)
+  if (out.mediaThumb) {
+    out.shots = undefined;
+  }
+
   return out;
 }
 
@@ -278,6 +283,12 @@ export function BlockRenderer({
   const t = LABELS[locale];
   const attachmentRows: ChapterRow[] = [];
   const out: React.ReactNode[] = [];
+  const [doneMap, setDoneMap] = React.useState<Record<number, boolean>>({});
+
+  // Pre-count total method blocks so we can render "Part X of Y" when there are multiple parts
+  const methodBlockCount = blocks.filter((b) => b.kind === 'method').length;
+  let currentMethodIndex = 0;
+  let runningStepOffset = 0;
 
   // The section being filled. A heading opens one; a method or a recipe closes it,
   // because those bring their own heading with them.
@@ -407,11 +418,59 @@ export function BlockRenderer({
         const sectionKey = open?.key ?? key;
         const extraNodes = open?.nodes ?? [];
         open = null;
-        const steps = block.steps.map((s) => toMethodStep(s, locale, t.notes));
+        currentMethodIndex++;
+        const startIndex = runningStepOffset + 1;
+        runningStepOffset += block.steps.length;
+        const partLabel =
+          methodBlockCount > 1
+            ? locale === 'es'
+              ? `Parte ${currentMethodIndex} de ${methodBlockCount}`
+              : `Part ${currentMethodIndex} of ${methodBlockCount}`
+            : undefined;
+
+        const steps = block.steps.map((s, idx) => {
+          const stepNum = startIndex + idx;
+          const ms = toMethodStep(s, locale, t.notes);
+          return {
+            ...ms,
+            thumbLabel:
+              ms.thumbLabel ??
+              (locale === 'es'
+                ? `Paso ${stepNum}: abrir en modo cocina`
+                : `Step ${stepNum}: open in cook mode`),
+            onThumbOpen: () => {
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(
+                  new CustomEvent('cook-mode:open', {
+                    detail: { at: stepNum },
+                  }),
+                );
+              }
+            },
+          };
+        });
+
+        const doneForBlock = block.steps.map((_, si) => Boolean(doneMap[startIndex + si]));
+        const doneInPart = doneForBlock.filter(Boolean).length;
+        const allDoneInPart = doneInPart === block.steps.length && block.steps.length > 0;
+        const partCount = allDoneInPart
+          ? (locale === 'es' ? 'todos listos' : 'all done')
+          : doneInPart > 0
+            ? (locale === 'es' ? `${doneInPart} de ${block.steps.length} listos` : `${doneInPart} of ${block.steps.length} done`)
+            : t.steps(steps.length);
+
         out.push(
-          <Section key={sectionKey} title={sectionTitle} count={t.steps(steps.length)}>
+          <Section key={sectionKey} title={sectionTitle} part={partLabel} count={partCount}>
             {extraNodes}
-            <MethodSteps steps={steps} />
+            <MethodSteps
+              steps={steps}
+              startIndex={startIndex}
+              done={doneForBlock}
+              onToggleStep={(si) => {
+                const stepNo = startIndex + si;
+                setDoneMap((prev) => ({ ...prev, [stepNo]: !prev[stepNo] }));
+              }}
+            />
           </Section>,
         );
         return;

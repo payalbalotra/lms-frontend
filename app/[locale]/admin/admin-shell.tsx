@@ -197,14 +197,17 @@ export function AdminShell({
   const isProcedureDetailPage = React.useMemo(() => {
     // When viewing an individual procedure in the admin library (e.g. /admin/library/[id]),
     // make the background pure white to match the procedure document sheet.
+    // Edit page /admin/library/[id]/edit is a wizard form, so keep the standard admin background.
     const parts = pathname.split('/').filter(Boolean);
     const adminIdx = parts.indexOf('admin');
     if (adminIdx !== -1 && parts[adminIdx + 1] === 'library' && parts[adminIdx + 2]) {
       const segment = parts[adminIdx + 2];
-      return segment !== 'new' && segment !== 'categories';
+      const subSegment = parts[adminIdx + 3];
+      return segment !== 'new' && segment !== 'categories' && subSegment !== 'edit';
     }
     return false;
   }, [pathname]);
+
 
   return (
     <div

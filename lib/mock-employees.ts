@@ -321,6 +321,44 @@ export interface UpdateEmployeeInput {
   stationIds: string[];
 }
 
+function backendRoleFor(
+  role: EmployeeRole,
+  accessLevel?: AccessLevel,
+): 'super_admin' | 'manager' | 'employee' {
+  if (role === 'super_admin') return 'super_admin';
+  if (role === 'manager' || accessLevel === 'manager') return 'manager';
+  return 'employee';
+}
+
+/** Best-effort persist of a local employee write to the backend PUT.
+ *  Fire-and-forget: both mutators below stay synchronous (the edit modal's
+ *  Undo snapshotting depends on it). Mock-only rows (missing email) and
+ *  backend rejections keep the local write — today's behavior — with a
+ *  console warning so a silent divergence is visible in DevTools. The full
+ *  body is always sent, including current status/languagePref, because the
+ *  backend defaults an omitted status to `pending`. */
+function persistEmployeeInBackground(record: AdminEmployee): void {
+  if (typeof window === 'undefined') return;
+  if (!record.email) return;
+  void (async () => {
+    try {
+      const { updateEmployee: apiUpdate } = await import('@/services/employees/api');
+      await apiUpdate(record.id, {
+        name: record.name,
+        email: record.email as string,
+        locationId: record.locationId,
+        role: backendRoleFor(record.role, record.accessLevel),
+        jobIds: [...(record.jobIds ?? record.roleIds ?? [])],
+        stationIds: [...(record.stationIds ?? [])],
+        languagePref: record.languagePref ?? 'en',
+        status: record.status ?? 'active',
+      });
+    } catch (err) {
+      console.warn('[employees] background PUT failed, kept local write:', err);
+    }
+  })();
+}
+
 /** Synchronous write — the modal calls it, then closes, then the toast
  *  (a separate, later UI task) can offer Undo by calling this again with
  *  the captured prior state. The list and detail page subscribe via
@@ -368,6 +406,7 @@ export function updateEmployeeRoleStation(
   const next = [...employees];
   next[idx] = updated;
   writeRaw(next);
+  persistEmployeeInBackground(updated);
 
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event(EMPLOYEES_UPDATED_EVENT));
@@ -438,6 +477,7 @@ export function updateEmployee(
   const next = [...employees];
   next[idx] = updated;
   writeRaw(next);
+  persistEmployeeInBackground(updated);
 
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event(EMPLOYEES_UPDATED_EVENT));

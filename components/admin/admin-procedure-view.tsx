@@ -212,7 +212,10 @@ export function AdminProcedureView({
           <Button
             variant="secondary"
             icon={LuPencil}
-            onClick={() => router.push(`/${locale}/admin/library/${proc.id}/edit`)}
+            onClick={() => {
+              window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+              router.push(`/${locale}/admin/library/${proc.id}/edit`);
+            }}
           >
             {t('actionsEdit')}
           </Button>

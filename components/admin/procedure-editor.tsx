@@ -4,6 +4,8 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { useQueryClient } from "@tanstack/react-query";
+import { PROCEDURES_QUERY_KEY } from "@/services/library/hooks";
 import {
   LuArrowLeft,
   LuCheck,
@@ -105,6 +107,7 @@ export function ProcedureEditor({
   const tStep = useTranslations("admin.library.new.stepper");
   const tQuizDesc = useTranslations("admin.library.new.quiz");
   const router = useRouter();
+  const queryClient = useQueryClient();
   const isEdit = Boolean(initial);
   const isEs = locale === "es";
 
@@ -246,8 +249,16 @@ export function ProcedureEditor({
   const isFirstStep = stepIdx === 0;
   const isLastStep = stepIdx === STEPS.length - 1;
 
+  // Always start at top of page on mount / navigation
   React.useEffect(() => {
-    if (step !== "access" || accessDataLoaded) return;
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+    const rafId = requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+    });
+    return () => cancelAnimationFrame(rafId);
+  }, []);
+
+  React.useEffect(() => {
     let alive = true;
     void Promise.all([
       listStations("loc-main"),
@@ -256,8 +267,8 @@ export function ProcedureEditor({
     ])
       .then(([s, e, c]) => {
         if (!alive) return;
-        setStations(s.stations);
-        setPeople(e.employees);
+        if (s?.stations) setStations(s.stations);
+        if (e?.employees) setPeople(e.employees);
         if (c?.categories && c.categories.length > 0) {
           setCategories(c.categories);
         }
@@ -269,7 +280,7 @@ export function ProcedureEditor({
     return () => {
       alive = false;
     };
-  }, [step, accessDataLoaded]);
+  }, [categories.length]);
 
   // Opened from a category page ("Add procedure" on Cleaning → Dishwashing),
   // the URL names where it goes: ?category=<slug>&subcategory=<slug>. Stations
@@ -289,6 +300,25 @@ export function ProcedureEditor({
     const sub = cat.subcategories?.find((s) => s.slug === q.get("subcategory"));
     if (sub) setSubcategoryId(sub.id);
   }, [categories, initial]);
+
+  // Sync categoryId from initial or subcategoryId when categories load
+  React.useEffect(() => {
+    if (!categoryId && initial) {
+      if (initial.category?.id) {
+        setCategoryId(initial.category.id);
+      } else if ((initial as { categoryId?: string }).categoryId) {
+        setCategoryId((initial as { categoryId?: string }).categoryId!);
+      }
+    }
+    if (!categoryId && subcategoryId && categories.length > 0) {
+      const parentCat = categories.find((c) =>
+        c.subcategories?.some((s) => s.id === subcategoryId || s.slug === subcategoryId)
+      );
+      if (parentCat) {
+        setCategoryId(parentCat.id);
+      }
+    }
+  }, [categoryId, initial, subcategoryId, categories]);
 
   // Every edit marks the page dirty; one wrapper instead of a line per field.
   const edit =
@@ -606,9 +636,9 @@ export function ProcedureEditor({
 
     // 2. Access validation on publish
     if ((scope === 'access' || scope === 'all') && status === 'published') {
-      if (audience.stationIds.length === 0) {
+      if (category?.kind === 'station-tied' && audience.stationIds.length === 0) {
         return {
-          message: 'Please select at least one station before publishing.',
+          message: 'Please select at least one station for station-tied procedures before publishing.',
           target: stationsSectionRef.current || 'proc-stations',
           step: 'access',
           field: 'stations',
@@ -631,15 +661,14 @@ export function ProcedureEditor({
     if (valErr.step === 'access' || valErr.field === 'stations') {
       setStationsError(true);
     }
+    toast.error(valErr.message);
     scrollToTarget(valErr.target);
   }
 
   function handleNext(): void {
     let valErr: ValidationErrorResult | null = null;
     if (step === 'details') {
-      valErr = validateProcedureForm('details', published ? 'published' : 'draft');
-    } else if (step === 'access' && published) {
-      valErr = validateProcedureForm('access', 'published');
+      valErr = validateProcedureForm('details', 'draft');
     }
 
     if (valErr) {
@@ -657,14 +686,8 @@ export function ProcedureEditor({
   }
 
   function handleSelectStep(newStepId: WizardStepId): void {
-    const newIdx = STEPS.findIndex((s) => s.id === newStepId);
-    if (newIdx > stepIdx) {
-      let valErr: ValidationErrorResult | null = null;
-      if (step === 'details') {
-        valErr = validateProcedureForm('details', published ? 'published' : 'draft');
-      } else if (step === 'access' && published) {
-        valErr = validateProcedureForm('access', 'published');
-      }
+    if (step === 'details' && newStepId !== 'details') {
+      const valErr = validateProcedureForm('details', 'draft');
       if (valErr) {
         applyValidationError(valErr);
         return;
@@ -753,7 +776,10 @@ export function ProcedureEditor({
         };
         if (initial) await updateProcedure(initial.id, input);
         else await createProcedure(input);
+        await queryClient.invalidateQueries({ queryKey: PROCEDURES_QUERY_KEY, refetchType: 'all' });
+        queryClient.removeQueries({ queryKey: PROCEDURES_QUERY_KEY });
         setDirty(false);
+        toast.success(isEdit ? "Procedure updated successfully" : "Procedure created successfully");
         router.push(`/${locale}/admin/library`);
         router.refresh();
       } catch (err) {
@@ -1205,7 +1231,7 @@ export function ProcedureEditor({
                       {audience.employeeIds.map((id) => {
                         const person = people.find((p) => p.id === id);
                         if (!person) return null;
-                        const personStationList = person.stationIds
+                        const personStationList = (person.stationIds ?? [])
                           .map((sid) => stations.find((s) => s.id === sid)?.name)
                           .filter(Boolean)
                           .join(" · ");
@@ -1370,7 +1396,18 @@ export function ProcedureEditor({
               </Button>
             </Link>
           )}
-          {published ? null : (
+
+          {/* When in edit mode for a published procedure, allow "Save changes" from intermediate steps */}
+          {isEdit && published && !isLastStep ? (
+            <Button
+              type="button"
+              variant="surface"
+              disabled={pending || translating}
+              onClick={() => save("published")}
+            >
+              {t("saveChanges")}
+            </Button>
+          ) : !published ? (
             <Button
               type="button"
               variant="surface"
@@ -1379,7 +1416,8 @@ export function ProcedureEditor({
             >
               {t("saveDraft")}
             </Button>
-          )}
+          ) : null}
+
           {isLastStep ? (
             <Button
               type="button"

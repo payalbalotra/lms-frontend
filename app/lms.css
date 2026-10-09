@@ -5112,9 +5112,10 @@ textarea.bli__control {
    top: 50%;
    transform: translateY(-50%);
    font-family: var(--bli-font);
-   font-size: 12px;
+   font-size: 11px;
    color: var(--bli-muted);
    pointer-events: none;
+   white-space: nowrap;
    transition: opacity 0.22s ease;
 }
 
@@ -5141,15 +5142,20 @@ textarea.bli__control {
 
 .bli--compact .bli__control {
    font-size: var(--t-sm);
-   padding: 0 46px 0 var(--s-2);
+   padding: 0 108px 0 var(--s-2);
 }
 
 .bli--compact textarea.bli__control {
-   padding: 4px 46px 4px var(--s-2);
+   padding: 4px 108px 4px var(--s-2);
 }
 
 .bli--compact .bli__field.is-multiline.is-active .bli__control {
-   padding: var(--s-2) 46px var(--s-2) var(--s-2);
+   padding: var(--s-2) 108px var(--s-2) var(--s-2);
+}
+
+.bli--compact .bli__count {
+   font-size: 10px;
+   right: 32px;
 }
 
 .bli--compact .bli__tag {

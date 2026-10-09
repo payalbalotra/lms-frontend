@@ -2215,6 +2215,32 @@ export async function updateProcedure(
   id: string,
   patch: UpdateProcedureInput,
 ): Promise<{ procedure: Procedure }> {
+  // Real backend first: PUT /:id with the whole body (the route validates
+  // against the full create schema — partial bodies 400). The shared payload
+  // builder maps mock-only ids to real UUIDs and nulls the rest, so demo
+  // rows degrade to a backend-valid shape instead of failing validation.
+  try {
+    const { updateProcedure: apiUpdate } = await import('@/services/library/api');
+    const proc = await apiUpdate(id, patch);
+    if (proc) {
+      mockProcedures = [proc, ...getProceduresStore().filter((p) => p.id !== proc.id && p.slug !== proc.slug)];
+      setStored('procedures_v2', mockProcedures);
+      clearLibraryListCache();
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event('lms_procedures_updated'));
+      return { procedure: proc };
+    }
+  } catch (err) {
+    // Row lives only locally (backend 404 NOT_FOUND) or backend unreachable
+    // (status 0): fall through to the mock store below. Real validation
+    // (400), auth (401/403) and conflict (409) errors propagate so the
+    // editor shows them instead of pretending the save landed.
+    const fallback =
+      !(err instanceof ApiException) ||
+      err.status === 0 ||
+      err.status === 404;
+    if (!fallback) throw err;
+  }
+
   const procs = getProceduresStore();
   const idx = procs.findIndex((p) => p.id === id || p.slug === id);
   if (idx === -1) {
@@ -2240,6 +2266,9 @@ export async function updateProcedure(
     ...(patch.status != null && { status: patch.status }),
     ...(patch.bodyEn != null && { bodyEn: patch.bodyEn }),
     ...(patch.bodyEs != null && { bodyEs: patch.bodyEs }),
+    ...(patch.iconImageUrl !== undefined && { iconImageUrl: patch.iconImageUrl }),
+    ...(patch.audience !== undefined && { audience: patch.audience }),
+    ...(patch.protection !== undefined && { protection: patch.protection }),
     ...(patch.quizId !== undefined && { quizId: patch.quizId }),
     ...(patch.linkedTrainingId !== undefined && { linkedTrainingId: patch.linkedTrainingId }),
     ...(patch.quizMode != null && { quizMode: patch.quizMode as ProcedureQuizMode }),
