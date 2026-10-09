@@ -897,8 +897,8 @@ export function completeAssignment(assignmentId: string, at: Date = new Date()):
 /** The steps a course asks the reader through: all its "Steps" blocks
  *  together, the ones the reader ticks off. What "2 of 5 steps" counts. */
 export function courseStepCount(course: Procedure): number {
-  const blocks = course.bodyEn.blocks.length ? course.bodyEn.blocks : course.bodyEs.blocks;
-  return blocks.reduce((n, b) => n + (b.kind === 'method' ? b.steps.length : 0), 0);
+  const blocks = (course?.bodyEn?.blocks?.length ?? 0) > 0 ? course.bodyEn!.blocks : (course?.bodyEs?.blocks ?? []);
+  return blocks.reduce((n, b) => n + (b.kind === 'method' ? b.steps?.length ?? 0 : 0), 0);
 }
 
 /** Tick or untick one step of a course. Mock: the in-memory record, like

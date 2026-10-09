@@ -241,7 +241,7 @@ export function toEditorContent(p: Procedure): {
   ingredients: RecipeIngredientItem[];
   yieldItems: ProcedureYieldItem[];
 } {
-  const source = p.bodyEn.blocks.length ? p.bodyEn.blocks : p.bodyEs.blocks;
+  const source = (p.bodyEn?.blocks?.length ?? 0) > 0 ? p.bodyEn!.blocks : (p.bodyEs?.blocks ?? []);
   const recipe = source.find((b) => b.kind === 'recipe');
   const blocks = source.flatMap((b): ProcedureBlock[] =>
     b.kind === 'recipe' ? [{ id: newId('m'), kind: 'method', steps: b.steps }] : [b],

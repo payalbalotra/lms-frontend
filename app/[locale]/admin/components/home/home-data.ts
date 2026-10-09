@@ -29,9 +29,10 @@ export interface AttentionGroup {
 const DAY = 24 * 60 * 60 * 1000;
 
 export function coverOf(p: Procedure, locale: string): { src: string; alt: string } | undefined {
-  const body = p.bodyEn.blocks.length ? p.bodyEn : p.bodyEs;
+  const body = (p.bodyEn?.blocks?.length ?? 0) > 0 ? p.bodyEn : p.bodyEs;
+  if (!body?.blocks) return undefined;
   for (const b of body.blocks) {
-    if (b.kind === 'image' && b.src) return { src: b.src, alt: locale === 'es' ? b.alt.es || b.alt.en : b.alt.en || b.alt.es };
+    if (b.kind === 'image' && b.src) return { src: b.src, alt: locale === 'es' ? (b.alt?.es || b.alt?.en || '') : (b.alt?.en || b.alt?.es || '') };
   }
   return undefined;
 }

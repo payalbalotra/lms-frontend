@@ -36,27 +36,27 @@ export function PromoSection({
         {loading ? (
           <HomeRowsSkeleton count={2} />
         ) : (
-        <ul style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {rows.map((r) => (
-            <li key={r.key}>
-              <ProcedureRow
-                href={r.href}
-                cover={r.cover}
-                iconImageUrl={r.iconImageUrl}
-                category={r.category}
-                subcategory={r.subcategory}
-                title={r.title}
-                purpose={r.purpose}
-                meta={r.meta}
-                flags={r.flags}
-                flagLabels={flagLabels}
-                locked={r.locked}
-                lockedHref={r.lockedHref}
-                lockedReason={r.lockedReason}
-              />
-            </li>
-          ))}
-        </ul>
+          <ul style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {rows.map((r) => (
+              <li key={r.key}>
+                <ProcedureRow
+                  href={r.href}
+                  cover={r.cover}
+                  iconImageUrl={r.iconImageUrl}
+                  category={r.category}
+                  subcategory={r.subcategory}
+                  title={r.title}
+                  purpose={r.purpose}
+                  meta={r.meta}
+                  flags={r.flags}
+                  flagLabels={flagLabels}
+                  locked={r.locked}
+                  lockedHref={r.lockedHref}
+                  lockedReason={r.lockedReason}
+                />
+              </li>
+            ))}
+          </ul>
         )}
       </div>
     </section>

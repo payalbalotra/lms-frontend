@@ -87,9 +87,12 @@ function blockText(b: ProcedureBlock): string {
 /** How well a procedure answers the question; 0 means not at all. */
 export function scoreProcedure(p: Procedure, words: string[]): number {
   if (words.length === 0) return 1;
-  const title = fold(`${p.titleEn} ${p.titleEs}`);
-  const purpose = fold(`${p.purposeEn} ${p.purposeEs}`);
-  const body = fold([...p.bodyEn.blocks, ...p.bodyEs.blocks].map(blockText).join(' '));
+  const title = fold(`${p.titleEn || ''} ${p.titleEs || ''}`);
+  const purpose = fold(`${p.purposeEn || ''} ${p.purposeEs || ''}`);
+  const body = fold([
+    ...(p.bodyEn?.blocks ?? []),
+    ...(p.bodyEs?.blocks ?? []),
+  ].map(blockText).join(' '));
   let score = 0;
   for (const w of words) {
     if (title.includes(w)) score += 3;

@@ -42,27 +42,27 @@ export function LockedProceduresPreview({
           {loading ? (
             <HomeRowsSkeleton />
           ) : (
-          <ul style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {rows.map((r) => (
-              <li key={r.key}>
-                <ProcedureRow
-                  href={r.href}
-                  cover={r.cover}
-                  iconImageUrl={r.iconImageUrl}
-                  category={r.category}
-                  subcategory={r.subcategory}
-                  title={r.title}
-                  purpose={r.purpose}
-                  meta={r.meta}
-                  flags={r.flags}
-                  flagLabels={flagLabels}
-                  locked
-                  lockedHref={lockedHref}
-                  lockedReason={lockedReason}
-                />
-              </li>
-            ))}
-          </ul>
+            <ul style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {rows.map((r) => (
+                <li key={r.key}>
+                  <ProcedureRow
+                    href={r.href}
+                    cover={r.cover}
+                    iconImageUrl={r.iconImageUrl}
+                    category={r.category}
+                    subcategory={r.subcategory}
+                    title={r.title}
+                    purpose={r.purpose}
+                    meta={r.meta}
+                    flags={r.flags}
+                    flagLabels={flagLabels}
+                    locked={true}
+                    lockedHref={lockedHref}
+                    lockedReason={lockedReason}
+                  />
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       </section>

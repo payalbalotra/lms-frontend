@@ -173,7 +173,7 @@ export function AdminProcedureView({
   // recipe block. We compute it from the loaded `proc` so a freshly-edited
   // procedure re-evaluates on save without unmounting the chrome.
   const cookBlockId = React.useMemo<string | null>(() => {
-    const blocks = proc.bodyEn.blocks.length ? proc.bodyEn.blocks : proc.bodyEs.blocks;
+    const blocks = (proc?.bodyEn?.blocks?.length ?? 0) > 0 ? proc.bodyEn!.blocks : (proc?.bodyEs?.blocks ?? []);
     const recipe = blocks.find((b): b is Extract<ProcedureBlock, { kind: 'recipe' }> => b.kind === 'recipe');
     if (recipe) return recipe.id ?? `recipe-${recipe.factors?.length ?? 0}`;
     const hasMethod = blocks.some((b) => b.kind === 'method');

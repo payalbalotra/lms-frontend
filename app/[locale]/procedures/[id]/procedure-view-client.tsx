@@ -122,7 +122,7 @@ export function ProcedureViewClient({
   // Remembered on this device, so the home can offer the way back to it.
   React.useEffect(() => {
     if (!proc) return;
-    const blocks = proc.bodyEn.blocks.length ? proc.bodyEn.blocks : proc.bodyEs.blocks;
+    const blocks = (proc?.bodyEn?.blocks?.length ?? 0) > 0 ? proc.bodyEn!.blocks : (proc?.bodyEs?.blocks ?? []);
     const img = blocks.find((b) => b.kind === 'image' && b.src);
     const sub = proc.subcategoryId
       ? proc.category?.subcategories?.find((s) => s.id === proc.subcategoryId) ?? undefined
@@ -235,7 +235,7 @@ export function ProcedureViewClient({
   // the doc-bar CTA; the rest show as side-thumbs only.
   const cookBlockId = React.useMemo<string | null>(() => {
     if (!proc) return null;
-    const blocks = proc.bodyEn.blocks.length ? proc.bodyEn.blocks : proc.bodyEs.blocks;
+    const blocks = (proc?.bodyEn?.blocks?.length ?? 0) > 0 ? proc.bodyEn!.blocks : (proc?.bodyEs?.blocks ?? []);
     const recipe = blocks.find((b): b is Extract<ProcedureBlock, { kind: 'recipe' }> => b.kind === 'recipe');
     if (recipe) return recipe.id ?? `recipe-${recipe.factors?.length ?? 0}`;
     const hasMethod = blocks.some((b) => b.kind === 'method');
