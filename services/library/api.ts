@@ -412,6 +412,9 @@ export function normalizeBackendProcedure(raw: any): Procedure {
   return {
     ...raw,
     status,
+    stationId: raw.stationId ?? null,
+    isDirectlyAssigned: Boolean(raw.isDirectlyAssigned),
+    isStationProcedure: Boolean(raw.isStationProcedure),
     subcategoryId: raw.subcategory?.id ?? raw.subcategoryId ?? null,
     category: raw.category ?? null,
     stationScope:
@@ -443,19 +446,26 @@ export async function fetchProcedures(
   const page = options.page ?? 1;
   const search = options.search ?? options.q ?? undefined;
 
-  // ID-list filters live on GET /procedures/filter; plain status/search/page
+  const validCategoryIds = options.categoryIds?.filter((id) => isUuid(id));
+  const validSubcategoryIds = options.subcategoryIds?.filter((id) => isUuid(id));
+  const validStationIds = options.stationIds?.filter((id) => isUuid(id));
+  const validStatus = options.status && ['draft', 'published', 'archived'].includes(options.status) ? options.status : undefined;
+
+  // ID-list filters and status filters live on GET /procedures/filter; plain search/page
   // stay on GET /procedures. Both return { procedures, meta }.
   const useFilter =
-    (options.categoryIds?.length ?? 0) > 0 ||
-    (options.subcategoryIds?.length ?? 0) > 0 ||
-    (options.stationIds?.length ?? 0) > 0;
+    (validCategoryIds?.length ?? 0) > 0 ||
+    (validSubcategoryIds?.length ?? 0) > 0 ||
+    (validStationIds?.length ?? 0) > 0 ||
+    Boolean(validStatus);
+
   const params: Record<string, any> = { page, limit };
-  if (options.status) params.status = options.status;
+  if (validStatus) params.status = validStatus;
   if (search) params.search = search;
   if (useFilter) {
-    if (options.categoryIds?.length) params.categoryIds = options.categoryIds.join(',');
-    if (options.subcategoryIds?.length) params.subcategoryIds = options.subcategoryIds.join(',');
-    if (options.stationIds?.length) params.stationIds = options.stationIds.join(',');
+    if (validCategoryIds?.length) params.categoryIds = validCategoryIds.join(',');
+    if (validSubcategoryIds?.length) params.subcategoryIds = validSubcategoryIds.join(',');
+    if (validStationIds?.length) params.stationIds = validStationIds.join(',');
   }
 
   const { data } = await http.get<{

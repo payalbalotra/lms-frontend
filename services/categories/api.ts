@@ -78,6 +78,20 @@ const CATEGORIES_ENDPOINTS = {
   LIST: '/api/v1/categories',
 } as const;
 
+/** Backend ("Recipes") and mock ("Recipe") names for the same shelf rarely
+ *  share a slug. Two slugs match when equal or when one contains the other
+ *  after normalization (`recipe`/`recipes`, `cleaning`/`cleaning-schedules`,
+ *  `opening-closing`/`opening-and-closing`). Tight enough for a single-digit
+ *  category domain; exact equality is checked first. */
+export function categorySlugsMatch(a: string | undefined, b: string | undefined): boolean {
+  const norm = (s: string): string => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const x = norm(a ?? '');
+  const y = norm(b ?? '');
+  if (!x || !y) return false;
+  if (x === y) return true;
+  return x.includes(y) || y.includes(x);
+}
+
 /** Backend categories carry no slug — derive it the same way the mock
  *  creator does so backend and mock rows share one stable handle space. */
 export function backendSlug(nameEn: string): string {
@@ -106,44 +120,73 @@ export interface BackendCategoryOptions {
   limit?: number;
 }
 
+const inFlightBackendCategories = new Map<string, Promise<Category[]>>();
+const cachedBackendCategories = new Map<string, { data: Category[]; expiresAt: number }>();
+const BACKEND_CATEGORIES_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour in-memory cache
+
 export async function fetchBackendCategories(
   options: BackendCategoryOptions = {},
   cookieHeader?: string,
 ): Promise<Category[]> {
-  const headers = makeBackendHeaders(cookieHeader);
-  const { default: http } = await import('@/lib/http');
-  const { data } = await http.get<{
-    success: boolean;
-    data: {
-      categories: Array<{
-        id: string;
-        nameEn: string;
-        nameEs: string;
-        categoryType: string;
-        categoryIcon: string;
-      }>;
-      meta?: { total: number };
-    };
-  }>(CATEGORIES_ENDPOINTS.LIST, {
-    headers: Object.keys(headers).length ? headers : undefined,
-    params: {
-      search: options.search || undefined,
-      page: options.page ?? 1,
-      limit: options.limit ?? 100,
-    },
-  });
+  const cacheKey = `${cookieHeader || 'client'}::${options.search || ''}::${options.page || 1}::${options.limit || 100}`;
+  const now = Date.now();
 
-  const rawList = Array.isArray(data.data?.categories) ? data.data.categories : [];
-  return rawList.map(
-    (c): Category => ({
-      id: c.id,
-      slug: backendSlug(c.nameEn),
-      nameEn: c.nameEn,
-      nameEs: c.nameEs,
-      icon: c.categoryIcon || undefined,
-      isArchived: false,
-      kind: 'general',
-      subcategories: [],
-    }),
-  );
+  const cached = cachedBackendCategories.get(cacheKey);
+  if (cached && cached.expiresAt > now) {
+    return cached.data;
+  }
+
+  const inFlight = inFlightBackendCategories.get(cacheKey);
+  if (inFlight) {
+    return inFlight;
+  }
+
+  const promise = (async () => {
+    try {
+      const headers = makeBackendHeaders(cookieHeader);
+      const { default: http } = await import('@/lib/http');
+      const { data } = await http.get<{
+        success: boolean;
+        data: {
+          categories: Array<{
+            id: string;
+            nameEn: string;
+            nameEs: string;
+            categoryType: string;
+            categoryIcon: string;
+          }>;
+          meta?: { total: number };
+        };
+      }>(CATEGORIES_ENDPOINTS.LIST, {
+        headers: Object.keys(headers).length ? headers : undefined,
+        params: {
+          search: options.search || undefined,
+          page: options.page ?? 1,
+          limit: options.limit ?? 100,
+        },
+      });
+
+      const rawList = Array.isArray(data.data?.categories) ? data.data.categories : [];
+      const res = rawList.map(
+        (c): Category => ({
+          id: c.id,
+          slug: backendSlug(c.nameEn),
+          nameEn: c.nameEn,
+          nameEs: c.nameEs,
+          icon: c.categoryIcon || undefined,
+          isArchived: false,
+          kind: 'general',
+          subcategories: [],
+        }),
+      );
+
+      cachedBackendCategories.set(cacheKey, { data: res, expiresAt: Date.now() + BACKEND_CATEGORIES_CACHE_TTL_MS });
+      return res;
+    } finally {
+      inFlightBackendCategories.delete(cacheKey);
+    }
+  })();
+
+  inFlightBackendCategories.set(cacheKey, promise);
+  return promise;
 }

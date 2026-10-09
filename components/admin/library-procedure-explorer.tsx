@@ -44,10 +44,10 @@ import { IconTile } from '@/components/ui/icon-tile';
 import { HoverImagePreview } from '@/components/ui/hover-image-preview';
 import { EmptyState } from '@/components/ui/empty-state';
 import { RowActions, type RowActionItem } from '@/components/ui/row-actions';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { PROCEDURES_QUERY_KEY } from '@/services/library/hooks';
 import { getProcedureIcon } from '@/lib/category-icons';
-import { backendSlug } from '@/services/categories/api';
+import { backendSlug, categorySlugsMatch } from '@/services/categories/api';
 import { LibraryExplorerSkeleton } from '@/components/admin/library-explorer-skeleton';
 
 interface LibraryProcedureExplorerProps {
@@ -190,90 +190,48 @@ export function LibraryProcedureExplorer({
   const isEs = locale === 'es';
   const router = useRouter();
 
-  const [liveCategories, setLiveCategories] = React.useState<Category[]>(categories ?? []);
-  const [liveProcedures, setLiveProcedures] = React.useState<Procedure[]>(procedures ?? []);
-  const [liveStations, setLiveStations] = React.useState<Station[]>(stations ?? []);
-
-  React.useEffect(() => {
-    if (categories) setLiveCategories(categories);
-  }, [categories]);
-  React.useEffect(() => {
-    if (procedures) setLiveProcedures(procedures);
-  }, [procedures]);
-  React.useEffect(() => {
-    if (stations) setLiveStations(stations);
-  }, [stations]);
-
-  React.useEffect(() => {
-    let isMounted = true;
-    async function syncData() {
-      try {
-        // Independent reads — awaiting one after the other doubles the
-        // wait on every cross-tab refresh.
-        const [catRes, procRes] = await Promise.all([
-          listCategories('loc-main', {
-            includeArchived: true,
-          }),
-          listProcedures({}),
-        ]);
-        if (isMounted) {
-          if (catRes.categories && catRes.categories.length > 0) {
-            setLiveCategories(catRes.categories);
-          }
-          if (procRes.procedures && procRes.procedures.length > 0) {
-            setLiveProcedures(procRes.procedures);
-          }
-        }
-      } catch {
-        // Fallback
-      }
-    }
-
-    window.addEventListener('lms_categories_updated', syncData);
-    window.addEventListener('lms_procedures_updated', syncData);
-    window.addEventListener('storage', syncData);
-    return () => {
-      isMounted = false;
-      window.removeEventListener('lms_categories_updated', syncData);
-      window.removeEventListener('lms_procedures_updated', syncData);
-      window.removeEventListener('storage', syncData);
-    };
-  }, []);
-
-  const act = React.useCallback(async (id: string, change: { status?: ProcedureStatus; isArchived?: boolean }) => {
-    const updated = await setProcedureState(id, change);
-    setLiveProcedures((list) => list.map((p) => (p.id === id ? updated : p)));
-  }, []);
-
   const queryClient = useQueryClient();
+  const [archivedIds, setArchivedIds] = React.useState<Set<string>>(new Set());
+  const [deletedIds, setDeletedIds] = React.useState<Set<string>>(new Set());
+  const [statusOverrides, setStatusOverrides] = React.useState<Map<string, ProcedureStatus>>(new Map());
 
-  /** Archive through the real backend API (POST /procedures/:id/archive).
-   *  Optimistic: the row leaves the list instantly (archived rows are
-   *  filtered out of the default view) and rolls back from the server list
-   *  if the call fails. Freshness caches are cleared so the next read —
-   *  server or React Query — sees the archived state. */
   const onArchive = React.useCallback(
     async (id: string): Promise<void> => {
-      setLiveProcedures((list) =>
-        list.map((p) => (p.id === id || p.slug === id ? { ...p, isArchived: true } : p)),
-      );
+      setArchivedIds((prev) => new Set([...prev, id]));
       try {
         const { archiveProcedure } = await import('@/services/library/api');
         await archiveProcedure(id);
         clearLibraryListCache();
         await queryClient.invalidateQueries({ queryKey: PROCEDURES_QUERY_KEY });
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new Event('lms_procedures_updated'));
-        }
       } catch {
-        // Roll back from the server list; keep the optimistic state only if
-        // even the re-sync fails (offline).
-        try {
-          const { procedures } = await listProcedures({});
-          if (procedures.length > 0) setLiveProcedures(procedures);
-        } catch {
-          // keep optimistic state
-        }
+        setArchivedIds((prev) => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+      }
+    },
+    [queryClient],
+  );
+
+  const act = React.useCallback(
+    async (id: string, change: { status?: ProcedureStatus; isArchived?: boolean }) => {
+      if (change.status) {
+        setStatusOverrides((prev) => new Map(prev).set(id, change.status!));
+      }
+      if (change.isArchived !== undefined) {
+        setArchivedIds((prev) => {
+          const next = new Set(prev);
+          if (change.isArchived) next.add(id);
+          else next.delete(id);
+          return next;
+        });
+      }
+      try {
+        await setProcedureState(id, change);
+        await queryClient.invalidateQueries({ queryKey: PROCEDURES_QUERY_KEY });
+      } catch {
+        await queryClient.invalidateQueries({ queryKey: PROCEDURES_QUERY_KEY });
       }
     },
     [queryClient],
@@ -320,9 +278,13 @@ export function LibraryProcedureExplorer({
   );
   const [visibleCount, setVisibleCount] = React.useState<number>(PAGE_SIZE);
 
-  // A restaurant with nothing written yet sees that, and the way to start. A
-  // stand-in set of documents here looked like someone else's library on day one.
-  const allProcedures = liveProcedures;
+  const isUuid = (val: string | null | undefined): boolean => {
+    if (!val) return false;
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(val);
+  };
+
+  const liveCategories = categories ?? [];
+  const liveStations = stations ?? [];
 
   // Category counts & deduplication matching exact category pills in design reference
   const { categoryList, categoryCounts, categorySlugMap } = React.useMemo(() => {
@@ -369,12 +331,14 @@ export function LibraryProcedureExplorer({
     const slugToCanonicalSlug = new Map<string, string>();
 
     for (const cat of rawCategories) {
-      // Keyed by slug, not by name: the slug is what the filter matches on, and
-      // two categories with the same slug under different names ("Recipe" and
-      // "Recipes & Prep") produced two chips filtering the same set — and two
-      // React children with the same key.
       const normKey = (cat.slug || cat.nameEn || cat.nameEs).toLowerCase().trim();
-      const existing = canonicalByName.get(normKey);
+      const existing =
+        canonicalByName.get(normKey) ??
+        Array.from(canonicalByName.values()).find(
+          (c) =>
+            categorySlugsMatch(c.slug, cat.slug) ||
+            (Boolean(c.id) && Boolean(cat.id) && c.id === cat.id),
+        );
 
       if (!existing) {
         canonicalByName.set(normKey, cat);
@@ -387,17 +351,12 @@ export function LibraryProcedureExplorer({
     }
 
     const uniqueCategories = Array.from(canonicalByName.values());
-    // Backend rows carry their subcategory embedded (`subcategory: { id,
-    // categoryId, … }`) but the backend category list ships no subcategories.
-    // Fold the in-use subcategories into their categories (on clones — the
-    // source objects may live in the React Query cache) so the subcategory
-    // dropdown and name lookups see backend rows too.
     const enrichedCategories = uniqueCategories.map((c) => ({
       ...c,
       subcategories: [...(c.subcategories ?? [])],
     }));
     const enrichedById = new Map(enrichedCategories.map((c) => [c.id, c]));
-    for (const p of allProcedures) {
+    for (const p of procedures ?? []) {
       const sub = (
         p as unknown as {
           subcategory?: { id: string; categoryId: string; nameEn: string; nameEs: string } | null;
@@ -415,17 +374,12 @@ export function LibraryProcedureExplorer({
       });
     }
 
-    // What the list shows by default: archived documents are out of it, so
-    // they are out of the counts too, or "Food Safety 2" opened a list of one.
-    const current = allProcedures.filter((p) => !p.isArchived);
+    const current = (procedures ?? []).filter((p) => !p.isArchived);
     const counts: Record<string, number> = { all: current.length };
 
     for (const p of current) {
       const procCat = p.category ?? (p.subcategoryId ? enrichedCategories.find((c) => c.subcategories?.some((s) => s.id === p.subcategoryId)) : null);
-      if (!procCat) {
-        counts['general'] = (counts['general'] || 0) + 1;
-        continue;
-      }
+      if (!procCat) continue;
       const rawKey = procCat.slug || procCat.id;
       const canonicalSlug = slugToCanonicalSlug.get(rawKey) || procCat.slug;
       counts[canonicalSlug] = (counts[canonicalSlug] || 0) + 1;
@@ -436,7 +390,94 @@ export function LibraryProcedureExplorer({
       categoryCounts: counts,
       categorySlugMap: slugToCanonicalSlug,
     };
-  }, [categories, allProcedures]);
+  }, [categories, procedures]);
+
+  // Derive backend-compatible filter query params
+  const selectedCategoryObj = React.useMemo(() => {
+    if (selectedCategorySlug === 'all') return null;
+    return (
+      categoryList.find(
+        (c) =>
+          c.slug === selectedCategorySlug ||
+          (c.id && c.id === selectedCategorySlug) ||
+          categorySlugsMatch(c.slug, selectedCategorySlug),
+      ) ?? null
+    );
+  }, [selectedCategorySlug, categoryList]);
+
+  const backendCategoryIds = React.useMemo(() => {
+    if (!selectedCategoryObj?.id || !isUuid(selectedCategoryObj.id)) return undefined;
+    return [selectedCategoryObj.id];
+  }, [selectedCategoryObj]);
+
+  const backendSubcategoryIds = React.useMemo(() => {
+    if (selectedSubcategoryId === 'all' || !isUuid(selectedSubcategoryId)) return undefined;
+    return [selectedSubcategoryId];
+  }, [selectedSubcategoryId]);
+
+  const backendStationIds = React.useMemo(() => {
+    if (stationFilter === 'all' || !isUuid(stationFilter)) return undefined;
+    return [stationFilter];
+  }, [stationFilter]);
+
+  const backendStatus = React.useMemo(() => {
+    if (statusFilter === 'all') return undefined;
+    return statusFilter;
+  }, [statusFilter]);
+
+  const hasActiveBackendFilters = Boolean(
+    backendCategoryIds?.length ||
+    backendSubcategoryIds?.length ||
+    backendStationIds?.length ||
+    backendStatus ||
+    searchQuery.trim(),
+  );
+
+  const { data: filterApiResponse, isLoading: isFilterLoading } = useQuery({
+    queryKey: [
+      ...PROCEDURES_QUERY_KEY,
+      'admin-filter',
+      {
+        categoryIds: backendCategoryIds,
+        subcategoryIds: backendSubcategoryIds,
+        stationIds: backendStationIds,
+        status: backendStatus,
+        search: searchQuery.trim() || undefined,
+      },
+    ],
+    queryFn: async () => {
+      const { fetchProcedures } = await import('@/services/library/api');
+      return fetchProcedures(
+        {
+          categoryIds: backendCategoryIds,
+          subcategoryIds: backendSubcategoryIds,
+          stationIds: backendStationIds,
+          status: backendStatus,
+          search: searchQuery.trim() || undefined,
+        },
+        true,
+      );
+    },
+    enabled: hasActiveBackendFilters,
+    staleTime: 5000,
+  });
+
+  const allProcedures = React.useMemo(() => {
+    const list = (hasActiveBackendFilters && filterApiResponse?.procedures ? filterApiResponse.procedures : procedures) ?? [];
+    return list
+      .filter((p) => !deletedIds.has(p.id) && !deletedIds.has(p.slug))
+      .map((p) => {
+        let item = p;
+        if (archivedIds.has(p.id) || archivedIds.has(p.slug)) {
+          item = { ...item, isArchived: true };
+        }
+        const statusOverride = statusOverrides.get(p.id) || statusOverrides.get(p.slug);
+        if (statusOverride) {
+          item = { ...item, status: statusOverride };
+        }
+        return item;
+      });
+  }, [procedures, filterApiResponse, hasActiveBackendFilters, archivedIds, deletedIds, statusOverrides]);
 
   // Options for CustomSelect dropdowns
   const subById = React.useMemo(() => {
@@ -449,9 +490,7 @@ export function LibraryProcedureExplorer({
     return map;
   }, [categoryList]);
 
-  // Category dropdown options: All, General (only when uncategorized rows
-  // exist), then each category. Counts ride in the label so the "is there
-  // anything in there?" answer survives the move from pills to dropdown.
+  // Category dropdown options: All, then each category (General removed)
   const categorySelectOptions = React.useMemo(() => {
     return [
       {
@@ -459,15 +498,6 @@ export function LibraryProcedureExplorer({
         label: `${isEs ? 'Todas las categorías' : 'All categories'} (${categoryCounts.all || 0})`,
         icon: PiSquaresFour,
       },
-      ...((categoryCounts.general || 0) > 0
-        ? [
-            {
-              value: 'general',
-              label: `General (${categoryCounts.general || 0})`,
-              icon: PiFileText,
-            },
-          ]
-        : []),
       ...categoryList.map((cat) => {
         const theme = getCategoryTheme(cat.slug);
         const name = isEs ? cat.nameEs : cat.nameEn;
@@ -489,8 +519,8 @@ export function LibraryProcedureExplorer({
       selectedCategorySlug === 'all'
         ? categoryList.flatMap((cat) => cat.subcategories ?? [])
         : categoryList
-            .filter((cat) => cat.slug === selectedCategorySlug)
-            .flatMap((cat) => cat.subcategories ?? []);
+          .filter((cat) => cat.slug === selectedCategorySlug)
+          .flatMap((cat) => cat.subcategories ?? []);
 
     // Dedupe by id — two categories with overlapping subcategory ids would
     // otherwise show the same name twice.
@@ -579,13 +609,10 @@ export function LibraryProcedureExplorer({
         // Category Filter
         if (selectedCategorySlug !== 'all') {
           const procCat = p.category ?? (p.subcategoryId ? categoryList.find((c) => c.subcategories?.some((s) => s.id === p.subcategoryId)) : null);
-          if (!procCat) {
-            if (selectedCategorySlug !== 'general') return false;
-          } else {
-            const rawKey = procCat.slug || procCat.id;
-            const canonicalSlug = categorySlugMap.get(rawKey) || procCat.slug;
-            if (canonicalSlug !== selectedCategorySlug) return false;
-          }
+          if (!procCat) return false;
+          const rawKey = procCat.slug || procCat.id;
+          const canonicalSlug = categorySlugMap.get(rawKey) || procCat.slug;
+          if (!categorySlugsMatch(canonicalSlug, selectedCategorySlug)) return false;
         }
 
         // Status Filter
@@ -687,22 +714,20 @@ export function LibraryProcedureExplorer({
   /** Remove the procedure from state immediately (optimistic) then persist. */
   const handleDelete = React.useCallback(
     async (id: string): Promise<void> => {
-      // Optimistic removal — update local state first so the UI responds instantly.
-      setLiveProcedures((prev) => prev.filter((p) => p.id !== id && p.slug !== id));
+      setDeletedIds((prev) => new Set([...prev, id]));
       try {
         await deleteProcedure(id);
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new Event('lms_procedures_updated'));
-        }
-        router.refresh();
+        clearLibraryListCache();
+        await queryClient.invalidateQueries({ queryKey: PROCEDURES_QUERY_KEY });
       } catch {
-        // On failure, re-sync from the store (syncData re-runs on the storage event).
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new Event('storage'));
-        }
+        setDeletedIds((prev) => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
       }
     },
-    [router],
+    [queryClient],
   );
 
   return (
@@ -720,7 +745,6 @@ export function LibraryProcedureExplorer({
           }}
           chips={[
             { value: 'all', label: isEs ? 'Todas' : 'All', count: categoryCounts.all || 0 },
-            { value: 'general', label: 'General', count: categoryCounts.general || 0 },
           ]}
         />
 
@@ -829,7 +853,7 @@ export function LibraryProcedureExplorer({
       {/* List area. While the procedures query resolves, the filter bar above
           is already interactive (its catalog is local) and only the rows
           skeletonize — the page never waits for every query to paint. */}
-      {proceduresLoading ? (
+      {proceduresLoading || (hasActiveBackendFilters && isFilterLoading && !filterApiResponse) ? (
         <ul
           aria-busy="true"
           aria-label={isEs ? 'Cargando procedimientos' : 'Loading procedures'}
@@ -889,24 +913,23 @@ export function LibraryProcedureExplorer({
             const catName = procCategory ? (isEs ? procCategory.nameEs : procCategory.nameEn) : 'General';
             const title = (isEs ? p.titleEs || p.titleEn : p.titleEn || p.titleEs) || p.slug;
             const purpose = isEs ? p.purposeEs || p.purposeEn : p.purposeEn || p.purposeEs;
-            const noSpanish =
-              !p.titleEs?.trim() ||
-              ((p.bodyEn?.blocks?.length ?? 0) > 0 && (p.bodyEs?.blocks?.length ?? 0) === 0);
             // Subcategory resolves from the FK via the map the catalog already
             // builds; absent subcategories just don't render, no string-sniffing
             // fallback that used to lie about recipe sections.
             const sub = p.subcategoryId ? subById.get(p.subcategoryId) ?? null : null;
             const subName = sub ? (isEs ? sub.nameEs : sub.nameEn) : null;
             // Station names — only for procedures with an explicit narrow scope
-            // (mode: 'specific' with at least one station). Kitchen-wide
+            // (mode: 'specific' with at least one station) or attached stationId. Kitchen-wide
             // procedures don't carry a station in the meta line because the
             // whole floor follows them.
             const scopeStations =
               p.stationScope && p.stationScope.mode === 'specific' && p.stationScope.stationIds.length > 0
                 ? p.stationScope.stationIds
-                    .map((id) => liveStations.find((s) => s.id === id)?.name)
-                    .filter((n): n is string => Boolean(n))
-                : [];
+                  .map((id) => liveStations.find((s) => s.id === id)?.name)
+                  .filter((n): n is string => Boolean(n))
+                : p.stationId
+                  ? [liveStations.find((s) => s.id === p.stationId)?.name].filter((n): n is string => Boolean(n))
+                  : [];
 
             return (
               <li key={p.id} className="flex items-center gap-2 pr-3 transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:bg-[var(--color-wash)]">
@@ -917,120 +940,102 @@ export function LibraryProcedureExplorer({
                   href={`/${locale}/admin/library/${p.id}`}
                   className="group flex min-w-0 flex-1 items-center justify-between gap-4 py-5 pl-4"
                 >
-                {/* The icon is a mark, not a framed object: the bordered tile was
+                  {/* The icon is a mark, not a framed object: the bordered tile was
                     the only one of its kind in the product. */}
-                <div className="flex min-w-0 flex-1 items-start gap-4">
-                  {(() => {
-                    // The card icon follows the same priority as the employee
-                    // procedure list: the body's first image (the recipe photo
-                    // or, here, the buckets) is the most specific so it wins;
-                    // then the manager's iconImageUrl override; then the
-                    // category's default SVG via getProcedureIcon.
-                    const findCover = (blocks: ProcedureBlock[] | undefined): string | null => {
-                      if (!blocks) return null;
-                      const imageBlock = blocks.find(
-                        (b): b is Extract<ProcedureBlock, { kind: 'image' }> => b.kind === 'image',
-                      );
-                      if (imageBlock?.src) return imageBlock.src;
-                      for (const b of blocks) {
-                        if (b.kind === 'recipe' && b.steps) {
-                          for (const s of b.steps) {
-                            if (s.imageSrc) return s.imageSrc;
-                            if (s.images && s.images.length > 0 && s.images[0].src) return s.images[0].src;
+                  <div className="flex min-w-0 flex-1 items-start gap-4">
+                    {(() => {
+                      // The card icon follows the same priority as the employee
+                      // procedure list: the body's first image (the recipe photo
+                      // or, here, the buckets) is the most specific so it wins;
+                      // then the manager's iconImageUrl override; then the
+                      // category's default SVG via getProcedureIcon.
+                      const findCover = (blocks: ProcedureBlock[] | undefined): string | null => {
+                        if (!blocks) return null;
+                        const imageBlock = blocks.find(
+                          (b): b is Extract<ProcedureBlock, { kind: 'image' }> => b.kind === 'image',
+                        );
+                        if (imageBlock?.src) return imageBlock.src;
+                        for (const b of blocks) {
+                          if (b.kind === 'recipe' && b.steps) {
+                            for (const s of b.steps) {
+                              if (s.imageSrc) return s.imageSrc;
+                              if (s.images && s.images.length > 0 && s.images[0].src) return s.images[0].src;
+                            }
+                          }
+                          if (b.kind === 'method' && b.steps) {
+                            for (const s of b.steps) {
+                              if (s.imageSrc) return s.imageSrc;
+                              if (s.images && s.images.length > 0 && s.images[0].src) return s.images[0].src;
+                            }
                           }
                         }
-                        if (b.kind === 'method' && b.steps) {
-                          for (const s of b.steps) {
-                            if (s.imageSrc) return s.imageSrc;
-                            if (s.images && s.images.length > 0 && s.images[0].src) return s.images[0].src;
-                          }
-                        }
-                      }
-                      return null;
-                    };
-                    const bodyCover = findCover(p.bodyEn?.blocks) ?? findCover(p.bodyEs?.blocks);
-                    const iconSrc = bodyCover ?? p.iconImageUrl ?? null;
-                    return iconSrc ? (
-                      <HoverImagePreview src={iconSrc} alt={title}>
-                        <IconTile size="lg" image={{ src: iconSrc, alt: title }} />
-                      </HoverImagePreview>
-                    ) : (
-                      <IconTile
-                        size="lg"
-                        icon={getProcedureIcon(p, p.subcategoryId ? subById.get(p.subcategoryId) ?? null : null)}
-                      />
-                    );
-                  })()}
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <h4 className="min-w-0 text-base font-semibold leading-heading text-[var(--color-ink)] transition-colors">
-                        {title}
-                      </h4>
-                      <StatusPill tone={p.isArchived ? 'neutral' : p.status === 'published' ? 'ok' : 'neutral'} withDot>
-                        {p.isArchived
-                          ? isEs ? 'Archivado' : 'Archived'
-                          : p.status === 'published' ? (isEs ? 'Publicado' : 'Published') : isEs ? 'Borrador' : 'Draft'}
-                      </StatusPill>
-                    </div>
-
-                    {purpose ? (
-                      <p className="mt-1 line-clamp-2 text-sm leading-body text-[var(--color-ink-2)]">{purpose}</p>
-                    ) : null}
-
-                    {/* One meta line: what it is, what slice of the kitchen it lives
-                        in (subcategory + station), what languages it exists in,
-                        and when it last moved. The category was also a badge above
-                        and a column to the right; it is said once, here. */}
-                    <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm leading-meta text-[var(--color-ink-3)]">
-                      <span>{catName}</span>
-                      {subName ? (
-                        <>
-                          <span aria-hidden="true">·</span>
-                          <span>{subName}</span>
-                        </>
-                      ) : null}
-                      {scopeStations.length > 0 ? (
-                        <>
-                          <span aria-hidden="true">·</span>
-                          <span>
-                            {scopeStations.length === 1
-                              ? scopeStations[0]
-                              : `${scopeStations[0]} + ${scopeStations.length - 1}`}
-                          </span>
-                        </>
-                      ) : null}
-                      {p.protection === 'confidential' || p.protection === 'master' ? (
-                        <>
-                          <span aria-hidden="true">·</span>
-                          <span className="inline-flex items-center gap-1 font-semibold text-[var(--color-ink-2)]">
-                            <LuLock aria-hidden="true" />
-                            {p.protection === 'master'
-                              ? isEs ? 'Receta maestra' : 'Master recipe'
-                              : isEs ? 'Confidencial' : 'Confidential'}
-                          </span>
-                        </>
-                      ) : null}
-                      <span aria-hidden="true">·</span>
-                      {noSpanish ? (
-                        <span className="font-semibold text-[var(--color-warn-ink)]">
-                          {isEs ? 'Sin español' : 'No Spanish yet'}
-                        </span>
+                        return null;
+                      };
+                      const bodyCover = findCover(p.bodyEn?.blocks) ?? findCover(p.bodyEs?.blocks);
+                      const iconSrc = bodyCover ?? p.iconImageUrl ?? null;
+                      return iconSrc ? (
+                        <HoverImagePreview src={iconSrc} alt={title}>
+                          <IconTile size="lg" image={{ src: iconSrc, alt: title }} />
+                        </HoverImagePreview>
                       ) : (
-                        <span>EN / ES</span>
-                      )}
-                      <span aria-hidden="true">·</span>
-                      <span>
-                        {isEs ? 'Actualizado' : 'Updated'}{' '}
-                        {new Date(p.updatedAt).toLocaleDateString(isEs ? 'es' : 'en', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                        })}
-                      </span>
-                    </p>
+                        <IconTile
+                          size="lg"
+                          icon={getProcedureIcon(p, p.subcategoryId ? subById.get(p.subcategoryId) ?? null : null)}
+                        />
+                      );
+                    })()}
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <h4 className="min-w-0 text-base font-semibold leading-heading text-[var(--color-ink)] transition-colors">
+                          {title}
+                        </h4>
+                        <StatusPill tone={p.isArchived ? 'neutral' : p.status === 'published' ? 'ok' : 'neutral'} withDot>
+                          {p.isArchived
+                            ? isEs ? 'Archivado' : 'Archived'
+                            : p.status === 'published' ? (isEs ? 'Publicado' : 'Published') : isEs ? 'Borrador' : 'Draft'}
+                        </StatusPill>
+                      </div>
+
+                      {purpose ? (
+                        <p className="mt-1 line-clamp-2 text-sm leading-body text-[var(--color-ink-2)]">{purpose}</p>
+                      ) : null}
+
+                      {/* One meta line: what it is, what slice of the kitchen it lives
+                        in (subcategory + station). The category was also a badge above
+                        and a column to the right; it is said once, here. */}
+                      <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm leading-meta text-[var(--color-ink-3)]">
+                        <span>{catName}</span>
+                        {subName ? (
+                          <>
+                            <span aria-hidden="true">·</span>
+                            <span>{subName}</span>
+                          </>
+                        ) : null}
+                        {scopeStations.length > 0 ? (
+                          <>
+                            <span aria-hidden="true">·</span>
+                            <span>
+                              {scopeStations.length === 1
+                                ? scopeStations[0]
+                                : `${scopeStations[0]} + ${scopeStations.length - 1}`}
+                            </span>
+                          </>
+                        ) : null}
+                        {p.protection === 'confidential' || p.protection === 'master' ? (
+                          <>
+                            <span aria-hidden="true">·</span>
+                            <span className="inline-flex items-center gap-1 font-semibold text-[var(--color-ink-2)]">
+                              <LuLock aria-hidden="true" />
+                              {p.protection === 'master'
+                                ? isEs ? 'Receta maestra' : 'Master recipe'
+                                : isEs ? 'Confidencial' : 'Confidential'}
+                            </span>
+                          </>
+                        ) : null}
+                      </p>
+                    </div>
                   </div>
-                </div>
 
                 </Link>
                 <RowActions

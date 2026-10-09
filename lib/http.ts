@@ -6,13 +6,22 @@ import axios, {
 } from 'axios';
 import { ApiException } from './errors';
 
+const serverBaseURL = (() => {
+  const raw = (
+    process.env.BACKEND_API_URL ||
+    process.env.NEXT_PUBLIC_API_BASE ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    'http://localhost:8000'
+  ).trim().replace(/\/+$/, '');
+  // Same tolerance as next.config.ts: a bare `host:port` gets http:// —
+  // axios (like Next rewrites) needs an absolute URL with a scheme.
+  return /^https?:\/\//i.test(raw) ? raw : `http://${raw}`;
+})();
+
 const baseURL =
   typeof window !== 'undefined'
     ? '' // In browser, use same-origin relative URLs to proxy through Next.js rewrites (zero CORS)
-    : process.env.BACKEND_API_URL ||
-      process.env.NEXT_PUBLIC_API_BASE ||
-      process.env.NEXT_PUBLIC_API_URL ||
-      'http://localhost:8000';
+    : serverBaseURL;
 
 export const http: AxiosInstance = axios.create({
   baseURL,

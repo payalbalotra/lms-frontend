@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { ProcedureRow, type FlagLabels } from '@/components/employee/procedure-row';
 import { SectionHead } from './SectionHead';
+import { HomeRowsSkeleton } from './home-rows-skeleton';
 import type { HomeRow } from './EmployeeHome';
 
 /**
@@ -15,12 +16,15 @@ export function PromoSection({
   heading,
   rows,
   flagLabels,
+  loading = false,
 }: {
   heading: string;
   rows: HomeRow[];
   flagLabels: FlagLabels;
+  /** Procedures query still resolving — card + heading paint, rows skeletonize. */
+  loading?: boolean;
 }): React.ReactElement | null {
-  if (rows.length === 0) return null;
+  if (rows.length === 0 && !loading) return null;
   return (
     <section aria-labelledby="promo-h" style={{ marginTop: '24px' }}>
       {/* Bordered card wrapping heading + rows */}
@@ -29,6 +33,9 @@ export function PromoSection({
         style={{ padding: '14px 14px' }}
       >
         <SectionHead id="promo-h" title={heading} />
+        {loading ? (
+          <HomeRowsSkeleton count={2} />
+        ) : (
         <ul style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {rows.map((r) => (
             <li key={r.key}>
@@ -39,6 +46,7 @@ export function PromoSection({
                 category={r.category}
                 subcategory={r.subcategory}
                 title={r.title}
+                purpose={r.purpose}
                 meta={r.meta}
                 flags={r.flags}
                 flagLabels={flagLabels}
@@ -49,6 +57,7 @@ export function PromoSection({
             </li>
           ))}
         </ul>
+        )}
       </div>
     </section>
   );

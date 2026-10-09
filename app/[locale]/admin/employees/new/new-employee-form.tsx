@@ -10,8 +10,9 @@ import { Label } from '@/components/ui/label';
 import { CustomSelect } from '@/components/ui/custom-select';
 import { MultiSelectChips } from '@/components/ui/multi-select-chips';
 import { PageHeader } from '@/components/admin/page-header';
-import { LuUserPlus } from 'react-icons/lu';
+import { LuUserPlus, LuLoader } from 'react-icons/lu';
 import { createEmployee } from '@/services/employees/api';
+import { toast } from '@/components/ui/toast';
 import { fetchLocations } from '@/services/locations/api';
 import { fetchJobs, fetchRoles, fetchJobStations } from '@/services/jobs/api';
 import { fetchStations } from '@/services/stations/api';
@@ -57,6 +58,19 @@ const initialState = (defaultLocationId: string): FormState => ({
   languagePref: 'en',
 });
 
+interface FieldErrors {
+  name?: string;
+  email?: string;
+  locationId?: string;
+  accessLevel?: string;
+  roleIds?: string;
+  employeeCode?: string;
+}
+
+const MAX_NAME_LENGTH = 50;
+const MIN_NAME_LENGTH = 2;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export function NewEmployeeForm({
   locale,
   locations: initialLocations,
@@ -75,9 +89,17 @@ export function NewEmployeeForm({
   const [allStations, setAllStations] = useState<Station[]>([]);
   const [availableStations, setAvailableStations] = useState<Station[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [isLoadingLocations, setIsLoadingLocations] = useState<boolean>(false);
+  const [isLoadingRoles, setIsLoadingRoles] = useState<boolean>(false);
+  const [isLoadingStations, setIsLoadingStations] = useState<boolean>(false);
   const [result, setResult] = useState<{ employee: Employee; invite: InviteResult } | null>(null);
   const [isPending, startTransition] = useTransition();
   const hasLoadedRef = React.useRef(false);
+  // Role→stations fetches race when roles are toggled quickly: a slow
+  // response for an older selection must not overwrite the newer one
+  // (stale role sets re-add stations the manager just removed).
+  const roleFetchSeq = React.useRef(0);
 
   // Load real locations from the API on mount (do NOT load jobs or stations yet)
   useEffect(() => {
@@ -85,6 +107,7 @@ export function NewEmployeeForm({
     hasLoadedRef.current = true;
 
     async function loadInitial() {
+      setIsLoadingLocations(true);
       try {
         const locsRes = await fetchLocations();
         if (locsRes.locations.length > 0) {
@@ -96,25 +119,45 @@ export function NewEmployeeForm({
         }
       } catch {
         // keep fallback
+      } finally {
+        setIsLoadingLocations(false);
       }
     }
 
     void loadInitial();
   }, []);
 
+  function clearFieldError(field: keyof FieldErrors): void {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  }
+
   function update<K extends keyof FormState>(key: K, value: FormState[K]): void {
     setForm((f) => ({ ...f, [key]: value }));
+    clearFieldError(key as keyof FieldErrors);
+    if (error) setError(null);
   }
 
   function onLocationChange(newLocationId: string): void {
     setForm((f) => ({ ...f, locationId: newLocationId }));
+    clearFieldError('locationId');
+    if (error) setError(null);
   }
 
   // Handle access level toggle:
   // When Employee is selected: fetch jobs from jobs API; keep selections empty until user selects role
   // When Manager is selected: fetch jobs and send all jobs to get all stations; preselect all jobs and all stations
   async function setAccessLevel(next: AccessLevel | ''): Promise<void> {
+    clearFieldError('accessLevel');
+    if (error) setError(null);
+
     if (next === 'manager') {
+      setIsLoadingRoles(true);
+      setIsLoadingStations(true);
       try {
         const { jobs: fetchedJobs } = await fetchJobs();
         const currentRoles: Role[] = fetchedJobs.map((j) => ({
@@ -146,8 +189,15 @@ export function NewEmployeeForm({
           roleIds: currentRoles.map((r) => r.id),
           stationIds: uniqueStations.map((s) => s.id),
         }));
+        clearFieldError('roleIds');
       } catch (err) {
-        console.error('Failed to configure manager access:', err);
+        const msg =
+          err instanceof ApiException && err.message
+            ? err.message
+            : err instanceof Error && err.message
+              ? err.message
+              : t('errorGeneric');
+        toast.error(msg);
         setAvailableStations(allStations);
         setForm((f) => ({
           ...f,
@@ -155,11 +205,16 @@ export function NewEmployeeForm({
           roleIds: roles.map((r) => r.id),
           stationIds: allStations.map((s) => s.id),
         }));
+        clearFieldError('roleIds');
+      } finally {
+        setIsLoadingRoles(false);
+        setIsLoadingStations(false);
       }
       return;
     }
 
     if (next === 'employee') {
+      setIsLoadingRoles(true);
       try {
         const { jobs: fetchedJobs } = await fetchJobs();
         const currentRoles: Role[] = fetchedJobs.map((j) => ({
@@ -171,7 +226,15 @@ export function NewEmployeeForm({
         }));
         setRoles(currentRoles);
       } catch (err) {
-        console.error('Failed to fetch jobs for employee:', err);
+        const msg =
+          err instanceof ApiException && err.message
+            ? err.message
+            : err instanceof Error && err.message
+              ? err.message
+              : t('errorGeneric');
+        toast.error(msg);
+      } finally {
+        setIsLoadingRoles(false);
       }
 
       setAvailableStations([]);
@@ -198,6 +261,10 @@ export function NewEmployeeForm({
   // When a role is selected/removed, call /api/v1/jobs/stations for the selected jobs.
   // If jobs are cancelled, remove stations per their job.
   async function handleRoleIdsChange(nextRoleIds: string[]): Promise<void> {
+    if (nextRoleIds.length > 0) {
+      clearFieldError('roleIds');
+    }
+
     if (nextRoleIds.length === 0) {
       setAvailableStations([]);
       setForm((f) => ({
@@ -208,8 +275,12 @@ export function NewEmployeeForm({
       return;
     }
 
+    const seq = ++roleFetchSeq.current;
+    setIsLoadingStations(true);
     try {
       const { stations: fetchedStations } = await fetchJobStations(nextRoleIds);
+      // A newer role change already fired — this response is stale, drop it.
+      if (seq !== roleFetchSeq.current) return;
       const newAvailableStations: Station[] = fetchedStations.map((s, idx) => ({
         id: s.id,
         name: s.name,
@@ -228,11 +299,24 @@ export function NewEmployeeForm({
         stationIds: f.stationIds.filter((id) => availableStationIdSet.has(id)),
       }));
     } catch (err) {
-      console.error('Failed to fetch stations for selected jobs:', err);
+      // Surface the backend message — a stuck "Loading stations..." with
+      // only a console line left the manager guessing.
+      const msg =
+        err instanceof ApiException && err.message
+          ? err.message
+          : err instanceof Error && err.message
+            ? err.message
+            : t('errorGeneric');
+      toast.error(msg);
       setForm((f) => ({
         ...f,
         roleIds: nextRoleIds,
       }));
+    } finally {
+      // Only the latest request owns the flag: a stale response must not
+      // clear a newer request's loading state (or the spinner flaps), and
+      // a newer request must not leave a stale one spinning.
+      if (seq === roleFetchSeq.current) setIsLoadingStations(false);
     }
   }
 
@@ -253,48 +337,167 @@ export function NewEmployeeForm({
     setForm(initialState(locations[0]?.id ?? ''));
     setAvailableStations([]);
     setError(null);
+    setFieldErrors({});
   }
 
-  function validate(): string | null {
-    if (!form.name.trim()) return t('errorNeedName');
-    if (!form.locationId) return t('locationLabel');
-    if (!form.accessLevel) return t('errorNeedAccessLevel');
-    if (form.roleIds.length === 0) return t('errorNeedJobRole');
-    return null;
+  function validate(): { isValid: boolean; errors: FieldErrors; firstError: string | null } {
+    const errs: FieldErrors = {};
+    let firstErr: string | null = null;
+
+    const trimmedName = form.name.trim();
+    if (!trimmedName) {
+      errs.name = t('errorNeedName');
+      firstErr = firstErr ?? errs.name;
+    } else if (trimmedName.length < MIN_NAME_LENGTH || trimmedName.length > MAX_NAME_LENGTH) {
+      errs.name = t('errorNameLength') || `Employee name must be between ${MIN_NAME_LENGTH} and ${MAX_NAME_LENGTH} characters.`;
+      firstErr = firstErr ?? errs.name;
+    }
+
+    const trimmedEmail = form.email.trim();
+    if (!trimmedEmail) {
+      errs.email = t('errorNeedEmail');
+      firstErr = firstErr ?? errs.email;
+    } else if (!EMAIL_REGEX.test(trimmedEmail)) {
+      errs.email = t('errorInvalidEmail');
+      firstErr = firstErr ?? errs.email;
+    }
+
+    if (!form.locationId) {
+      errs.locationId = t('errorNeedLocation');
+      firstErr = firstErr ?? errs.locationId;
+    }
+
+    if (!form.accessLevel) {
+      errs.accessLevel = t('errorNeedAccessLevel');
+      firstErr = firstErr ?? errs.accessLevel;
+    }
+
+    if (form.roleIds.length === 0) {
+      errs.roleIds = t('errorNeedJobRole');
+      firstErr = firstErr ?? errs.roleIds;
+    }
+
+    const trimmedCode = form.employeeCode.trim();
+    if (!trimmedCode) {
+      errs.employeeCode = t('errorNeedCode');
+      firstErr = firstErr ?? errs.employeeCode;
+    } else if (trimmedCode.length !== 6) {
+      errs.employeeCode = t('errorNeedCode');
+      firstErr = firstErr ?? errs.employeeCode;
+    }
+
+    return {
+      isValid: Object.keys(errs).length === 0,
+      errors: errs,
+      firstError: firstErr,
+    };
   }
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>): void {
     event.preventDefault();
     setError(null);
 
-    const validationError = validate();
-    if (validationError) {
-      setError(validationError);
+    const { isValid, errors: validationErrors, firstError } = validate();
+    if (!isValid) {
+      setFieldErrors(validationErrors);
+      if (firstError) {
+        setError(firstError);
+        toast.error(firstError);
+      }
+      const firstInvalidKey = Object.keys(validationErrors)[0];
+      if (firstInvalidKey) {
+        const el = document.getElementById(firstInvalidKey);
+        el?.focus();
+      }
       return;
     }
 
     startTransition(async () => {
       try {
+        // Send EXACTLY what's checked — and only what's still offered for
+        // the current roles. Anything checked but no longer available (e.g.
+        // roles changed while a stations fetch failed) is dropped rather
+        // than silently persisted.
+        const offered = new Set(availableStations.map((s) => s.id));
+        const selectedStationIds =
+          offered.size > 0
+            ? form.stationIds.filter((id) => offered.has(id))
+            : [...form.stationIds];
         const res = await createEmployee({
           name: form.name.trim(),
-          email: form.email.trim() || null,
+          email: form.email.trim(),
           locationId: form.locationId,
           accessLevel: form.accessLevel as AccessLevel,
           roleIds: form.roleIds,
-          stationIds: form.stationIds,
+          stationIds: selectedStationIds,
           employeeCode: form.employeeCode.trim() || null,
           languagePref: form.languagePref,
         });
+        // Server-truth check: the backend must echo exactly what we sent.
+        // If it ever stores extras, say so loudly instead of looking saved.
+        const saved = new Set(res.employee.stationIds ?? []);
+        const extras = selectedStationIds.filter((id) => !saved.has(id));
+        const added = [...saved].filter((id) => !selectedStationIds.includes(id));
+        if (extras.length > 0 || added.length > 0) {
+          toast.warning(
+            `Stations mismatch: sent ${selectedStationIds.length}, saved ${saved.size}.`,
+          );
+        }
+        toast.success(t('inviteCreatedHeading') || 'Employee invite generated successfully');
         setResult(res);
       } catch (err) {
+        // Surface the backend's own message field (ApiException.message is
+        // the server text) in both the inline alert and a toast — same
+        // pattern as the invite-accept flow. Falls back to generic strings
+        // only when the server sent no text.
+        const msg =
+          err instanceof ApiException && err.message
+            ? err.message
+            : err instanceof Error && err.message
+              ? err.message
+              : t('errorGeneric');
+        setError(msg);
+        toast.error(msg);
+
+        // Map backend errors to inline field errors
+        const newFieldErrors: FieldErrors = {};
+
         if (err instanceof ApiException) {
-          if (err.code === 'EMPLOYEE_CODE_TAKEN') setError(t('errorDuplicateCode'));
-          else if (err.code === 'FORBIDDEN') setError(t('forbidden'));
-          else setError(err.message);
+          if (err.code === 'EMAIL_TAKEN' || /email/i.test(msg)) {
+            newFieldErrors.email = msg;
+          }
+          if (
+            err.code === 'EMPLOYEE_CODE_TAKEN' ||
+            /employee code/i.test(msg) ||
+            /code.*taken/i.test(msg) ||
+            /code.*already/i.test(msg)
+          ) {
+            newFieldErrors.employeeCode = msg;
+          }
+          if (err.code === 'LOCATION_NOT_FOUND' || /location/i.test(msg)) {
+            newFieldErrors.locationId = msg;
+          }
+          if (err.code === 'JOB_NOT_FOUND' || /job/i.test(msg)) {
+            newFieldErrors.roleIds = msg;
+          }
+          if (Array.isArray(err.details) && err.details.length > 0) {
+            for (const d of err.details) {
+              if (d.path) {
+                const fieldKey = (d.path === 'jobIds' ? 'roleIds' : d.path) as keyof FieldErrors;
+                newFieldErrors[fieldKey] = d.message;
+              }
+            }
+          }
         } else if (err instanceof Error) {
-          setError(err.message);
-        } else {
-          setError(t('errorGeneric'));
+          if (/email/i.test(err.message)) {
+            newFieldErrors.email = err.message;
+          } else if (/employee code|code/i.test(err.message)) {
+            newFieldErrors.employeeCode = err.message;
+          }
+        }
+
+        if (Object.keys(newFieldErrors).length > 0) {
+          setFieldErrors((prev) => ({ ...prev, ...newFieldErrors }));
         }
       }
     });
@@ -314,12 +517,7 @@ export function NewEmployeeForm({
     );
   }
 
-  const field = 'grid gap-2';
-  const canSubmit =
-    Boolean(form.name.trim()) &&
-    Boolean(form.locationId) &&
-    Boolean(form.accessLevel) &&
-    form.roleIds.length > 0;
+  const field = 'flex flex-col gap-1.5';
 
   return (
     <div className="mx-auto max-w-[760px] w-full space-y-6">
@@ -341,21 +539,36 @@ export function NewEmployeeForm({
           title={t('sectionEmployeeDetails')}
           hint={t('sectionEmployeeDetailsHint')}
         >
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 items-start">
             <div className={field}>
-              <Label htmlFor="name">{t('nameLabel')}</Label>
+              <div className="flex items-center justify-between min-h-5">
+                <Label htmlFor="name">{t('nameLabel')}</Label>
+                <span className="text-[11px] font-medium text-[var(--color-ink-3)]">
+                  {form.name.length}/{MAX_NAME_LENGTH}
+                </span>
+              </div>
               <Input
                 id="name"
                 required
-                maxLength={120}
+                maxLength={MAX_NAME_LENGTH}
                 value={form.name}
-                onChange={(e) => update('name', e.target.value)}
+                onChange={(e) => update('name', e.target.value.slice(0, MAX_NAME_LENGTH))}
                 disabled={isPending}
+                aria-invalid={Boolean(fieldErrors.name)}
+                aria-describedby={fieldErrors.name ? 'name-error' : undefined}
+                className={fieldErrors.name ? 'border-[var(--color-bad)] focus-visible:ring-[var(--color-bad)]' : ''}
               />
+              {fieldErrors.name ? (
+                <p id="name-error" role="alert" className="text-xs font-medium text-[var(--color-bad)]">
+                  {fieldErrors.name}
+                </p>
+              ) : null}
             </div>
 
             <div className={field}>
-              <Label htmlFor="email">{t('emailLabel')}</Label>
+              <div className="flex items-center justify-between min-h-5">
+                <Label htmlFor="email">{t('emailLabel')}</Label>
+              </div>
               <Input
                 id="email"
                 type="email"
@@ -364,21 +577,37 @@ export function NewEmployeeForm({
                 value={form.email}
                 onChange={(e) => update('email', e.target.value)}
                 disabled={isPending}
+                aria-invalid={Boolean(fieldErrors.email)}
+                aria-describedby={fieldErrors.email ? 'email-error' : undefined}
+                className={fieldErrors.email ? 'border-[var(--color-bad)] focus-visible:ring-[var(--color-bad)]' : ''}
               />
+              {fieldErrors.email ? (
+                <p id="email-error" role="alert" className="text-xs font-medium text-[var(--color-bad)]">
+                  {fieldErrors.email}
+                </p>
+              ) : null}
             </div>
 
             <div className={field}>
-              <Label id="locationId-label" htmlFor="locationId">
-                {t('locationLabel')}
-              </Label>
+              <div className="flex items-center justify-between min-h-5">
+                <Label id="locationId-label" htmlFor="locationId">
+                  {t('locationLabel')}
+                </Label>
+              </div>
               <CustomSelect
                 id="locationId"
                 ariaLabelledBy="locationId-label"
                 value={form.locationId}
                 onChange={onLocationChange}
-                disabled={isPending || locations.length <= 1}
+                disabled={isPending || isLoadingLocations || locations.length <= 1}
+                isLoading={isLoadingLocations}
                 options={locations.map((l) => ({ value: l.id, label: l.name }))}
               />
+              {fieldErrors.locationId ? (
+                <p id="locationId-error" role="alert" className="text-xs font-medium text-[var(--color-bad)]">
+                  {fieldErrors.locationId}
+                </p>
+              ) : null}
             </div>
           </div>
         </FormSection>
@@ -406,6 +635,7 @@ export function NewEmployeeForm({
               >
                 {ACCESS_LEVELS.map((level) => {
                   const selected = form.accessLevel === level;
+                  const isLevelLoading = selected && (isLoadingRoles || (level === 'manager' && isLoadingStations));
                   return (
                     <label
                       key={level}
@@ -414,7 +644,7 @@ export function NewEmployeeForm({
                         selected
                           ? 'border-[var(--color-brand-600)] bg-[var(--color-brand-tint)] text-[var(--color-brand-700)]'
                           : 'border-[var(--color-line-2)] bg-[var(--color-surface)] text-[var(--color-ink)] hover:bg-[var(--color-panel)]',
-                        isPending ? 'cursor-not-allowed opacity-60' : '',
+                        isPending || isLoadingRoles || isLoadingStations ? 'cursor-not-allowed opacity-80' : '',
                       ].join(' ')}
                     >
                       <input
@@ -422,19 +652,23 @@ export function NewEmployeeForm({
                         name="accessLevel"
                         value={level}
                         checked={selected}
-                        disabled={isPending}
+                        disabled={isPending || isLoadingRoles || isLoadingStations}
                         onChange={() => void setAccessLevel(level)}
                         className="sr-only"
                       />
-                      <span
-                        aria-hidden="true"
-                        className={[
-                          'inline-block size-2 rounded-full',
-                          selected
-                            ? 'bg-[var(--color-brand-600)]'
-                            : 'bg-[var(--color-line-2)]',
-                        ].join(' ')}
-                      />
+                      {isLevelLoading ? (
+                        <LuLoader className="size-3 animate-spin text-[var(--color-brand-600)]" aria-hidden="true" />
+                      ) : (
+                        <span
+                          aria-hidden="true"
+                          className={[
+                            'inline-block size-2 rounded-full',
+                            selected
+                              ? 'bg-[var(--color-brand-600)]'
+                              : 'bg-[var(--color-line-2)]',
+                          ].join(' ')}
+                        />
+                      )}
                       {level === 'manager'
                         ? t('accessLevelManager')
                         : t('accessLevelEmployee')}
@@ -442,20 +676,34 @@ export function NewEmployeeForm({
                   );
                 })}
               </div>
+              {fieldErrors.accessLevel ? (
+                <p role="alert" className="text-xs font-medium text-[var(--color-bad)]">
+                  {fieldErrors.accessLevel}
+                </p>
+              ) : null}
             </fieldset>
 
-            <div className="grid gap-5 sm:grid-cols-2">
-              <MultiSelectChips
-                id="jobRoles"
-                label={t('jobRolesLabel')}
-                hint={t('jobRolesHint')}
-                value={form.roleIds}
-                onChange={(ids) => void handleRoleIdsChange(ids)}
-                options={roles.map((r) => ({ value: r.id, label: r.name }))}
-                disabled={isPending || !form.accessLevel}
-                addLabel={t('jobRolesAdd')}
-                emptyText={t('jobRolesPrompt')}
-              />
+            <div className="grid gap-5 sm:grid-cols-2 items-start">
+              <div>
+                <MultiSelectChips
+                  id="jobRoles"
+                  label={t('jobRolesLabel')}
+                  hint={t('jobRolesHint')}
+                  value={form.roleIds}
+                  onChange={(ids) => void handleRoleIdsChange(ids)}
+                  options={roles.map((r) => ({ value: r.id, label: r.name }))}
+                  disabled={isPending || !form.accessLevel || isLoadingRoles}
+                  isLoading={isLoadingRoles}
+                  loadingText="Loading job roles..."
+                  addLabel={t('jobRolesAdd')}
+                  emptyText={t('jobRolesPrompt')}
+                />
+                {fieldErrors.roleIds ? (
+                  <p role="alert" className="mt-1.5 text-xs font-medium text-[var(--color-bad)]">
+                    {fieldErrors.roleIds}
+                  </p>
+                ) : null}
+              </div>
 
               <MultiSelectChips
                 id="stations"
@@ -467,7 +715,9 @@ export function NewEmployeeForm({
                   value: s.id,
                   label: s.name || t('selectPlaceholder'),
                 }))}
-                disabled={isPending || availableStations.length === 0}
+                disabled={isPending || (availableStations.length === 0 && !isLoadingStations)}
+                isLoading={isLoadingStations}
+                loadingText="Loading stations..."
                 blockedReason={stationsBlockedReason}
                 addLabel={t('stationsAdd')}
                 emptyText={t('stationsPrompt')}
@@ -481,23 +731,55 @@ export function NewEmployeeForm({
           title={t('sectionAdditional')}
           hint={t('sectionAdditionalHint')}
         >
-          <div className="grid gap-5 sm:grid-cols-2">
+          <div className="grid gap-5 sm:grid-cols-2 items-start">
             <div className={field}>
-              <Label htmlFor="employeeCode">{t('employeeCodeLabel')}</Label>
+              <div className="flex items-center justify-between min-h-5">
+                <Label htmlFor="employeeCode">{t('employeeCodeLabel')}</Label>
+              </div>
               <Input
                 id="employeeCode"
-                maxLength={32}
+                maxLength={6}
                 placeholder={t('employeeCodePlaceholder')}
                 value={form.employeeCode}
                 onChange={(e) => update('employeeCode', e.target.value)}
                 disabled={isPending}
+                aria-invalid={
+                  Boolean(fieldErrors.employeeCode) ||
+                  (form.employeeCode.trim().length > 0 && form.employeeCode.trim().length !== 6)
+                }
+                aria-describedby={fieldErrors.employeeCode ? 'employeeCode-error' : 'employeeCode-hint'}
+                className={fieldErrors.employeeCode ? 'border-[var(--color-bad)] focus-visible:ring-[var(--color-bad)]' : ''}
               />
+              {fieldErrors.employeeCode ? (
+                <p
+                  id="employeeCode-error"
+                  role="alert"
+                  className="text-xs font-medium text-[var(--color-bad)]"
+                >
+                  {fieldErrors.employeeCode}
+                </p>
+              ) : (
+                <p
+                  id="employeeCode-hint"
+                  className={
+                    form.employeeCode.trim().length > 0 && form.employeeCode.trim().length !== 6
+                      ? 'text-xs font-semibold text-[var(--color-bad)]'
+                      : 'text-xs text-[var(--color-ink-2)]'
+                  }
+                >
+                  {form.employeeCode.trim().length > 0 && form.employeeCode.trim().length !== 6
+                    ? t('errorNeedCode')
+                    : t('employeeCodeHint')}
+                </p>
+              )}
             </div>
 
             <div className={field}>
-              <Label id="languagePref-label" htmlFor="languagePref">
-                {t('languageLabel')}
-              </Label>
+              <div className="flex items-center justify-between min-h-5">
+                <Label id="languagePref-label" htmlFor="languagePref">
+                  {t('languageLabel')}
+                </Label>
+              </div>
               <CustomSelect
                 id="languagePref"
                 ariaLabelledBy="languagePref-label"
@@ -514,7 +796,7 @@ export function NewEmployeeForm({
         </FormSection>
 
         {error ? (
-          <p role="alert" className="text-sm text-[var(--color-bad)]">
+          <p role="alert" className="text-sm font-medium text-[var(--color-bad)]">
             {error}
           </p>
         ) : null}
@@ -522,7 +804,7 @@ export function NewEmployeeForm({
         <div className="flex items-center justify-end gap-3 rounded-[var(--radius-lg)] border border-[var(--color-line-2)] bg-[var(--color-surface)] px-6 py-4 shadow-e1 sm:px-8">
           <Button
             type="submit"
-            disabled={isPending || !canSubmit}
+            disabled={isPending || isLoadingLocations || isLoadingRoles || isLoadingStations}
             icon={LuUserPlus}
           >
             {isPending ? t('submitting') : t('submit')}

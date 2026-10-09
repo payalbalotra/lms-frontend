@@ -4,11 +4,20 @@ import createNextIntlPlugin from 'next-intl/plugin';
 const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 
 // Backend origin (rewrite proxy keeps Set-Cookie on the page origin).
-const BACKEND_ORIGIN =
+// Tolerates a bare `host:port` (no scheme) — env files on the team mix
+// `http://192.168.0.153:8000` and `192.168.0.153:8000`, and Next rejects a
+// destination that doesn't start with `/`, `http://` or `https://`.
+function normalizeOrigin(raw: string | undefined, fallback: string): string {
+  const v = (raw ?? fallback).trim().replace(/\/+$/, '');
+  return /^https?:\/\//i.test(v) ? v : `http://${v}`;
+}
+
+const BACKEND_ORIGIN = normalizeOrigin(
   process.env.BACKEND_API_URL ??
-  process.env.NEXT_PUBLIC_API_BASE ??
-  process.env.NEXT_PUBLIC_API_URL ??
-  'http://localhost:8000';
+    process.env.NEXT_PUBLIC_API_BASE ??
+    process.env.NEXT_PUBLIC_API_URL,
+  'http://localhost:8000',
+);
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,

@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
-import { LuCheck, LuChevronDown } from 'react-icons/lu';
+import { LuCheck, LuChevronDown, LuLoader } from 'react-icons/lu';
 import { Icon } from '@/components/ui/icon';
 import type { IconType } from 'react-icons';
 
@@ -26,6 +26,7 @@ export interface CustomSelectProps {
   placeholder?: string;
   leadingIcon?: IconType;
   disabled?: boolean;
+  isLoading?: boolean;
   size?: 'default' | 'sm';
   className?: string;
 }
@@ -39,6 +40,7 @@ export function CustomSelect({
   placeholder = 'Select an option...',
   leadingIcon,
   disabled = false,
+  isLoading = false,
   size = 'default',
   className,
 }: CustomSelectProps): React.ReactElement {
@@ -147,7 +149,7 @@ export function CustomSelect({
         id={id}
         aria-labelledby={ariaLabelledBy}
         type="button"
-        disabled={disabled}
+        disabled={disabled || isLoading}
         onClick={() => setOpen((prev) => !prev)}
         className={cn(
           'flex w-full items-center justify-between gap-2 rounded-[var(--radius-md)] border border-[var(--color-line-3)] bg-[var(--color-field)] text-[var(--color-ink)] transition-all duration-[var(--dur)]',
@@ -161,22 +163,26 @@ export function CustomSelect({
         )}
       >
         <div className="flex items-center gap-2 min-w-0">
-          {(selectedOption?.icon || leadingIcon) && (
+          {isLoading ? (
+            <LuLoader className="size-4 animate-spin text-[var(--color-brand-600)] shrink-0" aria-hidden="true" />
+          ) : (selectedOption?.icon || leadingIcon) ? (
             <Icon icon={(selectedOption?.icon ?? leadingIcon)!} className={cn(size === 'sm' ? 'text-sm' : 'text-base', 'text-[var(--color-ink-2)] shrink-0')} />
-          )}
-          <span className="truncate font-medium">
-            {selectedOption ? selectedOption.label : placeholder}
+          ) : null}
+          <span className={cn('truncate font-medium', isLoading && 'text-[var(--color-ink-3)]')}>
+            {isLoading ? 'Loading...' : selectedOption ? selectedOption.label : placeholder}
           </span>
         </div>
-        <LuChevronDown
-          aria-hidden="true"
-          className={cn(
-            'shrink-0 transition-transform duration-[var(--dur)]',
-            size === 'sm' ? 'text-sm' : 'text-base',
-            'text-[var(--color-ink-3)]',
-            open && 'rotate-180 text-[var(--color-brand-700)]',
-          )}
-        />
+        {isLoading ? null : (
+          <LuChevronDown
+            aria-hidden="true"
+            className={cn(
+              'shrink-0 transition-transform duration-[var(--dur)]',
+              size === 'sm' ? 'text-sm' : 'text-base',
+              'text-[var(--color-ink-3)]',
+              open && 'rotate-180 text-[var(--color-brand-700)]',
+            )}
+          />
+        )}
       </button>
 
       {open &&
